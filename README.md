@@ -286,6 +286,29 @@ TODO: specify semantics
 
 TODO
 
+# Executor type eraser
+
+
+```
+class executor
+{
+  public:
+    using operation_forward_progress = possibly_blocking_execution_tag;
+
+    template<class Function>
+    future<result_of_t<decay_t<Function>()>>
+    async_execute(Function&& f);
+
+    template<class Function>
+    void spawn_execute(Function&& f);
+
+  private:
+    std::any type_erased_executor_; // exposition only
+};
+```
+
+TODO: specify semantics, perhaps also give a possible implementation of `.async_execute()` because the type erasure involved may be tricky
+
 # Thread pool type
 
 TODO
