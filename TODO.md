@@ -64,3 +64,6 @@
     * we can imagine enhancing `.on()` in the future to receive other types of objects which may not be `Executor`s
       * the idea is that `.on()` just performs an adaptation and returns a new policy -- it's a factory for execution policies
 
+## Define thread pool requirements
+  * leave a placeholder TODO item
+
