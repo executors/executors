@@ -45,13 +45,13 @@ TODO
     template<class Executor>
     using executor_operation_forward_progress_t = typename executor_operation_forward_progress<Executor>::type;
 
-### Executor type requirements
+### Executor
 
 1. The `Executor` requirements form the basis of the executor concept taxonomy;
    every executor satisfies the `Executor` requirements. This set of
    requirements specifies operations for creating execution agents.
 
-2. A type `X` satisfies the `Executor` requirements if;
+2. A type `X` satisfies the `Executor` requirements if:
   * `X` satisfies the `CopyConstructible` requirements (17.6.3.1).
   * For any `MoveConstructible` function object with zero arguments `f` and object `x` of type `X`,
     at least one of the expressions in Table \ref{executor_operations} are valid and have the indicated semantics.
@@ -59,8 +59,9 @@ TODO
 Table: (Executor requirements) \label{executor_operation_requirements}
 
 
-| Expression                       | Return Type              |  Operational semantics             |
-|--------------------------------- |--------------------------| -----------------------------------|
-| `x.spawn_execute(std::move(f))`  | `void`                   |  Creates a one-way execution agent |
-| `x.async_execute(std::move(f))`  | `executor_future_t<X,R>` | Creates a two-way execution agent  |
+| Expression                       | Return Type              |  Operational                       | Assertion/note                                                                                                                  |
+|                                  |                          |  semantics                         | pre-/post-condition                                                                                                             |
+|----------------------------------|--------------------------|------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|
+| `x.spawn_execute(std::move(f))`  | `void`                   |  Creates a one-way execution agent | Effects: blocks the forward progress of the caller until `f` is finished as given by `executor_operation_forward_progress_t<X>` |
+| `x.async_execute(std::move(f))`  | `executor_future_t<X,R>` |  Creates a two-way execution agent | Effects: blocks the forward progress of the caller until `f` is finished as given by `executor_operation_forward_progress_t<X>` |
 
