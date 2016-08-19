@@ -198,7 +198,8 @@ TODO: specify semantics
 
     template<class Executor, class Function1, class Function2, class Function3>
     result_of_t<Function2(executor_shape_t<Executor>)>
-    bulk_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape, Function2 result_factory, Function3 shared_factory)
+    bulk_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape,
+                 Function2 result_factory, Function3 shared_factory)
 
 ## `execution::bulk_async_execute()`
 
@@ -209,7 +210,8 @@ TODO: specify semantics
       Executor,
       result_of_t<Function2(executor_shape_t<Executor>)>
     >
-    bulk_async_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape, Function2 result_factory, Function3 shared_factory)
+    bulk_async_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape,
+                       Function2 result_factory, Function3 shared_factory)
 
 ## `execution::bulk_then_execute()`
 
@@ -220,7 +222,9 @@ TODO: specify semantics
       Executor,
       result_of_t<Function2(executor_shape_t<Executor>)>
     >
-    bulk_then_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape, Future& predecessor, Function2 result_factory, Function3 shared_factory)
+    bulk_then_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape,
+                      Future& predecessor,
+                      Function2 result_factory, Function3 shared_factory)
 
 ## Networking TS-specific customization points
 
