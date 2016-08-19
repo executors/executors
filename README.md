@@ -38,7 +38,7 @@ TODO
         using __helper = typename T::operation_forward_progress;
     
       public:
-        using type = std::experimental::detected_or_t<__helper, possibly_blocking_execution_tag>;
+        using type = std::experimental::detected_or_t<possibly_blocking_execution_tag, __helper, Executor>;
     };
 
     template<class Executor>
@@ -65,6 +65,10 @@ Table: (Executor requirements) \label{executor_requirements}
 | `x.spawn_execute(std::move(f))`  | `void`                   |  Creates an execution agent which invokes `f()` | Effects: blocks the forward progress of the caller until `f` is finished as given by `executor_operation_forward_progress_t<X>` |
 | `x.async_execute(std::move(f))`  | `executor_future_t<X,R>` |  Creates an execution agent which invokes `f()` | Effects: blocks the forward progress of the caller until `f` is finished as given by `executor_operation_forward_progress_t<X>` |
 
+# Bulk (i.e., Parallelism TS) executor category
+
+## Bulk executor traits
+
 ### Classifying forward progress guarantees of groups of execution agents
 
     struct sequenced_execution_tag {};
@@ -75,9 +79,20 @@ Table: (Executor requirements) \label{executor_requirements}
     /        required for any functionality of version 0
     // struct concurrent_execution_tag {};
 
-# Bulk (i.e., Parallelism TS) executor category
+    template<class Executor>
+    struct executor_execution_category
+    {
+      private:
+        // exposition only
+        template<class T>
+        using __helper = typename T::execution_category;
 
-## Bulk executor traits
+      public:
+        using type = std::experimental::detected_or_t<unsequenced_execution_tag, __helper, Executor>;
+    };
+
+    template<class Executor>
+    using executor_execution_category_t = typename executor_execution_category<Executor>::type;
 
 ### Associated shape type
 
@@ -90,11 +105,16 @@ Table: (Executor requirements) \label{executor_requirements}
         using __helper = typename T::shape_type;
     
       public:
-        using type = std::experimental::detected_or_t<__helper, size_t>;
+        using type = std::experimental::detected_or_t<size_t, __helper, Executor>;
 
         // exposition only
         static_assert(std::is_integral_v<type>, "shape type must be an integral type");
     };
+
+    template<class Executor>
+    using executor_shape_t = typename executor_shape<Executor>::type;
+
+### Associated index type
 
     template<class Executor>
     struct executor_index
@@ -105,11 +125,14 @@ Table: (Executor requirements) \label{executor_requirements}
         using __helper = typename T::index_type;
 
       public:
-        using type = std::experimental::detected_or_t<__helper, executor_shape_t<Executor>>;
+        using type = std::experimental::detected_or_t<executor_shape_t<Executor>, __helper, Executor>;
 
         // exposition only
         static_assert(std::is_integral_v<type>, "index type must be an integral type");
     };
+
+    template<class Executor>
+    using executor_index_t = typename executor_index<Executor>::type;
 
 ## BulkExecutor
 
@@ -134,6 +157,8 @@ Table: (Bulk executor requirements) \label{bulk_executor_requirements}
 | Expression                               | Return Type              |  Operational semantics                                                      | Assertion/note/pre-/post-condition                                                                                                                     |
 |------------------------------------------|--------------------------|-----------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `x.bulk_execute(f, n, rf, sf)`           | `R`                      |  Creates a group of execution agents of shape `n` which invoke `f(i, r, s)` | Note: blocks the forward progress of the caller until all invocations of `f` are finished.                                                             |
+|                                          |                          |                                                                             |                                                                                                                                                        |
 | `x.bulk_async_execute(f, n, rf, sf)`     | `executor_future_t<X,R>` |  Creates a group of execution agents of shape `n` which invoke `f(i, r, s)` | Effects: blocks the forward progress of the caller until all invocations of `f` are finished as required by `executor_operation_forward_progress_t<X>` |
+|                                          |                          |                                                                             |                                                                                                                                                        |
 | `x.bulk_then_execute(f, n, pred, rf, sf)`| `executor_future_t<X,R>` |  Creates a group of execution agents of shape `n` which invoke `f(i, r, s)` | Effects: blocks the forward progress of the caller until all invocations of `f` are finished as required by `executor_operation_forward_progress_t<X>` |
 
