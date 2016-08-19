@@ -186,7 +186,10 @@ TODO: specify semantics
 TODO: specify semantics
 
     template<class Executor, class Function>
-    executor_future_t<Executor,result_of_t<decay_t<Function>()>>
+    executor_future_t<
+      Executor,
+      result_of_t<decay_t<Function>()>
+    >
     async_execute(Executor& exec, Function&& f)
 
 ## `execution::bulk_execute()`
