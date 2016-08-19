@@ -66,7 +66,7 @@ Table: (Executor requirements) \label{executor_requirements}
 | `x.async_execute(std::move(f))`  | `executor_future_t<X,R>` |  Creates an execution agent which invokes `f()`              | Effects: blocks the forward progress of the caller until `f` is finished as given by `executor_operation_forward_progress_t<X>` |
 |                                  |                          |  Returns the result of `f()` via the resulting future object |                                                                                                                                 |
 
-# Bulk (i.e., Parallelism TS) executor category
+# Bulk (Parallelism TS) executor category
 
 ## Bulk executor traits
 
@@ -172,3 +172,6 @@ Table: (Bulk executor requirements) \label{bulk_executor_requirements}
 |                                          |                          |                                                                                                            | If `pred`'s result type is `void`, `pr` is ommitted from `f`'s invocation.                                                                             |
 |                                          |                          |                                                                                                            | Post: `pred` is invalid if it is not a shared future.                                                                                                  |
 
+# (Networking TS) executor category
+
+TODO
