@@ -58,10 +58,9 @@ TODO
 
 Table: (Executor requirements) \label{executor_operation_requirements}
 
-------------------------------------------------------------------------------------------------
- Expression                        Return Type                Operational semantics             
---------------------------------- -------------------------- -----------------------------------
- `x.spawn_execute(std::move(f))`   `void`                     Creates a one-way execution agent 
- `x.async_execute(std::move(f))`   `executor_future_t<X,R>`   Creates a two-way execution agent 
-------------------------------------------------------------------------------------------------
+
+| Expression                       | Return Type              |  Operational semantics             |
+|--------------------------------- |--------------------------| -----------------------------------|
+| `x.spawn_execute(std::move(f))`  | `void`                   |  Creates a one-way execution agent |
+| `x.async_execute(std::move(f))`  | `executor_future_t<X,R>` | Creates a two-way execution agent  |
 
