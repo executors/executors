@@ -47,18 +47,16 @@ TODO
 
 ### Executor type requirements
 
-Executors are `CopyConstructible` types that create execution agents through executor operations.
+1. The `Executor` requirements form the basis of the executor concept taxonomy;
+   every executor satisfies the `Executor` requirements. This set of
+   requirements specifies operations for creating execution agents.
 
-Calling an executor operation affects the forward progress of the calling thread as given by `executor_operation_forward_progress_t<Executor>`.
+2. A type `X` satisfies the `Executor` requirements if;
+  * `X` satisfies the `CopyConstructible` requirements (17.6.3.1).
+  * For any `MoveConstructible` function object with zero arguments `f` and object `x` of type `X`,
+    at least one of the expressions in Table \ref{executor_operations} are valid and have the indicated semantics.
 
-The rows of table \ref{executor_operation_requirements} specify executor operations. An executor class shall provide at least one of these operations.
-
-In table \ref{executor_operation_requirements}, `X` denotes an executor class object, `x` denotes a value of type `X`, `f` denotes a `MoveConstructible`
-function object with zero arguments, and `R` denotes the type of `f()`.
-
-For any `f` and `x`, at least one of the operations of table \ref{executor_operation_requirements} shall be well-formed.
-
-Table: (Executor operation requirements) \label{executor_operation_requirements}
+Table: (Executor requirements) \label{executor_operation_requirements}
 
 ------------------------------------------------------------------------------------------------
  Expression                        Return Type                Operational semantics             
