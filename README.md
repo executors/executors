@@ -266,7 +266,11 @@ TODO: specify semantics
 
 ## `std::invoke()`
 
-TODO
+TODO: specify semantics
+
+    template<class Executor, class Function, class... Args>
+    result_of_t<F&&(Args&&...)>
+    invoke(Executor& exec, Function&& f, Args&&... args)
 
 ## `define_task_block()`
 
