@@ -1,6 +1,3 @@
-# issaquah_2016
-A proposal for a minimal executor model for the Issaquah 2016 ISO C++ committee meeting
-
 # Front Matter
 
 TODO
@@ -14,7 +11,7 @@ TODO
     template<class Executor, class T>
     struct executor_future
     {
-      // TODO: elaborate this later to allow executor-specific future types
+      // TODO: we can elaborate this in future proposals to allow executor-specific future types
       using type = std::future<T>;
     };
     
@@ -35,10 +32,10 @@ TODO
       private:
         // exposition only
         template<class T>
-        using __helper = typename T::operation_forward_progress;
+        using helper = typename T::operation_forward_progress;
     
       public:
-        using type = std::experimental::detected_or_t<possibly_blocking_execution_tag, __helper, Executor>;
+        using type = std::experimental::detected_or_t<possibly_blocking_execution_tag, helper, Executor>;
     };
 
     template<class Executor>
@@ -76,8 +73,7 @@ Table: (Executor requirements) \label{executor_requirements}
     struct parallel_execution_tag {};
     struct unsequenced_execution_tag {};
 
-    // TODO: we'll want this type in the future, but it is not
-    /        required for any functionality of version 0
+    // TODO: we can define this category in a future proposal
     // struct concurrent_execution_tag {};
 
     template<class Executor>
@@ -86,10 +82,10 @@ Table: (Executor requirements) \label{executor_requirements}
       private:
         // exposition only
         template<class T>
-        using __helper = typename T::execution_category;
+        using helper = typename T::execution_category;
 
       public:
-        using type = std::experimental::detected_or_t<unsequenced_execution_tag, __helper, Executor>;
+        using type = std::experimental::detected_or_t<unsequenced_execution_tag, helper, Executor>;
     };
 
     template<class Executor>
@@ -103,10 +99,10 @@ Table: (Executor requirements) \label{executor_requirements}
       private:
         // exposition only
         template<class T>
-        using __helper = typename T::shape_type;
+        using helper = typename T::shape_type;
     
       public:
-        using type = std::experimental::detected_or_t<size_t, __helper, Executor>;
+        using type = std::experimental::detected_or_t<size_t, helper, Executor>;
 
         // exposition only
         static_assert(std::is_integral_v<type>, "shape type must be an integral type");
@@ -123,10 +119,10 @@ Table: (Executor requirements) \label{executor_requirements}
       private:
         // exposition only
         template<class T>
-        using __helper = typename T::index_type;
+        using helper = typename T::index_type;
 
       public:
-        using type = std::experimental::detected_or_t<executor_shape_t<Executor>, __helper, Executor>;
+        using type = std::experimental::detected_or_t<executor_shape_t<Executor>, helper, Executor>;
 
         // exposition only
         static_assert(std::is_integral_v<type>, "index type must be an integral type");
@@ -175,3 +171,28 @@ Table: (Bulk executor requirements) \label{bulk_executor_requirements}
 # (Networking TS) executor category
 
 TODO
+
+# Executor Customization Points
+
+## `execution::spawn_execute()`
+
+## `execution::async_execute()`
+
+## `execution::bulk_execute()`
+
+## `execution::bulk_async_execute()`
+
+## `execution::bulk_then_execute()`
+
+## Networking TS-specific customization points
+
+TODO
+
+# Execution policy interoperation
+
+TODO
+
+## Thread pool type
+
+TODO
+
