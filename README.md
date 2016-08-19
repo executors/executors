@@ -62,6 +62,8 @@ Table: (Executor requirements) \label{executor_requirements}
 | `x.spawn_execute(std::move(f))`  | `void`                   |  Creates an execution agent which invokes `f()`              | Effects: blocks the forward progress of the caller until `f` is finished as given by `executor_operation_forward_progress_t<X>` |
 | `x.async_execute(std::move(f))`  | `executor_future_t<X,R>` |  Creates an execution agent which invokes `f()`              | Effects: blocks the forward progress of the caller until `f` is finished as given by `executor_operation_forward_progress_t<X>` |
 |                                  |                          |  Returns the result of `f()` via the resulting future object |                                                                                                                                 |
+ 
+XXX it's not clear this table can be formatted nicely for a PDF, so we might want to look into an alternate way to specify these requirements
 
 # Bulk (Parallelism TS) executor category
 
@@ -167,6 +169,8 @@ Table: (Bulk executor requirements) \label{bulk_executor_requirements}
 |                                          |                          |                                                                                                            | Effects: invokes `sf(n)` on an unspecified execution agent.                                                                                            |
 |                                          |                          |                                                                                                            | If `pred`'s result type is `void`, `pr` is ommitted from `f`'s invocation.                                                                             |
 |                                          |                          |                                                                                                            | Post: `pred` is invalid if it is not a shared future.                                                                                                  |
+
+XXX it's not clear this table can be formatted nicely for a PDF, so we might want to look into an alternate way to specify these requirements
 
 # (Networking TS) executor category
 
