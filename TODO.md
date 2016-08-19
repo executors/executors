@@ -1,50 +1,5 @@
 # Executors TODO
 
-## Define minimal `Executor` requirements
-  * required member functions is one of
-    1. one-way function
-      * XXX needs a name -- would be nice if it followed the `_execute()` naming scheme
-        * ChrisM's proposal used `spawn()` -- `spawn_execute()` ?
-        * could also draw from ChrisK's names
-          * which one of these matches this one-way operation semantic?
-            * `dispatch_execute()`
-            * `post_execute()`
-            * `defer_execute()`
-      * needs weakest guarantees we can make
-    2. two-way function 
-      * name: `async_execute()`
-      * needs a signature
-      * needs weakest guarantees we can make
-      * modulo `Future` return type, the semantic guarantees of `async_execute()` should match the one-way function
-  * Must be `CopyConstructible`
-    * the idea is that an `Executor` is a view of some other long-lived resource
-    * making copies of `Executor`s should be cheap, like `Iterator`s
-      * not sure this applies in practice
-      * what about `executor_array` -- it is like a `std::vector`
-
-## Advertising forward progress
-  * optional executor member type for inter agent forward progress
-    * XXX typedef needs a name
-      * Agency uses `::execution_category_tag`
-      * since there are different guarantees we care about, this name may not be specific enough
-    * `sequenced_execution_tag`
-    * `parallel_execution_tag`
-    * `unsequenced_execution_tag`
-    * `concurrent_execution_tag` is suggested but not required for minimal proposal
-    * if no member type exists, the assumed advertisement is `unsequenced_execution_tag`
-    * XXX what should happen if this member type is defined but the executor is not a `BulkExecutor`?
-      * is the type not considered an `Executor`?
-      * is the advertisement ignored?
-        * could be useful for debugging
-  * optional executor member type for caller/agents forward progress
-    * typedef needs a name
-    * "may block" type needs a name
-    * "does block" type needs a name
-    * "does not block" type needs a name
-    * if no member type exists, the assumed advertisement is "may block"
-  * do we need traits for introspecting an executor's two advertised guarantees?
-    * i.e. something like `executor_bikeshed_trait_name_here_t<Executor>`
-
 ## Define `ChrisKExecutor` requirements
   * leave a placeholder for ChrisK TODO item
 

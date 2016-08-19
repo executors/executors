@@ -23,13 +23,12 @@ TODO
 
 ### Forward progress guarantees of executor operations
 
-    struct operation_does_not_block {};
+    // XXX this section could use a bikeshed
+
+    struct possibly_blocking_execution_tag {};
+    struct blocking_execution_tag {};
+    struct nonblocking_execution_tag {};
     
-    struct operation_does_block {};
-    
-    struct operation_may_block {};
-    
-    // XXX this trait needs a bikeshed
     template<class Executor>
     struct executor_operation_forward_progress
     {
@@ -39,7 +38,7 @@ TODO
         using __helper = typename T::operation_forward_progress;
     
       public:
-        using type = std::experimental::detected_or_t<__helper, operation_may_block>;
+        using type = std::experimental::detected_or_t<__helper, possibly_blocking_execution_tag>;
     };
 
     template<class Executor>
@@ -59,8 +58,18 @@ TODO
 Table: (Executor requirements) \label{executor_operation_requirements}
 
 
-| Expression                       | Return Type              |  Operational semantics      | Assertion/note/pre-/post-condition                                                                                              |
-|----------------------------------|--------------------------|-----------------------------|---------------------------------------------------------------------------------------------------------------------------------|
-| `x.spawn_execute(std::move(f))`  | `void`                   |  Creates an execution agent | Effects: blocks the forward progress of the caller until `f` is finished as given by `executor_operation_forward_progress_t<X>` |
-| `x.async_execute(std::move(f))`  | `executor_future_t<X,R>` |  Creates an execution agent | Effects: blocks the forward progress of the caller until `f` is finished as given by `executor_operation_forward_progress_t<X>` |
+| Expression                       | Return Type              |  Operational semantics                          | Assertion/note/pre-/post-condition                                                                                              |
+|----------------------------------|--------------------------|-------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|
+| `x.spawn_execute(std::move(f))`  | `void`                   |  Creates an execution agent which invokes `f()` | Effects: blocks the forward progress of the caller until `f` is finished as given by `executor_operation_forward_progress_t<X>` |
+| `x.async_execute(std::move(f))`  | `executor_future_t<X,R>` |  Creates an execution agent which invokes `f()` | Effects: blocks the forward progress of the caller until `f` is finished as given by `executor_operation_forward_progress_t<X>` |
+
+### Forward progress guarantees of groups of execution agents
+
+    struct sequenced_execution_tag {};
+    struct parallel_execution_tag {};
+    struct unsequenced_execution_tag {};
+
+    // TODO: we'll want this type in the future, but it is not
+    /        required for any functionality of version 0
+    // struct concurrent_execution_tag {};
 
