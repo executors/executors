@@ -133,7 +133,7 @@ XXX it's not clear this table can be formatted nicely for a PDF, so we might wan
     template<class Executor>
     using executor_index_t = typename executor_index<Executor>::type;
 
-## BulkExecutor
+## `BulkExecutor`
 
 1. The `BulkExecutor` requirements form the basis of the bulk executor concept taxonomy.
    This set of requirements specifies operations for creating groups of execution agents in bulk from a single operation.
@@ -169,6 +169,8 @@ Table: (Bulk executor requirements) \label{bulk_executor_requirements}
 |                                          |                          |                                                                                                            | Effects: invokes `sf(n)` on an unspecified execution agent.                                                                                            |
 |                                          |                          |                                                                                                            | If `pred`'s result type is `void`, `pr` is ommitted from `f`'s invocation.                                                                             |
 |                                          |                          |                                                                                                            | Post: `pred` is invalid if it is not a shared future.                                                                                                  |
+
+XXX TODO: need to specify how `executor_execution_category_t` describes the forward progress requirements of a group of execution agents wrt each other
 
 XXX it's not clear this table can be formatted nicely for a PDF, so we might want to look into an alternate way to specify these requirements
 
