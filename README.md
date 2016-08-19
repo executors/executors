@@ -182,14 +182,12 @@ TODO
 
 ## `execution::spawn_execute()`
 
-TODO: specify semantics
-
     template<class Executor, class Function>
     void spawn_execute(Executor& exec, Function&& f)
 
-## `execution::async_execute()`
-
 TODO: specify semantics
+
+## `execution::async_execute()`
 
     template<class Executor, class Function>
     executor_future_t<
@@ -198,18 +196,18 @@ TODO: specify semantics
     >
     async_execute(Executor& exec, Function&& f)
 
-## `execution::bulk_execute()`
-
 TODO: specify semantics
+
+## `execution::bulk_execute()`
 
     template<class Executor, class Function1, class Function2, class Function3>
     result_of_t<Function2(executor_shape_t<Executor>)>
     bulk_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape,
                  Function2 result_factory, Function3 shared_factory)
 
-## `execution::bulk_async_execute()`
-
 TODO: specify semantics
+
+## `execution::bulk_async_execute()`
 
     template<class Executor, class Function1, class Function2, class Function3>
     executor_future_t<
@@ -219,9 +217,9 @@ TODO: specify semantics
     bulk_async_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape,
                        Function2 result_factory, Function3 shared_factory)
 
-## `execution::bulk_then_execute()`
-
 TODO: specify semantics
+
+## `execution::bulk_then_execute()`
 
     template<class Executor, class Function1, class Future, class Function2, class Function3>
     executor_future_t<
@@ -232,6 +230,8 @@ TODO: specify semantics
                       Future& predecessor,
                       Function2 result_factory, Function3 shared_factory)
 
+TODO: specify semantics
+
 ## Networking TS-specific customization points
 
 TODO
@@ -240,7 +240,17 @@ TODO
 
 ## Associated executor
 
+`::executor_type`
+
 TODO
+
+## Execution category
+
+TODO
+
+Describes forward progress guarantees required of groups of execution agents
+induced by the execution policy when composed with a control structure. Can
+be weaker than the associated executor's guarantee but may not be stronger.
 
 ## `.on()`
 
@@ -250,11 +260,11 @@ TODO
 
 ## `std::async()`
 
-TODO: specify semantics
-
     template<class Executor, class Function, class... Args>
     executor_future_t<Executor, result_of_t<decay_t<Function>(decay_t<Args>...)>>
     async(Executor& exec, Function&& f, Args&&... args)
+
+TODO: specify semantics
 
 ## `std::future::then()`
 
@@ -266,11 +276,11 @@ TODO: specify semantics
 
 ## `std::invoke()`
 
-TODO: specify semantics
-
     template<class Executor, class Function, class... Args>
     result_of_t<F&&(Args&&...)>
     invoke(Executor& exec, Function&& f, Args&&... args)
+
+TODO: specify semantics
 
 ## `define_task_block()`
 
