@@ -176,13 +176,48 @@ TODO
 
 ## `execution::spawn_execute()`
 
+TODO: specify semantics
+
+    template<class Executor, class Function>
+    void spawn_execute(Executor& exec, Function&& f)
+
 ## `execution::async_execute()`
+
+TODO: specify semantics
+
+    template<class Executor, class Function>
+    executor_future_t<Executor,result_of_t<decay_t<Function>()>>
+    async_execute(Executor& exec, Function&& f)
 
 ## `execution::bulk_execute()`
 
+TODO: specify semantics
+
+    template<class Executor, class Function1, class Function2, class Function3>
+    result_of_t<Function2(executor_shape_t<Executor>)>
+    bulk_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape, Function2 result_factory, Function3 shared_factory)
+
 ## `execution::bulk_async_execute()`
 
+TODO: specify semantics
+
+    template<class Executor, class Function1, class Function2, class Function3>
+    executor_future_t<
+      Executor,
+      result_of_t<Function2(executor_shape_t<Executor>)>
+    >
+    bulk_async_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape, Function2 result_factory, Function3 shared_factory)
+
 ## `execution::bulk_then_execute()`
+
+TODO: specify semantics
+
+    template<class Executor, class Function1, class Future, class Function2, class Function3>
+    executor_future_t<
+      Executor,
+      result_of_t<Function2(executor_shape_t<Executor>)>
+    >
+    bulk_then_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape, Future& predecessor, Function2 result_factory, Function3 shared_factory)
 
 ## Networking TS-specific customization points
 
@@ -190,9 +225,41 @@ TODO
 
 # Execution policy interoperation
 
+## Associated executor
+
 TODO
 
-## Thread pool type
+## `.on()`
+
+TODO
+
+# Control structure interoperation
+
+## `std::async()`
+
+TODO: specify semantics
+
+    template<class Executor, class Function, class... Args>
+    executor_future_t<Executor, result_of_t<decay_t<Function>(decay_t<Args>...)>>
+    async(Executor& exec, Function&& f, Args&&... args)
+
+## `std::future::then()`
+
+TODO: specify semantics
+
+## `std::shared_future::then()`
+
+TODO: specify semantics
+
+## `std::invoke()`
+
+TODO
+
+## `define_task_block()`
+
+TODO
+
+# Thread pool type
 
 TODO
 
