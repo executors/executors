@@ -59,8 +59,7 @@ TODO
 Table: (Executor requirements) \label{executor_operation_requirements}
 
 
-| Expression                       | Return Type              |  Operational                       | Assertion/note                                                                                                                  |
-|                                  |                          |  semantics                         | pre-/post-condition                                                                                                             |
+| Expression                       | Return Type              |  Operational semantics             | Assertion/note/pre-/post-condition                                                                                                                  |
 |----------------------------------|--------------------------|------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|
 | `x.spawn_execute(std::move(f))`  | `void`                   |  Creates a one-way execution agent | Effects: blocks the forward progress of the caller until `f` is finished as given by `executor_operation_forward_progress_t<X>` |
 | `x.async_execute(std::move(f))`  | `executor_future_t<X,R>` |  Creates a two-way execution agent | Effects: blocks the forward progress of the caller until `f` is finished as given by `executor_operation_forward_progress_t<X>` |
