@@ -183,8 +183,7 @@ TODO
 ## In general
 
 1. The functions described in this clause are *executor customization points*.
-   Executor customization points provide a uniform interface to fundamental
-   executor functionality irrespective of a member function's existence.
+   Executor customization points provide a uniform interface to all executor types.
 
 2. An executor customization point does not participate in overload resolution
    if its `exec` parameter is not an `Executor`. Executor customization points
@@ -245,6 +244,7 @@ TODO
 
    * Creates a new group of execution agents of shape `shape`. Each execution agent calls `f(idx, result, shared)`, where
      `idx` is the index of the execution agent, and `result` and `shared` are references to the respective shared state.
+     Any return value of `f` is discarded.
 
 3. *Returns:* An object of type `result_of_t<Function2(executor_shape_t<Executor>)>` that refers to the result shared state created by
    this call to `bulk_execute`.
@@ -273,9 +273,10 @@ TODO
 
     * Creates a new group of execution agents of shape `shape`. Each execution agent calls `f(idx, result, shared)`, where
       `idx` is the index of the execution agent, and `result` and `shared` are references to the respective shared state.
+      Any return value of `f` is discarded.
 
-3. *Returns:* An object of type `executor_future_t<Executor,result_of_t<Function2(executor_shape_t<Executor>)>` that refers to the result
-   shared state created by this call to `bulk_async_execute`.
+3. *Returns:* An object of type `executor_future_t<Executor,result_of_t<Function2(executor_shape_t<Executor>)>` that refers to the
+   shared result state created by this call to `bulk_async_execute`.
 
 4. *Synchronization:*
     * the invocation of `bulk_async_execute` synchronizes with (1.10) the invocations of `f`.
@@ -284,6 +285,7 @@ TODO
 
 ## `execution::bulk_then_execute()`
 
+1.  ```
     template<class Executor, class Function1, class Future, class Function2, class Function3>
     executor_future_t<
       Executor,
@@ -292,8 +294,28 @@ TODO
     bulk_then_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape,
                       Future& predecessor,
                       Function2 result_factory, Function3 shared_factory)
+    ```
 
-TODO: specify semantics
+2. *Effects:* calls `exec.bulk_then_execute(f, shape, predecessor, result_factory, shared_factory)`;
+   otherwise:
+
+   * Calls `result_factory(shape)` and `shared_factory(shape)` in an unspecified execution agent. The results of these
+     invocations are stored to shared state.
+
+   * Creates a new group of execution agents of shape `shape` after `predecessor` becomes ready. Each execution agent calls `f(idx, result, pred, shared)`, where
+     `idx` is the index of the execution agent, `result` is a reference to the result shared state, `pred` is a reference to
+     the `predecessor` state if it is not `void`. Otherwise, each execution agent calls `f(idx, result, shared)`.
+     Any return value of `f` is discarded.
+
+3. *Returns:* An object of type `executor_future_t<Executor,result_of_t<Function2(executor_shape_t<Executor>)>` that refers to the
+   shared result state created by this call to `bulk_then_execute`.
+
+4. *Synchronization:*
+    * the invocation of `bulk_then_execute` synchronizes with (1.10) the invocations of `f`.
+    * the completion of the functions `result_factory` and `shared_factory` happen before the creation of the group of execution agents.
+    * the completion of the invocations of `f` are sequenced before (1.10) the result shared state is made ready.
+
+5. *Postconditions:* If the `predecessor` future is not a shared future, then `predecessor.valid() == false`.
 
 ## Networking TS-specific customization points
 
