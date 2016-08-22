@@ -186,11 +186,14 @@ TODO
    Executor customization points provide a uniform interface to fundamental
    executor functionality irrespective of a member function's existence.
 
-2. Executor customization points follow the design suggested by [N4381](wg21.link/N4381).
-   XXX the reason this paragraph is included is to define some wording for executor customization
-   points in general in order to avoid repeating such wording below.
+2. An executor customization point does not participate in overload resolution
+   if its `exec` parameter is not an `Executor`. Executor customization points
+   follow the design suggested by [N4381](wg21.link/N4381).
 
-## `execution::spawn_execute()`
+   XXX the reason p2 is included is to define some general purpose wording for executor customization
+   points in order to avoid repetition below.
+
+## Function template `execution::spawn_execute()`
 
 1.  ```
     template<class Executor, class Function>
@@ -198,10 +201,10 @@ TODO
     ```
 
 2. *Effects:* calls `exec.spawn_execute(std::forward<Function>(f))` if that call is well-formed; otherwise, calls
-   `INVOKE(DECAY_COPY(std::forward<Function>(f))` in a new execution agent with calls to `DECAY_COPY()` begin evaluated
+   `DECAY_COPY(std::forward<Function>(f))()` in a new execution agent with the call to `DECAY_COPY()` being evaluated
    in the thread that called `spawn_execute`. Any return value is discarded.
 
-## `execution::async_execute()`
+## Function template `execution::async_execute()`
 
 1.  ```
     template<class Executor, class Function>
@@ -213,22 +216,46 @@ TODO
     ```
 
 2. *Effects:* calls `exec.async_execute(std::forward<Function>(f))` if that call is well-formed; otherwise, calls
-   `INVOKE(DECAY_COPY(std::forward<Function>(f))` in a new execution agent with calls to `DECAY_COPY()` being
+   `DECAY_COPY(std::forward<Function>(f))()` in a new execution agent with the call to `DECAY_COPY()` being
    evaluated in the thread that called `async_execute`. Any return value is stored as the result in the shared
    state. Any exception propagated from the execution of `INVOKE(DECAY_COPY(std::forward<Function>(f))` is stored as
    the exceptional result in the shared state.
 
-## `execution::bulk_execute()`
+3. *Returns:* An object of type `executor_future_t<Executor,result_of_t<decay_t<Function>()>>` that refers to the shared
+   state created by this call to `async_execute`.
 
+4. *Synchronization:*
+    * the invocation of `async_execute` synchronizes with (1.10) the invocation of `f`.
+    * the completion of the function `f` is sequenced before (1.10) the shared state is made ready.
+
+## Function template `execution::bulk_execute()`
+
+1.  ```
     template<class Executor, class Function1, class Function2, class Function3>
     result_of_t<Function2(executor_shape_t<Executor>)>
     bulk_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape,
                  Function2 result_factory, Function3 shared_factory)
+    ```
 
-TODO: specify semantics
+2. *Effects:* calls `exec.bulk_execute(f, shape, result_factory, shared_factory)` if that call is well-formed;
+   otherwise:
+   
+   * Calls `result_factory(shape)` and `shared_factory(shape)` in an unspecified execution agent. The results
+     of these invocations are stored to shared state.
 
-## `execution::bulk_async_execute()`
+   * Creates a new group of execution agents of shape `shape`. Each execution agent calls `f(idx, result, shared)`, where
+     `idx` is the index of the execution agent, and `result` and `shared` are references to the respective shared state.
 
+3. *Returns:* An object of type `result_of_t<Function2(executor_shape_t<Executor>)>` that refers to the result shared state created by
+   this call to `bulk_execute`.
+
+4. *Synchronization:* The completion of the functions `result_factory` and
+   `shared_factory` happen before the creation of the group of execution
+   agents.
+
+## Function template `execution::bulk_async_execute()`
+
+1.  ```
     template<class Executor, class Function1, class Function2, class Function3>
     executor_future_t<
       Executor,
@@ -236,8 +263,24 @@ TODO: specify semantics
     >
     bulk_async_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape,
                        Function2 result_factory, Function3 shared_factory)
+    ```
 
-TODO: specify semantics
+2. *Effects:* calls `exec.bulk_async_execute(f, shape, result_factory, shared_factory)` if that call is well-formed;
+   otherwise:
+
+    * Calls `result_factory(shape)` and `shared_factory(shape)` in an unspecified execution agent. The results of these
+      invocations are stored to shared state.
+
+    * Creates a new group of execution agents of shape `shape`. Each execution agent calls `f(idx, result, shared)`, where
+      `idx` is the index of the execution agent, and `result` and `shared` are references to the respective shared state.
+
+3. *Returns:* An object of type `executor_future_t<Executor,result_of_t<Function2(executor_shape_t<Executor>)>` that refers to the result
+   shared state created by this call to `bulk_async_execute`.
+
+4. *Synchronization:*
+    * the invocation of `bulk_async_execute` synchronizes with (1.10) the invocations of `f`.
+    * the completion of the functions `result_factory` and `shared_factory` happen before the creation of the group of execution agents.
+    * the completion of the invocations of `f` are sequenced before (1.10) the result shared state is made ready.
 
 ## `execution::bulk_then_execute()`
 
