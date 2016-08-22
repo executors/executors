@@ -180,23 +180,43 @@ TODO
 
 # Executor Customization Points
 
+## In general
+
+1. The functions described in this clause are *executor customization points*.
+   Executor customization points provide a uniform interface to fundamental
+   executor functionality irrespective of a member function's existence.
+
+2. Executor customization points follow the design suggested by [N4381](wg21.link/N4381).
+   XXX the reason this paragraph is included is to define some wording for executor customization
+   points in general in order to avoid repeating such wording below.
+
 ## `execution::spawn_execute()`
 
+1.  ```
     template<class Executor, class Function>
     void spawn_execute(Executor& exec, Function&& f)
+    ```
 
-TODO: specify semantics
+2. *Effects:* calls `exec.spawn_execute(std::forward<Function>(f))` if that call is well-formed; otherwise, calls
+   `INVOKE(DECAY_COPY(std::forward<Function>(f))` in a new execution agent with calls to `DECAY_COPY()` begin evaluated
+   in the thread that called `spawn_execute`. Any return value is discarded.
 
 ## `execution::async_execute()`
 
+1.  ```
     template<class Executor, class Function>
     executor_future_t<
       Executor,
       result_of_t<decay_t<Function>()>
     >
     async_execute(Executor& exec, Function&& f)
+    ```
 
-TODO: specify semantics
+2. *Effects:* calls `exec.async_execute(std::forward<Function>(f))` if that call is well-formed; otherwise, calls
+   `INVOKE(DECAY_COPY(std::forward<Function>(f))` in a new execution agent with calls to `DECAY_COPY()` being
+   evaluated in the thread that called `async_execute`. Any return value is stored as the result in the shared
+   state. Any exception propagated from the execution of `INVOKE(DECAY_COPY(std::forward<Function>(f))` is stored as
+   the exceptional result in the shared state.
 
 ## `execution::bulk_execute()`
 
