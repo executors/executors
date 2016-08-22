@@ -343,23 +343,37 @@ TODO
 
 # Control structure interoperation
 
-## `std::async()`
+## Function template `async`
 
+1. The function template `async` provides a mechanism to invoke a function in a new
+   execution agent created by an executor and provides the result of the function in the
+   future object with which it shares a state.
+
+    ```
     template<class Executor, class Function, class... Args>
     executor_future_t<Executor, result_of_t<decay_t<Function>(decay_t<Args>...)>>
     async(Executor& exec, Function&& f, Args&&... args)
+    ```
 
-TODO: specify semantics
+2. *Returns:* Equivalent to:
+
+    `return execution::async_execute(exec, [=]{ return INVOKE(f, args...); });`
 
 ## `std::future::then()`
 
 TODO: specify semantics
 
+Ideally we'd define this as equivalent to a call to `execution::then_execute()`, but that customization point does not exist.
+Should it?
+
 ## `std::shared_future::then()`
 
 TODO: specify semantics
 
-## `std::invoke()`
+Ideally we'd define this as equivalent to a call to `execution::then_execute()`, but that customization point does not exist.
+Should it?
+
+## Function template `invoke`
 
     template<class Executor, class Function, class... Args>
     result_of_t<F&&(Args&&...)>
@@ -367,17 +381,22 @@ TODO: specify semantics
 
 TODO: specify semantics
 
+Ideally we'd define this as equivalent to a call to `execution::execute()`, but that customization point does not exist.
+Should it?
+
 ## `define_task_block()`
 
 TODO
 
-# Executor type eraser
+# Polymorphic executor wrapper
 
 
 ```
 class executor
 {
   public:
+    // XXX could contemplate introducing a type indicating that the
+    //     forward progress type has been erased
     using operation_forward_progress = possibly_blocking_execution_tag;
 
     template<class Function>
