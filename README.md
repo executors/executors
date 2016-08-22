@@ -135,7 +135,7 @@ XXX it's not clear this table can be formatted nicely for a PDF, so we might wan
 
 ## `BulkExecutor`
 
-1. The `BulkExecutor` requirements form the basis of the bulk executor concept taxonomy.
+1. The `BulkExecutor` requirements form the basis of the bulk executor concept.
    This set of requirements specifies operations for creating groups of execution agents in bulk from a single operation.
 
 2. In Table \ref{bulk_executor_requirements},
