@@ -63,7 +63,7 @@ Table: (Executor requirements) \label{executor_requirements}
 | `x.async_execute(std::move(f))`  | `executor_future_t<X,R>` |  Creates an execution agent which invokes `f()`              | Effects: blocks the forward progress of the caller until `f` is finished as given by `executor_operation_forward_progress_t<X>` |
 |                                  |                          |  Returns the result of `f()` via the resulting future object |                                                                                                                                 |
  
-XXX it's not clear this table can be formatted nicely for a PDF, so we might want to look into an alternate way to specify these requirements
+\textcolor{red}{XXX it's not clear this table can be formatted nicely for a PDF, so we might want to look into an alternate way to specify these requirements}
 
 # Bulk (Parallelism TS) executor category
 
@@ -170,6 +170,7 @@ Table: (Bulk executor requirements) \label{bulk_executor_requirements}
 |                                          |                          |                                                                                                            | If `pred`'s result type is `void`, `pr` is ommitted from `f`'s invocation.                                                                             |
 |                                          |                          |                                                                                                            | Post: `pred` is invalid if it is not a shared future.                                                                                                  |
 
+
 XXX TODO: need to specify how `executor_execution_category_t` describes the forward progress requirements of a group of execution agents wrt each other
 
 XXX it's not clear this table can be formatted nicely for a PDF, so we might want to look into an alternate way to specify these requirements
@@ -189,8 +190,7 @@ TODO
    if its `exec` parameter is not an `Executor`. Executor customization points
    follow the design suggested by [N4381](wg21.link/N4381).
 
-   XXX the reason p2 is included is to define some general purpose wording for executor customization
-   points in order to avoid repetition below.
+   \textcolor{red}{XXX the reason p2 is included is to define some general purpose wording for executor customization points in order to avoid repetition below.}
 
 ## Function template `execution::spawn_execute()`
 
@@ -205,11 +205,11 @@ TODO
 
 ## Function template `execution::execute()`
 
-1. ```
-   template<class Executor, class Function>
-   result_of_t<decay_t<Function>()>
-   async_execute(Executor& exec, Function&& f)
-   ```
+1.  ```
+    template<class Executor, class Function>
+    result_of_t<decay_t<Function>()>
+    execute(Executor& exec, Function&& f)
+    ```
 
 2. *Effects:* calls `exec.execute(std::forward<Function>(f))` if that call is well-formed; otherwise, calls
    `DECAY_COPY(std::forward<Function>(f))()` in a new execution agent with the call to `DECAY_COPY()` being
@@ -242,6 +242,34 @@ TODO
 4. *Synchronization:*
     * the invocation of `async_execute` synchronizes with (1.10) the invocation of `f`.
     * the completion of the function `f` is sequenced before (1.10) the shared state is made ready.
+
+## Function template `execution::then_execute()`
+
+1.  ```
+    template<class Executor, class Function, class Future>
+    executor_future_t<Executor,see-below>
+    then_execute(Executor& exec, Function&& f, Future& predecessor)
+    ```
+
+2. *Effects:* calls `exec.then_execute(std::forward<Function>(f), std::forward<Future>(predecessor))` if that call is well-formed;
+   otherwise:
+
+   * Creates a shared state that is associated with the returned future object.
+
+   * Creates a new execution agent `predecessor` becomes ready. The execution agent calls `f(pred)`, where `pred` is a reference to
+     the `predecessor` state if it is not `void`. Otherwise, the execution agent calls `f()`.
+
+   * Any return value of `f` is stored as the result in the shared state of the resulting future.
+
+3. *Returns:* `executor_future_t<Executor,result_of_t<decay_t<Function>()>` when `predecessor` is a `void` future. Otherwise,
+   `executor_future_t<Executor,result_of_t<decay_t<Function>(T&)>>` where `T` is the result type of the `predecessor` future.
+
+4. *Synchronization:*
+    * the invocation of `then_execute` synchronizes with (1.10) the invocation of `f`.
+    * the completion of the invocation of `f` is sequenced before (1.10) the shared state is made ready.
+
+5. *Postconditions:* If the `predecessor` future is not a shared future, then `predecessor.valid() == false`.
+
 
 ## Function template `execution::bulk_execute()`
 
@@ -312,7 +340,7 @@ TODO
                       Function2 result_factory, Function3 shared_factory)
     ```
 
-2. *Effects:* calls `exec.bulk_then_execute(f, shape, predecessor, result_factory, shared_factory)`;
+2. *Effects:* calls `exec.bulk_then_execute(f, shape, predecessor, result_factory, shared_factory)` if that call is well-formed;
    otherwise:
 
    * Calls `result_factory(shape)` and `shared_factory(shape)` in an unspecified execution agent. The results of these
@@ -375,32 +403,54 @@ TODO
 
     `return execution::async_execute(exec, [=]{ return INVOKE(f, args...); });`
 
+    \textcolor{red}{XXX This forwarding doesn't look correct to me}
+
 ## `std::future::then()`
 
-TODO: specify semantics
+1. The member function template `then` provides a mechanism for attaching a *continuation* to a `std::future` object,
+   which will be executed on a new execution agent created by an executor.
 
-Ideally we'd define this as equivalent to a call to `execution::then_execute()`, but that customization point does not exist.
-Should it?
+    ```
+    template<class T>
+    template<class Executor, class Function>
+    executor_future_t<Executor, see-below>
+    future<T>::then(Executor& exec, Function&& f)
+    ```
+
+2. *Returns:* Equivalent to:
+
+    `return execution::then_execute(exec, std::forward<Function>(f), *this);`
+
+    \textcolor{red}{XXX This forwarding doesn't look correct to me}
 
 ## `std::shared_future::then()`
 
-TODO: specify semantics
+1. The member function template `then` provides a mechanism for attaching a *continuation* to a `std::shared_future` object,
+   which will be executed on a new execution agent created by an executor.
 
-Ideally we'd define this as equivalent to a call to `execution::then_execute()`, but that customization point does not exist.
-Should it?
+    ```
+    template<class T>
+    template<class Executor, class Function>
+    executor_future_t<Executor, see-below>
+    shared_future<T>::then(Executor& exec, Function&& f)
+    ```
+
+2. *Returns:* Equivalent to:
+
+    `return execution::then_execute(exec, std::forward<Function>(f), *this);`
 
 ## Function template `invoke`
 
 1. The function template `invoke` provides a mechanism to invoke a function in a new
    execution agent created by an executor and return result of the function.
 
-   ```
-   template<class Executor, class Function, class... Args>
-   result_of_t<F&&(Args&&...)>
-   invoke(Executor& exec, Function&& f, Args&&... args)
-   ```
+    ```
+    template<class Executor, class Function, class... Args>
+    result_of_t<F&&(Args&&...)>
+    invoke(Executor& exec, Function&& f, Args&&... args)
+    ```
 
-2. *Returns:* Eqivalent to:
+2. *Returns:* Equivalent to:
 
     `return execution::execute(exec, [&]{ return INVOKE(f, args...); });`
 
