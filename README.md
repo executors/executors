@@ -203,6 +203,22 @@ TODO
    `DECAY_COPY(std::forward<Function>(f))()` in a new execution agent with the call to `DECAY_COPY()` being evaluated
    in the thread that called `spawn_execute`. Any return value is discarded.
 
+## Function template `execution::execute()`
+
+1. ```
+   template<class Executor, class Function>
+   result_of_t<decay_t<Function>()>
+   async_execute(Executor& exec, Function&& f)
+   ```
+
+2. *Effects:* calls `exec.execute(std::forward<Function>(f))` if that call is well-formed; otherwise, calls
+   `DECAY_COPY(std::forward<Function>(f))()` in a new execution agent with the call to `DECAY_COPY()` being
+   evaluated in the thread that called `execute`.
+
+3. *Returns:* The return value of `f`.
+
+4. *Synchronization:* The invocation of `execute` synchronizes with (1.10) the invocation of `f`.
+
 ## Function template `execution::async_execute()`
 
 1.  ```
@@ -375,14 +391,18 @@ Should it?
 
 ## Function template `invoke`
 
-    template<class Executor, class Function, class... Args>
-    result_of_t<F&&(Args&&...)>
-    invoke(Executor& exec, Function&& f, Args&&... args)
+1. The function template `invoke` provides a mechanism to invoke a function in a new
+   execution agent created by an executor and return result of the function.
 
-TODO: specify semantics
+   ```
+   template<class Executor, class Function, class... Args>
+   result_of_t<F&&(Args&&...)>
+   invoke(Executor& exec, Function&& f, Args&&... args)
+   ```
 
-Ideally we'd define this as equivalent to a call to `execution::execute()`, but that customization point does not exist.
-Should it?
+2. *Returns:* Eqivalent to:
+
+    `return execution::execute(exec, [&]{ return INVOKE(f, args...); });`
 
 ## `define_task_block()`
 
