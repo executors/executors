@@ -56,14 +56,18 @@ TODO
 
 Table: (Executor requirements) \label{executor_requirements}
 
+| Expression                      | Return Type              |  Operational semantics                                       | Assertion/note/pre-/post-condition                                                                                              |
+|---------------------------------|--------------------------|--------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|
+| `x.spawn_execute(std::move(f))` | `void`                   |  Creates an execution agent which invokes `f()`              | Effects: blocks the forward progress of the caller until `f` is finished as given by `executor_operation_forward_progress_t<X>` |
+|                                 |                          |                                                              |                                                                                                                                 |
+|                                 |                          |                                                              |                                                                                                                                 |
+|                                 |                          |                                                              |                                                                                                                                 |
+| `x.async_execute(std::move(f))` | `executor_future_t<X,R>` |  Creates an execution agent which invokes `f()`              | Effects: blocks the forward progress of the caller until `f` is finished as given by `executor_operation_forward_progress_t<X>` |
+|                                 |                          |  Returns the result of `f()` via the resulting future object |                                                                                                                                 |
+|                                 |                          |                                                              |                                                                                                                                 |
+|                                 |                          |                                                              |                                                                                                                                 |
 
-| Expression                       | Return Type              |  Operational semantics                                       | Assertion/note/pre-/post-condition                                                                                              |
-|----------------------------------|--------------------------|--------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|
-| `x.spawn_execute(std::move(f))`  | `void`                   |  Creates an execution agent which invokes `f()`              | Effects: blocks the forward progress of the caller until `f` is finished as given by `executor_operation_forward_progress_t<X>` |
-| `x.async_execute(std::move(f))`  | `executor_future_t<X,R>` |  Creates an execution agent which invokes `f()`              | Effects: blocks the forward progress of the caller until `f` is finished as given by `executor_operation_forward_progress_t<X>` |
-|                                  |                          |  Returns the result of `f()` via the resulting future object |                                                                                                                                 |
- 
-\textcolor{red}{XXX it's not clear this table can be formatted nicely for a PDF, so we might want to look into an alternate way to specify these requirements}
+XXX it's not clear this table can be formatted nicely for a PDF, so we might want to look into an alternate way to specify these requirements
 
 # Bulk (Parallelism TS) executor category
 
@@ -190,7 +194,7 @@ TODO
    if its `exec` parameter is not an `Executor`. Executor customization points
    follow the design suggested by [N4381](wg21.link/N4381).
 
-   \textcolor{red}{XXX the reason p2 is included is to define some general purpose wording for executor customization points in order to avoid repetition below.}
+   XXX the reason p2 is included is to define some general purpose wording for executor customization points in order to avoid repetition below.
 
 ## Function template `execution::spawn_execute()`
 
@@ -403,7 +407,7 @@ TODO
 
     `return execution::async_execute(exec, [=]{ return INVOKE(f, args...); });`
 
-    \textcolor{red}{XXX This forwarding doesn't look correct to me}
+    XXX This forwarding doesn't look correct to me
 
 ## `std::future::then()`
 
@@ -421,7 +425,7 @@ TODO
 
     `return execution::then_execute(exec, std::forward<Function>(f), *this);`
 
-    \textcolor{red}{XXX This forwarding doesn't look correct to me}
+    XXX This forwarding doesn't look correct to me
 
 ## `std::shared_future::then()`
 
