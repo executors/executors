@@ -68,8 +68,6 @@ XXX Is this implementable? For example, there's no way to check that `T::spawn_e
   * `X` satisfies the `CopyConstructible` requirements (17.6.3.1).
   * For any `f` and `x`, at least one of the expressions in Table \ref{executor_requirements} are valid and have the indicated semantics.
 
-XXX TODO: should `Executor` also satisfy `DefaultConstructible`? It seems like execution policies require this of their associated executors.
-
 Table: (Executor requirements) \label{executor_requirements}
 
 | Expression                                                                         | Return Type                                                   |  Operational semantics                                       | Assertion/note/pre-/post-condition                                                                                                  |
