@@ -23,7 +23,7 @@ XXX Is this implementable? For example, there's no way to check that `T::spawn_e
     template<class Executor, class T>
     struct executor_future
     {
-      // TODO: we can elaborate this in future proposals to allow executor-specific future types
+      // XXX a future proposal can relax this to enable user-defined future types 
       using type = std::future<T>;
     };
     
@@ -91,7 +91,7 @@ Table: (Executor requirements) \label{executor_requirements}
     struct parallel_execution_tag {};
     struct unsequenced_execution_tag {};
 
-    // TODO: we can define this category in a future proposal
+    // TODO a future proposal can define this category
     // struct concurrent_execution_tag {};
 
     template<class Executor>
