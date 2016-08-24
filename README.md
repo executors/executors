@@ -47,7 +47,9 @@ XXX Is this implementable? For example, there's no way to check that `T::spawn_e
         using helper = typename T::operation_forward_progress;
     
       public:
-        using type = std::experimental::detected_or_t<possibly_blocking_execution_tag, helper, Executor>;
+        using type = std::experimental::detected_or_t<
+          possibly_blocking_execution_tag, helper, Executor
+        >;
     };
 
     template<class Executor>
