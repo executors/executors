@@ -195,12 +195,14 @@ XXX TODO
 
 ## Function template `execution::spawn_execute()`
 
-  1.    template<class Executor, class Function>
-        void spawn_execute(Executor& exec, Function&& f)
-  
-  2. *Effects:* calls `exec.spawn_execute(std::forward<Function>(f))` if that call is well-formed; otherwise, calls
-     `DECAY_COPY(std::forward<Function>(f))()` in a new execution agent with the call to `DECAY_COPY()` being evaluated
-     in the thread that called `spawn_execute`. Any return value is discarded.
+1.  ```
+    template<class Executor, class Function>
+    void spawn_execute(Executor& exec, Function&& f)
+    ```
+
+2. *Effects:* calls `exec.spawn_execute(std::forward<Function>(f))` if that call is well-formed; otherwise, calls
+   `DECAY_COPY(std::forward<Function>(f))()` in a new execution agent with the call to `DECAY_COPY()` being evaluated
+   in the thread that called `spawn_execute`. Any return value is discarded.
 
 ## Function template `execution::execute()`
 
