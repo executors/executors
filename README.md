@@ -197,7 +197,7 @@ XXX TODO
 
 1.  ```
     template<class Executor, class Function>
-    void spawn_execute(Executor& exec, Function&& f)
+    void spawn_execute(Executor& exec, Function&& f);
     ```
 
 2. *Effects:* calls `exec.spawn_execute(std::forward<Function>(f))` if that call is well-formed; otherwise, calls
@@ -209,7 +209,7 @@ XXX TODO
 1.  ```
     template<class Executor, class Function>
     result_of_t<decay_t<Function>()>
-    execute(Executor& exec, Function&& f)
+    execute(Executor& exec, Function&& f);
     ```
 
 2. *Effects:* calls `exec.execute(std::forward<Function>(f))` if that call is well-formed; otherwise, calls
@@ -228,7 +228,7 @@ XXX TODO
       Executor,
       result_of_t<decay_t<Function>()>
     >
-    async_execute(Executor& exec, Function&& f)
+    async_execute(Executor& exec, Function&& f);
     ```
 
 2. *Effects:* calls `exec.async_execute(std::forward<Function>(f))` if that call is well-formed; otherwise, calls
@@ -249,7 +249,7 @@ XXX TODO
 1.  ```
     template<class Executor, class Function, class Future>
     executor_future_t<Executor,see-below>
-    then_execute(Executor& exec, Function&& f, Future& predecessor)
+    then_execute(Executor& exec, Function&& f, Future& predecessor);
     ```
 
 2. *Effects:* calls `exec.then_execute(std::forward<Function>(f), std::forward<Future>(predecessor))` if that call is well-formed;
@@ -278,7 +278,7 @@ XXX TODO
     template<class Executor, class Function1, class Function2, class Function3>
     result_of_t<Function2(executor_shape_t<Executor>)>
     bulk_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape,
-                 Function2 result_factory, Function3 shared_factory)
+                 Function2 result_factory, Function3 shared_factory);
     ```
 
 2. *Effects:* calls `exec.bulk_execute(f, shape, result_factory, shared_factory)` if that call is well-formed;
@@ -307,7 +307,7 @@ XXX TODO
       result_of_t<Function2(executor_shape_t<Executor>)>
     >
     bulk_async_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape,
-                       Function2 result_factory, Function3 shared_factory)
+                       Function2 result_factory, Function3 shared_factory);
     ```
 
 2. *Effects:* calls `exec.bulk_async_execute(f, shape, result_factory, shared_factory)` if that call is well-formed;
@@ -338,7 +338,7 @@ XXX TODO
     >
     bulk_then_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape,
                       Future& predecessor,
-                      Function2 result_factory, Function3 shared_factory)
+                      Function2 result_factory, Function3 shared_factory);
     ```
 
 2. *Effects:* calls `exec.bulk_then_execute(f, shape, predecessor, result_factory, shared_factory)` if that call is well-formed;
@@ -364,7 +364,7 @@ XXX TODO
 
 ## Networking TS-specific customization points
 
-TODO
+XXX TODO
 
 # Execution policy interoperation
 
@@ -397,7 +397,7 @@ XXX TODO
     ```
     template<class Executor, class Function, class... Args>
     executor_future_t<Executor, result_of_t<decay_t<Function>(decay_t<Args>...)>>
-    async(Executor& exec, Function&& f, Args&&... args)
+    async(Executor& exec, Function&& f, Args&&... args);
     ```
 
 2. *Returns:* Equivalent to:
@@ -415,7 +415,7 @@ XXX TODO
     template<class T>
     template<class Executor, class Function>
     executor_future_t<Executor, see-below>
-    future<T>::then(Executor& exec, Function&& f)
+    future<T>::then(Executor& exec, Function&& f);
     ```
 
 2. *Returns:* Equivalent to:
@@ -433,7 +433,7 @@ XXX TODO
     template<class T>
     template<class Executor, class Function>
     executor_future_t<Executor, see-below>
-    shared_future<T>::then(Executor& exec, Function&& f)
+    shared_future<T>::then(Executor& exec, Function&& f);
     ```
 
 2. *Returns:* Equivalent to:
@@ -448,16 +448,50 @@ XXX TODO
     ```
     template<class Executor, class Function, class... Args>
     result_of_t<F&&(Args&&...)>
-    invoke(Executor& exec, Function&& f, Args&&... args)
+    invoke(Executor& exec, Function&& f, Args&&... args);
     ```
 
 2. *Returns:* Equivalent to:
 
     `return execution::execute(exec, [&]{ return INVOKE(f, args...); });`
 
-## `define_task_block()`
+## Task block
 
-XXX TODO
+### Function template `define_task_block_restore_thread()`
+
+1.  ```
+    template<class Executor, class F>
+    void define_task_block_restore_thread(Executor& exec, F&& f);
+    ```
+
+2. *Requires:* Given an lvalue `tb` of type `task_block`, the expression `f(tb)` shall be well-formed.
+
+3. *Effects:* Constructs a `task_block tb`, creates a new execution agent, and calls `f(tb)` on that execution agent.
+
+4. *Throws:* `exception_list`, as specified in version two of the Paralellism TS.
+
+5. *Postconditions:* All tasks spawned from `f` have finished execution.
+
+6. *Remarks:* Unlike `define_task_block`, `define_task_block_restore_thread` always returns on the same thread as the one on which it was called.
+
+### `task_block` member function template `run`
+
+1.  ```
+    template<class Executor, class F>
+    void run(Executor& exec, F&& f);
+    ```
+
+2. *Requires:* `F` shall be `MoveConstructible`. `DECAY_COPY(std::forward<F>(f))()` shall be a valid expression.
+
+3. *Preconditions:* `*this` shall be an active `task_block`.
+
+4. *Effects:* Evaluates `DECAY_COPY(std::forward<F>(f))()`, where `DECAY_COPY(std::forward<F>(f))` is evaluated synchronously within the current thread.
+   The call to the resulting copy of the function object is permitted to run on an execution agent created by `exec` in an unordered fashion relative to
+   the sequence of operations following the call to `run(exec, f)` (the continuation), or indeterminately-sequenced within the same thread as the continuation.
+   The call to `run` synchronizes with the next invocation of `wait` on the same `task_block` or completion of the nearest enclosing `task_block` (i.e., the `define_task_block` or
+   `define_task_block_restore_thread` that created this `task_block`.
+
+5. *Throws:* `task_cancelled_exception`, as described in version 2 of the Parallelism TS.
 
 # Polymorphic executor wrapper
 
