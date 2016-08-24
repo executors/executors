@@ -4,7 +4,19 @@ TODO
 
 # Minimal executor category
 
-## Executor traits
+## Executor type traits
+
+### Checking that a type is an `Executor`
+
+    template<class T> struct is_executor : see-below;
+
+    template<class T> constexpr bool is_executor_v = is_executor<T>::value;
+
+`is_executor<T>` publicly inherits from `std::true_type` if `T` satisfies the `Executor` requirements (see Table \ref{executor_requirements}); otherwise, it publicly inherits from `std::false_type`.
+
+XXX Is this implementable? For example, there's no way to check that `T::spawn_execute(f)` is valid for all `f` if all we have is `T`. However, we could do something like check with `function<void()>`, and
+    insist that if it works for `function<void()>`, then it must work for all nullary functions.
+        
 
 ### Associated future type
 
@@ -94,6 +106,8 @@ Table: (Executor requirements) \label{executor_requirements}
 
     template<class Executor>
     using executor_execution_category_t = typename executor_execution_category<Executor>::type;
+
+XXX TODO the relative "strength" of these categories should be defined
 
 ### Associated shape type
 
@@ -368,23 +382,76 @@ XXX TODO
 
 # Execution policy interoperation
 
+```
+class parallel_execution_policy
+{
+  public:
+    // types:
+    using execution_category = parallel_execution_tag;
+    using executor_type = implementation-defined;
+
+    // executor access
+    const executor_type& executor() const noexcept;
+
+    // execution policy factory
+    template<class Executor>
+    see-below on(Executor&& exec) const;
+};
+
+class sequenced_execution_tag { by-analogy-to-parallel_execution_policy };
+class parallel_unsequenced_execution_tag { by-analogy-to-parallel_execution_policy };
+```
+
 ## Associated executor
 
-`::executor_type`
+1. Each execution policy is associated with an executor, and this executor is called its *associated executor*.
 
-XXX TODO
+2. The type of an execution policy's associated executor shall satisfy the requirements of `BulkExecutor`.
+
+3. When an execution policy is used as a parameter to a parallel algorithm, the
+   execution agents that invoke element access functions are created by the
+   execution policy's associated executor.
+
+4. An execution policy's associated executor's type is the same type as the member type `executor_type`.
 
 ## Execution category
 
-XXX TODO
+1. Each execution policy has an *execution category*.
 
-Describes forward progress guarantees required of groups of execution agents
-induced by the execution policy when composed with a control structure. Can
-be weaker than the associated executor's guarantee but may not be stronger.
+2. When an execution policy is used as a parameter to a parallel algorithm, the
+   of execution agents it creates are guaranteed to make forward progress and
+   execute invocations of element access functions as ordered by its execution
+   category.
 
-## `.on()`
+3. An execution policy's execution category is given by the member type `execution_category`.
 
-XXX TODO
+4. An execution policy's associated executor's execution category shall not be weaker than the execution policy's execution category.
+
+## Associated executor access
+
+1.  ```
+    const executor_type& executor() const noexcept;
+    ```
+
+2. *Returns:* The execution policy's associated executor.
+
+## Execution policy factory
+
+1.  ```
+    template<class Executor>
+    see-below on(Executor&& exec) const;
+    ```
+
+2. Let `T` be `decay_t<Executor>`.
+
+3. *Returns:* An execution policy whose execution category is `execution_category`. If `T` satisfies the requirements of
+   `BulkExecutor`, the returned execution policy's associated executor is equivalent to `exec`. Otherwise,
+   the returned execution policy's associated executor is an adaptation of `exec`.
+
+   XXX TODO: need to define what adaptation means
+
+3. *Remarks:* This member function shall not participate in overload resolution unless `is_executor_v<T>` is `true` and
+   `executor_execution_category_t<T>` is as strong as `execution_category`.
 
 # Control structure interoperation
 
@@ -495,6 +562,11 @@ XXX TODO
 
 # Polymorphic executor wrapper
 
+## Class `executor`
+
+XXX this section has a lot of wording redundant with `any`. it would be nice if the constructors & 
+    modifiers effects/return clauses could say something like "as if by corresponding-expression-involving-some-expository-`std::any`-object"
+
 
 ```
 class executor
@@ -504,6 +576,32 @@ class executor
     //     forward progress type has been erased
     using operation_forward_progress = possibly_blocking_execution_tag;
 
+    // construction and destruction
+  
+    // XXX a future proposal can introduce the default constructor
+    //     and account for empty states
+    // executor() noexcept;
+
+    executor(const executor& other);
+
+    // XXX this proposal omits move construction because
+    //     it seems like it would leave the other executor
+    //     in an empty state
+    // executor(executor&& other) noexcept;
+
+    template<class Executor>
+    executor(Executor&& exec);
+
+    // assignments
+    executor& operator=(const executor& rhs);
+
+    template<class Executor>
+    executor& operator=(exec& rhs);
+
+    // modifiers
+    void swap(executor& rhs) noexcept;
+
+    // execution agent creation
     template<class Function>
     future<result_of_t<decay_t<Function>()>>
     async_execute(Function&& f);
@@ -511,12 +609,116 @@ class executor
     template<class Function>
     void spawn_execute(Function&& f);
 
+    // XXX future proposals can introduce member functions for each
+    //     Executor customization point
+
   private:
-    std::any type_erased_executor_; // exposition only
+    std::any contained_executor_; // exposition only
 };
 ```
 
-XXX TODO: specify semantics, perhaps also give a possible implementation of `.async_execute()` because the type erasure involved may be tricky
+1. An object of class `executor` stores an instance of any `Executor` type. The stored instance is called the *contained executor*.
+
+### Construction and destruction
+
+1.  ```
+    executor(const executor& other);
+    ```
+
+2. *Effects:* Constructs an object of type `executor` with a copy of `other`'s contained executor.
+
+3. *Throws:* Any exceptions arising from calling the selected constructor of the contained executor.
+
+
+4.  ```
+    executor(executor&& other);
+    ```
+
+5. *Effects:* Constructs an object of type `executor` with a contained executor move constructed from `other`'s contained executor.
+
+6.  ```
+    template<class Executor>
+    executor(Executor&& exec);
+    ```
+
+7. Let `T` be `decay_t<Executor>`.
+
+8. *Effects:* Constructs an object of type `executor` that contains an executor of type `T` direct-initialized with
+   `std::forward<Executor>(exec)`.
+
+9. *Remarks:* This constructor shall not participate in overload resolution unless `is_executor_v<T>` is `true` or if `T` is the same type as `executor`.
+
+10. *Throws:* Any exception thrown by the selected constructor of `T`.
+
+### Assignment
+
+1.  ```
+    executor& operator=(const executor& rhs);
+    ```
+
+2. *Effects:* As if by `executor(rhs).swap(*this)`. No effects if an exception is thrown.
+
+3. *Returns:* `*this`.
+
+4. *Throws:* Any exceptions arising from the copy constructor of the contained executor.
+
+5.  ```
+    template<class Executor>
+    executor& operator=(Executor&& rhs);
+    ```
+
+6. Let `T` be `decay_t<Executor>`.
+
+7. *Effects:* Constructs an object `tmp` of type `executor` that contains an executor of type `T` direct-initialized with
+   `std::forward<Executor>(rhs)`, and `tmp.swap(*this)`. No effects if an exception is thrown.
+
+7. *Remarks*: This operator does not participate in overload resolution unless `is_executor_v<T>` is `true` or if `T` is the same type as `executor`.
+
+8. *Throws:* Any exception thrown by the selected constructor of `T`.
+
+### Modifiers
+
+1.  ```
+    void swap(executor& rhs) noexcept;
+    ```
+
+2. *Effects:* Exchanges the contained executors of `*this` and `rhs`.
+
+### Execution agent creation
+
+#### Member function `async_execute`
+
+1.  ```
+    template<class Function>
+    future<result_of_t<decay_t<Function>()>>
+    async_execute(Function&& f);
+    ```
+
+2. Let `exec` be this `executor`'s contained executor.
+
+3. *Returns:* Equivalent to `execution::async_execute(exec, std::forward<Function>(f))`.
+
+XXX This equivalent expression requires giving `std::future<T>` a constructor which would move convert from `executor_future_t<X,T>`, where `X` is the type of `exec`.
+
+#### Member function `spawn_execute`
+
+1.  ```
+    template<class Function>
+    void spawn_execute(Function&& f);
+    ```
+
+2. Let `exec` be this `executor`'s contained executor.
+
+3. *Effects:* As if `execution::spawn_execute(exec, std::forward<Function>(f))`.
+
+### Non-member functions
+
+1.  ```
+    void swap(executor& x, executor& y) noexcept;
+    ```
+
+2. *Effects:* As if by `x.swap(y)`.
+
 
 # Thread pool type
 
