@@ -177,7 +177,7 @@ XXX TODO: need to specify how `executor_execution_category_t` describes the forw
 
 # (Networking TS) executor category
 
-TODO
+XXX TODO
 
 # Executor Customization Points
 
@@ -191,6 +191,7 @@ TODO
    follow the design suggested by [N4381](wg21.link/N4381).
 
    XXX the reason p2 is included is to define some general purpose wording for executor customization points in order to avoid repetition below.
+       but, there's still some repetition
 
 ## Function template `execution::spawn_execute()`
 
@@ -371,11 +372,11 @@ TODO
 
 `::executor_type`
 
-TODO
+XXX TODO
 
 ## Execution category
 
-TODO
+XXX TODO
 
 Describes forward progress guarantees required of groups of execution agents
 induced by the execution policy when composed with a control structure. Can
@@ -383,7 +384,7 @@ be weaker than the associated executor's guarantee but may not be stronger.
 
 ## `.on()`
 
-TODO
+XXX TODO
 
 # Control structure interoperation
 
@@ -456,7 +457,7 @@ TODO
 
 ## `define_task_block()`
 
-TODO
+XXX TODO
 
 # Polymorphic executor wrapper
 
@@ -481,9 +482,9 @@ class executor
 };
 ```
 
-TODO: specify semantics, perhaps also give a possible implementation of `.async_execute()` because the type erasure involved may be tricky
+XXX TODO: specify semantics, perhaps also give a possible implementation of `.async_execute()` because the type erasure involved may be tricky
 
 # Thread pool type
 
-TODO
+XXX TODO
 
