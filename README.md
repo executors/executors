@@ -68,6 +68,8 @@ XXX Is this implementable? For example, there's no way to check that `T::spawn_e
   * `X` satisfies the `CopyConstructible` requirements (17.6.3.1).
   * For any `f` and `x`, at least one of the expressions in Table \ref{executor_requirements} are valid and have the indicated semantics.
 
+XXX TODO: should `Executor` also satisfy `DefaultConstructible`? It seems like execution policies require this of their associated executors.
+
 Table: (Executor requirements) \label{executor_requirements}
 
 | Expression                                                                         | Return Type                                                   |  Operational semantics                                       | Assertion/note/pre-/post-condition                                                                                                  |
@@ -253,14 +255,18 @@ XXX TODO
     async_execute(Executor& exec, Function&& f);
     ```
 
-2. *Effects:* calls `exec.async_execute(std::forward<Function>(f))` if that call is well-formed; otherwise, calls
-   `DECAY_COPY(std::forward<Function>(f))()` in a new execution agent with the call to `DECAY_COPY()` being
-   evaluated in the thread that called `async_execute`. Any return value is stored as the result in the shared
-   state. Any exception propagated from the execution of `INVOKE(DECAY_COPY(std::forward<Function>(f))` is stored as
-   the exceptional result in the shared state.
+2. *Effects:* calls `exec.async_execute(std::forward<Function>(f))` if that call is well-formed;
 
-3. *Returns:* An object of type `executor_future_t<Executor,result_of_t<decay_t<Function>()>>` that refers to the shared
-   state created by this call to `async_execute`.
+    otherwise, calls `DECAY_COPY(std::forward<Function>(f))()` in a new execution agent with the call to `DECAY_COPY()` being
+    evaluated in the thread that called `async_execute`. Any return value is stored as the result in the shared
+    state. Any exception propagated from the execution of `INVOKE(DECAY_COPY(std::forward<Function>(f))` is stored as
+    the exceptional result in the shared state.
+
+3. *Returns:* An object of type
+
+    `executor_future_t<Executor,result_of_t<decay_t<Function>()>>`
+   
+    that refers to the shared state created by this call to `async_execute`.
 
 4. *Synchronization:*
     * the invocation of `async_execute` synchronizes with (1.10) the invocation of `f`.
@@ -274,15 +280,18 @@ XXX TODO
     then_execute(Executor& exec, Function&& f, Future& predecessor);
     ```
 
-2. *Effects:* calls `exec.then_execute(std::forward<Function>(f), std::forward<Future>(predecessor))` if that call is well-formed;
-   otherwise:
+2. *Effects:* calls
 
-   * Creates a shared state that is associated with the returned future object.
+    `exec.then_execute(std::forward<Function>(f), std::forward<Future>(predecessor))`
+    
+    if that call is well-formed; otherwise:
 
-   * Creates a new execution agent `predecessor` becomes ready. The execution agent calls `f(pred)`, where `pred` is a reference to
-     the `predecessor` state if it is not `void`. Otherwise, the execution agent calls `f()`.
+    * Creates a shared state that is associated with the returned future object.
 
-   * Any return value of `f` is stored as the result in the shared state of the resulting future.
+    * Creates a new execution agent `predecessor` becomes ready. The execution agent calls `f(pred)`, where `pred` is a reference to
+      the `predecessor` state if it is not `void`. Otherwise, the execution agent calls `f()`.
+
+    * Any return value of `f` is stored as the result in the shared state of the resulting future.
 
 3. *Returns:* `executor_future_t<Executor,result_of_t<decay_t<Function>()>` when `predecessor` is a `void` future. Otherwise,
    `executor_future_t<Executor,result_of_t<decay_t<Function>(T&)>>` where `T` is the result type of the `predecessor` future.
@@ -342,8 +351,11 @@ XXX TODO
       `idx` is the index of the execution agent, and `result` and `shared` are references to the respective shared state.
       Any return value of `f` is discarded.
 
-3. *Returns:* An object of type `executor_future_t<Executor,result_of_t<Function2(executor_shape_t<Executor>)>` that refers to the
-   shared result state created by this call to `bulk_async_execute`.
+3. *Returns:* An object of type
+
+    `executor_future_t<Executor,result_of_t<Function2(executor_shape_t<Executor>)>`
+    
+    that refers to the shared result state created by this call to `bulk_async_execute`.
 
 4. *Synchronization:*
     * the invocation of `bulk_async_execute` synchronizes with (1.10) the invocations of `f`.
@@ -374,8 +386,11 @@ XXX TODO
      the `predecessor` state if it is not `void`. Otherwise, each execution agent calls `f(idx, result, shared)`.
      Any return value of `f` is discarded.
 
-3. *Returns:* An object of type `executor_future_t<Executor,result_of_t<Function2(executor_shape_t<Executor>)>` that refers to the
-   shared result state created by this call to `bulk_then_execute`.
+3. *Returns:* An object of type
+
+    `executor_future_t<Executor,result_of_t<Function2(executor_shape_t<Executor>)>`
+    
+    that refers to the shared result state created by this call to `bulk_then_execute`.
 
 4. *Synchronization:*
     * the invocation of `bulk_then_execute` synchronizes with (1.10) the invocations of `f`.
@@ -420,20 +435,20 @@ class parallel_unsequenced_execution_tag { by-analogy-to-parallel_execution_poli
    execution agents that invoke element access functions are created by the
    execution policy's associated executor.
 
-4. An execution policy's associated executor's type is the same type as the member type `executor_type`.
+4. The type of an execution policy's associated executor is the same as the member type `executor_type`.
 
 ## Execution category
 
-1. Each execution policy has an *execution category*.
+1. Each execution policy is categorized by an *execution category*.
 
 2. When an execution policy is used as a parameter to a parallel algorithm, the
-   of execution agents it creates are guaranteed to make forward progress and
+   execution agents it creates are guaranteed to make forward progress and
    execute invocations of element access functions as ordered by its execution
    category.
 
 3. An execution policy's execution category is given by the member type `execution_category`.
 
-4. An execution policy's associated executor's execution category shall not be weaker than the execution policy's execution category.
+4. The execution category of an execution policy's associated executor shall not be weaker than the execution policy's execution category.
 
 ## Associated executor access
 
