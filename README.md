@@ -103,7 +103,9 @@ Table: (Executor requirements) \label{executor_requirements}
         using helper = typename T::execution_category;
 
       public:
-        using type = std::experimental::detected_or_t<unsequenced_execution_tag, helper, Executor>;
+        using type = std::experimental::detected_or_t<
+          unsequenced_execution_tag, helper, Executor
+        >;
     };
 
     template<class Executor>
@@ -122,7 +124,9 @@ XXX TODO the relative "strength" of these categories should be defined
         using helper = typename T::shape_type;
     
       public:
-        using type = std::experimental::detected_or_t<size_t, helper, Executor>;
+        using type = std::experimental::detected_or_t<
+          size_t, helper, Executor
+        >;
 
         // exposition only
         static_assert(std::is_integral_v<type>, "shape type must be an integral type");
@@ -142,7 +146,9 @@ XXX TODO the relative "strength" of these categories should be defined
         using helper = typename T::index_type;
 
       public:
-        using type = std::experimental::detected_or_t<executor_shape_t<Executor>, helper, Executor>;
+        using type = std::experimental::detected_or_t<
+          executor_shape_t<Executor>, helper, Executor
+        >;
 
         // exposition only
         static_assert(std::is_integral_v<type>, "index type must be an integral type");
