@@ -731,7 +731,7 @@ XXX This equivalent expression requires giving `std::future<T>` a constructor wh
 
 2. Let `exec` be this `executor`'s contained executor.
 
-3. *Effects:* As if `execution::spawn_execute(exec, std::forward<Function>(f))`.
+3. *Effects:* As if by `execution::spawn_execute(exec, std::forward<Function>(f))`.
 
 ### Non-member functions
 
