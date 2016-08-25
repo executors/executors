@@ -53,7 +53,8 @@ XXX Is this implementable? For example, there's no way to check that `T::spawn_e
     };
 
     template<class Executor>
-    using executor_operation_forward_progress_t = typename executor_operation_forward_progress<Executor>::type;
+    using executor_operation_forward_progress_t =
+      typename executor_operation_forward_progress<Executor>::type;
 
 ## `Executor`
 
