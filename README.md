@@ -23,9 +23,15 @@ XXX Is this implementable? For example, there's no way to check that `T::spawn_e
     template<class Executor, class T>
     struct executor_future
     {
-      // XXX a future proposal can relax this to enable user-defined future types 
-      // XXX should this be Executor::future_t or something if it exists?
-      using type = std::future<T>;
+      private:
+        template<class U>
+        using helper = typename U::template future<T>;
+
+      public:
+        using type = std::experimental::detected_or_t<std::future<T>, helper, Executor, T>;
+
+        // XXX a future proposal can relax this to enable user-defined future types 
+        static_assert(std::is_same_v<type, std::future<T>>, "Executor-specific future types must be std::future for the minimal proposal");
     };
     
     template<class Executor, class T>
@@ -767,14 +773,16 @@ class thread_pool
     {
       public:
         using operation_forward_progress = nonblocking_execution_tag;
+
         template <typename T>
-        using future_t = std::future<T>;
+        using future = std::future<T>;
 
         template<class Executor, class Function>
         void spawn_execute(Function&& f);
 
         template<class Executor, class Function>
-        future_t<> async_execute(Function&& f);
+        future<result_of_t<decay_t<Function>()>>
+        async_execute(Function&& f);
     };
     
     // construction/destruction
