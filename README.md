@@ -744,5 +744,98 @@ XXX This equivalent expression requires giving `std::future<T>` a constructor wh
 
 # Thread pool type
 
-XXX TODO
+
+XXX Consider whether we should include a wording for a concurrent executor which
+would satisfy the needs of async (thread pool provides parallel execution
+semantics).
+
+## Class `thread_pool`
+
+This class represents a statically sized thread pool as a common/basic resource
+type. This pool provides an effectively unbounded input queue and as such calls
+to add tasks to a thread_pool's executor will not block on the input queue.
+
+```
+class thread_pool
+{
+  public:
+    // executor definitions
+    // XXX should probably define one of each executor type in the
+    // proposal.
+    class basic_executor
+    {
+      public:
+        using operation_forward_progress = nonblocking_execution_tag;
+
+        template<class Executor, class Function>
+        void spawn_execute(Executor& exec, Function&& f);
+    };
+    
+    // construction/destruction
+    thread_pool();
+    explicit thread_pool(std::size_t num_threads);
+    
+    // nocopy
+    thread_pool(const thread_pool&) = delete;
+    thread_pool& operator=(const thread_pool&) = delete;
+
+    // stop accepting incoming work and wait for work to drain
+    ~thread_pool();
+
+    // attach current thread to the thread pools list of worker threads
+    void attach();
+
+    // placeholder for a general approach to getting executors from 
+    // standard contexts.
+    basic_executor get_executor() noexcept;
+};
+```
+
+### Executor properties
+
+*  ```
+    class basic_executor;
+    ```
+
+Executor type providing the 1-way spawn_execute function.
+
+### Construction and destruction
+
+*  ```
+    thread_pool(std::size_t num_threads);
+    ```
+
+ *Effects:* Constructs a `thread_pool` object with an implementation defined
+number of threads of execution. Additionally starts the worker threads.
+
+*  ```
+    thread_pool(std::size_t num_threads);
+    ```
+
+ *Effects:* Constructs a `thread_pool` object with the provided number of
+threads of execution. Additionally starts the worker threads.
+
+*  ```
+    ~thread_pool();
+   ```
+
+ *Effects:* Stops the pool from accepting new tasks and blocks the calling
+thread on the completion of execution of all work in the thread pool. 
+
+### Worker Management
+*  ```
+    void attach();
+   ```
+
+ *Effects:* adds the calling thread to the pool of workers and block caller
+until the pool is destroyed.
+
+
+### Executor Creation
+
+*  ```
+    basic_executor get_executor() noexcept;
+   ```
+
+ *Returns:* an object satisfying the basic requirements of Executor.
 
