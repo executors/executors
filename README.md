@@ -24,6 +24,7 @@ XXX Is this implementable? For example, there's no way to check that `T::spawn_e
     struct executor_future
     {
       // XXX a future proposal can relax this to enable user-defined future types 
+      // XXX should this be Executor::future_t or something if it exists?
       using type = std::future<T>;
     };
     
@@ -766,9 +767,14 @@ class thread_pool
     {
       public:
         using operation_forward_progress = nonblocking_execution_tag;
+        template <typename T>
+        using future_t = std::future<T>;
 
         template<class Executor, class Function>
-        void spawn_execute(Executor& exec, Function&& f);
+        void spawn_execute(Function&& f);
+
+        template<class Executor, class Function>
+        future_t<> async_execute(Function&& f);
     };
     
     // construction/destruction
