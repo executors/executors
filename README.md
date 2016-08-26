@@ -369,7 +369,7 @@ XXX TODO
     * the completion of the functions `result_factory` and `shared_factory` happen before the creation of the group of execution agents.
     * the completion of the invocations of `f` are sequenced before (1.10) the result shared state is made ready.
 
-## `execution::bulk_then_execute()`
+## Function template `execution::bulk_then_execute()`
 
 1.  ```
     template<class Executor, class Function1, class Future, class Function2, class Function3>
