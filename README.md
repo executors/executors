@@ -31,7 +31,8 @@ XXX Is this implementable? For example, there's no way to check that `T::spawn_e
         using type = std::experimental::detected_or_t<std::future<T>, helper, Executor, T>;
 
         // XXX a future proposal can relax this to enable user-defined future types 
-        static_assert(std::is_same_v<type, std::future<T>>, "Executor-specific future types must be std::future for the minimal proposal");
+        static_assert(std::is_same_v<type, std::future<T>>,
+          "Executor-specific future types must be std::future for the minimal proposal");
     };
     
     template<class Executor, class T>
