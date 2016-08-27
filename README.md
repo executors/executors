@@ -38,32 +38,6 @@ XXX Is this implementable? For example, there's no way to check that `T::spawn_e
     template<class Executor, class T>
     using executor_future_t = typename executor_future<Executor,T>::type;
 
-### Classifying forward progress guarantees of executor operations
-
-    // XXX this section could use a bikeshed
-
-    struct possibly_blocking_execution_tag {};
-    struct blocking_execution_tag {};
-    struct nonblocking_execution_tag {};
-    
-    template<class Executor>
-    struct executor_operation_forward_progress
-    {
-      private:
-        // exposition only
-        template<class T>
-        using helper = typename T::operation_forward_progress;
-    
-      public:
-        using type = std::experimental::detected_or_t<
-          possibly_blocking_execution_tag, helper, Executor
-        >;
-    };
-
-    template<class Executor>
-    using executor_operation_forward_progress_t =
-      typename executor_operation_forward_progress<Executor>::type;
-
 ## `Executor`
 
 1. The `Executor` requirements form the basis of the executor concept taxonomy;
@@ -79,16 +53,13 @@ XXX Is this implementable? For example, there's no way to check that `T::spawn_e
 
 Table: (Executor requirements) \label{executor_requirements}
 
-| Expression                                                                         | Return Type                                                   |  Operational semantics                                       | Assertion/note/pre-/post-condition                                                                                                  |
-|------------------------------------------------------------------------------------|---------------------------------------------------------------|--------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|
-| `x.spawn_-` `execute(std::move(f))`                                                | `void`                                                        |  Creates an execution agent which invokes `f()`              | Effects: blocks the forward progress of the caller until `f` is finished as given by `executor_operation_-` `forward_progress_t<X>` |
-|                                                                                    |                                                               |                                                              |                                                                                                                                     |
-|                                                                                    |                                                               |                                                              |                                                                                                                                     |
-|                                                                                    |                                                               |                                                              |                                                                                                                                     |
-| `x.async_-` `execute(std::move(f))`                                                | `executor_-` `future_t<X,R>`                                  |  Creates an execution agent which invokes `f()`              | Effects: blocks the forward progress of the caller until `f` is finished as given by `executor_operation_-` `forward_progress_t<X>` |
-|                                                                                    |                                                               |  Returns the result of `f()` via the resulting future object |                                                                                                                                     |
-|                                                                                    |                                                               |                                                              |                                                                                                                                     |
-|                                                                                    |                                                               |                                                              |                                                                                                                                     |
+| Expression                                                                         | Return Type                                                   | Operational semantics                                                    | Assertion/note/pre-/post-condition                                 |
+|------------------------------------------------------------------------------------|---------------------------------------------------------------|--------------------------------------------------------------------------|--------------------------------------------------------------------|
+| `x.spawn_-` `execute(std::move(f))`                                                | `void`                                                        |  Creates an execution agent which invokes `f()`                          |                                                                    |
+|                                                                                    |                                                               |                                                                          |                                                                    |
+|                                                                                    |                                                               |                                                                          |                                                                    |
+| `x.async_-` `execute(std::move(f))`                                                | `executor_-` `future_t<X,R>`                                  |  Creates an execution agent which invokes `f()`                          |                                                                    |
+|                                                                                    |                                                               |  Returns the result of `f()` via the resulting future object             |                                                                    |
 
 # Bulk (Parallelism TS) executor category
 
@@ -193,14 +164,13 @@ Table: (Bulk executor requirements) \label{bulk_executor_requirements}
 |                                                                   |                                                                   |  Returns the result of `rf(n)`                                                                             | Effects: invokes `rf(n)` on an unspecified execution agent.                                                                                                |
 |                                                                   |                                                                   |                                                                                                            | Effects: invokes `sf(n)` on an unspecified execution agent.                                                                                                |
 |                                                                   |                                                                   |                                                                                                            |                                                                                                                                                            |
-| `x.bulk_async_-` `execute(f, n, rf, sf)`                          | `executor_-` `future_t<X,R>`                                      |  Creates a group of execution agents of shape `n` which invoke `f(i, r, s)`                                | Effects: blocks the forward progress of the caller until all invocations of `f` are finished as required by `executor_operation_-` `forward_progress_t<X>` |
-|                                                                   |                                                                   |  Asynchronously returns the result of `rf(n)` via the resulting future object                              | Effects: invokes `rf(n)` on an unspecified execution agent.                                                                                                |
-|                                                                   |                                                                   |                                                                                                            | Effects: invokes `sf(n)` on an unspecified execution agent.                                                                                                |
+| `x.bulk_async_-` `execute(f, n, rf, sf)`                          | `executor_-` `future_t<X,R>`                                      |  Creates a group of execution agents of shape `n` which invoke `f(i, r, s)`                                | Effects: invokes `rf(n)` on an unspecified execution agent.                                                                                                |
+|                                                                   |                                                                   |  Asynchronously returns the result of `rf(n)` via the resulting future object                              | Effects: invokes `sf(n)` on an unspecified execution agent.                                                                                                |
 |                                                                   |                                                                   |                                                                                                            |                                                                                                                                                            |
-| `x.bulk_then_-` `execute(f, n, rf, pred, sf)`                     | `executor_-` `future_t<X,R>`                                      |  Creates a group of execution agents of shape `n` which invoke `f(i, r, pr, s)` after `pred` becomes ready | Effects: blocks the forward progress of the caller until all invocations of `f` are finished as required by `executor_operation_-` `forward_progress_t<X>` |
-|                                                                   |                                                                   |  Asynchronously returns the result of `rf(n)` via the resulting future.                                    | Effects: invokes `rf(n)` on an unspecified execution agent.                                                                                                |
-|                                                                   |                                                                   |                                                                                                            | Effects: invokes `sf(n)` on an unspecified execution agent.                                                                                                |
-|                                                                   |                                                                   |                                                                                                            | If `pred`'s result type is `void`, `pr` is ommitted from `f`'s invocation.                                                                                 |
+|                                                                   |                                                                   |                                                                                                            |                                                                                                                                                            |
+| `x.bulk_then_-` `execute(f, n, rf, pred, sf)`                     | `executor_-` `future_t<X,R>`                                      |  Creates a group of execution agents of shape `n` which invoke `f(i, r, pr, s)` after `pred` becomes ready | Effects: invokes `rf(n)` on an unspecified execution agent.                                                                                                |
+|                                                                   |                                                                   |  Asynchronously returns the result of `rf(n)` via the resulting future.                                    | Effects: invokes `sf(n)` on an unspecified execution agent.                                                                                                |
+|                                                                   |                                                                   |                                                                                                            | If `pred`'s result type is `void`, `pr` is omitted from `f`'s invocation.                                                                                  |
 |                                                                   |                                                                   |                                                                                                            | Post: `pred` is invalid if it is not a shared future.                                                                                                      |
 
 
@@ -602,10 +572,6 @@ XXX this section has a lot of wording redundant with `any`. it would be nice if 
 class executor
 {
   public:
-    // XXX could contemplate introducing a type indicating that the
-    //     forward progress type has been erased
-    using operation_forward_progress = possibly_blocking_execution_tag;
-
     // construction and destruction
   
     // XXX a future proposal can introduce the default constructor
@@ -773,8 +739,6 @@ class thread_pool
     class basic_executor
     {
       public:
-        using operation_forward_progress = nonblocking_execution_tag;
-
         template <typename T>
         using future = std::future<T>;
 
