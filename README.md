@@ -6,15 +6,26 @@ TODO
 
 ## Executor type traits
 
-### Checking that a type is an `Executor`
+### Checking that a type is a `OneWayExecutor`
 
-    template<class T> struct is_executor : see-below;
+    template<class T> struct is_one_way_executor : see-below;
 
-    template<class T> constexpr bool is_executor_v = is_executor<T>::value;
+    template<class T> constexpr bool is_one_way_executor_v = is_one_way_executor<T>::value;
 
-`is_executor<T>` publicly inherits from `std::true_type` if `T` satisfies the `Executor` requirements (see Table \ref{executor_requirements}); otherwise, it publicly inherits from `std::false_type`.
+`is_one_way_executor<T>` publicly inherits from `std::true_type` if `T` satisfies the `OneWayExecutor` requirements (see Table \ref{one_way_executor_requirements}); otherwise, it publicly inherits from `std::false_type`.
 
 XXX Is this implementable? For example, there's no way to check that `T::spawn_execute(f)` is valid for all `f` if all we have is `T`. However, we could do something like check with `function<void()>`, and
+    insist that if it works for `function<void()>`, then it must work for all nullary functions.
+
+### Checking that a type is a `TwoWayExecutor`
+
+    template<class T> struct is_two_way_executor : see-below;
+
+    template<class T> constexpr bool is_two_way_executor_v = is_two_way_executor<T>::value;
+
+`is_two_way_executor<T>` publicly inherits from `std::true_type` if `T` satisfies the `TwoWayExecutor` requirements (see Table \ref{two_way_executor_requirements}); otherwise, it publicly inherits from `std::false_type`.
+
+XXX Is this implementable? For example, there's no way to check that `T::async_execute(f)` is valid for all `f` if all we have is `T`. However, we could do something like check with `function<void()>`, and
     insist that if it works for `function<void()>`, then it must work for all nullary functions.
         
 
@@ -38,26 +49,47 @@ XXX Is this implementable? For example, there's no way to check that `T::spawn_e
     template<class Executor, class T>
     using executor_future_t = typename executor_future<Executor,T>::type;
 
-## `Executor`
+## `OneWayExecutor`
 
-1. The `Executor` requirements form the basis of the executor concept taxonomy;
-   every executor satisfies the `Executor` requirements. This set of
-   requirements specifies operations for creating execution agents.
+1. The `OneWayExecutor` requirements form the basis of the one-way executor concept taxonomy;
+   every one-way executor satisfies the `OneWayExecutor` requirements. This set of requirements
+   specifies operations for creating execution agents that need not synchronize with the thread
+   which created them.
 
-2. In Table \ref{executor_requirements}, `f` denotes a `MoveConstructible` function object with zero arguments whose result type is `R`,
+2. In Table \ref{one_way_executor_requirements}, `f`, denotes a `MoveConstructible` function object with zero arguments
    and `x` denotes an object of type `X`.
 
-3. A type `X` satisfies the `Executor` requirements if:
+3. A type `X` satisfies the `OneWayExecutor` requirements if:
   * `X` satisfies the `CopyConstructible` requirements (17.6.3.1).
-  * For any `f` and `x`, at least one of the expressions in Table \ref{executor_requirements} are valid and have the indicated semantics.
+  * For any `f` and `x`, the expressions in Table \ref{one_way_executor_requirements} are valid and have the indicated semantics.
 
-Table: (Executor requirements) \label{executor_requirements}
+Table: (One-Way Executor requirements) \label{one_way_executor_requirements}
 
 | Expression                                                                         | Return Type                                                   | Operational semantics                                                    | Assertion/note/pre-/post-condition                                 |
 |------------------------------------------------------------------------------------|---------------------------------------------------------------|--------------------------------------------------------------------------|--------------------------------------------------------------------|
 | `x.spawn_-` `execute(std::move(f))`                                                | `void`                                                        |  Creates an execution agent which invokes `f()`                          |                                                                    |
 |                                                                                    |                                                               |                                                                          |                                                                    |
 |                                                                                    |                                                               |                                                                          |                                                                    |
+
+
+## `TwoWayExecutor`
+
+1. The `TwoWayExecutor` requirements form the basis of the two-way executor concept taxonomy;
+   every two-way executor satisfies the `TwoWayExecutor` requirements. This set of requirements
+   specifies operations for creating execution agents that synchronize with the thread
+   which created them.
+
+2. In Table \ref{one_way_executor_requirements}, `f`, denotes a `MoveConstructible` function object with zero arguments whose result type is `R`,
+   and `x` denotes an object of type `X`.
+
+3. A type `X` satisfies the `OneWayExecutor` requirements if:
+  * `X` satisfies the `CopyConstructible` requirements (17.6.3.1).
+  * For any `f` and `x`, the expressions in Table \ref{one_way_executor_requirements} are valid and have the indicated semantics.
+
+Table: (Two-Way Executor requirements) \label{two_way_executor_requirements}
+
+| Expression                                                                         | Return Type                                                   | Operational semantics                                                    | Assertion/note/pre-/post-condition                                 |
+|------------------------------------------------------------------------------------|---------------------------------------------------------------|--------------------------------------------------------------------------|--------------------------------------------------------------------|
 | `x.async_-` `execute(std::move(f))`                                                | `executor_-` `future_t<X,R>`                                  |  Creates an execution agent which invokes `f()`                          |                                                                    |
 |                                                                                    |                                                               |  Returns the result of `f()` via the resulting future object             |                                                                    |
 
@@ -153,7 +185,7 @@ XXX TODO the relative "strength" of these categories should be defined
     * `pred` denotes a future object whose result is `pr`.
 
 2. A class `X` satisfies the requirements of a bulk executor if `X` satisfies
-   the `Executor` requirements and the expressions of Table
+   either the `OneWayExecutor` or `TwoWayExecutor` requirements and the expressions of Table
    \ref{bulk_executor_requirements} are valid and have the indicated semantics.
 
 Table: (Bulk executor requirements) \label{bulk_executor_requirements}
@@ -188,7 +220,7 @@ XXX TODO
    Executor customization points provide a uniform interface to all executor types.
 
 2. An executor customization point does not participate in overload resolution
-   if its `exec` parameter is not an `Executor`. Executor customization points
+   if its `exec` parameter is neither a `OneWayExecutor` nor a `TwoWayExecutor`. Executor customization points
    follow the design suggested by [N4381](wg21.link/N4381).
 
    XXX the reason p2 is included is to define some general purpose wording for executor customization points in order to avoid repetition below.
@@ -560,48 +592,44 @@ class parallel_unsequenced_execution_tag { by-analogy-to-parallel_execution_poli
 
 5. *Throws:* `task_cancelled_exception`, as described in version 2 of the Parallelism TS.
 
-# Polymorphic executor wrapper
+# Polymorphic executor wrappers
 
-## Class `executor`
+## Class `one_way_executor`
 
 XXX this section has a lot of wording redundant with `any`. it would be nice if the constructors & 
     modifiers effects/return clauses could say something like "as if by corresponding-expression-involving-some-expository-`std::any`-object"
 
 
 ```
-class executor
+class one_way_executor
 {
   public:
     // construction and destruction
   
     // XXX a future proposal can introduce the default constructor
     //     and account for empty states
-    // executor() noexcept;
+    // one_way_executor() noexcept;
 
-    executor(const executor& other);
+    one_way_executor(const one_way_executor& other);
 
     // XXX this proposal omits move construction because
     //     it seems like it would leave the other executor
     //     in an empty state
-    // executor(executor&& other) noexcept;
+    // one_way_executor(one_way_executor&& other) noexcept;
 
-    template<class Executor>
-    executor(Executor&& exec);
+    template<class OneWayExecutor>
+    one_way_executor(OneWayExecutor&& exec);
 
     // assignments
-    executor& operator=(const executor& rhs);
+    one_way_executor& operator=(const one_way_executor& rhs);
 
-    template<class Executor>
-    executor& operator=(exec& rhs);
+    template<class OneWayExecutor>
+    one_way_executor& operator=(exec& rhs);
 
     // modifiers
-    void swap(executor& rhs) noexcept;
+    void swap(one_way_executor& rhs) noexcept;
 
     // execution agent creation
-    template<class Function>
-    future<result_of_t<decay_t<Function>()>>
-    async_execute(Function&& f);
-
     template<class Function>
     void spawn_execute(Function&& f);
 
@@ -613,69 +641,206 @@ class executor
 };
 ```
 
-1. An object of class `executor` stores an instance of any `Executor` type. The stored instance is called the *contained executor*.
+1. An object of class `one_way_executor` stores an instance of any `OneWayExecutor` type. The stored instance is called the *contained executor*.
 
 ### Construction and destruction
 
 1.  ```
-    executor(const executor& other);
+    one_way_executor(const one_way_executor& other);
     ```
 
-2. *Effects:* Constructs an object of type `executor` with a copy of `other`'s contained executor.
+2. *Effects:* Constructs an object of type `one_ay_executor` with a copy of `other`'s contained executor.
 
 3. *Throws:* Any exceptions arising from calling the selected constructor of the contained executor.
 
 
 4.  ```
-    executor(executor&& other);
+    one_way_executor(one_way_executor&& other);
     ```
 
-5. *Effects:* Constructs an object of type `executor` with a contained executor move constructed from `other`'s contained executor.
+5. *Effects:* Constructs an object of type `one_way_executor` with a contained executor move constructed from `other`'s contained executor.
 
 6.  ```
-    template<class Executor>
-    executor(Executor&& exec);
+    template<class OneWayExecutor>
+    one_way_executor(OneWayExecutor&& exec);
     ```
 
-7. Let `T` be `decay_t<Executor>`.
+7. Let `T` be `decay_t<OneWayExecutor>`.
 
-8. *Effects:* Constructs an object of type `executor` that contains an executor of type `T` direct-initialized with
-   `std::forward<Executor>(exec)`.
+8. *Effects:* Constructs an object of type `one_way_executor` that contains an executor of type `T` direct-initialized with
+   `std::forward<OneWayExecutor>(exec)`.
 
-9. *Remarks:* This constructor shall not participate in overload resolution unless `is_executor_v<T>` is `true` or if `T` is the same type as `executor`.
+9. *Remarks:* This constructor shall not participate in overload resolution unless `is_one_way_executor_v<T>` is `true` or if `T` is the same type as `one_way_executor`.
 
 10. *Throws:* Any exception thrown by the selected constructor of `T`.
 
 ### Assignment
 
 1.  ```
-    executor& operator=(const executor& rhs);
+    one_way_executor& operator=(const one_way_executor& rhs);
     ```
 
-2. *Effects:* As if by `executor(rhs).swap(*this)`. No effects if an exception is thrown.
+2. *Effects:* As if by `one_way_executor(rhs).swap(*this)`. No effects if an exception is thrown.
 
 3. *Returns:* `*this`.
 
 4. *Throws:* Any exceptions arising from the copy constructor of the contained executor.
 
 5.  ```
-    template<class Executor>
-    executor& operator=(Executor&& rhs);
+    template<class OneWayExecutor>
+    one_way_executor& operator=(OneWayExecutor&& rhs);
     ```
 
-6. Let `T` be `decay_t<Executor>`.
+6. Let `T` be `decay_t<OneWayExecutor>`.
 
-7. *Effects:* Constructs an object `tmp` of type `executor` that contains an executor of type `T` direct-initialized with
-   `std::forward<Executor>(rhs)`, and `tmp.swap(*this)`. No effects if an exception is thrown.
+7. *Effects:* Constructs an object `tmp` of type `one_way_executor` that contains an executor of type `T` direct-initialized with
+   `std::forward<OneWayExecutor>(rhs)`, and `tmp.swap(*this)`. No effects if an exception is thrown.
 
-7. *Remarks*: This operator does not participate in overload resolution unless `is_executor_v<T>` is `true` or if `T` is the same type as `executor`.
+7. *Remarks*: This operator does not participate in overload resolution unless `is_one_way_executor_v<T>` is `true` or if `T` is the same type as `one_way_executor`.
 
 8. *Throws:* Any exception thrown by the selected constructor of `T`.
 
 ### Modifiers
 
 1.  ```
-    void swap(executor& rhs) noexcept;
+    void swap(one_way_executor& rhs) noexcept;
+    ```
+
+2. *Effects:* Exchanges the contained executors of `*this` and `rhs`.
+
+### Execution agent creation
+
+#### Member function `spawn_execute`
+
+1.  ```
+    template<class Function>
+    void spawn_execute(Function&& f);
+    ```
+
+2. Let `exec` be this `one_way_executor`'s contained executor.
+
+3. *Effects:* As if by `execution::spawn_execute(exec, std::forward<Function>(f))`.
+
+### Non-member functions
+
+1.  ```
+    void swap(one_way_executor& x, one_way_executor& y) noexcept;
+    ```
+
+2. *Effects:* As if by `x.swap(y)`.
+
+
+## Class `two_way_executor`
+
+XXX this section has a lot of wording redundant with `any`. it would be nice if the constructors & 
+    modifiers effects/return clauses could say something like "as if by corresponding-expression-involving-some-expository-`std::any`-object"
+
+
+```
+class two_way_executor
+{
+  public:
+    // construction and destruction
+  
+    // XXX a future proposal can introduce the default constructor
+    //     and account for empty states
+    // two_way_executor() noexcept;
+
+    two_way_executor(const two_way_executor& other);
+
+    // XXX this proposal omits move construction because
+    //     it seems like it would leave the other executor
+    //     in an empty state
+    // two_way_executor(two_way_executor&& other) noexcept;
+
+    template<class TwoWayExecutor>
+    two_way_executor(TwoWayExecutor&& exec);
+
+    // assignments
+    two_way_executor& operator=(const two_way_executor& rhs);
+
+    template<class OneWayExecutor>
+    two_way_executor& operator=(exec& rhs);
+
+    // modifiers
+    void swap(two_way_executor& rhs) noexcept;
+
+    // execution agent creation
+    template<class Function>
+    future<result_of_t<decay_t<Function>()>>
+    async_execute(Function&& f);
+
+    // XXX future proposals can introduce member functions for each
+    //     Executor customization point
+
+  private:
+    std::any contained_executor_; // exposition only
+};
+```
+
+1. An object of class `two_way_executor` stores an instance of any `OneWayExecutor` type. The stored instance is called the *contained executor*.
+
+### Construction and destruction
+
+1.  ```
+    two_way_executor(const two_way_executor& other);
+    ```
+
+2. *Effects:* Constructs an object of type `one_way_executor` with a copy of `other`'s contained executor.
+
+3. *Throws:* Any exceptions arising from calling the selected constructor of the contained executor.
+
+
+4.  ```
+    two_way_executor(two_way_executor&& other);
+    ```
+
+5. *Effects:* Constructs an object of type `two_way_executor` with a contained executor move constructed from `other`'s contained executor.
+
+6.  ```
+    template<class OneWayExecutor>
+    two_way_executor(OneWayExecutor&& exec);
+    ```
+
+7. Let `T` be `decay_t<OneWayExecutor>`.
+
+8. *Effects:* Constructs an object of type `two_way_executor` that contains an executor of type `T` direct-initialized with
+   `std::forward<OneWayExecutor>(exec)`.
+
+9. *Remarks:* This constructor shall not participate in overload resolution unless `is_two_way_executor_v<T>` is `true` or if `T` is the same type as `two_way_executor`.
+
+10. *Throws:* Any exception thrown by the selected constructor of `T`.
+
+### Assignment
+
+1.  ```
+    two_way_executor& operator=(const two_way_executor& rhs);
+    ```
+
+2. *Effects:* As if by `two_way_executor(rhs).swap(*this)`. No effects if an exception is thrown.
+
+3. *Returns:* `*this`.
+
+4. *Throws:* Any exceptions arising from the copy constructor of the contained executor.
+
+5.  ```
+    template<class OneWayExecutor>
+    two_way_executor& operator=(OneWayExecutor&& rhs);
+    ```
+
+6. Let `T` be `decay_t<OneWayExecutor>`.
+
+7. *Effects:* Constructs an object `tmp` of type `two_way_executor` that contains an executor of type `T` direct-initialized with
+   `std::forward<OneWayExecutor>(rhs)`, and `tmp.swap(*this)`. No effects if an exception is thrown.
+
+7. *Remarks*: This operator does not participate in overload resolution unless `is_two_way_executor_v<T>` is `true` or if `T` is the same type as `two_way_executor`.
+
+8. *Throws:* Any exception thrown by the selected constructor of `T`.
+
+### Modifiers
+
+1.  ```
+    void swap(two_way_executor& rhs) noexcept;
     ```
 
 2. *Effects:* Exchanges the contained executors of `*this` and `rhs`.
@@ -696,21 +861,10 @@ class executor
 
 XXX This equivalent expression requires giving `std::future<T>` a constructor which would move convert from `executor_future_t<X,T>`, where `X` is the type of `exec`.
 
-#### Member function `spawn_execute`
-
-1.  ```
-    template<class Function>
-    void spawn_execute(Function&& f);
-    ```
-
-2. Let `exec` be this `executor`'s contained executor.
-
-3. *Effects:* As if by `execution::spawn_execute(exec, std::forward<Function>(f))`.
-
 ### Non-member functions
 
 1.  ```
-    void swap(executor& x, executor& y) noexcept;
+    void swap(two_way_executor& x, two_way_executor& y) noexcept;
     ```
 
 2. *Effects:* As if by `x.swap(y)`.
@@ -772,49 +926,47 @@ class thread_pool
 
 ### Executor properties
 
-*  ```
+1.  ```
     class basic_executor;
     ```
 
-Executor type providing the 1-way spawn_execute function.
+2. An executor type fulfilling both the `OneWayExecutor` and `TwoWayExecutor` requirements.
 
 ### Construction and destruction
 
-*  ```
+1.  ```
     thread_pool(std::size_t num_threads);
     ```
 
- *Effects:* Constructs a `thread_pool` object with an implementation defined
-number of threads of execution. Additionally starts the worker threads.
+2. *Effects:* Constructs a `thread_pool` object with an implementation defined
+    number of threads of execution. Additionally starts the worker threads.
 
-*  ```
+3.  ```
     thread_pool(std::size_t num_threads);
     ```
 
- *Effects:* Constructs a `thread_pool` object with the provided number of
-threads of execution. Additionally starts the worker threads.
+4. *Effects:* Constructs a `thread_pool` object with the provided number of threads of execution. Additionally starts the worker threads.
 
-*  ```
+5.  ```
     ~thread_pool();
-   ```
+    ```
 
- *Effects:* Stops the pool from accepting new tasks and blocks the calling
-thread on the completion of execution of all work in the thread pool. 
+6. *Effects:* Stops the pool from accepting new tasks and blocks the calling thread on the completion of execution of all work in the thread pool. 
 
 ### Worker Management
-*  ```
-    void attach();
-   ```
 
- *Effects:* adds the calling thread to the pool of workers and block caller
-until the pool is destroyed.
+1.  ```
+    void attach();
+    ```
+
+2. *Effects:* adds the calling thread to the pool of workers and block caller until the pool is destroyed.
 
 
 ### Executor Creation
 
-*  ```
+1.  ```
     basic_executor get_executor() noexcept;
-   ```
+    ```
 
- *Returns:* an object satisfying the basic requirements of Executor.
+2. *Returns:* an executor object satisfying the `OneWayExecutor` and `TwoWayExecutor` requirements.
 
