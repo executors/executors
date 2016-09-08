@@ -1,6 +1,142 @@
 # Front Matter
 
-TODO
+## Conceptual Elements
+
+**Instruction Stream:**
+  Code to be run in a form appropriate for the target execution architecture.
+
+**Execution Architecture:**
+  Denotes the target architecture for an instruction stream.
+  The instruction stream defined by the *main* entry point
+  and associated global object initialization instruction streams
+  is the *host process* execution architecture.
+  Other possible target execution architectures include attached
+  accelerators such as GPU, remote procedure call (RPC), and
+  database management system (DBMS) servers.
+  The execution architecture may impose architecture-specific constraints
+  and provides architecture-specific facilities for an instruction stream.
+
+**Execution Resource:**
+  An instance of an execution architecture that is capable of running
+  an instruction stream targeting that architecture.
+  Examples include a collection of ``std::thread`` within the host process
+  that are bound to particular cores, GPU CUDA stream, an RPC server,
+  a DBMS server.
+  Execution resources typically have weak *locality* properties both with
+  respect to one another and with respect to memory resources.
+  For example, cores within a non-uniform memory access (NUMA) region
+  are *more local* to each other than cores in different NUMA regions
+  and hyperthreads within a single core are more local to each other than
+  hyperthreads in different cores.
+
+*Lightweight* **Execution Agent:**
+  An instruction stream is run by an execution agent on an execution resource.
+  An execution agent may be *lightweight* in that its existance is only
+  observable while the instruction stream is running.
+  As such a lightweight execution agent may come into existence when
+  the instruction stream starts running and cease to exist when the
+  instruction stream ends.
+
+**Execution Context:**
+  The mapping of execution agents to execution resources.
+
+**Execution Function:**
+  The binding of an instruction stream to one or more execution agents.
+  The instruction stream of a parallel algorithm may be bound to multiple
+  execution agents that can run concurrently on an execution resource.
+  An instruction stream's entry and return interface conforms to a
+  specification defined by an execution function.
+  An execution function targets a specific execution architecture.
+
+**Executor:**
+  Provides execution functions for running instruction streams on
+  an particular, observeable execution resource.
+  A particular executor targets a particular execution architecture.
+
+
+# Pattern for a self contained executor concept
+
+
+For extensibility *executor* cannot be a specific, standardized class.
+Instead an *executor* is a class that conforms to a standardized concepts,
+semantics, and interface patterns.
+This is similar to interators where a specific class is not standardized
+but instead semantic / behavioral properties are standardized with
+standardized mechanisms to observe those semantics.
+
+
+An instruction stream is supplied to an execution function as
+an object of a type that satisfies ``std::is_callable``.
+The callable interface of this object has leading arguments
+defined by the execution agent that will run the object
+and trailing arguments that are passed through the execution function.
+Either of these argument lists may be empty.
+
+
+Different interface patterns can be used to express executor type traits.
+One pattern is through external metafunctions, following the pattern
+of metafunctions use to observe the type traits of built types;
+e.g., `std::is_signed<T>`.
+Another pattern assumes an executor is a class interface and
+embeds traits as member type aliases, `constexpr` accessible values,
+or similar mechanisms; e.g., any standard container.
+
+
+## Illustrative pattern for some self-contained executor
+
+    struct some_executor {
+      using architecture = /* instruction stream target architecture */ ;
+      /* ... other type properties ... */
+
+      constexpr bool is_one_way_executor = /* property */ ;
+      /* ... other value properties ... */
+
+      constexpr architecture resource() const ; /* execution resource of this executor */
+
+      using agent_policy = /* policy for creating execution agent(s) */ ;
+      using agent_id     = /* identifier for created execution agent(s) */
+
+      template< typename F , typename ... Args >
+      using return_t = /* given closure F and arguments Args... the return type of the execute function */
+      
+      // requires: ! is_same_v<agent_policy,void>
+      template< typename F , typename ... Args >
+      return_t< T , Args... >
+      execute( agent_spec , F && , Args && ... );
+
+      // requires: is_same_v<agent_policy,void>
+      template< typename F , typename ... Args >
+      return_t< T , Args... >
+      execute( F && , Args && ... );
+
+      // if ! is_same_v<agent_id,void>
+      //   requires is_callable_v< decay_t<F>( decay_t<Args>... ) >
+      // else
+      //   requires is_callable_v< decay_t<F>( agent_id , decay_t<Args>... ) >
+    };
+
+
+###  Example of a self contained executor underpinning `std::async`
+
+    class async_host_executor {
+    public:
+      /* ... type properties ... */
+      /* ... value properties ... */
+
+      using architecture  = host_process ;
+      using agent_policy  = launch ;
+      using agent_id      = void ;
+   
+      constexpr architecture resource() const ;
+   
+      template <typename F, typename...Args>
+      using return_t = future< result_of_t< decay_t<F>(decay_t<Args>...) > > ;
+   
+      template <typename F, typename...Args>
+      return_t< F , Args... >
+      execute( exec_policy , F&& , Args&& ... );
+    };
+
 
 # Minimal executor category
 
