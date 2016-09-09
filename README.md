@@ -56,10 +56,16 @@ XXX Is this implementable? For example, there's no way to check that `T::async_e
    specifies operations for creating execution agents that need not synchronize with the thread
    which created them.
 
-2. In Table \ref{one_way_executor_requirements}, `f`, denotes a `MoveConstructible` function object, `a...`
+2. No constructor, comparison operator, copy operation, move operation, or swap operation on these types shall exit via an exception.
+
+3. In Table \ref{one_way_executor_requirements}, `f`, denotes a `MoveConstructible` function object, `a...`
    denotes a variadic argument pack of move constructible arguments, and `x` denotes an object of type `X`.
 
-3. A type `X` satisfies the `OneWayExecutor` requirements if:
+4. The executor copy constructor, comparison operators, and other member
+  functions defined in these requirements shall not introduce data races as a
+  result of concurrent calls to those functions from different threads.
+
+5. A type `X` satisfies the `OneWayExecutor` requirements if:
   * `X` satisfies the `CopyConstructible` requirements (17.6.3.1).
   * For any `f`, `a...` and `x`, the expressions in Table \ref{one_way_executor_requirements} are valid and have the indicated semantics.
 
@@ -116,6 +122,22 @@ Table: (Event Executor requirements) \label{event_executor_requirements}
 | `x.post(alloc_arg, alloc, std::move(f), std::move(a)...)`                          |                                                               |  Creates a parallel execution agent which invokes `f(a...)`              | May not prevent forward progress of caller pending completion of `f`.  |
 | `x.defer(std::move(f), std::move(a)...)`                                           |                                                               |  Creates a parallel execution agent which invokes `f(a...)`              | May not prevent forward progress of caller pending completion of `f.   |
 | `x.defer(alloc_arg, alloc, std::move(f), std::move(a)...)`                         |                                                               |  Creates a parallel execution agent which invokes `f(a...)`              | May not prevent forward progress of caller pending completion of `f`.  |
+
+## `WorkTrackingExecutor`
+
+1. The `WorkTrackingExecutor` requirements defines operations for tracking future work against an executor.
+
+2. In Table \ref{event_executor_requirements}, `f`, `x` denotes an object of type `X`,
+
+3. A type `X` satisfies the `EventExecutor` requirements if:
+  * For any `x`, the expressions in Table \ref{event_executor_requirements} are valid and have the indicated semantics.
+
+Table: (Work-Tracking Executor requirements) \label{work_tracking_executor_requirements}
+
+| Expression                                                                         | Return Type                                                   | Operational semantics                                                    | Assertion/note/pre-/post-condition                                                    |
+|------------------------------------------------------------------------------------|---------------------------------------------------------------|--------------------------------------------------------------------------|---------------------------------------------------------------------------------------|
+| `x.on_work_started()`                                                              |                                                               |                                                                          | Shall not exit via an exception.                                                      |
+| `x.on_work_finished()`                                                             |                                                               |                                                                          | Shall not exit via an exception. Precondition: A preceding call to `on_work_started`. |                                         |
 
 ## `TwoWayExecutor`
 
