@@ -69,10 +69,10 @@ Table: (One-Way Executor requirements) \label{one_way_executor_requirements}
 |------------------------------------------------------------------------------------|---------------------------------------------------------------|--------------------------------------------------------------------------|--------------------------------------------------------------------|
 | `x.execute(std::move(f), std::move(a)...)`                                         |                                                               |  Creates a weakly parallel execution agent which invokes `f(a...)`       | May prevent forward progress of caller pending completion of `f.   |
 
-## `HostOneWayExecutor`
+## `HostBasedOneWayExecutor`
 
-1. The `HostOneWayExecutor` requirements form the basis of host-based executors in the one-way executor concept taxonomy;
-   every host-based one-way executor satisfies the `HostOneWayExecutor` requirements. This set of requirements
+1. The `HostBasedOneWayExecutor` requirements form the basis of host-based executors in the one-way executor concept taxonomy;
+   every host-based one-way executor satisfies the `HostBasedOneWayExecutor` requirements. This set of requirements
    specifies operations for creating execution agents that need not synchronize with the thread
    which created them.
 
@@ -81,7 +81,7 @@ Table: (One-Way Executor requirements) \label{one_way_executor_requirements}
    `alloc_arg` denotes an object of type `std::allocator_arg_t`, and `alloc` denotes an object satisfying
    the `ProtoAllocator` requirements.
 
-3. A type `X` satisfies the `HostOneWayExecutor` requirements if:
+3. A type `X` satisfies the `HostBasedOneWayExecutor` requirements if:
   * `X` satisfies the `OneWayExecutor` requirements.
   * For any `f`, `a`, `alloc`, `alloc_arg`, and `x`, the expressions in Table \ref{host_one_way_executor_requirements} are valid and have the indicated semantics.
 
@@ -91,6 +91,31 @@ Table: (Host-Based One-Way Executor requirements) \label{host_one_way_executor_r
 |------------------------------------------------------------------------------------|---------------------------------------------------------------|--------------------------------------------------------------------------|--------------------------------------------------------------------|
 | `x.execute(std::move(f), std::move(a)...)`                                         |                                                               |  Creates a parallel execution agent which invokes `f(a...)`              | May prevent forward progress of caller pending completion of `f.   |
 | `x.execute(alloc_arg, alloc, std::move(f), std::move(a)...)`                       |                                                               |  Creates a parallel execution agent which invokes `f(a...)`              | May prevent forward progress of caller pending completion of `f`.  |
+
+## `EventExecutor`
+
+1. The `EventExecutor` requirements defines executors for one-way event-driven execution.
+   Every event executor satisfies the `EventExecutor` requirements. This set of requirements
+   specifies operations for creating execution agents that need not synchronize with the thread
+   which created them.
+
+2. In Table \ref{event_executor_requirements}, `f`, denotes a `MoveConstructible` function object, `a...`
+   denotes a variadic argument pack of move constructible arguments, `x` denotes an object of type `X`,
+   `alloc_arg` denotes an object of type `std::allocator_arg_t`, and `alloc` denotes an object satisfying
+   the `ProtoAllocator` requirements.
+
+3. A type `X` satisfies the `EventExecutor` requirements if:
+  * `X` satisfies the `HostBasedOneWayExecutor` requirements.
+  * For any `f`, `a`, `alloc`, `alloc_arg`, and `x`, the expressions in Table \ref{event_executor_requirements} are valid and have the indicated semantics.
+
+Table: (Event Executor requirements) \label{event_executor_requirements}
+
+| Expression                                                                         | Return Type                                                   | Operational semantics                                                    | Assertion/note/pre-/post-condition                                     |
+|------------------------------------------------------------------------------------|---------------------------------------------------------------|--------------------------------------------------------------------------|------------------------------------------------------------------------|
+| `x.post(std::move(f), std::move(a)...)`                                            |                                                               |  Creates a parallel execution agent which invokes `f(a...)`              | May not prevent forward progress of caller pending completion of `f.   |
+| `x.post(alloc_arg, alloc, std::move(f), std::move(a)...)`                          |                                                               |  Creates a parallel execution agent which invokes `f(a...)`              | May not prevent forward progress of caller pending completion of `f`.  |
+| `x.defer(std::move(f), std::move(a)...)`                                           |                                                               |  Creates a parallel execution agent which invokes `f(a...)`              | May not prevent forward progress of caller pending completion of `f.   |
+| `x.defer(alloc_arg, alloc, std::move(f), std::move(a)...)`                         |                                                               |  Creates a parallel execution agent which invokes `f(a...)`              | May not prevent forward progress of caller pending completion of `f`.  |
 
 ## `TwoWayExecutor`
 
