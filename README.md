@@ -67,7 +67,7 @@ Table: (One-Way Executor requirements) \label{one_way_executor_requirements}
 
 | Expression                                                                         | Return Type                                                   | Operational semantics                                                    | Assertion/note/pre-/post-condition                                 |
 |------------------------------------------------------------------------------------|---------------------------------------------------------------|--------------------------------------------------------------------------|--------------------------------------------------------------------|
-| `x.spawn_-` `execute(std::move(f))`                                                | `void`                                                        |  Creates an execution agent which invokes `f()`                          |                                                                    |
+| `x.execute(std::move(f))`                                                          | `void`                                                        |  Creates an execution agent which invokes `f()`                          |                                                                    |
 |                                                                                    |                                                               |                                                                          |                                                                    |
 |                                                                                    |                                                               |                                                                          |                                                                    |
 
@@ -79,7 +79,7 @@ Table: (One-Way Executor requirements) \label{one_way_executor_requirements}
    specifies operations for creating execution agents that synchronize with the thread
    which created them.
 
-2. In Table \ref{one_way_executor_requirements}, `f`, denotes a `MoveConstructible` function object with zero arguments whose result type is `R`,
+2. In Table \ref{two_way_executor_requirements}, `f`, denotes a `MoveConstructible` function object with zero arguments whose result type is `R`,
    and `x` denotes an object of type `X`.
 
 3. A type `X` satisfies the `OneWayExecutor` requirements if:
@@ -90,7 +90,8 @@ Table: (Two-Way Executor requirements) \label{two_way_executor_requirements}
 
 | Expression                                                                         | Return Type                                                   | Operational semantics                                                    | Assertion/note/pre-/post-condition                                 |
 |------------------------------------------------------------------------------------|---------------------------------------------------------------|--------------------------------------------------------------------------|--------------------------------------------------------------------|
-| `x.async_-` `execute(std::move(f))`                                                | `executor_-` `future_t<X,R>`                                  |  Creates an execution agent which invokes `f()`                          |                                                                    |
+| `x.invoke(std::move(f))`                                                           | R                                                             |  Creates an execution agent which invokes `f()`. Blocks caller.          |                                                                    |
+| `x.async_-` `invoke(std::move(f))`                                                 | `executor_-` `future_t<X,R>`                                  |  Creates an execution agent which invokes `f()`                          |                                                                    |
 |                                                                                    |                                                               |  Returns the result of `f()` via the resulting future object             |                                                                    |
 
 # Bulk (Parallelism TS) executor category
