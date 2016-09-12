@@ -1,6 +1,57 @@
 # Front Matter
 
-TODO
+## Conceptual Elements
+
+**Instruction Stream:**
+  Code to be run in a form appropriate for the target execution architecture.
+
+**Execution Architecture:**
+  Denotes the target architecture for an instruction stream.
+  The instruction stream defined by the *main* entry point
+  and associated global object initialization instruction streams
+  is the *host process* execution architecture.
+  Other possible target execution architectures include attached
+  accelerators such as GPU, remote procedure call (RPC), and
+  database management system (DBMS) servers.
+  The execution architecture may impose architecture-specific constraints
+  and provides architecture-specific facilities for an instruction stream.
+
+**Execution Resource:**
+  An instance of an execution architecture that is capable of running
+  an instruction stream targeting that architecture.
+  Examples include a collection of ``std::thread`` within the host process
+  that are bound to particular cores, GPU CUDA stream, an RPC server,
+  a DBMS server.
+  Execution resources typically have weak *locality* properties both with
+  respect to one another and with respect to memory resources.
+  For example, cores within a non-uniform memory access (NUMA) region
+  are *more local* to each other than cores in different NUMA regions
+  and hyperthreads within a single core are more local to each other than
+  hyperthreads in different cores.
+
+*Lightweight* **Execution Agent:**
+  An instruction stream is run by an execution agent on an execution resource.
+  An execution agent may be *lightweight* in that its existance is only
+  observable while the instruction stream is running.
+  As such a lightweight execution agent may come into existence when
+  the instruction stream starts running and cease to exist when the
+  instruction stream ends.
+
+**Execution Context:**
+  The mapping of execution agents to execution resources.
+
+**Execution Function:**
+  The binding of an instruction stream to one or more execution agents.
+  The instruction stream of a parallel algorithm may be bound to multiple
+  execution agents that can run concurrently on an execution resource.
+  An instruction stream's entry and return interface conforms to a
+  specification defined by an execution function.
+  An execution function targets a specific execution architecture.
+
+**Executor:**
+  Provides execution functions for running instruction streams on
+  an particular, observeable execution resource.
+  A particular executor targets a particular execution architecture.
 
 # Minimal executor category
 
