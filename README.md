@@ -112,6 +112,7 @@ XXX Is this implementable? For example, there's no way to check that `T::async_e
 
 3. A type `X` satisfies the `OneWayExecutor` requirements if:
   * `X` satisfies the `CopyConstructible` requirements (17.6.3.1).
+  * `X` satisfies the `EqualityComparable` requirements (17.6.3.1).
   * For any `f` and `x`, the expressions in Table \ref{one_way_executor_requirements} are valid and have the indicated semantics.
 
 Table: (One-Way Executor requirements) \label{one_way_executor_requirements}
@@ -135,6 +136,7 @@ Table: (One-Way Executor requirements) \label{one_way_executor_requirements}
 
 3. A type `X` satisfies the `OneWayExecutor` requirements if:
   * `X` satisfies the `CopyConstructible` requirements (17.6.3.1).
+  * `X` satisfies the `EqualityComparable` requirements (17.6.3.1).
   * For any `f` and `x`, the expressions in Table \ref{one_way_executor_requirements} are valid and have the indicated semantics.
 
 Table: (Two-Way Executor requirements) \label{two_way_executor_requirements}
@@ -528,7 +530,7 @@ class parallel_unsequenced_execution_tag { by-analogy-to-parallel_execution_poli
 2. Let `T` be `decay_t<Executor>`.
 
 3. *Returns:* An execution policy whose execution category is `execution_category`. If `T` satisfies the requirements of
-   `BulkExecutor`, the returned execution policy's associated executor is equivalent to `exec`. Otherwise,
+   `BulkExecutor`, the returned execution policy's associated executor is equal to `exec`. Otherwise,
    the returned execution policy's associated executor is an adaptation of `exec`.
 
    XXX TODO: need to define what adaptation means
@@ -690,6 +692,11 @@ class one_way_executor
   private:
     std::any contained_executor_; // exposition only
 };
+
+// non-member functions
+void swap(one_way_executor& x, one_way_executor& y);
+
+bool operator==(const one_way_executor& x, const one_way_executor& y);
 ```
 
 1. An object of class `one_way_executor` stores an instance of any `OneWayExecutor` type. The stored instance is called the *contained executor*.
@@ -781,6 +788,15 @@ class one_way_executor
 2. *Effects:* As if by `x.swap(y)`.
 
 
+3.  ```
+    bool operator==(const one_way_executor& x, const one_way_executor& y)
+    ```
+
+4. Let `x_exec` be `x`'s contained executor and `y_exec` be `y`'s contained executor.
+
+4. *Returns:* `x_exec == y_exec`.
+
+
 ## Class `two_way_executor`
 
 XXX this section has a lot of wording redundant with `any`. it would be nice if the constructors & 
@@ -827,6 +843,11 @@ class two_way_executor
   private:
     std::any contained_executor_; // exposition only
 };
+
+// non-member functions
+void swap(two_way_executor& x, two_way_executor& y);
+
+bool operator==(const two_way_executor& x, const two_way_executor& y);
 ```
 
 1. An object of class `two_way_executor` stores an instance of any `OneWayExecutor` type. The stored instance is called the *contained executor*.
@@ -919,6 +940,14 @@ XXX This equivalent expression requires giving `std::future<T>` a constructor wh
     ```
 
 2. *Effects:* As if by `x.swap(y)`.
+
+3.  ```
+    bool operator==(const two_way_executor& x, const two_way_executor& y)
+    ```
+
+4. Let `x_exec` be `x`'s contained executor and `y_exec` be `y`'s contained executor.
+
+4. *Returns:* `x_exec == y_exec`.
 
 
 # Thread pool type
