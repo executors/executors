@@ -188,7 +188,7 @@ Table: (Event Executor requirements) \label{event_executor_requirements}
 3. A type `X` satisfies the `OneWayExecutor` requirements if:
   * `X` satisfies the `CopyConstructible` requirements (17.6.3.1).
   * `X` satisfies the `EqualityComparable` requirements (17.6.3.1).
-  * For any `f` and `x`, the expressions in Table \ref{one_way_executor_requirements} are valid and have the indicated semantics.
+  * For any `f` and `x`, the expressions in Table \ref{two_way_executor_requirements} are valid and have the indicated semantics.
 
 Table: (Two-Way Executor requirements) \label{two_way_executor_requirements}
 
@@ -296,7 +296,7 @@ Table: (Bulk executor requirements) \label{bulk_executor_requirements}
 
 | Expression                                                        | Return Type                                                       |  Operational semantics                                                                                     | Assertion/note/pre-/post-condition                                                                                                                         |
 |-------------------------------------------------------------------|-------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `x.bulk_-` `execute(f, n, rf, sf)`                                | `R`                                                               |  Creates a group of execution agents of shape `n` which invoke `f(i, r, s)`                                | Note: blocks the forward progress of the caller until all invocations of `f` are finished.                                                                 |
+| `x.bulk_sync_-` `execute(f, n, rf, sf)`                           | `R`                                                               |  Creates a group of execution agents of shape `n` which invoke `f(i, r, s)`                                | Note: blocks the forward progress of the caller until all invocations of `f` are finished.                                                                 |
 |                                                                   |                                                                   |  Returns the result of `rf(n)`                                                                             | Effects: invokes `rf(n)` on an unspecified execution agent.                                                                                                |
 |                                                                   |                                                                   |                                                                                                            | Effects: invokes `sf(n)` on an unspecified execution agent.                                                                                                |
 |                                                                   |                                                                   |                                                                                                            |                                                                                                                                                            |
@@ -330,32 +330,32 @@ XXX TODO
    XXX the reason p2 is included is to define some general purpose wording for executor customization points in order to avoid repetition below.
        but, there's still some repetition
 
-## Function template `execution::spawn_execute()`
-
-1.  ```
-    template<class Executor, class Function>
-    void spawn_execute(Executor& exec, Function&& f);
-    ```
-
-2. *Effects:* calls `exec.spawn_execute(std::forward<Function>(f))` if that call is well-formed; otherwise, calls
-   `DECAY_COPY(std::forward<Function>(f))()` in a new execution agent with the call to `DECAY_COPY()` being evaluated
-   in the thread that called `spawn_execute`. Any return value is discarded.
-
 ## Function template `execution::execute()`
 
 1.  ```
     template<class Executor, class Function>
-    result_of_t<decay_t<Function>()>
-    execute(Executor& exec, Function&& f);
+    void execute(Executor& exec, Function&& f);
     ```
 
 2. *Effects:* calls `exec.execute(std::forward<Function>(f))` if that call is well-formed; otherwise, calls
+   `DECAY_COPY(std::forward<Function>(f))()` in a new execution agent with the call to `DECAY_COPY()` being evaluated
+   in the thread that called `execute`. Any return value is discarded.
+
+## Function template `execution::sync_execute()`
+
+1.  ```
+    template<class Executor, class Function>
+    result_of_t<decay_t<Function>()>
+    sync_execute(Executor& exec, Function&& f);
+    ```
+
+2. *Effects:* calls `exec.sync_execute(std::forward<Function>(f))` if that call is well-formed; otherwise, calls
    `DECAY_COPY(std::forward<Function>(f))()` in a new execution agent with the call to `DECAY_COPY()` being
    evaluated in the thread that called `execute`.
 
 3. *Returns:* The return value of `f`.
 
-4. *Synchronization:* The invocation of `execute` synchronizes with (1.10) the invocation of `f`.
+4. *Synchronization:* The invocation of `sync_execute` synchronizes with (1.10) the invocation of `f`.
 
 ## Function template `execution::async_execute()`
 
@@ -416,16 +416,16 @@ XXX TODO
 5. *Postconditions:* If the `predecessor` future is not a shared future, then `predecessor.valid() == false`.
 
 
-## Function template `execution::bulk_execute()`
+## Function template `execution::bulk_sync_execute()`
 
 1.  ```
     template<class Executor, class Function1, class Function2, class Function3>
     result_of_t<Function2(executor_shape_t<Executor>)>
-    bulk_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape,
-                 Function2 result_factory, Function3 shared_factory);
+    bulk_sync_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape,
+                      Function2 result_factory, Function3 shared_factory);
     ```
 
-2. *Effects:* calls `exec.bulk_execute(f, shape, result_factory, shared_factory)` if that call is well-formed;
+2. *Effects:* calls `exec.bulk_sync_execute(f, shape, result_factory, shared_factory)` if that call is well-formed;
    otherwise:
    
    * Calls `result_factory(shape)` and `shared_factory(shape)` in an unspecified execution agent. The results
@@ -436,7 +436,7 @@ XXX TODO
      Any return value of `f` is discarded.
 
 3. *Returns:* An object of type `result_of_t<Function2(executor_shape_t<Executor>)>` that refers to the result shared state created by
-   this call to `bulk_execute`.
+   this call to `bulk_sync_execute`.
 
 4. *Synchronization:* The completion of the functions `result_factory` and
    `shared_factory` happen before the creation of the group of execution
@@ -652,7 +652,7 @@ class parallel_unsequenced_execution_tag { by-analogy-to-parallel_execution_poli
 
 2. *Returns:* Equivalent to:
 
-    `return execution::execute(exec, [&]{ return INVOKE(f, args...); });`
+    `return execution::sync_execute(exec, [&]{ return INVOKE(f, args...); });`
 
 ## Task block
 
@@ -731,7 +731,7 @@ class one_way_executor
 
     // execution agent creation
     template<class Function>
-    void spawn_execute(Function&& f);
+    void execute(Function&& f);
 
     // XXX future proposals can introduce member functions for each
     //     Executor customization point
@@ -815,16 +815,16 @@ bool operator==(const one_way_executor& x, const one_way_executor& y);
 
 ### Execution agent creation
 
-#### Member function `spawn_execute`
+#### Member function `execute`
 
 1.  ```
     template<class Function>
-    void spawn_execute(Function&& f);
+    void execute(Function&& f);
     ```
 
 2. Let `exec` be this `one_way_executor`'s contained executor.
 
-3. *Effects:* As if by `execution::spawn_execute(exec, std::forward<Function>(f))`.
+3. *Effects:* As if by `execution::execute(exec, std::forward<Function>(f))`.
 
 ### Non-member functions
 
@@ -1024,7 +1024,7 @@ class thread_pool
         using future = std::future<T>;
 
         template<class Executor, class Function>
-        void spawn_execute(Function&& f);
+        void execute(Function&& f);
 
         template<class Executor, class Function>
         future<result_of_t<decay_t<Function>()>>
@@ -1057,7 +1057,7 @@ class thread_pool
     class basic_executor;
     ```
 
-2. An executor type fulfilling both the `OneWayExecutor` and `TwoWayExecutor` requirements.
+2. An executor type satisfying both the `OneWayExecutor` and `TwoWayExecutor` requirements.
 
 ### Construction and destruction
 
@@ -1095,5 +1095,5 @@ class thread_pool
     basic_executor get_executor() noexcept;
     ```
 
-2. *Returns:* an executor object satisfying the `OneWayExecutor` and `TwoWayExecutor` requirements.
+2. *Returns:* an executor object whose type satisfies the `OneWayExecutor` and `TwoWayExecutor` requirements.
 
