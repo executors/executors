@@ -123,22 +123,6 @@ Table: (Event Executor requirements) \label{event_executor_requirements}
 | `x.defer(std::move(f), std::move(a)...)`                                           |                                                               |  Creates a parallel execution agent which invokes `f(a...)`              | May not prevent forward progress of caller pending completion of `f.   |
 | `x.defer(alloc_arg, alloc, std::move(f), std::move(a)...)`                         |                                                               |  Creates a parallel execution agent which invokes `f(a...)`              | May not prevent forward progress of caller pending completion of `f`.  |
 
-## `WorkTrackingExecutor`
-
-1. The `WorkTrackingExecutor` requirements defines operations for tracking future work against an executor.
-
-2. In Table \ref{event_executor_requirements}, `f`, `x` denotes an object of type `X`,
-
-3. A type `X` satisfies the `EventExecutor` requirements if:
-  * For any `x`, the expressions in Table \ref{event_executor_requirements} are valid and have the indicated semantics.
-
-Table: (Work-Tracking Executor requirements) \label{work_tracking_executor_requirements}
-
-| Expression                                                                         | Return Type                                                   | Operational semantics                                                    | Assertion/note/pre-/post-condition                                                    |
-|------------------------------------------------------------------------------------|---------------------------------------------------------------|--------------------------------------------------------------------------|---------------------------------------------------------------------------------------|
-| `x.on_work_started()`                                                              |                                                               |                                                                          | Shall not exit via an exception.                                                      |
-| `x.on_work_finished()`                                                             |                                                               |                                                                          | Shall not exit via an exception. Precondition: A preceding call to `on_work_started`. |                                         |
-
 ## `TwoWayExecutor`
 
 1. The `TwoWayExecutor` requirements form the basis of the two-way executor concept taxonomy;
@@ -157,8 +141,7 @@ Table: (Two-Way Executor requirements) \label{two_way_executor_requirements}
 
 | Expression                                                                         | Return Type                                                   | Operational semantics                                                    | Assertion/note/pre-/post-condition                                 |
 |------------------------------------------------------------------------------------|---------------------------------------------------------------|--------------------------------------------------------------------------|--------------------------------------------------------------------|
-| `x.invoke(std::move(f))`                                                           | R                                                             |  Creates an execution agent which invokes `f()`. Blocks caller.          |                                                                    |
-| `x.async_-` `invoke(std::move(f))`                                                 | `executor_-` `future_t<X,R>`                                  |  Creates an execution agent which invokes `f()`                          |                                                                    |
+| `x.async_-` `execute(std::move(f))`                                                | `executor_-` `future_t<X,R>`                                  |  Creates an execution agent which invokes `f()`                          |                                                                    |
 |                                                                                    |                                                               |  Returns the result of `f()` via the resulting future object             |                                                                    |
 
 # Bulk (Parallelism TS) executor category
