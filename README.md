@@ -185,7 +185,7 @@ Table: (Event Executor requirements) \label{event_executor_requirements}
 2. In Table \ref{two_way_executor_requirements}, `f`, denotes a `MoveConstructible` function object with zero arguments whose result type is `R`,
    and `x` denotes an object of type `X`.
 
-3. A type `X` satisfies the `OneWayExecutor` requirements if:
+3. A type `X` satisfies the `TwoWayExecutor` requirements if:
   * `X` satisfies the `CopyConstructible` requirements (17.6.3.1).
   * `X` satisfies the `EqualityComparable` requirements (17.6.3.1).
   * For any `f` and `x`, the expressions in Table \ref{two_way_executor_requirements} are valid and have the indicated semantics.
@@ -897,7 +897,7 @@ void swap(two_way_executor& x, two_way_executor& y);
 bool operator==(const two_way_executor& x, const two_way_executor& y);
 ```
 
-1. An object of class `two_way_executor` stores an instance of any `OneWayExecutor` type. The stored instance is called the *contained executor*.
+1. An object of class `two_way_executor` stores an instance of any `TwoWayExecutor` type. The stored instance is called the *contained executor*.
 
 ### Construction and destruction
 
