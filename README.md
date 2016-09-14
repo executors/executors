@@ -325,7 +325,7 @@ XXX TODO
 
 2. An executor customization point does not participate in overload resolution
    if its `exec` parameter is neither a `OneWayExecutor` nor a `TwoWayExecutor`. Executor customization points
-   follow the design suggested by [N4381](wg21.link/N4381).
+   follow the design suggested by [N4381](https://wg21.link/N4381).
 
    XXX the reason p2 is included is to define some general purpose wording for executor customization points in order to avoid repetition below.
        but, there's still some repetition
