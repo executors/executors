@@ -196,6 +196,7 @@ Table: (Two-Way Executor requirements) \label{two_way_executor_requirements}
 |------------------------------------------------------------------------------------|---------------------------------------------------------------|--------------------------------------------------------------------------|--------------------------------------------------------------------|
 | `x.async_-` `execute(std::move(f))`                                                | `executor_-` `future_t<X,R>`                                  |  Creates an execution agent which invokes `f()`                          |                                                                    |
 |                                                                                    |                                                               |  Returns the result of `f()` via the resulting future object             |                                                                    |
+|                                                                                    |                                                               |  Returns any exception thrown by `f()` via the resulting future object   |                                                                    |
 
 # Bulk (Parallelism TS) executor category
 
@@ -357,6 +358,8 @@ XXX TODO
 
 4. *Synchronization:* The invocation of `sync_execute` synchronizes with (1.10) the invocation of `f`.
 
+5. *Throws:* Any uncaught exception thrown by `f`.
+
 ## Function template `execution::async_execute()`
 
 1.  ```
@@ -406,6 +409,8 @@ XXX TODO
 
     * Any return value of `f` is stored as the result in the shared state of the resulting future.
 
+    * Any exception thrown by `f` is stored as the exceptional result in the shared state of the resulting future.
+
 3. *Returns:* `executor_future_t<Executor,result_of_t<decay_t<Function>()>` when `predecessor` is a `void` future. Otherwise,
    `executor_future_t<Executor,result_of_t<decay_t<Function>(T&)>>` where `T` is the result type of the `predecessor` future.
 
@@ -435,6 +440,8 @@ XXX TODO
      `idx` is the index of the execution agent, and `result` and `shared` are references to the respective shared state.
      Any return value of `f` is discarded.
 
+   * If any invocation of `f` exits via an uncaught exception, `terminate` is called.
+
 3. *Returns:* An object of type `result_of_t<Function2(executor_shape_t<Executor>)>` that refers to the result shared state created by
    this call to `bulk_sync_execute`.
 
@@ -463,6 +470,8 @@ XXX TODO
     * Creates a new group of execution agents of shape `shape`. Each execution agent calls `f(idx, result, shared)`, where
       `idx` is the index of the execution agent, and `result` and `shared` are references to the respective shared state.
       Any return value of `f` is discarded.
+
+   * If any invocation of `f` exits via an uncaught exception, `terminate` is called.
 
 3. *Returns:* An object of type
 
@@ -498,6 +507,8 @@ XXX TODO
      `idx` is the index of the execution agent, `result` is a reference to the result shared state, `pred` is a reference to
      the `predecessor` state if it is not `void`. Otherwise, each execution agent calls `f(idx, result, shared)`.
      Any return value of `f` is discarded.
+
+   * If any invocation of `f` exits via an uncaught exception, `terminate` is called.
 
 3. *Returns:* An object of type
 
