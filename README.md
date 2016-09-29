@@ -1025,22 +1025,7 @@ to add tasks to a thread_pool's executor will not block on the input queue.
 class thread_pool
 {
   public:
-    // executor definitions
-    // XXX should probably define one of each executor type in the
-    // proposal.
-    class basic_executor
-    {
-      public:
-        template <typename T>
-        using future = std::future<T>;
-
-        template<class Executor, class Function>
-        void execute(Function&& f);
-
-        template<class Executor, class Function>
-        future<result_of_t<decay_t<Function>()>>
-        async_execute(Function&& f);
-    };
+    class executor_type;
     
     // construction/destruction
     thread_pool();
@@ -1058,17 +1043,9 @@ class thread_pool
 
     // placeholder for a general approach to getting executors from 
     // standard contexts.
-    basic_executor get_executor() noexcept;
+    executor_type get_executor() noexcept;
 };
 ```
-
-### Executor properties
-
-1.  ```
-    class basic_executor;
-    ```
-
-2. An executor type satisfying both the `OneWayExecutor` and `TwoWayExecutor` requirements.
 
 ### Construction and destruction
 
@@ -1103,8 +1080,31 @@ class thread_pool
 ### Executor Creation
 
 1.  ```
-    basic_executor get_executor() noexcept;
+    executor_type get_executor() noexcept;
     ```
 
 2. *Returns:* an executor object whose type satisfies the `OneWayExecutor` and `TwoWayExecutor` requirements.
+
+## Class `thread_pool::executor_type`
+
+1. ```
+// executor definitions
+// XXX should probably define one of each executor type in the
+// proposal.
+class thread_pool::executor_type
+{
+  public:
+    template <typename T>
+    using future = std::future<T>;
+
+    template<class Executor, class Function>
+    void execute(Function&& f);
+
+    template<class Executor, class Function>
+    future<result_of_t<decay_t<Function>()>>
+    async_execute(Function&& f);
+};
+```
+
+2. An executor type satisfying both the `OneWayExecutor` and `TwoWayExecutor` requirements.
 
