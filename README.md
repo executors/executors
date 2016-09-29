@@ -1043,7 +1043,7 @@ class thread_pool
 
     // placeholder for a general approach to getting executors from 
     // standard contexts.
-    executor_type get_executor() noexcept;
+    executor_type executor() noexcept;
 };
 ```
 
@@ -1080,7 +1080,7 @@ class thread_pool
 ### Executor Creation
 
 1.  ```
-    executor_type get_executor() noexcept;
+    executor_type executor() noexcept;
     ```
 
 2. *Returns:* an executor object whose type satisfies the `OneWayExecutor` and `TwoWayExecutor` requirements.
