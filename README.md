@@ -1170,6 +1170,10 @@ The class `thread_pool` satisfies the `ExecutionContext` requirements.
 For an object of type `thread_pool`, *outstanding work* is defined as the sum
 of:
 
+* the total number of calls to the `on_work_started` function that returned
+  `true`, less the total number of calls to the `on_work_finished` function, on
+  any executor associated with the `thread_pool`.
+
 * the number of function objects that have been added to the `thread_pool`
   via the `thread_pool` executor, but not yet executed; and
 
@@ -1286,6 +1290,9 @@ class thread_pool::executor_type
 
     thread_pool& context() const noexcept;
 
+    void on_work_started() const noexcept;
+    void on_work_finished() const noexcept;
+
     template<class Func, class Args...>
       void execute(Func&& f, Args&&... args) const;
     template<class ProtoAllocator, class Func, class Args...>
@@ -1371,6 +1378,20 @@ thread_pool& context() const noexcept;
 ```
 
 *Returns:* A reference to the associated `thread_pool` object.
+
+```
+void on_work_started() const noexcept;
+```
+
+*Effects:* Increments the count of outstanding work associated with the
+`thread_pool`.
+
+```
+void on_work_finished() const noexcept;
+```
+
+*Effects:* Decrements the count of outstanding work associated with the
+`thread_pool`.
 
 ```
 template<class Func, class Args...>
