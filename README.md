@@ -1025,22 +1025,7 @@ to add tasks to a thread_pool's executor will not block on the input queue.
 class thread_pool
 {
   public:
-    // executor definitions
-    // XXX should probably define one of each executor type in the
-    // proposal.
-    class basic_executor
-    {
-      public:
-        template <typename T>
-        using future = std::future<T>;
-
-        template<class Executor, class Function>
-        void execute(Function&& f);
-
-        template<class Executor, class Function>
-        future<result_of_t<decay_t<Function>()>>
-        async_execute(Function&& f);
-    };
+    class executor_type;
     
     // construction/destruction
     thread_pool();
@@ -1056,55 +1041,300 @@ class thread_pool
     // attach current thread to the thread pools list of worker threads
     void attach();
 
+    // signal all work to complete
+    void stop();
+
+    // wait for all threads in the thread pool to complete
+    void wait();
+
     // placeholder for a general approach to getting executors from 
     // standard contexts.
-    basic_executor get_executor() noexcept;
+    executor_type executor() noexcept;
 };
+
+bool operator==(const thread_pool& a, const thread_pool& b) noexcept;
+bool operator!=(const thread_pool& a, const thread_pool& b) noexcept;
 ```
 
-### Executor properties
+The class `thread_pool` satisfies the `ExecutionContext` requirements.
 
-1.  ```
-    class basic_executor;
-    ```
+For an object of type `thread_pool`, *outstanding work* is defined as the sum
+of:
 
-2. An executor type satisfying both the `OneWayExecutor` and `TwoWayExecutor` requirements.
+* the number of function objects that have been added to the `thread_pool`
+  via the `thread_pool` executor, but not yet executed; and
+
+* the number of function objects that are currently being executed by the
+  `thread_pool`.
+
+The `thread_pool` member functions `executor`, `attach`, `wait`, and `stop`,
+and the `thread_pool::executor_type` copy constructors and member functions, do
+not introduce data races as a result of concurrent calls to those functions
+from different threads of execution.
 
 ### Construction and destruction
 
-1.  ```
-    thread_pool(std::size_t num_threads);
-    ```
+```
+thread_pool();
+```
 
-2. *Effects:* Constructs a `thread_pool` object with an implementation defined
-    number of threads of execution. Additionally starts the worker threads.
+*Effects:* Constructs a `thread_pool` object with an implementation defined
+number of threads of execution, as if by creating objects of type `thread`.
 
-3.  ```
-    thread_pool(std::size_t num_threads);
-    ```
+```
+thread_pool(std::size_t num_threads);
+```
 
-4. *Effects:* Constructs a `thread_pool` object with the provided number of threads of execution. Additionally starts the worker threads.
+*Effects:* Constructs a `thread_pool` object with `num_threads` threads of
+execution, as if by creating objects of type `thread`. (QUESTION: Do we want to
+allow 0?)
 
-5.  ```
-    ~thread_pool();
-    ```
+```
+~thread_pool();
+```
 
-6. *Effects:* Stops the pool from accepting new tasks and blocks the calling thread on the completion of execution of all work in the thread pool. 
+*Effects:* Destroys an object of class `thread_pool`. Performs `stop()`
+followed by `wait()`.
 
 ### Worker Management
 
-1.  ```
-    void attach();
-    ```
+```
+void attach();
+```
 
-2. *Effects:* adds the calling thread to the pool of workers and block caller until the pool is destroyed.
+*Effects:* adds the calling thread to the pool of workers. Blocks the calling
+thread until signalled to complete by `stop()` or `wait()`, and then blocks
+until all the threads created during `thread_pool` object construction have
+completed. (Note: The implementation is encouraged, but not required, to use
+the attached thread to execute submitted function objects. RATIONALE:
+implementations in terms of the Windows thread pool cannot utilise
+user-provided threads. --end note) (NAMING: a possible alternate name for this
+function is `join()`.)
 
+```
+void stop();
+```
+
+*Effects:* Signals the threads in the pool to complete as soon as possible. If
+a thread is currently executing a function object, the thread will exit only
+after completion of that function object. The call to `stop()` returns without
+waiting for the threads to complete. Subsequent calls to attach complete
+immediately.
+
+```
+void wait();
+```
+
+*Effects:* If not already stopped, signals the threads in the pool to complete
+once the outstanding work is `0`. Blocks the calling thread (C++Std
+[defns.block]) until all threads in the pool have completed, without executing
+submitted function objects in the calling thread. Subsequent calls to attach
+complete immediately.
+
+*Synchronization:* The completion of each thread in the pool synchronizes with
+(C++Std [intro.multithread]) the corresponding successful `wait()` return.
 
 ### Executor Creation
 
-1.  ```
-    basic_executor get_executor() noexcept;
-    ```
+```
+executor_type executor() noexcept;
+```
 
-2. *Returns:* an executor object whose type satisfies the `OneWayExecutor` and `TwoWayExecutor` requirements.
+*Returns:* An executor that may be used to submit function objects to the
+thread pool.
 
+### Comparisons
+
+```
+bool operator==(const thread_pool& a, const thread_pool& b) noexcept;
+```
+
+*Returns:* `std::addressof(a) == std::addressof(b)`.
+
+```
+bool operator!=(const thread_pool& a, const thread_pool& b) noexcept;
+```
+
+*Returns:* `!(a == b)`.
+
+## Class `thread_pool::executor_type`
+
+```
+class thread_pool::executor_type
+{
+  public:
+    // construct / copy / destroy:
+
+    executor_type(const executor_type& other) noexcept;
+    executor_type(executor_type&& other) noexcept;
+
+    executor_type& operator=(const executor_type& other) noexcept;
+    executor_type& operator=(executor_type&& other) noexcept;
+
+    // executor operations:
+
+    bool running_in_this_thread() const noexcept;
+
+    thread_pool& context() const noexcept;
+
+    template<class Func, class Args...>
+      void execute(Func&& f, Args&&... args) const;
+    template<class ProtoAllocator, class Func, class Args...>
+      void execute(allocator_arg_t, const ProtoAllocator& a,
+        Func&& f, Args&&... args) const;
+
+    template<class Func, class Args...>
+      void post(Func&& f, Args&&... args) const;
+    template<class ProtoAllocator, class Func, class Args...>
+      void post(allocator_arg_t, const ProtoAllocator& a,
+        Func&& f, Args&&... args) const;
+
+    template<class Func, class Args...>
+      void defer(Func&& f, Args&&... args) const;
+    template<class ProtoAllocator, class Func, class Args...>
+      void defer(allocator_arg_t, const ProtoAllocator& a,
+        Func&& f, Args&&... args) const;
+
+    template <typename T>
+    using future = std::future<T>;
+
+    template<class Function>
+      void sync_execute(Function&& f) const;
+
+    template<class Function>
+      future<result_of_t<decay_t<Function>()>>
+        async_execute(Function&& f) const;
+
+    // TODO: meet other requirements.
+};
+```
+
+`thread_pool::executor_type` is a type satisfying the `EventExecutor` and
+`TwoWayExecutor` requirements. (TODO: satisfy other requirements as well.)
+Objects of type `thread_pool::executor_type` are associated with a
+`thread_pool`, and function objects submitted using the `execute`, `post`,
+`defer`, `sync_execute`, and `async_execute` member functions will be executed
+by the `thread_pool`.
+
+### Constructors
+
+```
+executor_type(const executor_type& other) noexcept;
+```
+
+*Postconditions:* `*this == other`.
+
+```
+executor_type(executor_type&& other) noexcept;
+```
+
+*Postconditions:* `*this` is equal to the prior value of `other`.
+
+### Assignment
+
+```
+executor_type& operator=(const executor_type& other) noexcept;
+```
+
+*Postconditions:* `*this == other`.
+
+*Returns:* `*this`.
+
+```
+executor_type& operator=(executor_type&& other) noexcept;
+```
+
+*Postconditions:* `*this` is equal to the prior value of `other`.
+
+*Returns:* `*this`.
+
+### Operations
+
+```
+bool running_in_this_thread() const noexcept;
+```
+
+*Returns:* `true` if the current thread of execution is a thread that was
+created by or attached to the associated `thread_pool` object.
+
+```
+thread_pool& context() const noexcept;
+```
+
+*Returns:* A reference to the associated `thread_pool` object.
+
+```
+template<class Func, class Args...>
+  void execute(Func&& f, Args&&... args) const;
+```
+
+*Effects:* If `running_in_this_thread()` is `true`, calls
+`DECAY_COPY(forward<Func>(f))(forward<Args>(args)...)`. (Note: If `f` exits via
+an exception, the exception propagates to the caller of `execute`. --end note)
+Otherwise, calls `post(forward<Func>(f), forward<Args>(args)...)`.
+
+```
+template<class ProtoAllocator, class Func, class Args...>
+  void execute(allocator_arg_t, const ProtoAllocator& a,
+    Func&& f, Args&&... args) const;
+```
+
+*Effects:* If `running_in_this_thread()` is `true`, calls
+`DECAY_COPY(forward<Func>(f))(forward<Args>(args)...)`. (Note: If `f` exits via
+an exception, the exception propagates to the caller of `execute`. --end note)
+Otherwise, calls `post(allocator_arg, a, forward<Func>(f), forward<Args>(args)...)`.
+
+```
+template<class Func, class Args...>
+  void post(Func&& f, Args&&... args) const;
+template<class ProtoAllocator, class Func, class Args...>
+  void post(allocator_arg_t, const ProtoAllocator& a,
+    Func&& f, Args&&... args) const;
+```
+
+*Effects:* Adds a function object `g`, that performs
+`DECAY_COPY(forward<Func>(f))(DECAY_COPY(forward<Args>(args))...)`, to the
+`thread_pool`, where `DECAY_COPY` is evaluated in the thread that called
+`post`.
+
+```
+template<class Func, class Args...>
+  void defer(Func&& f, Args&&... args) const;
+template<class ProtoAllocator, class Func, class Args...>
+  void defer(allocator_arg_t, const ProtoAllocator& a,
+    Func&& f, Args&&... args) const;
+```
+
+*Effects:* Adds a function object `g`, that performs
+`DECAY_COPY(forward<Func>(f))(DECAY_COPY(forward<Args>(args))...)`, to the
+`thread_pool`, where `DECAY_COPY` is evaluated in the thread that called
+`post`.
+
+```
+template<class Function>
+  void sync_execute(Function&& f) const;
+```
+
+*Effects:* If `running_in_this_thread()` is `true`, calls
+`DECAY_COPY(forward<Func>(f))()`. Otherwise, adds `f` to the `thread_pool` and
+blocks the caller pending completion of `f`.
+
+*Returns:* The return value of `f`.
+
+*Throws:* Any uncaught exception thrown by `f`.
+
+```
+template<class Function>
+  future<result_of_t<decay_t<Function>()>>
+    async_execute(Function&& f) const;
+```
+
+*Effects:* Creates an asynchronous provider with an associated shared state
+(C++Std [futures.state]). Adds `f` to the `thread_pool`. On successful
+completion of `f`, the return value of `f` is atomically stored in the shared
+state and the shared state is made ready. If `f` exits via an exception, the
+exception is atomically stored in the shared state and the shared state is made
+ready.
+
+*Returns:* An object of type `future<result_of_t<decay_t<Function>>()>` that
+refers to the shared state created by `async_execute`.
