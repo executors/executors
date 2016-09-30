@@ -313,6 +313,25 @@ Table: (Bulk executor requirements) \label{bulk_executor_requirements}
 
 XXX TODO: need to specify how `executor_execution_category_t` describes the forward progress requirements of a group of execution agents wrt each other
 
+## `ExecutorWorkTracker`
+
+1. The `ExecutorWorkTracker` requirements defines operations for tracking future work against an executor.
+
+2. A type `X` meets the `ExecutorWorkTracker` requirements if it satisfies the requirements of `CopyConstructible` (C++Std [copyconstructible]) and `Destructible` (C++Std [destructible]), as well as the additional requirements listed below.
+
+3. No constructor, comparison operator, copy operation, move operation, swap operation, or member functions `on_work_started` and `on_work_finished` on these types shall exit via an exception.
+
+4. The executor copy constructor, comparison operators, and other member functions defined in these requirements shall not introduce data races as a result of concurrent calls to those functions from different threads.
+
+5. In Table \ref{executor_work_tracker_requirements}, `x` denotes an object of type `X`,
+
+Table: (Executor Work Tracker requirements) \label{executor_work_tracker_requirements}
+
+| Expression | Return Type | Assertion/note/pre-/post-condition |
+|------------|-------------|------------------------------------|
+| `x.on_work_started()` | `bool` | Shall not exit via an exception. |
+| `x.on_work_finished()` | | Shall not exit via an exception. Precondition: A corresponding preceding call to `on_work_started` that returned `true`. |
+
 # (Networking TS) executor category
 
 XXX TODO
@@ -703,6 +722,96 @@ class parallel_unsequenced_execution_tag { by-analogy-to-parallel_execution_poli
 
 5. *Throws:* `task_cancelled_exception`, as described in version 2 of the Parallelism TS.
 
+# Executor work guard
+
+```
+template<class Executor>
+class executor_work_guard
+{
+public:
+  // types:
+
+  typedef Executor executor_type;
+
+  // construct / copy / destroy:
+
+  explicit executor_work_guard(const executor_type& ex) noexcept;
+  executor_work_guard(const executor_work_guard& other) noexcept;
+  executor_work_guard(executor_work_guard&& other) noexcept;
+
+  executor_work_guard& operator=(const executor_work_guard&) = delete;
+
+  ~executor_work_guard();
+
+  // executor work guard observers:
+
+  executor_type get_executor() const noexcept;
+  bool owns_work() const noexcept;
+
+  // executor work guard modifiers:
+
+  void reset() noexcept;
+
+private:
+  Executor ex_; // exposition only
+  bool owns_; // exposition only
+};
+```
+
+## Members
+
+```
+explicit executor_work_guard(const executor_type& ex) noexcept;
+```
+
+*Effects:* Initializes `ex_` with `ex`, and `owns_` with the result of
+`ex_.on_work_started()`.
+
+*Postconditions:* `ex_ == ex`.
+
+```
+executor_work_guard(const executor_work_guard& other) noexcept;
+```
+
+*Effects:* Initializes `ex_` with `other.ex_`. If `other.owns_ == true`,
+initializes `owns_` with the result of `ex_.on_work_started()`; otherwise, sets
+`owns_` to false.
+
+*Postconditions:* `ex_ == other.ex_`.
+
+```
+executor_work_guard(executor_work_guard&& other) noexcept;
+```
+
+*Effects:* Initializes `ex_` with `std::move(other.ex_)` and `owns_` with
+`other.owns_`, and sets `other.owns_` to `false`.
+
+```
+~executor_work_guard();
+```
+
+*Effects:* If `owns_` is `true`, performs `ex_.on_work_finished()`.
+
+```
+executor_type get_executor() const noexcept;
+```
+
+*Returns:* `ex_`.
+
+```
+bool owns_work() const noexcept;
+```
+
+*Returns:* `owns_`.
+
+```
+void reset() noexcept;
+```
+
+*Effects:* If `owns_` is `true`, performs `ex_.on_work_finished()`.
+
+*Postconditions:* `owns_ == false`.
+
 # Polymorphic executor wrappers
 
 ## Class `one_way_executor`
@@ -1061,6 +1170,10 @@ The class `thread_pool` satisfies the `ExecutionContext` requirements.
 For an object of type `thread_pool`, *outstanding work* is defined as the sum
 of:
 
+* the total number of calls to the `on_work_started` function that returned
+  `true`, less the total number of calls to the `on_work_finished` function, on
+  any executor associated with the `thread_pool`.
+
 * the number of function objects that have been added to the `thread_pool`
   via the `thread_pool` executor, but not yet executed; and
 
@@ -1177,6 +1290,9 @@ class thread_pool::executor_type
 
     thread_pool& context() const noexcept;
 
+    bool on_work_started() const noexcept;
+    void on_work_finished() const noexcept;
+
     template<class Func, class Args...>
       void execute(Func&& f, Args&&... args) const;
     template<class ProtoAllocator, class Func, class Args...>
@@ -1262,6 +1378,20 @@ thread_pool& context() const noexcept;
 ```
 
 *Returns:* A reference to the associated `thread_pool` object.
+
+```
+bool on_work_started() const noexcept;
+```
+
+*Effects:* Increments the count of outstanding work associated with the
+`thread_pool`.
+
+```
+void on_work_finished() const noexcept;
+```
+
+*Effects:* Decrements the count of outstanding work associated with the
+`thread_pool`.
 
 ```
 template<class Func, class Args...>
