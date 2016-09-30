@@ -1290,7 +1290,7 @@ class thread_pool::executor_type
 
     thread_pool& context() const noexcept;
 
-    void on_work_started() const noexcept;
+    bool on_work_started() const noexcept;
     void on_work_finished() const noexcept;
 
     template<class Func, class Args...>
@@ -1380,7 +1380,7 @@ thread_pool& context() const noexcept;
 *Returns:* A reference to the associated `thread_pool` object.
 
 ```
-void on_work_started() const noexcept;
+bool on_work_started() const noexcept;
 ```
 
 *Effects:* Increments the count of outstanding work associated with the
