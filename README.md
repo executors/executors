@@ -117,7 +117,7 @@ XXX Is this implementable? For example, there's no way to check that `T::async_e
 
 ## `BaseExecutor`
 
-1. A type `X` meets the `BaseExecutor` requirements if it satisfies the requirements of `CopyConstructible` (C++Std [copyconstructible]) and `Destructible` (C++Std [destructible]), as well as the additional requirements listed below.
+1. A type `X` meets the `BaseExecutor` requirements if it satisfies the requirements of `CopyConstructible` (C++Std [copyconstructible]), `Destructible` (C++Std [destructible]), and `EqualityComparable` (C++Std [equalitycomparable]), as well as the additional requirements listed below.
 
 2. No constructor, comparison operator, copy operation, move operation, swap operation, or member function `context` on these types shall exit via an exception.
 
