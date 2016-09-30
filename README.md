@@ -722,6 +722,96 @@ class parallel_unsequenced_execution_tag { by-analogy-to-parallel_execution_poli
 
 5. *Throws:* `task_cancelled_exception`, as described in version 2 of the Parallelism TS.
 
+# Executor work guard
+
+```
+template<class Executor>
+class executor_work_guard
+{
+public:
+  // types:
+
+  typedef Executor executor_type;
+
+  // construct / copy / destroy:
+
+  explicit executor_work_guard(const executor_type& ex) noexcept;
+  executor_work_guard(const executor_work_guard& other) noexcept;
+  executor_work_guard(executor_work_guard&& other) noexcept;
+
+  executor_work_guard& operator=(const executor_work_guard&) = delete;
+
+  ~executor_work_guard();
+
+  // executor work guard observers:
+
+  executor_type get_executor() const noexcept;
+  bool owns_work() const noexcept;
+
+  // executor work guard modifiers:
+
+  void reset() noexcept;
+
+private:
+  Executor ex_; // exposition only
+  bool owns_; // exposition only
+};
+```
+
+## Members
+
+```
+explicit executor_work_guard(const executor_type& ex) noexcept;
+```
+
+*Effects:* Initializes `ex_` with `ex`, and `owns_` with the result of
+`ex_.on_work_started()`.
+
+*Postconditions:* `ex_ == ex`.
+
+```
+executor_work_guard(const executor_work_guard& other) noexcept;
+```
+
+*Effects:* Initializes `ex_` with `other.ex_`. If `other.owns_ == true`,
+initializes `owns_` with the result of `ex_.on_work_started()`; otherwise, sets
+`owns_` to false.
+
+*Postconditions:* `ex_ == other.ex_`.
+
+```
+executor_work_guard(executor_work_guard&& other) noexcept;
+```
+
+*Effects:* Initializes `ex_` with `std::move(other.ex_)` and `owns_` with
+`other.owns_`, and sets `other.owns_` to `false`.
+
+```
+~executor_work_guard();
+```
+
+*Effects:* If `owns_` is `true`, performs `ex_.on_work_finished()`.
+
+```
+executor_type get_executor() const noexcept;
+```
+
+*Returns:* `ex_`.
+
+```
+bool owns_work() const noexcept;
+```
+
+*Returns:* `owns_`.
+
+```
+void reset() noexcept;
+```
+
+*Effects:* If `owns_` is `true`, performs `ex_.on_work_finished()`.
+
+*Postconditions:* `owns_ == false`.
+
 # Polymorphic executor wrappers
 
 ## Class `one_way_executor`
