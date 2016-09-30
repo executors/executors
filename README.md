@@ -123,7 +123,7 @@ XXX Is this implementable? For example, there's no way to check that `T::async_e
 
 3. The executor copy constructor, comparison operators, and other member functions defined in these requirements shall not introduce data races as a result of concurrent calls to those functions from different threads.
 
-4. The destructor shall not block pending completion of the submitted function objects.
+4. The destructor shall not block pending completion of the submitted function objects. (Note: The ability to wait for completion of submitted function objects may be provided by the associated execution context. --end note)
 
 5. In the table below, `x1` and `x2` denote (possibly const) values of type `X`, `mx1` denotes an xvalue of type `X`, and `u` denotes an identifier.
 
