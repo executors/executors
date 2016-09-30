@@ -313,6 +313,25 @@ Table: (Bulk executor requirements) \label{bulk_executor_requirements}
 
 XXX TODO: need to specify how `executor_execution_category_t` describes the forward progress requirements of a group of execution agents wrt each other
 
+## `ExecutorWorkTracker`
+
+1. The `ExecutorWorkTracker` requirements defines operations for tracking future work against an executor.
+
+2. A type `X` meets the `ExecutorWorkTracker` requirements if it satisfies the requirements of `CopyConstructible` (C++Std [copyconstructible]) and `Destructible` (C++Std [destructible]), as well as the additional requirements listed below.
+
+3. No constructor, comparison operator, copy operation, move operation, swap operation, or member functions `on_work_started` and `on_work_finished` on these types shall exit via an exception.
+
+4. The executor copy constructor, comparison operators, and other member functions defined in these requirements shall not introduce data races as a result of concurrent calls to those functions from different threads.
+
+5. In Table \ref{executor_work_tracker_requirements}, `x` denotes an object of type `X`,
+
+Table: (Executor Work Tracker requirements) \label{executor_work_tracker_requirements}
+
+| Expression | Return Type | Assertion/note/pre-/post-condition |
+|------------|-------------|------------------------------------|
+| `x.on_work_started()` | `bool` | Shall not exit via an exception. |
+| `x.on_work_finished()` | | Shall not exit via an exception. Precondition: A corresponding preceding call to `on_work_started` that returned `true`. |
+
 # (Networking TS) executor category
 
 XXX TODO
