@@ -104,6 +104,10 @@
     template <class Executor>
     using executor_context_t = typename executor_context<Executor>::type;
 
+## Proto-allocator requirements
+
+1. A type `A` meets the proto-allocator requirements if `A` is `CopyConstructible` (C++Std [copyconstructible]), `Destructible` (C++Std [destructible]), and `allocator_traits<A>::rebind_alloc<U>` meets the allocator requirements (C++Std [allocator.requirements]), where `U` is an object type. *[Note:* For example, `std::allocator<void>` meets the proto-allocator requirements but not the allocator requirements. *--end note]* No comparison operator, copy operation, move operation, or swap operation on these types shall exit via an exception.
+
 ## `ExecutionContext`
 
 1.  A type meets the `ExecutionContext` requirements if it satisfies the `EqualityComparable` requirements (C++Std [equalitycomparable]). No comparison operator on these types shall exit via an exception.
