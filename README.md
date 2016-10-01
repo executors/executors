@@ -119,21 +119,19 @@ XXX Is this implementable? For example, there's no way to check that `T::async_e
 
 1. A type `X` meets the `BaseExecutor` requirements if it satisfies the requirements of `CopyConstructible` (C++Std [copyconstructible]), `Destructible` (C++Std [destructible]), and `EqualityComparable` (C++Std [equalitycomparable]), as well as the additional requirements listed below.
 
-2. No constructor, comparison operator, copy operation, move operation, swap operation, or member function `context` on these types shall exit via an exception.
+2. No comparison operator, copy operation, move operation, swap operation, or member function `context` on these types shall exit via an exception.
 
 3. The executor copy constructor, comparison operators, and other member functions defined in these requirements shall not introduce data races as a result of concurrent calls to those functions from different threads.
 
-4. The destructor shall not block pending completion of the submitted function objects. (Note: The ability to wait for completion of submitted function objects may be provided by the associated execution context. --end note)
+4. The destructor shall not block pending completion of the submitted function objects. *[Note:* The ability to wait for completion of submitted function objects may be provided by the associated execution context. *--end note]*
 
 5. In the table below, `x1` and `x2` denote (possibly const) values of type `X`, `mx1` denotes an xvalue of type `X`, and `u` denotes an identifier.
 
-Table: (Base Executor requirements) \label{base_executor_requirements}
-
 | Expression | Type | Assertion/note/pre-/post-condition |
 |------------|------|------------------------------------|
-| `X u(x1);` | | Shall not exit via an exception. Post: `u == x1` and `u.context() == x1.context()`. |
-| `X u(mx1);` | | Shall not exit via an exception. Post: `u` equals the prior value of `mx1` and `u.context()` equals the prior value of `mx1.context()`. |
-| `x1 == x2` | `bool` | Returns `true` only if `x1` and `x2` can be interchanged with identical effects in any of the expressions defined in these type requirements (TODO and the other executor requirements defined in this Technical Specification). (Note: Returning `false` does not necessarily imply that the effects are not identical. --end note) `operator==` shall be reflexive, symmetric, and transitive, and shall not exit via an exception. |
+| `X u(x1);` | | Shall not exit via an exception.<br/><br/>*Post:* `u == x1` and `u.context() == x1.context()`. |
+| `X u(mx1);` | | Shall not exit via an exception.<br/><br/>*Post:* `u` equals the prior value of `mx1` and `u.context()` equals the prior value of `mx1.context()`. |
+| `x1 == x2` | `bool` | Returns `true` only if `x1` and `x2` can be interchanged with identical effects in any of the expressions defined in these type requirements (TODO and the other executor requirements defined in this Technical Specification). *[Note:* Returning `false` does not necessarily imply that the effects are not identical. *--end note]* `operator==` shall be reflexive, symmetric, and transitive, and shall not exit via an exception. |
 | `x1 != x2` | `bool` | Same as `!(x1 == x2)`. |
 | `x1.context()` | `E&` or `const E&` where `E` is a type that satisfies the `ExecutionContext` requirements. | Shall not exit via an exception. The comparison operators and member functions defined in these requirements (TODO and the other executor requirements defined in this Technical Specification) shall not alter the reference returned by this function. |
 
