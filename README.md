@@ -100,6 +100,41 @@ XXX Is this implementable? For example, there's no way to check that `T::async_e
     template<class Executor, class T>
     using executor_future_t = typename executor_future<Executor,T>::type;
 
+### Associated execution context type
+
+    template<class Executor>
+    struct executor_context
+    {
+      using type = std::decay_t<decltype(declref<const Executor&>().context())>; // TODO check this
+    };
+
+    template <class Executor>
+    using executor_context_t = typename executor_context<Executor>::type;
+
+## `ExecutionContext`
+
+1.  A type meets the `ExecutionContext` requirements if it satisfies the `EqualityComparable` requirements (C++Std [equalitycomparable]). No comparison operator on these types shall exit via an exception.
+
+## `BaseExecutor`
+
+1. A type `X` meets the `BaseExecutor` requirements if it satisfies the requirements of `CopyConstructible` (C++Std [copyconstructible]), `Destructible` (C++Std [destructible]), and `EqualityComparable` (C++Std [equalitycomparable]), as well as the additional requirements listed below.
+
+2. No comparison operator, copy operation, move operation, swap operation, or member function `context` on these types shall exit via an exception.
+
+3. The executor copy constructor, comparison operators, and other member functions defined in these requirements shall not introduce data races as a result of concurrent calls to those functions from different threads.
+
+4. The destructor shall not block pending completion of the submitted function objects. *[Note:* The ability to wait for completion of submitted function objects may be provided by the associated execution context. *--end note]*
+
+5. In the table below, `x1` and `x2` denote (possibly const) values of type `X`, `mx1` denotes an xvalue of type `X`, and `u` denotes an identifier.
+
+| Expression | Type | Assertion/note/pre-/post-condition |
+|------------|------|------------------------------------|
+| `X u(x1);` | | Shall not exit via an exception.<br/><br/>*Post:* `u == x1` and `u.context() == x1.context()`. |
+| `X u(mx1);` | | Shall not exit via an exception.<br/><br/>*Post:* `u` equals the prior value of `mx1` and `u.context()` equals the prior value of `mx1.context()`. |
+| `x1 == x2` | `bool` | Returns `true` only if `x1` and `x2` can be interchanged with identical effects in any of the expressions defined in these type requirements (TODO and the other executor requirements defined in this Technical Specification). *[Note:* Returning `false` does not necessarily imply that the effects are not identical. *--end note]* `operator==` shall be reflexive, symmetric, and transitive, and shall not exit via an exception. |
+| `x1 != x2` | `bool` | Same as `!(x1 == x2)`. |
+| `x1.context()` | `E&` or `const E&` where `E` is a type that satisfies the `ExecutionContext` requirements. | Shall not exit via an exception. The comparison operators and member functions defined in these requirements (TODO and the other executor requirements defined in this Technical Specification) shall not alter the reference returned by this function. |
+
 ## `OneWayExecutor`
 
 1. The `OneWayExecutor` requirements form the basis of the one-way executor concept taxonomy;
@@ -117,8 +152,7 @@ XXX Is this implementable? For example, there's no way to check that `T::async_e
   result of concurrent calls to those functions from different threads.
 
 5. A type `X` satisfies the `OneWayExecutor` requirements if:
-  * `X` satisfies the `CopyConstructible` requirements (17.6.3.1).
-  * `X` satisfies the `EqualityComparable` requirements (17.6.3.1).
+  * `X` satisfies the `BaseExecutor` requirements.
   * For any `f`, `a...` and `x`, the expressions in Table \ref{one_way_executor_requirements} are valid and have the indicated semantics.
 
 Table: (One-Way Executor requirements) \label{one_way_executor_requirements}
@@ -186,8 +220,7 @@ Table: (Event Executor requirements) \label{event_executor_requirements}
    and `x` denotes an object of type `X`.
 
 3. A type `X` satisfies the `TwoWayExecutor` requirements if:
-  * `X` satisfies the `CopyConstructible` requirements (17.6.3.1).
-  * `X` satisfies the `EqualityComparable` requirements (17.6.3.1).
+  * `X` satisfies the `BaseExecutor` requirements.
   * For any `f` and `x`, the expressions in Table \ref{two_way_executor_requirements} are valid and have the indicated semantics.
 
 Table: (Two-Way Executor requirements) \label{two_way_executor_requirements}
