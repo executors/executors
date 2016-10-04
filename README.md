@@ -466,6 +466,27 @@ XXX TODO
 5. *Postconditions:* If the `predecessor` future is not a shared future, then `predecessor.valid() == false`.
 
 
+## Function template `execution::bulk_execute()`
+
+1.  ```
+    template<class Executor, class Function1, class Function2>
+    void bulk_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape,
+                      Function2 shared_factory);
+    ```
+
+2. *Effects:* calls `exec.bulk_execute(f, shape, shared_factory)` if that call is well-formed;
+   otherwise:
+
+   * Calls `shared_factory(shape)` in an unspecified execution agent. The result of this invocation is stored to shared state.
+
+   * Creates a new group of execution agents of shape `shape`. Each execution agent calls `f(idx, shared)`, where
+     `idx` is the index of the execution agent, and `shared` is a reference to the shared state.
+
+   * If any invocation of `f` exists via an uncaught exception, `terminate` is called.
+
+3. *Synchronization:* The completion of the function `shared_factory` happens before the creation of the group of execution agents.
+
+
 ## Function template `execution::bulk_sync_execute()`
 
 1.  ```
