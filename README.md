@@ -300,12 +300,13 @@ XXX TODO the relative "strength" of these categories should be defined
     template<class Executor>
     using executor_index_t = typename executor_index<Executor>::type;
 
-## `BulkExecutor`
+## `BulkTwoWayExecutor`
 
-1. The `BulkExecutor` requirements form the basis of the bulk executor concept.
-   This set of requirements specifies operations for creating groups of execution agents in bulk from a single operation.
+1. The `BulkTwoWayExecutor` requirements form the basis of the bulk executor concept.
+   This set of requirements specifies operations for creating groups of execution agents in bulk from a single operation
+   with the ability to synchronize these groups of agents with another thread.
 
-2. In Table \ref{bulk_executor_requirements},
+2. In Table \ref{bulk_two_way_executor_requirements},
     * `f` denotes a `CopyConstructible` function object with three arguments,
     * `n` denotes a shape object whose type is `executor_shape_t<X>`.
     * `rf` denotes a `CopyConstructible` function object with one argument whose result type is `R`,
@@ -317,9 +318,9 @@ XXX TODO the relative "strength" of these categories should be defined
 
 2. A class `X` satisfies the requirements of a bulk executor if `X` satisfies
    either the `OneWayExecutor` or `TwoWayExecutor` requirements and the expressions of Table
-   \ref{bulk_executor_requirements} are valid and have the indicated semantics.
+   \ref{bulk_two_way_executor_requirements} are valid and have the indicated semantics.
 
-Table: (Bulk executor requirements) \label{bulk_executor_requirements}
+Table: (Bulk two-way executor requirements) \label{bulk_two_way_executor_requirements}
 
 | Expression                                                        | Return Type                                                       |  Operational semantics                                                                                     | Assertion/note/pre-/post-condition                                                                                                                         |
 |-------------------------------------------------------------------|-------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -615,7 +616,7 @@ class parallel_unsequenced_execution_tag { by-analogy-to-parallel_execution_poli
 
 1. Each execution policy is associated with an executor, and this executor is called its *associated executor*.
 
-2. The type of an execution policy's associated executor shall satisfy the requirements of `BulkExecutor`.
+2. The type of an execution policy's associated executor shall satisfy the requirements of `BulkTwoWayExecutor`.
 
 3. When an execution policy is used as a parameter to a parallel algorithm, the
    execution agents that invoke element access functions are created by the
@@ -654,7 +655,7 @@ class parallel_unsequenced_execution_tag { by-analogy-to-parallel_execution_poli
 2. Let `T` be `decay_t<Executor>`.
 
 3. *Returns:* An execution policy whose execution category is `execution_category`. If `T` satisfies the requirements of
-   `BulkExecutor`, the returned execution policy's associated executor is equal to `exec`. Otherwise,
+   `BulkTwoWayExecutor`, the returned execution policy's associated executor is equal to `exec`. Otherwise,
    the returned execution policy's associated executor is an adaptation of `exec`.
 
    XXX TODO: need to define what adaptation means
