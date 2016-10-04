@@ -300,9 +300,35 @@ XXX TODO the relative "strength" of these categories should be defined
     template<class Executor>
     using executor_index_t = typename executor_index<Executor>::type;
 
+## `BulkOneWayExecutor`
+
+1. The `BulkOneWayExecutor` requirements form the basis of the bulk one-way executor concept.
+   This set of requirements specifies operations for creating groups of execution agents in bulk from a single operation
+   which need not synchronize with another thread.
+
+2. In Table \ref{bulk_one_way_executor_requirements},
+    * `f` denotes a `CopyConstructible` function object with three arguments,
+    * `n` denotes a shape object whose type is `executor_shape_t<X>`.
+    * `sf` denotes a `CopyConstructible` function object with one argument whose result type is `S`,
+    * `i` denotes an object whose type is `executor_index_t<X>`, and
+    * `s` denotes an object whose type is `S`.
+
+3. A class `X` satisfies the requirements of a bulk one-way executor if `X` satisfies
+   either the `OneWayExecutor` or `TwoWayExecutor` requirements and the expressions of Table
+   \ref{bulk_one_way_executor_requirements} are valid and have the indicated semantics.
+
+Table: (Bulk one-way executor requirements) \label{bulk_one_way_executor_requirements}
+
+| Expression                                               | Return Type                                                       |  Operational semantics                                                                                     | Assertion/note/pre-/post-condition                                                                                                                         |
+|----------------------------------------------------------|-------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `x.bulk_-` `execute(f, n, sf)`                           | `void`                                                            |  Creates a group of execution agents of shape `n` which invoke `f(i, s)`                                   | Effects: invokes `sf(n)` on an unspecified execution agent.                                                                                                   |
+|                                                          |                                                                   |                                                                                                            |                                                                                                                                                            |
+|                                                          |                                                                   |                                                                                                            |                                                                                                                                                            |
+|                                                          |                                                                   |                                                                                                            |                                                                                                                                                            |
+
 ## `BulkTwoWayExecutor`
 
-1. The `BulkTwoWayExecutor` requirements form the basis of the bulk executor concept.
+1. The `BulkTwoWayExecutor` requirements form the basis of the bulk two-way executor concept.
    This set of requirements specifies operations for creating groups of execution agents in bulk from a single operation
    with the ability to synchronize these groups of agents with another thread.
 
@@ -316,7 +342,7 @@ XXX TODO the relative "strength" of these categories should be defined
     * `s` denotes an object whose type is `S`, and
     * `pred` denotes a future object whose result is `pr`.
 
-2. A class `X` satisfies the requirements of a bulk executor if `X` satisfies
+3. A class `X` satisfies the requirements of a bulk two-way executor if `X` satisfies
    either the `OneWayExecutor` or `TwoWayExecutor` requirements and the expressions of Table
    \ref{bulk_two_way_executor_requirements} are valid and have the indicated semantics.
 
