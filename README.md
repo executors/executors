@@ -65,9 +65,6 @@
 
 `is_one_way_executor<T>` publicly inherits from `std::true_type` if `T` satisfies the `OneWayExecutor` requirements (see Table \ref{one_way_executor_requirements}); otherwise, it publicly inherits from `std::false_type`.
 
-XXX Is this implementable? For example, there's no way to check that `T::spawn_execute(f)` is valid for all `f` if all we have is `T`. However, we could do something like check with `function<void()>`, and
-    insist that if it works for `function<void()>`, then it must work for all nullary functions.
-
 ### Checking that a type is a `TwoWayExecutor`
 
     template<class T> struct is_two_way_executor : see-below;
@@ -75,10 +72,6 @@ XXX Is this implementable? For example, there's no way to check that `T::spawn_e
     template<class T> constexpr bool is_two_way_executor_v = is_two_way_executor<T>::value;
 
 `is_two_way_executor<T>` publicly inherits from `std::true_type` if `T` satisfies the `TwoWayExecutor` requirements (see Table \ref{two_way_executor_requirements}); otherwise, it publicly inherits from `std::false_type`.
-
-XXX Is this implementable? For example, there's no way to check that `T::async_execute(f)` is valid for all `f` if all we have is `T`. However, we could do something like check with `function<void()>`, and
-    insist that if it works for `function<void()>`, then it must work for all nullary functions.
-        
 
 ### Associated future type
 
