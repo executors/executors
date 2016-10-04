@@ -504,7 +504,7 @@ XXX TODO
 2. *Effects:* calls `exec.bulk_execute(f, shape, shared_factory)` if that call is well-formed;
    otherwise:
 
-   * Calls `shared_factory(shape)` in an unspecified execution agent. The result of this invocation is stored to shared state.
+   * Calls `shared_factory()` in an unspecified execution agent. The result of this invocation is stored to shared state.
 
    * Creates a new group of execution agents of shape `shape`. Each execution agent calls `f(idx, shared)`, where
      `idx` is the index of the execution agent, and `shared` is a reference to the shared state.
@@ -518,7 +518,7 @@ XXX TODO
 
 1.  ```
     template<class Executor, class Function1, class Function2, class Function3>
-    result_of_t<Function2(executor_shape_t<Executor>)>
+    result_of_t<Function2()>
     bulk_sync_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape,
                       Function2 result_factory, Function3 shared_factory);
     ```
@@ -526,7 +526,7 @@ XXX TODO
 2. *Effects:* calls `exec.bulk_sync_execute(f, shape, result_factory, shared_factory)` if that call is well-formed;
    otherwise:
    
-   * Calls `result_factory(shape)` and `shared_factory(shape)` in an unspecified execution agent. The results
+   * Calls `result_factory()` and `shared_factory()` in an unspecified execution agent. The results
      of these invocations are stored to shared state.
 
    * Creates a new group of execution agents of shape `shape`. Each execution agent calls `f(idx, result, shared)`, where
@@ -535,7 +535,7 @@ XXX TODO
 
    * If any invocation of `f` exits via an uncaught exception, `terminate` is called.
 
-3. *Returns:* An object of type `result_of_t<Function2(executor_shape_t<Executor>)>` that refers to the result shared state created by
+3. *Returns:* An object of type `result_of_t<Function2()>` that refers to the result shared state created by
    this call to `bulk_sync_execute`.
 
 4. *Synchronization:* The completion of the functions `result_factory` and
@@ -548,7 +548,7 @@ XXX TODO
     template<class Executor, class Function1, class Function2, class Function3>
     executor_future_t<
       Executor,
-      result_of_t<Function2(executor_shape_t<Executor>)>
+      result_of_t<Function2()>
     >
     bulk_async_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape,
                        Function2 result_factory, Function3 shared_factory);
@@ -557,7 +557,7 @@ XXX TODO
 2. *Effects:* calls `exec.bulk_async_execute(f, shape, result_factory, shared_factory)` if that call is well-formed;
    otherwise:
 
-    * Calls `result_factory(shape)` and `shared_factory(shape)` in an unspecified execution agent. The results of these
+    * Calls `result_factory()` and `shared_factory()` in an unspecified execution agent. The results of these
       invocations are stored to shared state.
 
     * Creates a new group of execution agents of shape `shape`. Each execution agent calls `f(idx, result, shared)`, where
@@ -568,7 +568,7 @@ XXX TODO
 
 3. *Returns:* An object of type
 
-    `executor_future_t<Executor,result_of_t<Function2(executor_shape_t<Executor>)>`
+    `executor_future_t<Executor,result_of_t<Function2()>`
     
     that refers to the shared result state created by this call to `bulk_async_execute`.
 
@@ -583,7 +583,7 @@ XXX TODO
     template<class Executor, class Function1, class Future, class Function2, class Function3>
     executor_future_t<
       Executor,
-      result_of_t<Function2(executor_shape_t<Executor>)>
+      result_of_t<Function2()>
     >
     bulk_then_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape,
                       Future& predecessor,
@@ -593,7 +593,7 @@ XXX TODO
 2. *Effects:* calls `exec.bulk_then_execute(f, shape, predecessor, result_factory, shared_factory)` if that call is well-formed;
    otherwise:
 
-   * Calls `result_factory(shape)` and `shared_factory(shape)` in an unspecified execution agent. The results of these
+   * Calls `result_factory()` and `shared_factory()` in an unspecified execution agent. The results of these
      invocations are stored to shared state.
 
    * Creates a new group of execution agents of shape `shape` after `predecessor` becomes ready. Each execution agent calls `f(idx, result, pred, shared)`, where
@@ -605,7 +605,7 @@ XXX TODO
 
 3. *Returns:* An object of type
 
-    `executor_future_t<Executor,result_of_t<Function2(executor_shape_t<Executor>)>`
+    `executor_future_t<Executor,result_of_t<Function2()>`
     
     that refers to the shared result state created by this call to `bulk_then_execute`.
 
