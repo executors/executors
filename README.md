@@ -434,27 +434,35 @@ XXX TODO
 
 ## Function template `execution::async_execute()`
 
-1.  ```
-    template<class Executor, class Function>
-    executor_future_t<
-      Executor,
-      result_of_t<decay_t<Function>()>
-    >
-    async_execute(Executor& exec, Function&& f);
-    ```
+```
+template<class TwoWayExecutor, class Function>
+executor_future_t<
+  Executor,
+  result_of_t<decay_t<Function>()>
+>
+async_execute(const TwoWayExecutor& exec, Function&& f);
+```
 
-2. *Effects:* calls `exec.async_execute(std::forward<Function>(f))` if that call is well-formed;
+*Returns:* `exec.async_execute(std::forward<Function>(f))`.
 
-    otherwise, calls `DECAY_COPY(std::forward<Function>(f))()` in a new execution agent with the call to `DECAY_COPY()` being
-    evaluated in the thread that called `async_execute`. Any return value is stored as the result in the shared
-    state. Any exception propagated from the execution of `INVOKE(DECAY_COPY(std::forward<Function>(f))` is stored as
-    the exceptional result in the shared state.
+*Remarks:* This function shall not participate in overload resolution unless `is_two_way_executor_v<TwoWayExecutor>` is `true`.
 
-3. *Returns:* An object of type
+```
+template<class OneWayExecutor, class Function>
+std::future<decay_t<result_of_t<decay_t<Function>()>>
+async_execute(const OneWayExecutor& exec, Function&& f);
+```
 
-    `executor_future_t<Executor,result_of_t<decay_t<Function>()>>`
-   
-    that refers to the shared state created by this call to `async_execute`.
+*Returns:* `exec.execute(std::forward<Function>(f))`.
+
+*Remarks:* This function shall not participate in overload resolution unless:
+- `is_two_way_executor_v<TwoWayExecutor>` is `false`; and
+- `is_one_way_executor_v<OnewayExecutor>` is `true`.
+
+*Effects:* Creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Performs `exec.execute(g)` where `g` is a function object of unspecified type that performs `DECAY_COPY(std::forward<Function>(f))`, with the call to `DECAY_COPY` being performed in the thread that called `async_execute`. On successful completion of `DECAY_COPY(std::forward<Function>(f))`, the return value of `DECAY_COPY(std::forward<Function>(f))` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(std::forward<Function>(f))` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready.
+
+*Returns:* An object of type `future<result_of_t<decay_t<Function>>()>` that
+refers to the shared state created by `async_execute`.
 
 ## Function template `execution::then_execute()`
 
