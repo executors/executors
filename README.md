@@ -464,6 +464,17 @@ async_execute(const OneWayExecutor& exec, Function&& f);
 *Returns:* An object of type `future<result_of_t<decay_t<Function>>()>` that
 refers to the shared state created by `async_execute`.
 
+```
+auto async_execute(ExecutionContext& ctx, Function&& f)
+  -> decltype(async_execute(ctx.executor(), std::forward<Function>(f)));
+```
+
+*Returns:* `async_execute(ctx.executor(), std::forward<Function>(f))`.
+
+*Remarks:* This function shall not participate in overload resolution unless:
+- `is_same<ExecutionContext, typename ExecutionContext::executor_type>>>` is `false`; and
+- `is_same<ExecutionContext, decay_t<execution_context_t<typename ExecutionContext::executor_type>>>` is `true`.
+
 ## Function template `execution::then_execute()`
 
 1.  ```
