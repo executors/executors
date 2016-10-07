@@ -456,10 +456,6 @@ XXX TODO
    
     that refers to the shared state created by this call to `async_execute`.
 
-4. *Synchronization:*
-    * the invocation of `async_execute` synchronizes with (1.10) the invocation of `f`.
-    * the completion of the function `f` is sequenced before (1.10) the shared state is made ready.
-
 ## Function template `execution::then_execute()`
 
 1.  ```
