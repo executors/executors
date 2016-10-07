@@ -1397,6 +1397,11 @@ class thread_pool::executor_type
 
     // TODO: meet other requirements.
 };
+
+bool operator==(const thread_pool::executor_type& a,
+                const thread_pool::executor_type& b) noexcept;
+bool operator!=(const thread_pool::executor_type& a,
+                const thread_pool::executor_type& b) noexcept;
 ```
 
 `thread_pool::executor_type` is a type satisfying the `EventExecutor` and
@@ -1542,3 +1547,19 @@ ready.
 
 *Returns:* An object of type `future<result_of_t<decay_t<Function>>()>` that
 refers to the shared state created by `async_execute`.
+
+### Comparisons
+
+```
+bool operator==(const thread_pool::executor_type& a,
+                const thread_pool::executor_type& b) noexcept;
+```
+
+*Returns:* `a.context() == b.context()`.
+
+```
+bool operator!=(const thread_pool::executor_type& a,
+                const thread_pool::executor_type& b) noexcept;
+```
+
+*Returns:* `!(a == b)`.
