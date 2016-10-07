@@ -104,6 +104,10 @@
     template <class Executor>
     using executor_context_t = typename executor_context<Executor>::type;
 
+## Proto-allocator requirements
+
+1. A type `A` meets the proto-allocator requirements if `A` is `CopyConstructible` (C++Std [copyconstructible]), `Destructible` (C++Std [destructible]), and `allocator_traits<A>::rebind_alloc<U>` meets the allocator requirements (C++Std [allocator.requirements]), where `U` is an object type. *[Note:* For example, `std::allocator<void>` meets the proto-allocator requirements but not the allocator requirements. *--end note]* No comparison operator, copy operation, move operation, or swap operation on these types shall exit via an exception.
+
 ## `ExecutionContext`
 
 1.  A type meets the `ExecutionContext` requirements if it satisfies the `EqualityComparable` requirements (C++Std [equalitycomparable]). No comparison operator on these types shall exit via an exception.
@@ -130,77 +134,45 @@
 
 ## `OneWayExecutor`
 
-1. The `OneWayExecutor` requirements form the basis of the one-way executor concept taxonomy;
-   every weak one-way executor satisfies the `OneWayExecutor` requirements. This set of requirements
-   specifies operations for creating execution agents that need not synchronize with the thread
-   which created them.
+1. The `OneWayExecutor` requirements form the basis of the one-way executor concept taxonomy. This set of requirements specifies operations for creating execution agents that need not synchronize with the thread which created them.
 
-2. No constructor, comparison operator, copy operation, move operation, or swap operation on these types shall exit via an exception.
+2. A type `X` satisfies the `OneWayExecutor` requirements if it satisfies the `BaseExecutor` requirements, as well as the additional requirements listed below.
 
-3. In Table \ref{one_way_executor_requirements}, `f`, denotes a `MoveConstructible` function object, `a...`
-   denotes a variadic argument pack of move constructible arguments, and `x` denotes an object of type `X`.
+3. The executor copy constructor, comparison operators, and other member functions defined in these requirements shall not introduce data races as a result of concurrent calls to those functions from different threads.
 
-4. The executor copy constructor, comparison operators, and other member
-  functions defined in these requirements shall not introduce data races as a
-  result of concurrent calls to those functions from different threads.
+4. In the table below, `x` denotes a (possibly const) value of type `X`, and `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
 
-5. A type `X` satisfies the `OneWayExecutor` requirements if:
-  * `X` satisfies the `BaseExecutor` requirements.
-  * For any `f`, `a...` and `x`, the expressions in Table \ref{one_way_executor_requirements} are valid and have the indicated semantics.
-
-Table: (One-Way Executor requirements) \label{one_way_executor_requirements}
-
-| Expression                                                                         | Return Type                                                   | Operational semantics                                                    | Assertion/note/pre-/post-condition                                 |
-|------------------------------------------------------------------------------------|---------------------------------------------------------------|--------------------------------------------------------------------------|--------------------------------------------------------------------|
-| `x.execute(std::move(f), std::move(a)...)`                                         |                                                               |  Creates a weakly parallel execution agent which invokes `f(a...)`       | May prevent forward progress of caller pending completion of `f.   |
+| Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
+|------------|-------------|-----------------------|-------------------------------------|
+| `x.execute(f)` | | Creates a weakly parallel execution agent which invokes `DECAY_COPY(std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `execute`.<br/><br/>May block forward progress of the caller until `DECAY_COPY(std::forward<F>(f))()` finishes execution. | *Synchronization:* The invocation of `execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. |
 
 ## `HostBasedOneWayExecutor`
 
-1. The `HostBasedOneWayExecutor` requirements form the basis of host-based executors in the one-way executor concept taxonomy;
-   every host-based one-way executor satisfies the `HostBasedOneWayExecutor` requirements. This set of requirements
-   specifies operations for creating execution agents that need not synchronize with the thread
-   which created them.
+1. The `HostBasedOneWayExecutor` requirements form the basis of host-based executors in the one-way executor concept taxonomy. *TODO:* description of what host-based means, i.e. as if executed in a `std::thread`, but without the requirement for separate thread-local storage or a unique thread ID.
 
-2. In Table \ref{host_one_way_executor_requirements}, `f`, denotes a `MoveConstructible` function object, `a...`
-   denotes a variadic argument pack of move constructible arguments, `x` denotes an object of type `X`,
-   `alloc_arg` denotes an object of type `std::allocator_arg_t`, and `alloc` denotes an object satisfying
-   the `ProtoAllocator` requirements.
+2. A type `X` satisfies the `HostBasedOneWayExecutor` requirements if it satisfies the `OneWayExecutor` requirements, as well as the additional requirements listed below.
 
-3. A type `X` satisfies the `HostBasedOneWayExecutor` requirements if:
-  * `X` satisfies the `OneWayExecutor` requirements.
-  * For any `f`, `a`, `alloc`, `alloc_arg`, and `x`, the expressions in Table \ref{host_one_way_executor_requirements} are valid and have the indicated semantics.
+3. The executor copy constructor, comparison operators, and other member functions defined in these requirements shall not introduce data races as a result of concurrent calls to those functions from different threads.
 
-Table: (Host-Based One-Way Executor requirements) \label{host_one_way_executor_requirements}
+4. In the table below, `x` denotes a (possibly const) value of type `X`, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements, and `a` denotes a (possibly const) value of type `A` satisfying the `ProtoAllocator` requirements.
 
-| Expression                                                                         | Return Type                                                   | Operational semantics                                                    | Assertion/note/pre-/post-condition                                 |
-|------------------------------------------------------------------------------------|---------------------------------------------------------------|--------------------------------------------------------------------------|--------------------------------------------------------------------|
-| `x.execute(std::move(f), std::move(a)...)`                                         |                                                               |  Creates a parallel execution agent which invokes `f(a...)`              | May prevent forward progress of caller pending completion of `f.   |
-| `x.execute(alloc_arg, alloc, std::move(f), std::move(a)...)`                       |                                                               |  Creates a parallel execution agent which invokes `f(a...)`              | May prevent forward progress of caller pending completion of `f`.  |
+| Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
+|------------|-------------|-----------------------|-------------------------------------|
+| `x.execute(f)`<br/>`x.execute(f,a)` | | Creates a parallel execution agent which invokes `DECAY_COPY(std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `execute`.<br/><br/>May block forward progress of the caller until `DECAY_COPY(std::forward<F>(f))()` finishes execution.<br/><br/>Executor implementations should use the supplied allocator (if any) to allocate any memory required to store the function object. Prior to invoking the function object, the executor shall deallocate any memory allocated. *[Note:* Executors defined in this Technical Specification always use the supplied allocator unless otherwise specified. *--end note]* | *Synchronization:* The invocation of `execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`.|
 
 ## `EventExecutor`
 
 1. The `EventExecutor` requirements defines executors for one-way event-driven execution.
-   Every event executor satisfies the `EventExecutor` requirements. This set of requirements
-   specifies operations for creating execution agents that need not synchronize with the thread
-   which created them.
 
-2. In Table \ref{event_executor_requirements}, `f`, denotes a `MoveConstructible` function object, `a...`
-   denotes a variadic argument pack of move constructible arguments, `x` denotes an object of type `X`,
-   `alloc_arg` denotes an object of type `std::allocator_arg_t`, and `alloc` denotes an object satisfying
-   the `ProtoAllocator` requirements.
+2. A type `X` satisfies the `EventExecutor` requirements if it satisfies the `HostBasedOneWayExecutor` requirements, as well as the additional requirements listed below.
 
-3. A type `X` satisfies the `EventExecutor` requirements if:
-  * `X` satisfies the `HostBasedOneWayExecutor` requirements.
-  * For any `f`, `a`, `alloc`, `alloc_arg`, and `x`, the expressions in Table \ref{event_executor_requirements} are valid and have the indicated semantics.
+3. The executor copy constructor, comparison operators, and other member functions defined in these requirements shall not introduce data races as a result of concurrent calls to those functions from different threads.
 
-Table: (Event Executor requirements) \label{event_executor_requirements}
+4. In the table below, `x` denotes a (possibly const) value of type `X`, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements, and `a` denotes a (possibly const) value of type `A` satisfying the `ProtoAllocator` requirements.
 
-| Expression                                                                         | Return Type                                                   | Operational semantics                                                    | Assertion/note/pre-/post-condition                                     |
-|------------------------------------------------------------------------------------|---------------------------------------------------------------|--------------------------------------------------------------------------|------------------------------------------------------------------------|
-| `x.post(std::move(f), std::move(a)...)`                                            |                                                               |  Creates a parallel execution agent which invokes `f(a...)`              | May not prevent forward progress of caller pending completion of `f.   |
-| `x.post(alloc_arg, alloc, std::move(f), std::move(a)...)`                          |                                                               |  Creates a parallel execution agent which invokes `f(a...)`              | May not prevent forward progress of caller pending completion of `f`.  |
-| `x.defer(std::move(f), std::move(a)...)`                                           |                                                               |  Creates a parallel execution agent which invokes `f(a...)`              | May not prevent forward progress of caller pending completion of `f.   |
-| `x.defer(alloc_arg, alloc, std::move(f), std::move(a)...)`                         |                                                               |  Creates a parallel execution agent which invokes `f(a...)`              | May not prevent forward progress of caller pending completion of `f`.  |
+| Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
+|------------|-------------|-----------------------|-------------------------------------|
+| `x.post(f)`<br/>`x.post(f,a)`<br/>`x.defer(f)`<br/>`x.defer(f,a)` | | Creates a parallel execution agent which invokes `DECAY_COPY(std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `post` or `defer`.<br/><br/>Shall not block forward progress of the caller pending completion of `DECAY_COPY(std::forward<F>(f))()`.<br/><br/>Executor implementations should use the supplied allocator (if any) to allocate any memory required to store the function object. Prior to invoking the function object, the executor shall deallocate any memory allocated. *[Note:* Executors defined in this Technical Specification always use the supplied allocator unless otherwise specified. *--end note]* | *Synchronization:* The invocation of `post` or `defer` synchronizes with (C++Std [intro.multithread]) the invocation of `f`.<br/><br/>*Note:* Although the requirements placed on `defer` are identical to `post`, the use of `post` conveys a preference that the caller does not block the first step of `f`'s progress, whereas `defer` conveys a preference that the caller does block the first step of `f`. One use of `defer` is to convey the intention of the caller that `f` is a continuation of the current call context. The executor may use this information to optimize or otherwise adjust the way in which `f` is invoked. |
 
 ## `TwoWayExecutor`
 
@@ -1367,23 +1339,14 @@ class thread_pool::executor_type
     bool on_work_started() const noexcept;
     void on_work_finished() const noexcept;
 
-    template<class Func, class Args...>
-      void execute(Func&& f, Args&&... args) const;
-    template<class ProtoAllocator, class Func, class Args...>
-      void execute(allocator_arg_t, const ProtoAllocator& a,
-        Func&& f, Args&&... args) const;
+    template<class Func, class ProtoAllocator = std::allocator<void>>
+      void execute(Func&& f, const ProtoAllocator& a = ProtoAllocator()) const;
 
-    template<class Func, class Args...>
-      void post(Func&& f, Args&&... args) const;
-    template<class ProtoAllocator, class Func, class Args...>
-      void post(allocator_arg_t, const ProtoAllocator& a,
-        Func&& f, Args&&... args) const;
+    template<class Func, class ProtoAllocator = std::allocator<void>>
+      void post(Func&& f, const ProtoAllocator& a = ProtoAllocator()) const;
 
-    template<class Func, class Args...>
-      void defer(Func&& f, Args&&... args) const;
-    template<class ProtoAllocator, class Func, class Args...>
-      void defer(allocator_arg_t, const ProtoAllocator& a,
-        Func&& f, Args&&... args) const;
+    template<class Func, class ProtoAllocator = std::allocator<void>>
+      void defer(Func&& f, const ProtoAllocator& a = ProtoAllocator()) const;
 
     template <typename T>
     using future = std::future<T>;
@@ -1473,51 +1436,28 @@ void on_work_finished() const noexcept;
 `thread_pool`.
 
 ```
-template<class Func, class Args...>
-  void execute(Func&& f, Args&&... args) const;
+template<class Func, class ProtoAllocator = std::allocator<void>>
+  void execute(Func&& f, const ProtoAllocator& a = ProtoAllocator()) const;
 ```
 
 *Effects:* If `running_in_this_thread()` is `true`, calls
-`DECAY_COPY(forward<Func>(f))(forward<Args>(args)...)`. (Note: If `f` exits via
-an exception, the exception propagates to the caller of `execute`. --end note)
-Otherwise, calls `post(forward<Func>(f), forward<Args>(args)...)`.
+`DECAY_COPY(forward<Func>(f))()`. *[Note:* If `f` exits via an exception, the
+exception propagates to the caller of `execute`. *--end note]* Otherwise, calls
+`post(forward<Func>(f), a)`.
 
 ```
-template<class ProtoAllocator, class Func, class Args...>
-  void execute(allocator_arg_t, const ProtoAllocator& a,
-    Func&& f, Args&&... args) const;
+template<class Func, class ProtoAllocator = std::allocator<void>>
+  void post(Func&& f, const ProtoAllocator& a = ProtoAllocator()) const;
 ```
 
-*Effects:* If `running_in_this_thread()` is `true`, calls
-`DECAY_COPY(forward<Func>(f))(forward<Args>(args)...)`. (Note: If `f` exits via
-an exception, the exception propagates to the caller of `execute`. --end note)
-Otherwise, calls `post(allocator_arg, a, forward<Func>(f), forward<Args>(args)...)`.
+*Effects:* Adds `f` to the `thread_pool`.
 
 ```
-template<class Func, class Args...>
-  void post(Func&& f, Args&&... args) const;
-template<class ProtoAllocator, class Func, class Args...>
-  void post(allocator_arg_t, const ProtoAllocator& a,
-    Func&& f, Args&&... args) const;
+template<class Func, class ProtoAllocator = std::allocator<void>>
+  void defer(Func&& f, const ProtoAllocator& a = ProtoAllocator()) const;
 ```
 
-*Effects:* Adds a function object `g`, that performs
-`DECAY_COPY(forward<Func>(f))(DECAY_COPY(forward<Args>(args))...)`, to the
-`thread_pool`, where `DECAY_COPY` is evaluated in the thread that called
-`post`.
-
-```
-template<class Func, class Args...>
-  void defer(Func&& f, Args&&... args) const;
-template<class ProtoAllocator, class Func, class Args...>
-  void defer(allocator_arg_t, const ProtoAllocator& a,
-    Func&& f, Args&&... args) const;
-```
-
-*Effects:* Adds a function object `g`, that performs
-`DECAY_COPY(forward<Func>(f))(DECAY_COPY(forward<Args>(args))...)`, to the
-`thread_pool`, where `DECAY_COPY` is evaluated in the thread that called
-`post`.
+*Effects:* Adds `f` to the `thread_pool`.
 
 ```
 template<class Function>
