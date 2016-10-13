@@ -472,16 +472,9 @@ XXX TODO
 
     `exec.then_execute(std::forward<Function>(f), std::forward<Future>(predecessor))`
     
-    if that call is well-formed; otherwise:
+    if that call is well-formed; otherwise, returns
 
-    * Creates a shared state that is associated with the returned future object.
-
-    * Creates a new execution agent `predecessor` becomes ready. The execution agent calls `f(pred)`, where `pred` is a reference to
-      the `predecessor` state if it is not `void`. Otherwise, the execution agent calls `f()`.
-
-    * Any return value of `f` is stored as the result in the shared state of the resulting future.
-
-    * Any exception thrown by `f` is stored as the exceptional result in the shared state of the resulting future.
+    `predecessor.then(std::forward<Function>(f))`.
 
 3. *Returns:* `executor_future_t<Executor,result_of_t<decay_t<Function>()>` when `predecessor` is a `void` future. Otherwise,
    `executor_future_t<Executor,result_of_t<decay_t<Function>(T&)>>` where `T` is the result type of the `predecessor` future.
@@ -721,11 +714,12 @@ class parallel_unsequenced_execution_tag { by-analogy-to-parallel_execution_poli
     future<T>::then(Executor& exec, Function&& f);
     ```
 
-2. *Returns:* Equivalent to:
+2. TODO: Concrete specification
 
-    `return execution::then_execute(exec, std::forward<Function>(f), *this);`
-
-    XXX This forwarding doesn't look correct to me
+    The general idea of this overload of `.then()` is that it accepts a
+    particular type of `OneWayExecutor` that cannot block in `.execute()`.
+    `.then()` stores `f` as the next continuation in the future state, and when
+    the future is ready, creates an execution agent using a copy of `exec`.
 
 ## `std::shared_future::then()`
 
@@ -739,9 +733,13 @@ class parallel_unsequenced_execution_tag { by-analogy-to-parallel_execution_poli
     shared_future<T>::then(Executor& exec, Function&& f);
     ```
 
-2. *Returns:* Equivalent to:
+2. TODO: Concrete specification
 
-    `return execution::then_execute(exec, std::forward<Function>(f), *this);`
+    The general idea of this overload of `.then()` is that it accepts a
+    particular type of `OneWayExecutor` that cannot block in `.execute()`.
+    `.then()` stores `f` as the next continuation in the underlying future
+    state, and when the underlying future is ready, creates an execution agent
+    using a copy of `exec`.
 
 ## Function template `invoke`
 
