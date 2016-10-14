@@ -84,10 +84,6 @@
 
       public:
         using type = std::experimental::detected_or_t<std::future<T>, helper, Executor, T>;
-
-        // XXX a future proposal can relax this to enable user-defined future types 
-        static_assert(std::is_same_v<type, std::future<T>>,
-          "Executor-specific future types must be std::future for the minimal proposal");
     };
     
     template<class Executor, class T>
@@ -103,6 +99,10 @@
 
     template <class Executor>
     using executor_context_t = typename executor_context<Executor>::type;
+
+## `Future` requirements
+
+1. A type `F` meets the future requirements if `F` is... *Requirements to be defined. Futures must provide `get`, `wait`, `then`, etc.*
 
 ## Proto-allocator requirements
 
@@ -192,6 +192,7 @@ Table: (Two-Way Executor requirements) \label{two_way_executor_requirements}
 
 | Expression                                                                         | Return Type                                                   | Operational semantics                                                    | Assertion/note/pre-/post-condition                                 |
 |------------------------------------------------------------------------------------|---------------------------------------------------------------|--------------------------------------------------------------------------|--------------------------------------------------------------------|
+| `executor_-` `future_t<X,R>`                                                       |                                                               |  A type that satisfies the `Future` requirements.                        |                                                                    |
 | `x.async_-` `execute(std::move(f))`                                                | `executor_-` `future_t<X,R>`                                  |  Creates an execution agent which invokes `f()`                          |                                                                    |
 |                                                                                    |                                                               |  Returns the result of `f()` via the resulting future object             |                                                                    |
 |                                                                                    |                                                               |  Returns any exception thrown by `f()` via the resulting future object   |                                                                    |
