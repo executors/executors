@@ -57,21 +57,32 @@
 
 ## Executor type traits
 
-### Checking that a type is a `OneWayExecutor`
+### Determining that an executor satisfies the executor requirements
 
-    template<class T> struct is_one_way_executor : see-below;
+    template<class T> struct is_one_way_executor;
+    template<class T> struct is_host_based_one_way_executor;
+    template<class T> struct is_event_executor;
+    template<class T> struct is_bulk_one_way_executor;
+    template<class T> struct is_two_way_executor;
+    template<class T> struct is_bulk_two_way_executor;
 
     template<class T> constexpr bool is_one_way_executor_v = is_one_way_executor<T>::value;
-
-`is_one_way_executor<T>` publicly inherits from `std::true_type` if `T` satisfies the `OneWayExecutor` requirements (see Table \ref{one_way_executor_requirements}); otherwise, it publicly inherits from `std::false_type`.
-
-### Checking that a type is a `TwoWayExecutor`
-
-    template<class T> struct is_two_way_executor : see-below;
-
+    template<class T> constexpr bool is_host_based_one_way_executor_v = is_host_based_one_way_executor<T>::value;
+    template<class T> constexpr bool is_event_executor_v = is_event_executor<T>::value;
+    template<class T> constexpr bool is_bulk_one_way_executor_v = is_bulk_one_way_executor<T>::value;
     template<class T> constexpr bool is_two_way_executor_v = is_two_way_executor<T>::value;
+    template<class T> constexpr bool is_bulk_two_way_executor_v = is_bulk_two_way_executor<T>::value;
 
-`is_two_way_executor<T>` publicly inherits from `std::true_type` if `T` satisfies the `TwoWayExecutor` requirements (see Table \ref{two_way_executor_requirements}); otherwise, it publicly inherits from `std::false_type`.
+This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
+
+| Template | Condition | Preconditions |
+|----------|-----------|---------------|
+| `template<class T>`<br/>`struct is_one_way_executor` | `T` meets the syntactic requirements for `OneWayExecutor`. | `T` is a complete type. |
+| `template<class T>`<br/>`struct is_host_based_one_way_executor` | `T` meets the syntactic requirements for `HostBasedOneWayExecutor`. | `T` is a complete type. |
+| `template<class T>`<br/>`struct is_event_executor` | `T` meets the syntactic requirements for `EventExecutor`. | `T` is a complete type. |
+| `template<class T>`<br/>`struct is_bulk_one_way_executor` | `T` meets the syntactic requirements for `BulkOneWayExecutor`. | `T` is a complete type. |
+| `template<class T>`<br/>`struct is_two_way_executor` | `T` meets the syntactic requirements for `TwoWayExecutor`. | `T` is a complete type. |
+| `template<class T>`<br/>`struct is_bulk_two_way_executor` | `T` meets the syntactic requirements for `BulkTwoWayExecutor`. | `T` is a complete type. |
 
 ### Associated future type
 
