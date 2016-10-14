@@ -82,6 +82,7 @@ This sub-clause contains templates that may be used to query the properties of a
 | `template<class T>`<br/>`struct is_non_blocking_one_way_executor` | `T` meets the syntactic requirements for `NonBlockingOneWayExecutor`. | `T` is a complete type. |
 | `template<class T>`<br/>`struct is_bulk_one_way_executor` | `T` meets the syntactic requirements for `BulkOneWayExecutor`. | `T` is a complete type. |
 | `template<class T>`<br/>`struct is_two_way_executor` | `T` meets the syntactic requirements for `TwoWayExecutor`. | `T` is a complete type. |
+| `template<class T>`<br/>`struct is_non_blocking_two_way_executor` | `T` meets the syntactic requirements for `NonBlockingTwoWayExecutor`. | `T` is a complete type. |
 | `template<class T>`<br/>`struct is_bulk_two_way_executor` | `T` meets the syntactic requirements for `BulkTwoWayExecutor`. | `T` is a complete type. |
 
 ### Associated future type
@@ -204,6 +205,23 @@ Table: (Two-Way Executor requirements) \label{two_way_executor_requirements}
 | Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
 |------------|-------------|-----------------------|-------------------------------------|
 | `x.async_-` `execute(std::move(f))` | `executor_-` `future_t<X,R>` | Creates an execution agent which invokes `f()`<br/>Returns the result of `f()` via the resulting future object.<br/>Returns any exception thrown by `f()` via the resulting future object.<br/>May block forward progress of the caller pending completion of `f()`. | |
+
+## `NonBlockingTwoWayExecutor`
+
+1. The `NonBlockingOneWayExecutor` requirements add two-way operations that are guaranteed not to block the caller pending completion of submitted function objects.
+
+2. In Table \ref{non_blocking_two_way_executor_requirements}, `f`, denotes a `MoveConstructible` function object with zero arguments whose result type is `R`,
+   and `x` denotes an object of type `X`.
+
+3. A type `X` satisfies the `NonBlockingTwoWayExecutor` requirements if:
+  * `X` satisfies the `TwoWayExecutor` requirements.
+  * For any `f` and `x`, the expressions in Table \ref{non_blocking_two_way_executor_requirements} are valid and have the indicated semantics.
+
+Table: (Non-Blocking Two-Way Executor requirements) \label{non_blocking_two_way_executor_requirements}
+
+| Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
+|------------|-------------|-----------------------|-------------------------------------|
+| `x.async_post(std::move(f))`<br/>`x.async_defer(std::move(f))` | `executor_-` `future_t<X,R>` | Creates an execution agent which invokes `f()`<br/>Returns the result of `f()` via the resulting future object.<br/>Returns any exception thrown by `f()` via the resulting future object.<br/>Shall not block forward progress of the caller pending completion of `f()`. | |
 
 # Bulk (Parallelism TS) executor category
 
@@ -1365,6 +1383,14 @@ class thread_pool::executor_type
       future<result_of_t<decay_t<Function>()>>
         async_execute(Function&& f) const;
 
+    template<class Function>
+      future<result_of_t<decay_t<Function>()>>
+        async_post(Function&& f) const;
+
+    template<class Function>
+      future<result_of_t<decay_t<Function>()>>
+        async_defer(Function&& f) const;
+
     // TODO: meet other requirements.
 };
 
@@ -1375,7 +1401,7 @@ bool operator!=(const thread_pool::executor_type& a,
 ```
 
 `thread_pool::executor_type` is a type satisfying the `NonBlockingOneWayExecutor` and
-`TwoWayExecutor` requirements. (TODO: satisfy other requirements as well.)
+`NonBlockingTwoWayExecutor` requirements. (TODO: satisfy other requirements as well.)
 Objects of type `thread_pool::executor_type` are associated with a
 `thread_pool`, and function objects submitted using the `execute`, `post`,
 `defer`, `sync_execute`, and `async_execute` member functions will be executed
@@ -1483,6 +1509,12 @@ blocks the caller pending completion of `f`.
 template<class Function>
   future<result_of_t<decay_t<Function>()>>
     async_execute(Function&& f) const;
+template<class Function>
+  future<result_of_t<decay_t<Function>()>>
+    async_post(Function&& f) const;
+template<class Function>
+  future<result_of_t<decay_t<Function>()>>
+    async_defer(Function&& f) const;
 ```
 
 *Effects:* Creates an asynchronous provider with an associated shared state
