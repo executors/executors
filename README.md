@@ -61,14 +61,14 @@
 
     template<class T> struct is_one_way_executor;
     template<class T> struct is_host_based_one_way_executor;
-    template<class T> struct is_event_executor;
+    template<class T> struct is_non_blocking_one_way_executor;
     template<class T> struct is_bulk_one_way_executor;
     template<class T> struct is_two_way_executor;
     template<class T> struct is_bulk_two_way_executor;
 
     template<class T> constexpr bool is_one_way_executor_v = is_one_way_executor<T>::value;
     template<class T> constexpr bool is_host_based_one_way_executor_v = is_host_based_one_way_executor<T>::value;
-    template<class T> constexpr bool is_event_executor_v = is_event_executor<T>::value;
+    template<class T> constexpr bool is_non_blocking_one_way_executor_v = is_non_blocking_one_way_executor<T>::value;
     template<class T> constexpr bool is_bulk_one_way_executor_v = is_bulk_one_way_executor<T>::value;
     template<class T> constexpr bool is_two_way_executor_v = is_two_way_executor<T>::value;
     template<class T> constexpr bool is_bulk_two_way_executor_v = is_bulk_two_way_executor<T>::value;
@@ -79,9 +79,10 @@ This sub-clause contains templates that may be used to query the properties of a
 |----------|-----------|---------------|
 | `template<class T>`<br/>`struct is_one_way_executor` | `T` meets the syntactic requirements for `OneWayExecutor`. | `T` is a complete type. |
 | `template<class T>`<br/>`struct is_host_based_one_way_executor` | `T` meets the syntactic requirements for `HostBasedOneWayExecutor`. | `T` is a complete type. |
-| `template<class T>`<br/>`struct is_event_executor` | `T` meets the syntactic requirements for `EventExecutor`. | `T` is a complete type. |
+| `template<class T>`<br/>`struct is_non_blocking_one_way_executor` | `T` meets the syntactic requirements for `NonBlockingOneWayExecutor`. | `T` is a complete type. |
 | `template<class T>`<br/>`struct is_bulk_one_way_executor` | `T` meets the syntactic requirements for `BulkOneWayExecutor`. | `T` is a complete type. |
 | `template<class T>`<br/>`struct is_two_way_executor` | `T` meets the syntactic requirements for `TwoWayExecutor`. | `T` is a complete type. |
+| `template<class T>`<br/>`struct is_non_blocking_two_way_executor` | `T` meets the syntactic requirements for `NonBlockingTwoWayExecutor`. | `T` is a complete type. |
 | `template<class T>`<br/>`struct is_bulk_two_way_executor` | `T` meets the syntactic requirements for `BulkTwoWayExecutor`. | `T` is a complete type. |
 
 ### Associated future type
@@ -171,11 +172,11 @@ This sub-clause contains templates that may be used to query the properties of a
 |------------|-------------|-----------------------|-------------------------------------|
 | `x.execute(f)`<br/>`x.execute(f,a)` | | Creates a parallel execution agent which invokes `DECAY_COPY(std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `execute`.<br/><br/>May block forward progress of the caller until `DECAY_COPY(std::forward<F>(f))()` finishes execution.<br/><br/>Executor implementations should use the supplied allocator (if any) to allocate any memory required to store the function object. Prior to invoking the function object, the executor shall deallocate any memory allocated. *[Note:* Executors defined in this Technical Specification always use the supplied allocator unless otherwise specified. *--end note]* | *Synchronization:* The invocation of `execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`.|
 
-## `EventExecutor`
+## `NonBlockingOneWayExecutor`
 
-1. The `EventExecutor` requirements defines executors for one-way event-driven execution.
+1. The `NonBlockingOneWayExecutor` requirements add one-way operations that are guaranteed not to block the caller pending completion of submitted function objects.
 
-2. A type `X` satisfies the `EventExecutor` requirements if it satisfies the `HostBasedOneWayExecutor` requirements, as well as the additional requirements listed below.
+2. A type `X` satisfies the `NonBlockingOneWayExecutor` requirements if it satisfies the `HostBasedOneWayExecutor` requirements, as well as the additional requirements listed below.
 
 3. The executor copy constructor, comparison operators, and other member functions defined in these requirements shall not introduce data races as a result of concurrent calls to those functions from different threads.
 
@@ -201,11 +202,26 @@ This sub-clause contains templates that may be used to query the properties of a
 
 Table: (Two-Way Executor requirements) \label{two_way_executor_requirements}
 
-| Expression                                                                         | Return Type                                                   | Operational semantics                                                    | Assertion/note/pre-/post-condition                                 |
-|------------------------------------------------------------------------------------|---------------------------------------------------------------|--------------------------------------------------------------------------|--------------------------------------------------------------------|
-| `x.async_-` `execute(std::move(f))`                                                | `executor_-` `future_t<X,R>`                                  |  Creates an execution agent which invokes `f()`                          |                                                                    |
-|                                                                                    |                                                               |  Returns the result of `f()` via the resulting future object             |                                                                    |
-|                                                                                    |                                                               |  Returns any exception thrown by `f()` via the resulting future object   |                                                                    |
+| Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
+|------------|-------------|-----------------------|-------------------------------------|
+| `x.async_-` `execute(std::move(f))` | `executor_-` `future_t<X,R>` | Creates an execution agent which invokes `f()`<br/>Returns the result of `f()` via the resulting future object.<br/>Returns any exception thrown by `f()` via the resulting future object.<br/>May block forward progress of the caller pending completion of `f()`. | |
+
+## `NonBlockingTwoWayExecutor`
+
+1. The `NonBlockingOneWayExecutor` requirements add two-way operations that are guaranteed not to block the caller pending completion of submitted function objects.
+
+2. In Table \ref{non_blocking_two_way_executor_requirements}, `f`, denotes a `MoveConstructible` function object with zero arguments whose result type is `R`,
+   and `x` denotes an object of type `X`.
+
+3. A type `X` satisfies the `NonBlockingTwoWayExecutor` requirements if:
+  * `X` satisfies the `TwoWayExecutor` requirements.
+  * For any `f` and `x`, the expressions in Table \ref{non_blocking_two_way_executor_requirements} are valid and have the indicated semantics.
+
+Table: (Non-Blocking Two-Way Executor requirements) \label{non_blocking_two_way_executor_requirements}
+
+| Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
+|------------|-------------|-----------------------|-------------------------------------|
+| `x.async_post(std::move(f))`<br/>`x.async_defer(std::move(f))` | `executor_-` `future_t<X,R>` | Creates an execution agent which invokes `f()`<br/>Returns the result of `f()` via the resulting future object.<br/>Returns any exception thrown by `f()` via the resulting future object.<br/>Shall not block forward progress of the caller pending completion of `f()`. | |
 
 # Bulk (Parallelism TS) executor category
 
@@ -1367,6 +1383,14 @@ class thread_pool::executor_type
       future<result_of_t<decay_t<Function>()>>
         async_execute(Function&& f) const;
 
+    template<class Function>
+      future<result_of_t<decay_t<Function>()>>
+        async_post(Function&& f) const;
+
+    template<class Function>
+      future<result_of_t<decay_t<Function>()>>
+        async_defer(Function&& f) const;
+
     // TODO: meet other requirements.
 };
 
@@ -1376,8 +1400,8 @@ bool operator!=(const thread_pool::executor_type& a,
                 const thread_pool::executor_type& b) noexcept;
 ```
 
-`thread_pool::executor_type` is a type satisfying the `EventExecutor` and
-`TwoWayExecutor` requirements. (TODO: satisfy other requirements as well.)
+`thread_pool::executor_type` is a type satisfying the `NonBlockingOneWayExecutor` and
+`NonBlockingTwoWayExecutor` requirements. (TODO: satisfy other requirements as well.)
 Objects of type `thread_pool::executor_type` are associated with a
 `thread_pool`, and function objects submitted using the `execute`, `post`,
 `defer`, `sync_execute`, and `async_execute` member functions will be executed
@@ -1485,6 +1509,12 @@ blocks the caller pending completion of `f`.
 template<class Function>
   future<result_of_t<decay_t<Function>()>>
     async_execute(Function&& f) const;
+template<class Function>
+  future<result_of_t<decay_t<Function>()>>
+    async_post(Function&& f) const;
+template<class Function>
+  future<result_of_t<decay_t<Function>()>>
+    async_defer(Function&& f) const;
 ```
 
 *Effects:* Creates an asynchronous provider with an associated shared state
