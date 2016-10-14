@@ -1,4 +1,106 @@
-# Front Matter
+# Introduction
+
+This paper describes a programming model for *executors*, which are modular
+components for creating execution. Executors decouple control structures from
+the details of work creation and prevent multiplicative explosions inside
+control structure implementations. The model proposed by this paper represents
+what we think is the *minimal* functionality necessary to compose executors
+with existing standard control structures such as `std::async()` and parallel
+algorithms, as well as near-standards such as the functionality found in
+various technical specifications, including the Concurrency, Networking, and
+Parallelism TSes. While this paper's feature set is minimal, it will form the
+basis for future development of executor features which are out of the scope of
+an initial proposal.
+
+Our executor programming model was guided by years of independent design work
+by various experts. This proposal is the result of harmonizing that work in
+collaboration with those experts for several months. In particular, our
+programming model unifies three separate executor design tracks aimed at
+disparate use cases:
+
+  1. Google's executor model for interfacing with thread pools [N4414](http://wg21.link/n4414),
+  2. Chris Kohlhoff's executor model for the Networking TS [N4370](http://wg21.link/n4370), and
+  3. NVIDIA's executor model for the Parallelism TS [P0058](http://wg21.link/p0058).
+
+This unified executor proposal serves the use cases of those independent
+proposals with a single consistent programming model.
+
+**Executor categories.** This proposal categorizes executor types in terms of
+requirements on those types. An executor type is a member of one or more
+executor categories if it provides member functions and types with the
+semantics that those categories require. These categories are used in generic
+interfaces to communicate the requirements on executors interoperating with
+them. Such interfaces are already present in the C++ Standard; for example,
+control structures like `std::async()`, `std::invoke()`, and the parallel
+algorithms library. Other control structures this proposal targets are found
+in the Concurrency, Networking, and Parallelism TSes.
+
+**Using executors with control structures.** We expect that the primary way
+that most programmers will interact with executors is by using them as
+parameters to control structures. When used as a parameter to a control
+structure, an executor indicates "where" the execution created by the control
+structure should happen.
+
+For example, a programmer may create an asynchronous task via `async()` by providing
+an executor:
+
+    auto my_task = ...;
+    auto my_executor = ...;
+    auto fut = async(my_executor, my_task);
+
+In this example, the executor parameter provides `std::async()` with explicit
+requirements concerning how to create the work responsible for executing the
+task.
+
+Similarly, a programmer may require that the work created by a parallel
+algorithm happen "on" an executor:
+
+    auto my_task = ...;
+    vector<int> vec = ...;
+    auto my_executor = ...;
+    for_each(execution::par.on(my_executor), vec.begin(), vec.end(), my_task);
+
+**Executor customization.** Executor categories require executor types to
+provide member functions with expected semantics. For example, the executor
+category `OneWayExecutor` requires an executor type to provide the member
+function `.execute(f)`, which may or may not block its caller pending
+completion of the function `f`. As another example, the executor category
+`TwoWayExecutor` requires an executor type to provide the member function
+`.async_execute(f)`, which returns a future object corresponding to the
+eventual completion of the function `f`'s invocation.
+
+In non-generic contexts, clients of executors may create work by calling the
+member functions of executors directly:
+
+    template<class Function>
+    future<result_of_t<Function()>>
+    foo(simple_two_way_executor& exec, Function f)
+    {
+      return exec.async_execute(f);
+    }
+
+However, directly calling executor member functions is impossible in generic
+contexts where the concrete type of the executor, and therefore the
+availability of specific member functions, is unknown. To serve these use
+cases, for each of these special executor member functions, we introduce an
+executor [*customization point*](http://wg21.link/n4381) in namespace
+`execution::`. These customization points adapt the given executor in such a
+way as to guarantee the execution semantics of the customization point even if
+it is not natively provided by the executor as a member function.
+
+For example, the customization point `execution::async_execute()` allows
+`foo()` to compose with all executor types:
+
+    template<class Executor, class Function>
+    executor_future_t<Executor,result_of_t<Function()>>
+    foo(Executor& exec, Function f)
+    {
+      return execution::async_execute(exec, f);
+    }
+
+These customization points allow higher-level control structures and "fancy"
+executors which adapt the behavior of more primitive executors to manipulate
+all types of executors uniformly.
 
 ## Conceptual Elements
 
