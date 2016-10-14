@@ -155,7 +155,204 @@ all types of executors uniformly.
   an particular, observeable execution resource.
   A particular executor targets a particular execution architecture.
 
-# Minimal executor category
+# Proposed Wording
+
+## Synopsis
+
+TODO: Add header `<execution>`.
+
+## Requirements
+
+### Proto-allocator requirements
+
+1. A type `A` meets the proto-allocator requirements if `A` is `CopyConstructible` (C++Std [copyconstructible]), `Destructible` (C++Std [destructible]), and `allocator_traits<A>::rebind_alloc<U>` meets the allocator requirements (C++Std [allocator.requirements]), where `U` is an object type. *[Note:* For example, `std::allocator<void>` meets the proto-allocator requirements but not the allocator requirements. *--end note]* No comparison operator, copy operation, move operation, or swap operation on these types shall exit via an exception.
+
+### `ExecutionContext`
+
+1.  A type meets the `ExecutionContext` requirements if it satisfies the `EqualityComparable` requirements (C++Std [equalitycomparable]). No comparison operator on these types shall exit via an exception.
+
+### `BaseExecutor`
+
+1. A type `X` meets the `BaseExecutor` requirements if it satisfies the requirements of `CopyConstructible` (C++Std [copyconstructible]), `Destructible` (C++Std [destructible]), and `EqualityComparable` (C++Std [equalitycomparable]), as well as the additional requirements listed below.
+
+2. No comparison operator, copy operation, move operation, swap operation, or member function `context` on these types shall exit via an exception.
+
+3. The executor copy constructor, comparison operators, and other member functions defined in these requirements shall not introduce data races as a result of concurrent calls to those functions from different threads.
+
+4. The destructor shall not block pending completion of the submitted function objects. *[Note:* The ability to wait for completion of submitted function objects may be provided by the associated execution context. *--end note]*
+
+5. In the table below, `x1` and `x2` denote (possibly const) values of type `X`, `mx1` denotes an xvalue of type `X`, and `u` denotes an identifier.
+
+| Expression | Type | Assertion/note/pre-/post-condition |
+|------------|------|------------------------------------|
+| `X u(x1);` | | Shall not exit via an exception.<br/><br/>*Post:* `u == x1` and `u.context() == x1.context()`. |
+| `X u(mx1);` | | Shall not exit via an exception.<br/><br/>*Post:* `u` equals the prior value of `mx1` and `u.context()` equals the prior value of `mx1.context()`. |
+| `x1 == x2` | `bool` | Returns `true` only if `x1` and `x2` can be interchanged with identical effects in any of the expressions defined in these type requirements (TODO and the other executor requirements defined in this Technical Specification). *[Note:* Returning `false` does not necessarily imply that the effects are not identical. *--end note]* `operator==` shall be reflexive, symmetric, and transitive, and shall not exit via an exception. |
+| `x1 != x2` | `bool` | Same as `!(x1 == x2)`. |
+| `x1.context()` | `E&` or `const E&` where `E` is a type that satisfies the `ExecutionContext` requirements. | Shall not exit via an exception. The comparison operators and member functions defined in these requirements (TODO and the other executor requirements defined in this Technical Specification) shall not alter the reference returned by this function. |
+
+### `OneWayExecutor`
+
+1. The `OneWayExecutor` requirements form the basis of the one-way executor concept taxonomy. This set of requirements specifies operations for creating execution agents that need not synchronize with the thread which created them.
+
+2. A type `X` satisfies the `OneWayExecutor` requirements if it satisfies the `BaseExecutor` requirements, as well as the additional requirements listed below.
+
+3. The executor copy constructor, comparison operators, and other member functions defined in these requirements shall not introduce data races as a result of concurrent calls to those functions from different threads.
+
+4. In the table below, `x` denotes a (possibly const) value of type `X`, and `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
+
+| Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
+|------------|-------------|-----------------------|-------------------------------------|
+| `x.execute(f)` | | Creates a weakly parallel execution agent which invokes `DECAY_COPY(std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `execute`.<br/><br/>May block forward progress of the caller until `DECAY_COPY(std::forward<F>(f))()` finishes execution. | *Synchronization:* The invocation of `execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. |
+
+### `HostBasedOneWayExecutor`
+
+1. The `HostBasedOneWayExecutor` requirements form the basis of host-based executors in the one-way executor concept taxonomy. *TODO:* description of what host-based means, i.e. as if executed in a `std::thread`, but without the requirement for separate thread-local storage or a unique thread ID.
+
+2. A type `X` satisfies the `HostBasedOneWayExecutor` requirements if it satisfies the `OneWayExecutor` requirements, as well as the additional requirements listed below.
+
+3. The executor copy constructor, comparison operators, and other member functions defined in these requirements shall not introduce data races as a result of concurrent calls to those functions from different threads.
+
+4. In the table below, `x` denotes a (possibly const) value of type `X`, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements, and `a` denotes a (possibly const) value of type `A` satisfying the `ProtoAllocator` requirements.
+
+| Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
+|------------|-------------|-----------------------|-------------------------------------|
+| `x.execute(f)`<br/>`x.execute(f,a)` | | Creates a parallel execution agent which invokes `DECAY_COPY(std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `execute`.<br/><br/>May block forward progress of the caller until `DECAY_COPY(std::forward<F>(f))()` finishes execution.<br/><br/>Executor implementations should use the supplied allocator (if any) to allocate any memory required to store the function object. Prior to invoking the function object, the executor shall deallocate any memory allocated. *[Note:* Executors defined in this Technical Specification always use the supplied allocator unless otherwise specified. *--end note]* | *Synchronization:* The invocation of `execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`.|
+
+### `NonBlockingOneWayExecutor`
+
+1. The `NonBlockingOneWayExecutor` requirements add one-way operations that are guaranteed not to block the caller pending completion of submitted function objects.
+
+2. A type `X` satisfies the `NonBlockingOneWayExecutor` requirements if it satisfies the `HostBasedOneWayExecutor` requirements, as well as the additional requirements listed below.
+
+3. The executor copy constructor, comparison operators, and other member functions defined in these requirements shall not introduce data races as a result of concurrent calls to those functions from different threads.
+
+4. In the table below, `x` denotes a (possibly const) value of type `X`, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements, and `a` denotes a (possibly const) value of type `A` satisfying the `ProtoAllocator` requirements.
+
+| Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
+|------------|-------------|-----------------------|-------------------------------------|
+| `x.post(f)`<br/>`x.post(f,a)`<br/>`x.defer(f)`<br/>`x.defer(f,a)` | | Creates a parallel execution agent which invokes `DECAY_COPY(std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `post` or `defer`.<br/><br/>Shall not block forward progress of the caller pending completion of `DECAY_COPY(std::forward<F>(f))()`.<br/><br/>Executor implementations should use the supplied allocator (if any) to allocate any memory required to store the function object. Prior to invoking the function object, the executor shall deallocate any memory allocated. *[Note:* Executors defined in this Technical Specification always use the supplied allocator unless otherwise specified. *--end note]* | *Synchronization:* The invocation of `post` or `defer` synchronizes with (C++Std [intro.multithread]) the invocation of `f`.<br/><br/>*Note:* Although the requirements placed on `defer` are identical to `post`, the use of `post` conveys a preference that the caller does not block the first step of `f`'s progress, whereas `defer` conveys a preference that the caller does block the first step of `f`. One use of `defer` is to convey the intention of the caller that `f` is a continuation of the current call context. The executor may use this information to optimize or otherwise adjust the way in which `f` is invoked. |
+
+### `TwoWayExecutor`
+
+1. The `TwoWayExecutor` requirements form the basis of the two-way executor concept taxonomy;
+   every two-way executor satisfies the `TwoWayExecutor` requirements. This set of requirements
+   specifies operations for creating execution agents that synchronize with the thread
+   which created them.
+
+2. In Table \ref{two_way_executor_requirements}, `f`, denotes a `MoveConstructible` function object with zero arguments whose result type is `R`,
+   and `x` denotes an object of type `X`.
+
+3. A type `X` satisfies the `TwoWayExecutor` requirements if:
+  * `X` satisfies the `BaseExecutor` requirements.
+  * For any `f` and `x`, the expressions in Table \ref{two_way_executor_requirements} are valid and have the indicated semantics.
+
+Table: (Two-Way Executor requirements) \label{two_way_executor_requirements}
+
+| Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
+|------------|-------------|-----------------------|-------------------------------------|
+| `x.async_-` `execute(std::move(f))` | `executor_-` `future_t<X,R>` | Creates an execution agent which invokes `f()`<br/>Returns the result of `f()` via the resulting future object.<br/>Returns any exception thrown by `f()` via the resulting future object.<br/>May block forward progress of the caller pending completion of `f()`. | |
+
+### `NonBlockingTwoWayExecutor`
+
+1. The `NonBlockingOneWayExecutor` requirements add two-way operations that are guaranteed not to block the caller pending completion of submitted function objects.
+
+2. In Table \ref{non_blocking_two_way_executor_requirements}, `f`, denotes a `MoveConstructible` function object with zero arguments whose result type is `R`,
+   and `x` denotes an object of type `X`.
+
+3. A type `X` satisfies the `NonBlockingTwoWayExecutor` requirements if:
+  * `X` satisfies the `TwoWayExecutor` requirements.
+  * For any `f` and `x`, the expressions in Table \ref{non_blocking_two_way_executor_requirements} are valid and have the indicated semantics.
+
+Table: (Non-Blocking Two-Way Executor requirements) \label{non_blocking_two_way_executor_requirements}
+
+| Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
+|------------|-------------|-----------------------|-------------------------------------|
+| `x.async_post(std::move(f))`<br/>`x.async_defer(std::move(f))` | `executor_-` `future_t<X,R>` | Creates an execution agent which invokes `f()`<br/>Returns the result of `f()` via the resulting future object.<br/>Returns any exception thrown by `f()` via the resulting future object.<br/>Shall not block forward progress of the caller pending completion of `f()`. | |
+
+### `BulkOneWayExecutor`
+
+1. The `BulkOneWayExecutor` requirements form the basis of the bulk one-way executor concept.
+   This set of requirements specifies operations for creating groups of execution agents in bulk from a single operation
+   which need not synchronize with another thread.
+
+2. In Table \ref{bulk_one_way_executor_requirements},
+    * `f` denotes a `CopyConstructible` function object with three arguments,
+    * `n` denotes a shape object whose type is `executor_shape_t<X>`.
+    * `sf` denotes a `CopyConstructible` function object with one argument whose result type is `S`,
+    * `i` denotes an object whose type is `executor_index_t<X>`, and
+    * `s` denotes an object whose type is `S`.
+
+3. A class `X` satisfies the requirements of a bulk one-way executor if `X` satisfies
+   either the `OneWayExecutor` or `TwoWayExecutor` requirements and the expressions of Table
+   \ref{bulk_one_way_executor_requirements} are valid and have the indicated semantics.
+
+Table: (Bulk one-way executor requirements) \label{bulk_one_way_executor_requirements}
+
+| Expression                                               | Return Type                                                       |  Operational semantics                                                                                     | Assertion/note/pre-/post-condition                                                                                                                         |
+|----------------------------------------------------------|-------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `x.bulk_-` `execute(f, n, sf)`                           | `void`                                                            |  Creates a group of execution agents of shape `n` which invoke `f(i, s)`                                   | Effects: invokes `sf(n)` on an unspecified execution agent.                                                                                                   |
+|                                                          |                                                                   |                                                                                                            |                                                                                                                                                            |
+|                                                          |                                                                   |                                                                                                            |                                                                                                                                                            |
+|                                                          |                                                                   |                                                                                                            |                                                                                                                                                            |
+
+### `BulkTwoWayExecutor`
+
+1. The `BulkTwoWayExecutor` requirements form the basis of the bulk two-way executor concept.
+   This set of requirements specifies operations for creating groups of execution agents in bulk from a single operation
+   with the ability to synchronize these groups of agents with another thread.
+
+2. In Table \ref{bulk_two_way_executor_requirements},
+    * `f` denotes a `CopyConstructible` function object with three arguments,
+    * `n` denotes a shape object whose type is `executor_shape_t<X>`.
+    * `rf` denotes a `CopyConstructible` function object with one argument whose result type is `R`,
+    * `sf` denotes a `CopyConstructible` function object with one argument whose result type is `S`,
+    * `i` denotes an object whose type is `executor_index_t<X>`,
+    * `r` denotes an object whose type is `R`, 
+    * `s` denotes an object whose type is `S`, and
+    * `pred` denotes a future object whose result is `pr`.
+
+3. A class `X` satisfies the requirements of a bulk two-way executor if `X` satisfies
+   either the `OneWayExecutor` or `TwoWayExecutor` requirements and the expressions of Table
+   \ref{bulk_two_way_executor_requirements} are valid and have the indicated semantics.
+
+Table: (Bulk two-way executor requirements) \label{bulk_two_way_executor_requirements}
+
+| Expression                                                        | Return Type                                                       |  Operational semantics                                                                                     | Assertion/note/pre-/post-condition                                                                                                                         |
+|-------------------------------------------------------------------|-------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `x.bulk_sync_-` `execute(f, n, rf, sf)`                           | `R`                                                               |  Creates a group of execution agents of shape `n` which invoke `f(i, r, s)`                                | Note: blocks the forward progress of the caller until all invocations of `f` are finished.                                                                 |
+|                                                                   |                                                                   |  Returns the result of `rf(n)`                                                                             | Effects: invokes `rf(n)` on an unspecified execution agent.                                                                                                |
+|                                                                   |                                                                   |                                                                                                            | Effects: invokes `sf(n)` on an unspecified execution agent.                                                                                                |
+|                                                                   |                                                                   |                                                                                                            |                                                                                                                                                            |
+| `x.bulk_async_-` `execute(f, n, rf, sf)`                          | `executor_-` `future_t<X,R>`                                      |  Creates a group of execution agents of shape `n` which invoke `f(i, r, s)`                                | Effects: invokes `rf(n)` on an unspecified execution agent.                                                                                                |
+|                                                                   |                                                                   |  Asynchronously returns the result of `rf(n)` via the resulting future object                              | Effects: invokes `sf(n)` on an unspecified execution agent.                                                                                                |
+|                                                                   |                                                                   |                                                                                                            |                                                                                                                                                            |
+|                                                                   |                                                                   |                                                                                                            |                                                                                                                                                            |
+| `x.bulk_then_-` `execute(f, n, rf, pred, sf)`                     | `executor_-` `future_t<X,R>`                                      |  Creates a group of execution agents of shape `n` which invoke `f(i, r, pr, s)` after `pred` becomes ready | Effects: invokes `rf(n)` on an unspecified execution agent.                                                                                                |
+|                                                                   |                                                                   |  Asynchronously returns the result of `rf(n)` via the resulting future.                                    | Effects: invokes `sf(n)` on an unspecified execution agent.                                                                                                |
+|                                                                   |                                                                   |                                                                                                            | If `pred`'s result type is `void`, `pr` is omitted from `f`'s invocation.                                                                                  |
+|                                                                   |                                                                   |                                                                                                            | Post: `pred` is invalid if it is not a shared future.                                                                                                      |
+
+XXX TODO: need to specify how `executor_execution_category_t` describes the forward progress requirements of a group of execution agents wrt each other
+
+### `ExecutorWorkTracker`
+
+1. The `ExecutorWorkTracker` requirements defines operations for tracking future work against an executor.
+
+2. A type `X` meets the `ExecutorWorkTracker` requirements if it satisfies the requirements of `CopyConstructible` (C++Std [copyconstructible]) and `Destructible` (C++Std [destructible]), as well as the additional requirements listed below.
+
+3. No constructor, comparison operator, copy operation, move operation, swap operation, or member functions `on_work_started` and `on_work_finished` on these types shall exit via an exception.
+
+4. The executor copy constructor, comparison operators, and other member functions defined in these requirements shall not introduce data races as a result of concurrent calls to those functions from different threads.
+
+5. In Table \ref{executor_work_tracker_requirements}, `x` denotes an object of type `X`,
+
+Table: (Executor Work Tracker requirements) \label{executor_work_tracker_requirements}
+
+| Expression | Return Type | Assertion/note/pre-/post-condition |
+|------------|-------------|------------------------------------|
+| `x.on_work_started()` | `bool` | Shall not exit via an exception. |
+| `x.on_work_finished()` | | Shall not exit via an exception. Precondition: A corresponding preceding call to `on_work_started` that returned `true`. |
 
 ## Executor type traits
 
@@ -187,6 +384,17 @@ This sub-clause contains templates that may be used to query the properties of a
 | `template<class T>`<br/>`struct is_non_blocking_two_way_executor` | `T` meets the syntactic requirements for `NonBlockingTwoWayExecutor`. | `T` is a complete type. |
 | `template<class T>`<br/>`struct is_bulk_two_way_executor` | `T` meets the syntactic requirements for `BulkTwoWayExecutor`. | `T` is a complete type. |
 
+### Associated execution context type
+
+    template<class Executor>
+    struct executor_context
+    {
+      using type = std::decay_t<decltype(declref<const Executor&>().context())>; // TODO check this
+    };
+
+    template <class Executor>
+    using executor_context_t = typename executor_context<Executor>::type;
+
 ### Associated future type
 
     template<class Executor, class T>
@@ -206,126 +414,6 @@ This sub-clause contains templates that may be used to query the properties of a
     
     template<class Executor, class T>
     using executor_future_t = typename executor_future<Executor,T>::type;
-
-### Associated execution context type
-
-    template<class Executor>
-    struct executor_context
-    {
-      using type = std::decay_t<decltype(declref<const Executor&>().context())>; // TODO check this
-    };
-
-    template <class Executor>
-    using executor_context_t = typename executor_context<Executor>::type;
-
-## Proto-allocator requirements
-
-1. A type `A` meets the proto-allocator requirements if `A` is `CopyConstructible` (C++Std [copyconstructible]), `Destructible` (C++Std [destructible]), and `allocator_traits<A>::rebind_alloc<U>` meets the allocator requirements (C++Std [allocator.requirements]), where `U` is an object type. *[Note:* For example, `std::allocator<void>` meets the proto-allocator requirements but not the allocator requirements. *--end note]* No comparison operator, copy operation, move operation, or swap operation on these types shall exit via an exception.
-
-## `ExecutionContext`
-
-1.  A type meets the `ExecutionContext` requirements if it satisfies the `EqualityComparable` requirements (C++Std [equalitycomparable]). No comparison operator on these types shall exit via an exception.
-
-## `BaseExecutor`
-
-1. A type `X` meets the `BaseExecutor` requirements if it satisfies the requirements of `CopyConstructible` (C++Std [copyconstructible]), `Destructible` (C++Std [destructible]), and `EqualityComparable` (C++Std [equalitycomparable]), as well as the additional requirements listed below.
-
-2. No comparison operator, copy operation, move operation, swap operation, or member function `context` on these types shall exit via an exception.
-
-3. The executor copy constructor, comparison operators, and other member functions defined in these requirements shall not introduce data races as a result of concurrent calls to those functions from different threads.
-
-4. The destructor shall not block pending completion of the submitted function objects. *[Note:* The ability to wait for completion of submitted function objects may be provided by the associated execution context. *--end note]*
-
-5. In the table below, `x1` and `x2` denote (possibly const) values of type `X`, `mx1` denotes an xvalue of type `X`, and `u` denotes an identifier.
-
-| Expression | Type | Assertion/note/pre-/post-condition |
-|------------|------|------------------------------------|
-| `X u(x1);` | | Shall not exit via an exception.<br/><br/>*Post:* `u == x1` and `u.context() == x1.context()`. |
-| `X u(mx1);` | | Shall not exit via an exception.<br/><br/>*Post:* `u` equals the prior value of `mx1` and `u.context()` equals the prior value of `mx1.context()`. |
-| `x1 == x2` | `bool` | Returns `true` only if `x1` and `x2` can be interchanged with identical effects in any of the expressions defined in these type requirements (TODO and the other executor requirements defined in this Technical Specification). *[Note:* Returning `false` does not necessarily imply that the effects are not identical. *--end note]* `operator==` shall be reflexive, symmetric, and transitive, and shall not exit via an exception. |
-| `x1 != x2` | `bool` | Same as `!(x1 == x2)`. |
-| `x1.context()` | `E&` or `const E&` where `E` is a type that satisfies the `ExecutionContext` requirements. | Shall not exit via an exception. The comparison operators and member functions defined in these requirements (TODO and the other executor requirements defined in this Technical Specification) shall not alter the reference returned by this function. |
-
-## `OneWayExecutor`
-
-1. The `OneWayExecutor` requirements form the basis of the one-way executor concept taxonomy. This set of requirements specifies operations for creating execution agents that need not synchronize with the thread which created them.
-
-2. A type `X` satisfies the `OneWayExecutor` requirements if it satisfies the `BaseExecutor` requirements, as well as the additional requirements listed below.
-
-3. The executor copy constructor, comparison operators, and other member functions defined in these requirements shall not introduce data races as a result of concurrent calls to those functions from different threads.
-
-4. In the table below, `x` denotes a (possibly const) value of type `X`, and `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
-
-| Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
-|------------|-------------|-----------------------|-------------------------------------|
-| `x.execute(f)` | | Creates a weakly parallel execution agent which invokes `DECAY_COPY(std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `execute`.<br/><br/>May block forward progress of the caller until `DECAY_COPY(std::forward<F>(f))()` finishes execution. | *Synchronization:* The invocation of `execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. |
-
-## `HostBasedOneWayExecutor`
-
-1. The `HostBasedOneWayExecutor` requirements form the basis of host-based executors in the one-way executor concept taxonomy. *TODO:* description of what host-based means, i.e. as if executed in a `std::thread`, but without the requirement for separate thread-local storage or a unique thread ID.
-
-2. A type `X` satisfies the `HostBasedOneWayExecutor` requirements if it satisfies the `OneWayExecutor` requirements, as well as the additional requirements listed below.
-
-3. The executor copy constructor, comparison operators, and other member functions defined in these requirements shall not introduce data races as a result of concurrent calls to those functions from different threads.
-
-4. In the table below, `x` denotes a (possibly const) value of type `X`, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements, and `a` denotes a (possibly const) value of type `A` satisfying the `ProtoAllocator` requirements.
-
-| Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
-|------------|-------------|-----------------------|-------------------------------------|
-| `x.execute(f)`<br/>`x.execute(f,a)` | | Creates a parallel execution agent which invokes `DECAY_COPY(std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `execute`.<br/><br/>May block forward progress of the caller until `DECAY_COPY(std::forward<F>(f))()` finishes execution.<br/><br/>Executor implementations should use the supplied allocator (if any) to allocate any memory required to store the function object. Prior to invoking the function object, the executor shall deallocate any memory allocated. *[Note:* Executors defined in this Technical Specification always use the supplied allocator unless otherwise specified. *--end note]* | *Synchronization:* The invocation of `execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`.|
-
-## `NonBlockingOneWayExecutor`
-
-1. The `NonBlockingOneWayExecutor` requirements add one-way operations that are guaranteed not to block the caller pending completion of submitted function objects.
-
-2. A type `X` satisfies the `NonBlockingOneWayExecutor` requirements if it satisfies the `HostBasedOneWayExecutor` requirements, as well as the additional requirements listed below.
-
-3. The executor copy constructor, comparison operators, and other member functions defined in these requirements shall not introduce data races as a result of concurrent calls to those functions from different threads.
-
-4. In the table below, `x` denotes a (possibly const) value of type `X`, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements, and `a` denotes a (possibly const) value of type `A` satisfying the `ProtoAllocator` requirements.
-
-| Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
-|------------|-------------|-----------------------|-------------------------------------|
-| `x.post(f)`<br/>`x.post(f,a)`<br/>`x.defer(f)`<br/>`x.defer(f,a)` | | Creates a parallel execution agent which invokes `DECAY_COPY(std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `post` or `defer`.<br/><br/>Shall not block forward progress of the caller pending completion of `DECAY_COPY(std::forward<F>(f))()`.<br/><br/>Executor implementations should use the supplied allocator (if any) to allocate any memory required to store the function object. Prior to invoking the function object, the executor shall deallocate any memory allocated. *[Note:* Executors defined in this Technical Specification always use the supplied allocator unless otherwise specified. *--end note]* | *Synchronization:* The invocation of `post` or `defer` synchronizes with (C++Std [intro.multithread]) the invocation of `f`.<br/><br/>*Note:* Although the requirements placed on `defer` are identical to `post`, the use of `post` conveys a preference that the caller does not block the first step of `f`'s progress, whereas `defer` conveys a preference that the caller does block the first step of `f`. One use of `defer` is to convey the intention of the caller that `f` is a continuation of the current call context. The executor may use this information to optimize or otherwise adjust the way in which `f` is invoked. |
-
-## `TwoWayExecutor`
-
-1. The `TwoWayExecutor` requirements form the basis of the two-way executor concept taxonomy;
-   every two-way executor satisfies the `TwoWayExecutor` requirements. This set of requirements
-   specifies operations for creating execution agents that synchronize with the thread
-   which created them.
-
-2. In Table \ref{two_way_executor_requirements}, `f`, denotes a `MoveConstructible` function object with zero arguments whose result type is `R`,
-   and `x` denotes an object of type `X`.
-
-3. A type `X` satisfies the `TwoWayExecutor` requirements if:
-  * `X` satisfies the `BaseExecutor` requirements.
-  * For any `f` and `x`, the expressions in Table \ref{two_way_executor_requirements} are valid and have the indicated semantics.
-
-Table: (Two-Way Executor requirements) \label{two_way_executor_requirements}
-
-| Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
-|------------|-------------|-----------------------|-------------------------------------|
-| `x.async_-` `execute(std::move(f))` | `executor_-` `future_t<X,R>` | Creates an execution agent which invokes `f()`<br/>Returns the result of `f()` via the resulting future object.<br/>Returns any exception thrown by `f()` via the resulting future object.<br/>May block forward progress of the caller pending completion of `f()`. | |
-
-## `NonBlockingTwoWayExecutor`
-
-1. The `NonBlockingOneWayExecutor` requirements add two-way operations that are guaranteed not to block the caller pending completion of submitted function objects.
-
-2. In Table \ref{non_blocking_two_way_executor_requirements}, `f`, denotes a `MoveConstructible` function object with zero arguments whose result type is `R`,
-   and `x` denotes an object of type `X`.
-
-3. A type `X` satisfies the `NonBlockingTwoWayExecutor` requirements if:
-  * `X` satisfies the `TwoWayExecutor` requirements.
-  * For any `f` and `x`, the expressions in Table \ref{non_blocking_two_way_executor_requirements} are valid and have the indicated semantics.
-
-Table: (Non-Blocking Two-Way Executor requirements) \label{non_blocking_two_way_executor_requirements}
-
-| Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
-|------------|-------------|-----------------------|-------------------------------------|
-| `x.async_post(std::move(f))`<br/>`x.async_defer(std::move(f))` | `executor_-` `future_t<X,R>` | Creates an execution agent which invokes `f()`<br/>Returns the result of `f()` via the resulting future object.<br/>Returns any exception thrown by `f()` via the resulting future object.<br/>Shall not block forward progress of the caller pending completion of `f()`. | |
-
-# Bulk (Parallelism TS) executor category
 
 ## Bulk executor traits
 
@@ -401,98 +489,9 @@ XXX TODO the relative "strength" of these categories should be defined
     template<class Executor>
     using executor_index_t = typename executor_index<Executor>::type;
 
-## `BulkOneWayExecutor`
+## Executor Customization Points
 
-1. The `BulkOneWayExecutor` requirements form the basis of the bulk one-way executor concept.
-   This set of requirements specifies operations for creating groups of execution agents in bulk from a single operation
-   which need not synchronize with another thread.
-
-2. In Table \ref{bulk_one_way_executor_requirements},
-    * `f` denotes a `CopyConstructible` function object with three arguments,
-    * `n` denotes a shape object whose type is `executor_shape_t<X>`.
-    * `sf` denotes a `CopyConstructible` function object with one argument whose result type is `S`,
-    * `i` denotes an object whose type is `executor_index_t<X>`, and
-    * `s` denotes an object whose type is `S`.
-
-3. A class `X` satisfies the requirements of a bulk one-way executor if `X` satisfies
-   either the `OneWayExecutor` or `TwoWayExecutor` requirements and the expressions of Table
-   \ref{bulk_one_way_executor_requirements} are valid and have the indicated semantics.
-
-Table: (Bulk one-way executor requirements) \label{bulk_one_way_executor_requirements}
-
-| Expression                                               | Return Type                                                       |  Operational semantics                                                                                     | Assertion/note/pre-/post-condition                                                                                                                         |
-|----------------------------------------------------------|-------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `x.bulk_-` `execute(f, n, sf)`                           | `void`                                                            |  Creates a group of execution agents of shape `n` which invoke `f(i, s)`                                   | Effects: invokes `sf(n)` on an unspecified execution agent.                                                                                                   |
-|                                                          |                                                                   |                                                                                                            |                                                                                                                                                            |
-|                                                          |                                                                   |                                                                                                            |                                                                                                                                                            |
-|                                                          |                                                                   |                                                                                                            |                                                                                                                                                            |
-
-## `BulkTwoWayExecutor`
-
-1. The `BulkTwoWayExecutor` requirements form the basis of the bulk two-way executor concept.
-   This set of requirements specifies operations for creating groups of execution agents in bulk from a single operation
-   with the ability to synchronize these groups of agents with another thread.
-
-2. In Table \ref{bulk_two_way_executor_requirements},
-    * `f` denotes a `CopyConstructible` function object with three arguments,
-    * `n` denotes a shape object whose type is `executor_shape_t<X>`.
-    * `rf` denotes a `CopyConstructible` function object with one argument whose result type is `R`,
-    * `sf` denotes a `CopyConstructible` function object with one argument whose result type is `S`,
-    * `i` denotes an object whose type is `executor_index_t<X>`,
-    * `r` denotes an object whose type is `R`, 
-    * `s` denotes an object whose type is `S`, and
-    * `pred` denotes a future object whose result is `pr`.
-
-3. A class `X` satisfies the requirements of a bulk two-way executor if `X` satisfies
-   either the `OneWayExecutor` or `TwoWayExecutor` requirements and the expressions of Table
-   \ref{bulk_two_way_executor_requirements} are valid and have the indicated semantics.
-
-Table: (Bulk two-way executor requirements) \label{bulk_two_way_executor_requirements}
-
-| Expression                                                        | Return Type                                                       |  Operational semantics                                                                                     | Assertion/note/pre-/post-condition                                                                                                                         |
-|-------------------------------------------------------------------|-------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `x.bulk_sync_-` `execute(f, n, rf, sf)`                           | `R`                                                               |  Creates a group of execution agents of shape `n` which invoke `f(i, r, s)`                                | Note: blocks the forward progress of the caller until all invocations of `f` are finished.                                                                 |
-|                                                                   |                                                                   |  Returns the result of `rf(n)`                                                                             | Effects: invokes `rf(n)` on an unspecified execution agent.                                                                                                |
-|                                                                   |                                                                   |                                                                                                            | Effects: invokes `sf(n)` on an unspecified execution agent.                                                                                                |
-|                                                                   |                                                                   |                                                                                                            |                                                                                                                                                            |
-| `x.bulk_async_-` `execute(f, n, rf, sf)`                          | `executor_-` `future_t<X,R>`                                      |  Creates a group of execution agents of shape `n` which invoke `f(i, r, s)`                                | Effects: invokes `rf(n)` on an unspecified execution agent.                                                                                                |
-|                                                                   |                                                                   |  Asynchronously returns the result of `rf(n)` via the resulting future object                              | Effects: invokes `sf(n)` on an unspecified execution agent.                                                                                                |
-|                                                                   |                                                                   |                                                                                                            |                                                                                                                                                            |
-|                                                                   |                                                                   |                                                                                                            |                                                                                                                                                            |
-| `x.bulk_then_-` `execute(f, n, rf, pred, sf)`                     | `executor_-` `future_t<X,R>`                                      |  Creates a group of execution agents of shape `n` which invoke `f(i, r, pr, s)` after `pred` becomes ready | Effects: invokes `rf(n)` on an unspecified execution agent.                                                                                                |
-|                                                                   |                                                                   |  Asynchronously returns the result of `rf(n)` via the resulting future.                                    | Effects: invokes `sf(n)` on an unspecified execution agent.                                                                                                |
-|                                                                   |                                                                   |                                                                                                            | If `pred`'s result type is `void`, `pr` is omitted from `f`'s invocation.                                                                                  |
-|                                                                   |                                                                   |                                                                                                            | Post: `pred` is invalid if it is not a shared future.                                                                                                      |
-
-
-XXX TODO: need to specify how `executor_execution_category_t` describes the forward progress requirements of a group of execution agents wrt each other
-
-## `ExecutorWorkTracker`
-
-1. The `ExecutorWorkTracker` requirements defines operations for tracking future work against an executor.
-
-2. A type `X` meets the `ExecutorWorkTracker` requirements if it satisfies the requirements of `CopyConstructible` (C++Std [copyconstructible]) and `Destructible` (C++Std [destructible]), as well as the additional requirements listed below.
-
-3. No constructor, comparison operator, copy operation, move operation, swap operation, or member functions `on_work_started` and `on_work_finished` on these types shall exit via an exception.
-
-4. The executor copy constructor, comparison operators, and other member functions defined in these requirements shall not introduce data races as a result of concurrent calls to those functions from different threads.
-
-5. In Table \ref{executor_work_tracker_requirements}, `x` denotes an object of type `X`,
-
-Table: (Executor Work Tracker requirements) \label{executor_work_tracker_requirements}
-
-| Expression | Return Type | Assertion/note/pre-/post-condition |
-|------------|-------------|------------------------------------|
-| `x.on_work_started()` | `bool` | Shall not exit via an exception. |
-| `x.on_work_finished()` | | Shall not exit via an exception. Precondition: A corresponding preceding call to `on_work_started` that returned `true`. |
-
-# (Networking TS) executor category
-
-XXX TODO
-
-# Executor Customization Points
-
-## In general
+### In general
 
 1. The functions described in this clause are *executor customization points*.
    Executor customization points provide a uniform interface to all executor types.
@@ -504,7 +503,7 @@ XXX TODO
    XXX the reason p2 is included is to define some general purpose wording for executor customization points in order to avoid repetition below.
        but, there's still some repetition
 
-## Function template `execution::execute()`
+### Function template `execution::execute()`
 
 1.  ```
     template<class Executor, class Function>
@@ -515,7 +514,7 @@ XXX TODO
    `DECAY_COPY(std::forward<Function>(f))()` in a new execution agent with the call to `DECAY_COPY()` being evaluated
    in the thread that called `execute`. Any return value is discarded.
 
-## Function template `execution::sync_execute()`
+### Function template `execution::sync_execute()`
 
 1.  ```
     template<class Executor, class Function>
@@ -533,7 +532,7 @@ XXX TODO
 
 5. *Throws:* Any uncaught exception thrown by `f`.
 
-## Function template `execution::async_execute()`
+### Function template `execution::async_execute()`
 
 1.  ```
     template<class Executor, class Function>
@@ -561,7 +560,7 @@ XXX TODO
     * the invocation of `async_execute` synchronizes with (1.10) the invocation of `f`.
     * the completion of the function `f` is sequenced before (1.10) the shared state is made ready.
 
-## Function template `execution::then_execute()`
+### Function template `execution::then_execute()`
 
 1.  ```
     template<class Executor, class Function, class Future>
@@ -587,7 +586,7 @@ XXX TODO
 5. *Postconditions:* If the `predecessor` future is not a shared future, then `predecessor.valid() == false`.
 
 
-## Function template `execution::bulk_execute()`
+### Function template `execution::bulk_execute()`
 
 1.  ```
     template<class Executor, class Function1, class Function2>
@@ -608,7 +607,7 @@ XXX TODO
 3. *Synchronization:* The completion of the function `shared_factory` happens before the creation of the group of execution agents.
 
 
-## Function template `execution::bulk_sync_execute()`
+### Function template `execution::bulk_sync_execute()`
 
 1.  ```
     template<class Executor, class Function1, class Function2, class Function3>
@@ -636,7 +635,7 @@ XXX TODO
    `shared_factory` happen before the creation of the group of execution
    agents.
 
-## Function template `execution::bulk_async_execute()`
+### Function template `execution::bulk_async_execute()`
 
 1.  ```
     template<class Executor, class Function1, class Function2, class Function3>
@@ -671,7 +670,7 @@ XXX TODO
     * the completion of the functions `result_factory` and `shared_factory` happen before the creation of the group of execution agents.
     * the completion of the invocations of `f` are sequenced before (1.10) the result shared state is made ready.
 
-## Function template `execution::bulk_then_execute()`
+### Function template `execution::bulk_then_execute()`
 
 1.  ```
     template<class Executor, class Function1, class Future, class Function2, class Function3>
@@ -710,7 +709,7 @@ XXX TODO
 
 5. *Postconditions:* If the `predecessor` future is not a shared future, then `predecessor.valid() == false`.
 
-# Execution policy interoperation
+## Execution policy interoperation
 
 ```
 class parallel_execution_policy
@@ -732,7 +731,7 @@ class sequenced_execution_tag { by-analogy-to-parallel_execution_policy };
 class parallel_unsequenced_execution_tag { by-analogy-to-parallel_execution_policy };
 ```
 
-## Associated executor
+### Associated executor
 
 1. Each execution policy is associated with an executor, and this executor is called its *associated executor*.
 
@@ -744,7 +743,7 @@ class parallel_unsequenced_execution_tag { by-analogy-to-parallel_execution_poli
 
 4. The type of an execution policy's associated executor is the same as the member type `executor_type`.
 
-## Execution category
+### Execution category
 
 1. Each execution policy is categorized by an *execution category*.
 
@@ -757,7 +756,7 @@ class parallel_unsequenced_execution_tag { by-analogy-to-parallel_execution_poli
 
 4. The execution category of an execution policy's associated executor shall not be weaker than the execution policy's execution category.
 
-## Associated executor access
+### Associated executor access
 
 1.  ```
     const executor_type& executor() const noexcept;
@@ -765,7 +764,7 @@ class parallel_unsequenced_execution_tag { by-analogy-to-parallel_execution_poli
 
 2. *Returns:* The execution policy's associated executor.
 
-## Execution policy factory
+### Execution policy factory
 
 1.  ```
     template<class Executor>
@@ -783,9 +782,9 @@ class parallel_unsequenced_execution_tag { by-analogy-to-parallel_execution_poli
 3. *Remarks:* This member function shall not participate in overload resolution unless `is_executor_v<T>` is `true` and
    `executor_execution_category_t<T>` is as strong as `execution_category`.
 
-# Control structure interoperation
+## Control structure interoperation
 
-## Function template `async`
+### Function template `async`
 
 1. The function template `async` provides a mechanism to invoke a function in a new
    execution agent created by an executor and provides the result of the function in the
@@ -803,7 +802,7 @@ class parallel_unsequenced_execution_tag { by-analogy-to-parallel_execution_poli
 
     XXX This forwarding doesn't look correct to me
 
-## `std::future::then()`
+### `std::future::then()`
 
 1. The member function template `then` provides a mechanism for attaching a *continuation* to a `std::future` object,
    which will be executed on a new execution agent created by an executor.
@@ -822,7 +821,7 @@ class parallel_unsequenced_execution_tag { by-analogy-to-parallel_execution_poli
     `.then()` stores `f` as the next continuation in the future state, and when
     the future is ready, creates an execution agent using a copy of `exec`.
 
-## `std::shared_future::then()`
+### `std::shared_future::then()`
 
 1. The member function template `then` provides a mechanism for attaching a *continuation* to a `std::shared_future` object,
    which will be executed on a new execution agent created by an executor.
@@ -842,7 +841,7 @@ class parallel_unsequenced_execution_tag { by-analogy-to-parallel_execution_poli
     state, and when the underlying future is ready, creates an execution agent
     using a copy of `exec`.
 
-## Function template `invoke`
+### Function template `invoke`
 
 1. The function template `invoke` provides a mechanism to invoke a function in a new
    execution agent created by an executor and return result of the function.
@@ -857,9 +856,9 @@ class parallel_unsequenced_execution_tag { by-analogy-to-parallel_execution_poli
 
     `return execution::sync_execute(exec, [&]{ return INVOKE(f, args...); });`
 
-## Task block
+### Task block
 
-### Function template `define_task_block_restore_thread()`
+#### Function template `define_task_block_restore_thread()`
 
 1.  ```
     template<class Executor, class F>
@@ -876,7 +875,7 @@ class parallel_unsequenced_execution_tag { by-analogy-to-parallel_execution_poli
 
 6. *Remarks:* Unlike `define_task_block`, `define_task_block_restore_thread` always returns on the same thread as the one on which it was called.
 
-### `task_block` member function template `run`
+#### `task_block` member function template `run`
 
 1.  ```
     template<class Executor, class F>
@@ -895,7 +894,7 @@ class parallel_unsequenced_execution_tag { by-analogy-to-parallel_execution_poli
 
 5. *Throws:* `task_cancelled_exception`, as described in version 2 of the Parallelism TS.
 
-# Executor work guard
+## Executor work guard
 
 ```
 template<class Executor>
@@ -931,7 +930,7 @@ private:
 };
 ```
 
-## Members
+### Members
 
 ```
 explicit executor_work_guard(const executor_type& ex) noexcept;
@@ -985,9 +984,9 @@ void reset() noexcept;
 
 *Postconditions:* `owns_ == false`.
 
-# Polymorphic executor wrappers
+## Polymorphic executor wrappers
 
-## Class `one_way_executor`
+### Class `one_way_executor`
 
 XXX this section has a lot of wording redundant with `any`. it would be nice if the constructors & 
     modifiers effects/return clauses could say something like "as if by corresponding-expression-involving-some-expository-`std::any`-object"
@@ -1041,7 +1040,7 @@ bool operator==(const one_way_executor& x, const one_way_executor& y);
 
 1. An object of class `one_way_executor` stores an instance of any `OneWayExecutor` type. The stored instance is called the *contained executor*.
 
-### Construction and destruction
+#### Construction and destruction
 
 1.  ```
     one_way_executor(const one_way_executor& other);
@@ -1072,7 +1071,7 @@ bool operator==(const one_way_executor& x, const one_way_executor& y);
 
 10. *Throws:* Any exception thrown by the selected constructor of `T`.
 
-### Assignment
+#### Assignment
 
 1.  ```
     one_way_executor& operator=(const one_way_executor& rhs);
@@ -1098,7 +1097,7 @@ bool operator==(const one_way_executor& x, const one_way_executor& y);
 
 8. *Throws:* Any exception thrown by the selected constructor of `T`.
 
-### Modifiers
+#### Modifiers
 
 1.  ```
     void swap(one_way_executor& rhs) noexcept;
@@ -1106,9 +1105,9 @@ bool operator==(const one_way_executor& x, const one_way_executor& y);
 
 2. *Effects:* Exchanges the contained executors of `*this` and `rhs`.
 
-### Execution agent creation
+#### Execution agent creation
 
-#### Member function `execute`
+##### Member function `execute`
 
 1.  ```
     template<class Function>
@@ -1119,7 +1118,7 @@ bool operator==(const one_way_executor& x, const one_way_executor& y);
 
 3. *Effects:* As if by `execution::execute(exec, std::forward<Function>(f))`.
 
-### Non-member functions
+#### Non-member functions
 
 1.  ```
     void swap(one_way_executor& x, one_way_executor& y) noexcept;
@@ -1137,7 +1136,7 @@ bool operator==(const one_way_executor& x, const one_way_executor& y);
 4. *Returns:* `x_exec == y_exec`.
 
 
-## Class `two_way_executor`
+### Class `two_way_executor`
 
 XXX this section has a lot of wording redundant with `any`. it would be nice if the constructors & 
     modifiers effects/return clauses could say something like "as if by corresponding-expression-involving-some-expository-`std::any`-object"
@@ -1192,7 +1191,7 @@ bool operator==(const two_way_executor& x, const two_way_executor& y);
 
 1. An object of class `two_way_executor` stores an instance of any `TwoWayExecutor` type. The stored instance is called the *contained executor*.
 
-### Construction and destruction
+#### Construction and destruction
 
 1.  ```
     two_way_executor(const two_way_executor& other);
@@ -1223,7 +1222,7 @@ bool operator==(const two_way_executor& x, const two_way_executor& y);
 
 10. *Throws:* Any exception thrown by the selected constructor of `T`.
 
-### Assignment
+#### Assignment
 
 1.  ```
     two_way_executor& operator=(const two_way_executor& rhs);
@@ -1249,7 +1248,7 @@ bool operator==(const two_way_executor& x, const two_way_executor& y);
 
 8. *Throws:* Any exception thrown by the selected constructor of `T`.
 
-### Modifiers
+#### Modifiers
 
 1.  ```
     void swap(two_way_executor& rhs) noexcept;
@@ -1257,9 +1256,9 @@ bool operator==(const two_way_executor& x, const two_way_executor& y);
 
 2. *Effects:* Exchanges the contained executors of `*this` and `rhs`.
 
-### Execution agent creation
+#### Execution agent creation
 
-#### Member function `async_execute`
+##### Member function `async_execute`
 
 1.  ```
     template<class Function>
@@ -1273,7 +1272,7 @@ bool operator==(const two_way_executor& x, const two_way_executor& y);
 
 XXX This equivalent expression requires giving `std::future<T>` a constructor which would move convert from `executor_future_t<X,T>`, where `X` is the type of `exec`.
 
-### Non-member functions
+#### Non-member functions
 
 1.  ```
     void swap(two_way_executor& x, two_way_executor& y) noexcept;
@@ -1289,15 +1288,13 @@ XXX This equivalent expression requires giving `std::future<T>` a constructor wh
 
 4. *Returns:* `x_exec == y_exec`.
 
-
-# Thread pool type
-
+## Thread pool type
 
 XXX Consider whether we should include a wording for a concurrent executor which
 would satisfy the needs of async (thread pool provides parallel execution
 semantics).
 
-## Class `thread_pool`
+### Class `thread_pool`
 
 This class represents a statically sized thread pool as a common/basic resource
 type. This pool provides an effectively unbounded input queue and as such calls
@@ -1358,7 +1355,7 @@ and the `thread_pool::executor_type` copy constructors and member functions, do
 not introduce data races as a result of concurrent calls to those functions
 from different threads of execution.
 
-### Construction and destruction
+#### Construction and destruction
 
 ```
 thread_pool();
@@ -1382,7 +1379,7 @@ allow 0?)
 *Effects:* Destroys an object of class `thread_pool`. Performs `stop()`
 followed by `wait()`.
 
-### Worker Management
+#### Worker Management
 
 ```
 void attach();
@@ -1420,7 +1417,7 @@ complete immediately.
 *Synchronization:* The completion of each thread in the pool synchronizes with
 (C++Std [intro.multithread]) the corresponding successful `wait()` return.
 
-### Executor Creation
+#### Executor Creation
 
 ```
 executor_type executor() noexcept;
@@ -1429,7 +1426,7 @@ executor_type executor() noexcept;
 *Returns:* An executor that may be used to submit function objects to the
 thread pool.
 
-### Comparisons
+#### Comparisons
 
 ```
 bool operator==(const thread_pool& a, const thread_pool& b) noexcept;
@@ -1443,7 +1440,7 @@ bool operator!=(const thread_pool& a, const thread_pool& b) noexcept;
 
 *Returns:* `!(a == b)`.
 
-## Class `thread_pool::executor_type`
+### Class `thread_pool::executor_type`
 
 ```
 class thread_pool::executor_type
@@ -1509,7 +1506,7 @@ Objects of type `thread_pool::executor_type` are associated with a
 `defer`, `sync_execute`, and `async_execute` member functions will be executed
 by the `thread_pool`.
 
-### Constructors
+#### Constructors
 
 ```
 executor_type(const executor_type& other) noexcept;
@@ -1523,7 +1520,7 @@ executor_type(executor_type&& other) noexcept;
 
 *Postconditions:* `*this` is equal to the prior value of `other`.
 
-### Assignment
+#### Assignment
 
 ```
 executor_type& operator=(const executor_type& other) noexcept;
@@ -1541,7 +1538,7 @@ executor_type& operator=(executor_type&& other) noexcept;
 
 *Returns:* `*this`.
 
-### Operations
+#### Operations
 
 ```
 bool running_in_this_thread() const noexcept;
@@ -1629,7 +1626,7 @@ ready.
 *Returns:* An object of type `future<result_of_t<decay_t<Function>>()>` that
 refers to the shared state created by `async_execute`.
 
-### Comparisons
+#### Comparisons
 
 ```
 bool operator==(const thread_pool::executor_type& a,
@@ -1644,3 +1641,11 @@ bool operator!=(const thread_pool::executor_type& a,
 ```
 
 *Returns:* `!(a == b)`.
+
+# Relationship to other proposals and specifications
+
+## (Networking TS) executor category
+
+XXX TODO
+
+# Future work
