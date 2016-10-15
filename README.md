@@ -152,7 +152,7 @@ all types of executors uniformly.
 
 **Executor:**
   Provides execution functions for running instruction streams on
-  an particular, observeable execution resource.
+  an particular, observable execution resource.
   A particular executor targets a particular execution architecture.
 
 # Proposed Wording
