@@ -157,9 +157,116 @@ all types of executors uniformly.
 
 # Proposed Wording
 
-## Synopsis
+### Header `<execution>` synopsis
 
-TODO: Add header `<execution>`.
+```
+namespace std {
+namespace experimental {
+inline namespace concurrency_v2 {
+namespace execution {
+
+  // Executor type traits:
+
+  template<class T> struct is_one_way_executor;
+  template<class T> struct is_host_based_one_way_executor;
+  template<class T> struct is_non_blocking_one_way_executor;
+  template<class T> struct is_bulk_one_way_executor;
+  template<class T> struct is_two_way_executor;
+  template<class T> struct is_bulk_two_way_executor;
+
+  template<class T> constexpr bool is_one_way_executor_v = is_one_way_executor<T>::value;
+  template<class T> constexpr bool is_host_based_one_way_executor_v = is_host_based_one_way_executor<T>::value;
+  template<class T> constexpr bool is_non_blocking_one_way_executor_v = is_non_blocking_one_way_executor<T>::value;
+  template<class T> constexpr bool is_bulk_one_way_executor_v = is_bulk_one_way_executor<T>::value;
+  template<class T> constexpr bool is_two_way_executor_v = is_two_way_executor<T>::value;
+  template<class T> constexpr bool is_bulk_two_way_executor_v = is_bulk_two_way_executor<T>::value;
+
+  template<class Executor> struct executor_context;
+
+  template<class Executor>
+    using executor_context_t = typename executor_context<Executor>::type;
+
+  template<class Executor, class T> struct executor_future;
+
+  template<class Executor, class T>
+    using executor_future_t = typename executor_future<Executor, T>::type;
+
+  // Bulk executor traits:
+
+  struct sequenced_execution_tag {};
+  struct parallel_execution_tag {};
+  struct unsequenced_execution_tag {};
+
+  // TODO a future proposal can define this category
+  // struct concurrent_execution_tag {};
+
+  template<class Executor> struct executor_execution_category;
+
+  template<class Executor>
+    using executor_execution_category_t = typename executor_execution_category<Executor>::type;
+
+  template<class Executor> struct executor_shape;
+
+  template<class Executor>
+    using executor_shape_t = typename executor_shape<Executor>::type;
+
+  template<class Executor> struct executor_index;
+
+  template<class Executor>
+    using executor_index_t = typename executor_index<Executor>::type;
+
+  // Executor customization points:
+
+  template<class Executor, class Function>
+    void execute(Executor& exec, Function&& f);
+
+  template<class Executor, class Function>
+    result_of_t<decay_t<Function>()>
+      sync_execute(Executor& exec, Function&& f);
+
+  template<class Executor, class Function>
+    executor_future_t<Executor, result_of_t<decay_t<Function>()>>
+      async_execute(Executor& exec, Function&& f);
+
+  template<class Executor, class Function, class Future>
+    executor_future_t<Executor, see-below>
+      then_execute(Executor& exec, Function&& f, Future& predecessor);
+
+  template<class Executor, class Function1, class Function2>
+    void bulk_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape,
+                      Function2 shared_factory);
+
+  template<class Executor, class Function1, class Function2, class Function3>
+    result_of_t<Function2()>
+      bulk_sync_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape,
+                        Function2 result_factory, Function3 shared_factory);
+
+  template<class Executor, class Function1, class Function2, class Function3>
+    executor_future_t<Executor, result_of_t<Function2()>>
+      bulk_async_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape,
+                         Function2 result_factory, Function3 shared_factory);
+
+  template<class Executor, class Function1, class Future, class Function2, class Function3>
+    executor_future_t<Executor, result_of_t<Function2()>>
+      bulk_then_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape,
+                        Future& predecessor,
+                        Function2 result_factory, Function3 shared_factory);
+
+  // Executor work guard:
+
+  template <class Executor>
+    class executor_work_guard;
+
+  // Polymorphic executor wrappers:
+
+  class one_way_executor;
+  class two_way_executor;
+
+} // namespace execution
+} // inline namespace concurrency_v2
+} // namespace experimental
+} // namespace std
+```
 
 ## Requirements
 
