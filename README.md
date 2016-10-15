@@ -1299,6 +1299,20 @@ XXX Consider whether we should include a wording for a concurrent executor which
 would satisfy the needs of async (thread pool provides parallel execution
 semantics).
 
+### Header `<thread_pool>` synopsis
+
+```
+namespace std {
+namespace experimental {
+inline namespace concurrency_v2 {
+
+  class thread_pool;
+
+} // inline namespace concurrency_v2
+} // namespace experimental
+} // namespace std
+```
+
 ### Class `thread_pool`
 
 This class represents a statically sized thread pool as a common/basic resource
