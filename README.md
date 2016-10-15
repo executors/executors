@@ -163,7 +163,7 @@ TODO: Add header `<execution>`.
 
 ## Requirements
 
-## `Future` requirements
+### `Future` requirements
 
 1. A type `F` meets the future requirements for some value type `T` if `F` is... *Requirements to be defined. Futures must provide `get`, `wait`, `then`, etc.*
 
