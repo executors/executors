@@ -97,7 +97,7 @@ algorithm happen "on" an executor:
     auto my_executor = ...;
     for_each(execution::par.on(my_executor), vec.begin(), vec.end(), my_task);
 
-**Executor customization.** Executor categories require executor types to
+**Executor customization points.** Executor categories require executor types to
 provide member functions with expected semantics. For example, the executor
 category `OneWayExecutor` requires an executor type to provide the member
 function `.execute(f)`, which may or may not block its caller pending
@@ -139,6 +139,84 @@ These customization points allow higher-level control structures and "fancy"
 executors which adapt the behavior of more primitive executors to manipulate
 all types of executors uniformly.
 
+**Defining executors.** Programmers may define their own executors by creating
+a type which satisfies the requirements of one or more executor categories. The
+following example creates a simple executor fulfilling the requirements of the
+`OneWayExecutor` category which logs a message before invoking a function:
+
+    class logging_context
+    {
+      public:
+        void log(std::string msg);
+
+        bool operator==(const logging_context& rhs) const
+        {
+          return this == &rhs;
+        }
+    };
+
+    class logging_executor
+    {
+      public:
+        logging_executor(logging_context& ctx) : context_(ctx) {}
+
+        bool operator==(const logging_executor& rhs) const
+        {
+          return context() == rhs.context();
+        }
+
+        const logging_context& context() const
+        {
+          return context_;
+        }
+
+        template<class Function>
+        void execute(Function&& f)
+        {
+          context_.log("executing function");
+          f();
+        }
+
+      private:
+        logging_context& context_;
+    };
+
+Executors are also useful in insulating non-standard means of creating
+execution from the surrounding environment. The following example defines an
+executor fulfilling the requirements of the `BulkTwoWayExecutor` category which
+uses OpenMP language extensions to invoke a function a number of times in parallel:
+
+    class omp_executor
+    {
+      public:
+        using execution_category = parallel_execution_tag;
+
+        bool operator==(const omp_executor&) const
+        {
+          return true;
+        }
+
+        const omp_executor& context() const
+        {
+          return *this;
+        }
+
+        template<class Function, class ResultFactory, class SharedFactory>
+        auto bulk_sync_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory)
+        {
+          auto result = result_factory();
+          auto shared_arg = shared_factory();
+
+          #pragma omp parallel for
+          for(size_t i = 0; i < n; ++i)
+          {
+            f(i, result, shared_arg);
+          }
+
+          return result;
+        }
+    };
+
 ## Conceptual Elements
 
 **Instruction Stream:**
@@ -168,7 +246,7 @@ all types of executors uniformly.
   and hyperthreads within a single core are more local to each other than
   hyperthreads in different cores.
 
-*Lightweight* **Execution Agent:**
+**Execution Agent:**
   An instruction stream is run by an execution agent on an execution resource.
   An execution agent may be *lightweight* in that its existance is only
   observable while the instruction stream is running.
