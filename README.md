@@ -163,6 +163,10 @@ TODO: Add header `<execution>`.
 
 ## Requirements
 
+## `Future` requirements
+
+1. A type `F` meets the future requirements for some value type `T` if `F` is... *Requirements to be defined. Futures must provide `get`, `wait`, `then`, etc.*
+
 ### Proto-allocator requirements
 
 1. A type `A` meets the proto-allocator requirements if `A` is `CopyConstructible` (C++Std [copyconstructible]), `Destructible` (C++Std [destructible]), and `allocator_traits<A>::rebind_alloc<U>` meets the allocator requirements (C++Std [allocator.requirements]), where `U` is an object type. *[Note:* For example, `std::allocator<void>` meets the proto-allocator requirements but not the allocator requirements. *--end note]* No comparison operator, copy operation, move operation, or swap operation on these types shall exit via an exception.
@@ -251,7 +255,7 @@ Table: (Two-Way Executor requirements) \label{two_way_executor_requirements}
 
 | Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
 |------------|-------------|-----------------------|-------------------------------------|
-| `x.async_-` `execute(std::move(f))` | `executor_-` `future_t<X,R>` | Creates an execution agent which invokes `f()`<br/>Returns the result of `f()` via the resulting future object.<br/>Returns any exception thrown by `f()` via the resulting future object.<br/>May block forward progress of the caller pending completion of `f()`. | |
+| `x.async_-` `execute(std::move(f))` | A type that satisfies the `Future` requirements for the value type `R`. | Creates an execution agent which invokes `f()`<br/>Returns the result of `f()` via the resulting future object.<br/>Returns any exception thrown by `f()` via the resulting future object.<br/>May block forward progress of the caller pending completion of `f()`. | |
 
 ### `NonBlockingTwoWayExecutor`
 
@@ -400,20 +404,21 @@ This sub-clause contains templates that may be used to query the properties of a
     template<class Executor, class T>
     struct executor_future
     {
-      private:
-        template<class U>
-        using helper = typename U::template future<T>;
-
-      public:
-        using type = std::experimental::detected_or_t<std::future<T>, helper, Executor, T>;
-
-        // XXX a future proposal can relax this to enable user-defined future types 
-        static_assert(std::is_same_v<type, std::future<T>>,
-          "Executor-specific future types must be std::future for the minimal proposal");
+      using type = see below;
     };
     
     template<class Executor, class T>
     using executor_future_t = typename executor_future<Executor,T>::type;
+
+The type of `executor_future<Executor, T>::type` is determined as follows:
+
+* if `is_two_way_executor<Executor>` is true, `decltype(declval<const Executor&>().async_execute(declval<T(*)()>())`;
+
+* otherwise, if `is_one_way_executor<Executor>` is true, `std::future<T>`;
+
+* otherwise, the program is ill formed.
+
+*[Note:* The effect of this specification is that all execute functions of an executor that satisfies the `TwoWayExecutor`, `NonBlockingTwoWayExecutor`, or `BulkTwoWayExecutor` requirements must utilize the same future type, and that this future type is determined by `async_execute`. Programs may specialize this trait for user-defined `Executor` types. *--end note]*
 
 ## Bulk executor traits
 
