@@ -157,9 +157,116 @@ all types of executors uniformly.
 
 # Proposed Wording
 
-## Synopsis
+### Header `<execution>` synopsis
 
-TODO: Add header `<execution>`.
+```
+namespace std {
+namespace experimental {
+inline namespace concurrency_v2 {
+namespace execution {
+
+  // Executor type traits:
+
+  template<class T> struct is_one_way_executor;
+  template<class T> struct is_host_based_one_way_executor;
+  template<class T> struct is_non_blocking_one_way_executor;
+  template<class T> struct is_bulk_one_way_executor;
+  template<class T> struct is_two_way_executor;
+  template<class T> struct is_bulk_two_way_executor;
+
+  template<class T> constexpr bool is_one_way_executor_v = is_one_way_executor<T>::value;
+  template<class T> constexpr bool is_host_based_one_way_executor_v = is_host_based_one_way_executor<T>::value;
+  template<class T> constexpr bool is_non_blocking_one_way_executor_v = is_non_blocking_one_way_executor<T>::value;
+  template<class T> constexpr bool is_bulk_one_way_executor_v = is_bulk_one_way_executor<T>::value;
+  template<class T> constexpr bool is_two_way_executor_v = is_two_way_executor<T>::value;
+  template<class T> constexpr bool is_bulk_two_way_executor_v = is_bulk_two_way_executor<T>::value;
+
+  template<class Executor> struct executor_context;
+
+  template<class Executor>
+    using executor_context_t = typename executor_context<Executor>::type;
+
+  template<class Executor, class T> struct executor_future;
+
+  template<class Executor, class T>
+    using executor_future_t = typename executor_future<Executor, T>::type;
+
+  // Bulk executor traits:
+
+  struct sequenced_execution_tag {};
+  struct parallel_execution_tag {};
+  struct unsequenced_execution_tag {};
+
+  // TODO a future proposal can define this category
+  // struct concurrent_execution_tag {};
+
+  template<class Executor> struct executor_execution_category;
+
+  template<class Executor>
+    using executor_execution_category_t = typename executor_execution_category<Executor>::type;
+
+  template<class Executor> struct executor_shape;
+
+  template<class Executor>
+    using executor_shape_t = typename executor_shape<Executor>::type;
+
+  template<class Executor> struct executor_index;
+
+  template<class Executor>
+    using executor_index_t = typename executor_index<Executor>::type;
+
+  // Executor customization points:
+
+  template<class Executor, class Function>
+    void execute(Executor& exec, Function&& f);
+
+  template<class Executor, class Function>
+    result_of_t<decay_t<Function>()>
+      sync_execute(Executor& exec, Function&& f);
+
+  template<class Executor, class Function>
+    executor_future_t<Executor, result_of_t<decay_t<Function>()>>
+      async_execute(Executor& exec, Function&& f);
+
+  template<class Executor, class Function, class Future>
+    executor_future_t<Executor, see-below>
+      then_execute(Executor& exec, Function&& f, Future& predecessor);
+
+  template<class Executor, class Function1, class Function2>
+    void bulk_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape,
+                      Function2 shared_factory);
+
+  template<class Executor, class Function1, class Function2, class Function3>
+    result_of_t<Function2()>
+      bulk_sync_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape,
+                        Function2 result_factory, Function3 shared_factory);
+
+  template<class Executor, class Function1, class Function2, class Function3>
+    executor_future_t<Executor, result_of_t<Function2()>>
+      bulk_async_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape,
+                         Function2 result_factory, Function3 shared_factory);
+
+  template<class Executor, class Function1, class Future, class Function2, class Function3>
+    executor_future_t<Executor, result_of_t<Function2()>>
+      bulk_then_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape,
+                        Future& predecessor,
+                        Function2 result_factory, Function3 shared_factory);
+
+  // Executor work guard:
+
+  template <class Executor>
+    class executor_work_guard;
+
+  // Polymorphic executor wrappers:
+
+  class one_way_executor;
+  class two_way_executor;
+
+} // namespace execution
+} // inline namespace concurrency_v2
+} // namespace experimental
+} // namespace std
+```
 
 ## Requirements
 
@@ -369,13 +476,6 @@ Table: (Executor Work Tracker requirements) \label{executor_work_tracker_require
     template<class T> struct is_two_way_executor;
     template<class T> struct is_bulk_two_way_executor;
 
-    template<class T> constexpr bool is_one_way_executor_v = is_one_way_executor<T>::value;
-    template<class T> constexpr bool is_host_based_one_way_executor_v = is_host_based_one_way_executor<T>::value;
-    template<class T> constexpr bool is_non_blocking_one_way_executor_v = is_non_blocking_one_way_executor<T>::value;
-    template<class T> constexpr bool is_bulk_one_way_executor_v = is_bulk_one_way_executor<T>::value;
-    template<class T> constexpr bool is_two_way_executor_v = is_two_way_executor<T>::value;
-    template<class T> constexpr bool is_bulk_two_way_executor_v = is_bulk_two_way_executor<T>::value;
-
 This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
 
 | Template | Condition | Preconditions |
@@ -396,9 +496,6 @@ This sub-clause contains templates that may be used to query the properties of a
       using type = std::decay_t<decltype(declref<const Executor&>().context())>; // TODO check this
     };
 
-    template <class Executor>
-    using executor_context_t = typename executor_context<Executor>::type;
-
 ### Associated future type
 
     template<class Executor, class T>
@@ -407,9 +504,6 @@ This sub-clause contains templates that may be used to query the properties of a
       using type = see below;
     };
     
-    template<class Executor, class T>
-    using executor_future_t = typename executor_future<Executor,T>::type;
-
 The type of `executor_future<Executor, T>::type` is determined as follows:
 
 * if `is_two_way_executor<Executor>` is true, `decltype(declval<const Executor&>().async_execute(declval<T(*)()>())`;
@@ -445,9 +539,6 @@ The type of `executor_future<Executor, T>::type` is determined as follows:
         >;
     };
 
-    template<class Executor>
-    using executor_execution_category_t = typename executor_execution_category<Executor>::type;
-
 XXX TODO the relative "strength" of these categories should be defined
 
 ### Associated shape type
@@ -469,9 +560,6 @@ XXX TODO the relative "strength" of these categories should be defined
         static_assert(std::is_integral_v<type>, "shape type must be an integral type");
     };
 
-    template<class Executor>
-    using executor_shape_t = typename executor_shape<Executor>::type;
-
 ### Associated index type
 
     template<class Executor>
@@ -490,9 +578,6 @@ XXX TODO the relative "strength" of these categories should be defined
         // exposition only
         static_assert(std::is_integral_v<type>, "index type must be an integral type");
     };
-
-    template<class Executor>
-    using executor_index_t = typename executor_index<Executor>::type;
 
 ## Executor Customization Points
 
@@ -713,191 +798,6 @@ XXX TODO the relative "strength" of these categories should be defined
     * the completion of the invocations of `f` are sequenced before (1.10) the result shared state is made ready.
 
 5. *Postconditions:* If the `predecessor` future is not a shared future, then `predecessor.valid() == false`.
-
-## Execution policy interoperation
-
-```
-class parallel_execution_policy
-{
-  public:
-    // types:
-    using execution_category = parallel_execution_tag;
-    using executor_type = implementation-defined;
-
-    // executor access
-    const executor_type& executor() const noexcept;
-
-    // execution policy factory
-    template<class Executor>
-    see-below on(Executor&& exec) const;
-};
-
-class sequenced_execution_tag { by-analogy-to-parallel_execution_policy };
-class parallel_unsequenced_execution_tag { by-analogy-to-parallel_execution_policy };
-```
-
-### Associated executor
-
-1. Each execution policy is associated with an executor, and this executor is called its *associated executor*.
-
-2. The type of an execution policy's associated executor shall satisfy the requirements of `BulkTwoWayExecutor`.
-
-3. When an execution policy is used as a parameter to a parallel algorithm, the
-   execution agents that invoke element access functions are created by the
-   execution policy's associated executor.
-
-4. The type of an execution policy's associated executor is the same as the member type `executor_type`.
-
-### Execution category
-
-1. Each execution policy is categorized by an *execution category*.
-
-2. When an execution policy is used as a parameter to a parallel algorithm, the
-   execution agents it creates are guaranteed to make forward progress and
-   execute invocations of element access functions as ordered by its execution
-   category.
-
-3. An execution policy's execution category is given by the member type `execution_category`.
-
-4. The execution category of an execution policy's associated executor shall not be weaker than the execution policy's execution category.
-
-### Associated executor access
-
-1.  ```
-    const executor_type& executor() const noexcept;
-    ```
-
-2. *Returns:* The execution policy's associated executor.
-
-### Execution policy factory
-
-1.  ```
-    template<class Executor>
-    see-below on(Executor&& exec) const;
-    ```
-
-2. Let `T` be `decay_t<Executor>`.
-
-3. *Returns:* An execution policy whose execution category is `execution_category`. If `T` satisfies the requirements of
-   `BulkTwoWayExecutor`, the returned execution policy's associated executor is equal to `exec`. Otherwise,
-   the returned execution policy's associated executor is an adaptation of `exec`.
-
-   XXX TODO: need to define what adaptation means
-
-3. *Remarks:* This member function shall not participate in overload resolution unless `is_executor_v<T>` is `true` and
-   `executor_execution_category_t<T>` is as strong as `execution_category`.
-
-## Control structure interoperation
-
-### Function template `async`
-
-1. The function template `async` provides a mechanism to invoke a function in a new
-   execution agent created by an executor and provides the result of the function in the
-   future object with which it shares a state.
-
-    ```
-    template<class Executor, class Function, class... Args>
-    executor_future_t<Executor, result_of_t<decay_t<Function>(decay_t<Args>...)>>
-    async(Executor& exec, Function&& f, Args&&... args);
-    ```
-
-2. *Returns:* Equivalent to:
-
-    `return execution::async_execute(exec, [=]{ return INVOKE(f, args...); });`
-
-    XXX This forwarding doesn't look correct to me
-
-### `std::future::then()`
-
-1. The member function template `then` provides a mechanism for attaching a *continuation* to a `std::future` object,
-   which will be executed on a new execution agent created by an executor.
-
-    ```
-    template<class T>
-    template<class Executor, class Function>
-    executor_future_t<Executor, see-below>
-    future<T>::then(Executor& exec, Function&& f);
-    ```
-
-2. TODO: Concrete specification
-
-    The general idea of this overload of `.then()` is that it accepts a
-    particular type of `OneWayExecutor` that cannot block in `.execute()`.
-    `.then()` stores `f` as the next continuation in the future state, and when
-    the future is ready, creates an execution agent using a copy of `exec`.
-
-### `std::shared_future::then()`
-
-1. The member function template `then` provides a mechanism for attaching a *continuation* to a `std::shared_future` object,
-   which will be executed on a new execution agent created by an executor.
-
-    ```
-    template<class T>
-    template<class Executor, class Function>
-    executor_future_t<Executor, see-below>
-    shared_future<T>::then(Executor& exec, Function&& f);
-    ```
-
-2. TODO: Concrete specification
-
-    The general idea of this overload of `.then()` is that it accepts a
-    particular type of `OneWayExecutor` that cannot block in `.execute()`.
-    `.then()` stores `f` as the next continuation in the underlying future
-    state, and when the underlying future is ready, creates an execution agent
-    using a copy of `exec`.
-
-### Function template `invoke`
-
-1. The function template `invoke` provides a mechanism to invoke a function in a new
-   execution agent created by an executor and return result of the function.
-
-    ```
-    template<class Executor, class Function, class... Args>
-    result_of_t<F&&(Args&&...)>
-    invoke(Executor& exec, Function&& f, Args&&... args);
-    ```
-
-2. *Returns:* Equivalent to:
-
-    `return execution::sync_execute(exec, [&]{ return INVOKE(f, args...); });`
-
-### Task block
-
-#### Function template `define_task_block_restore_thread()`
-
-1.  ```
-    template<class Executor, class F>
-    void define_task_block_restore_thread(Executor& exec, F&& f);
-    ```
-
-2. *Requires:* Given an lvalue `tb` of type `task_block`, the expression `f(tb)` shall be well-formed.
-
-3. *Effects:* Constructs a `task_block tb`, creates a new execution agent, and calls `f(tb)` on that execution agent.
-
-4. *Throws:* `exception_list`, as specified in version two of the Paralellism TS.
-
-5. *Postconditions:* All tasks spawned from `f` have finished execution.
-
-6. *Remarks:* Unlike `define_task_block`, `define_task_block_restore_thread` always returns on the same thread as the one on which it was called.
-
-#### `task_block` member function template `run`
-
-1.  ```
-    template<class Executor, class F>
-    void run(Executor& exec, F&& f);
-    ```
-
-2. *Requires:* `F` shall be `MoveConstructible`. `DECAY_COPY(std::forward<F>(f))()` shall be a valid expression.
-
-3. *Preconditions:* `*this` shall be an active `task_block`.
-
-4. *Effects:* Evaluates `DECAY_COPY(std::forward<F>(f))()`, where `DECAY_COPY(std::forward<F>(f))` is evaluated synchronously within the current thread.
-   The call to the resulting copy of the function object is permitted to run on an execution agent created by `exec` in an unordered fashion relative to
-   the sequence of operations following the call to `run(exec, f)` (the continuation), or indeterminately-sequenced within the same thread as the continuation.
-   The call to `run` synchronizes with the next invocation of `wait` on the same `task_block` or completion of the nearest enclosing `task_block` (i.e., the `define_task_block` or
-   `define_task_block_restore_thread` that created this `task_block`.
-
-5. *Throws:* `task_cancelled_exception`, as described in version 2 of the Parallelism TS.
 
 ## Executor work guard
 
@@ -1298,6 +1198,20 @@ XXX This equivalent expression requires giving `std::future<T>` a constructor wh
 XXX Consider whether we should include a wording for a concurrent executor which
 would satisfy the needs of async (thread pool provides parallel execution
 semantics).
+
+### Header `<thread_pool>` synopsis
+
+```
+namespace std {
+namespace experimental {
+inline namespace concurrency_v2 {
+
+  class thread_pool;
+
+} // inline namespace concurrency_v2
+} // namespace experimental
+} // namespace std
+```
 
 ### Class `thread_pool`
 
@@ -1751,6 +1665,193 @@ bool operator!=(const thread_pool::executor_type& a,
 ```
 
 *Returns:* `!(a == b)`.
+
+## Interoperation with existing facilities
+
+### Execution policy interoperation
+
+```
+class parallel_execution_policy
+{
+  public:
+    // types:
+    using execution_category = parallel_execution_tag;
+    using executor_type = implementation-defined;
+
+    // executor access
+    const executor_type& executor() const noexcept;
+
+    // execution policy factory
+    template<class Executor>
+    see-below on(Executor&& exec) const;
+};
+
+class sequenced_execution_tag { by-analogy-to-parallel_execution_policy };
+class parallel_unsequenced_execution_tag { by-analogy-to-parallel_execution_policy };
+```
+
+#### Associated executor
+
+1. Each execution policy is associated with an executor, and this executor is called its *associated executor*.
+
+2. The type of an execution policy's associated executor shall satisfy the requirements of `BulkTwoWayExecutor`.
+
+3. When an execution policy is used as a parameter to a parallel algorithm, the
+   execution agents that invoke element access functions are created by the
+   execution policy's associated executor.
+
+4. The type of an execution policy's associated executor is the same as the member type `executor_type`.
+
+#### Execution category
+
+1. Each execution policy is categorized by an *execution category*.
+
+2. When an execution policy is used as a parameter to a parallel algorithm, the
+   execution agents it creates are guaranteed to make forward progress and
+   execute invocations of element access functions as ordered by its execution
+   category.
+
+3. An execution policy's execution category is given by the member type `execution_category`.
+
+4. The execution category of an execution policy's associated executor shall not be weaker than the execution policy's execution category.
+
+#### Associated executor access
+
+1.  ```
+    const executor_type& executor() const noexcept;
+    ```
+
+2. *Returns:* The execution policy's associated executor.
+
+#### Execution policy factory
+
+1.  ```
+    template<class Executor>
+    see-below on(Executor&& exec) const;
+    ```
+
+2. Let `T` be `decay_t<Executor>`.
+
+3. *Returns:* An execution policy whose execution category is `execution_category`. If `T` satisfies the requirements of
+   `BulkTwoWayExecutor`, the returned execution policy's associated executor is equal to `exec`. Otherwise,
+   the returned execution policy's associated executor is an adaptation of `exec`.
+
+   XXX TODO: need to define what adaptation means
+
+3. *Remarks:* This member function shall not participate in overload resolution unless `is_executor_v<T>` is `true` and
+   `executor_execution_category_t<T>` is as strong as `execution_category`.
+
+### Control structure interoperation
+
+#### Function template `async`
+
+1. The function template `async` provides a mechanism to invoke a function in a new
+   execution agent created by an executor and provides the result of the function in the
+   future object with which it shares a state.
+
+    ```
+    template<class Executor, class Function, class... Args>
+    executor_future_t<Executor, result_of_t<decay_t<Function>(decay_t<Args>...)>>
+    async(Executor& exec, Function&& f, Args&&... args);
+    ```
+
+2. *Returns:* Equivalent to:
+
+    `return execution::async_execute(exec, [=]{ return INVOKE(f, args...); });`
+
+    XXX This forwarding doesn't look correct to me
+
+#### `std::future::then()`
+
+1. The member function template `then` provides a mechanism for attaching a *continuation* to a `std::future` object,
+   which will be executed on a new execution agent created by an executor.
+
+    ```
+    template<class T>
+    template<class Executor, class Function>
+    executor_future_t<Executor, see-below>
+    future<T>::then(Executor& exec, Function&& f);
+    ```
+
+2. TODO: Concrete specification
+
+    The general idea of this overload of `.then()` is that it accepts a
+    particular type of `OneWayExecutor` that cannot block in `.execute()`.
+    `.then()` stores `f` as the next continuation in the future state, and when
+    the future is ready, creates an execution agent using a copy of `exec`.
+
+#### `std::shared_future::then()`
+
+1. The member function template `then` provides a mechanism for attaching a *continuation* to a `std::shared_future` object,
+   which will be executed on a new execution agent created by an executor.
+
+    ```
+    template<class T>
+    template<class Executor, class Function>
+    executor_future_t<Executor, see-below>
+    shared_future<T>::then(Executor& exec, Function&& f);
+    ```
+
+2. TODO: Concrete specification
+
+    The general idea of this overload of `.then()` is that it accepts a
+    particular type of `OneWayExecutor` that cannot block in `.execute()`.
+    `.then()` stores `f` as the next continuation in the underlying future
+    state, and when the underlying future is ready, creates an execution agent
+    using a copy of `exec`.
+
+#### Function template `invoke`
+
+1. The function template `invoke` provides a mechanism to invoke a function in a new
+   execution agent created by an executor and return result of the function.
+
+    ```
+    template<class Executor, class Function, class... Args>
+    result_of_t<F&&(Args&&...)>
+    invoke(Executor& exec, Function&& f, Args&&... args);
+    ```
+
+2. *Returns:* Equivalent to:
+
+    `return execution::sync_execute(exec, [&]{ return INVOKE(f, args...); });`
+
+#### Task block
+
+##### Function template `define_task_block_restore_thread()`
+
+1.  ```
+    template<class Executor, class F>
+    void define_task_block_restore_thread(Executor& exec, F&& f);
+    ```
+
+2. *Requires:* Given an lvalue `tb` of type `task_block`, the expression `f(tb)` shall be well-formed.
+
+3. *Effects:* Constructs a `task_block tb`, creates a new execution agent, and calls `f(tb)` on that execution agent.
+
+4. *Throws:* `exception_list`, as specified in version two of the Paralellism TS.
+
+5. *Postconditions:* All tasks spawned from `f` have finished execution.
+
+6. *Remarks:* Unlike `define_task_block`, `define_task_block_restore_thread` always returns on the same thread as the one on which it was called.
+
+##### `task_block` member function template `run`
+
+1.  ```
+    template<class Executor, class F>
+    void run(Executor& exec, F&& f);
+    ```
+
+2. *Requires:* `F` shall be `MoveConstructible`. `DECAY_COPY(std::forward<F>(f))()` shall be a valid expression.
+
+3. *Preconditions:* `*this` shall be an active `task_block`.
+
+4. *Effects:* Evaluates `DECAY_COPY(std::forward<F>(f))()`, where `DECAY_COPY(std::forward<F>(f))` is evaluated synchronously within the current thread.
+   The call to the resulting copy of the function object is permitted to run on an execution agent created by `exec` in an unordered fashion relative to
+   the sequence of operations following the call to `run(exec, f)` (the continuation), or indeterminately-sequenced within the same thread as the continuation.
+   The call to `run` synchronizes with the next invocation of `wait` on the same `task_block` or completion of the nearest enclosing `task_block` (i.e., the `define_task_block` or
+   `define_task_block_restore_thread` that created this `task_block`.
+
+5. *Throws:* `task_cancelled_exception`, as described in version 2 of the Parallelism TS.
 
 # Relationship to other proposals and specifications
 
