@@ -478,6 +478,7 @@ Table: (Two-Way Executor requirements) \label{two_way_executor_requirements}
 | Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
 |------------|-------------|-----------------------|-------------------------------------|
 | `x.async_-` `execute(std::move(f))` | A type that satisfies the `Future` requirements for the value type `R`. | Creates an execution agent which invokes `f()`<br/>Returns the result of `f()` via the resulting future object.<br/>Returns any exception thrown by `f()` via the resulting future object.<br/>May block forward progress of the caller pending completion of `f()`. | |
+| `x.sync_-` `execute(std::move(f))` | `R` | Creates an execution agent which invokes `f()`.<br/>Returns the result of `f()`.<br/>Throws any exception thrown by `f()`. | |
 
 ### `NonBlockingTwoWayExecutor`
 
