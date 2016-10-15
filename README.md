@@ -165,7 +165,7 @@ TODO: Add header `<execution>`.
 
 ## `Future` requirements
 
-1. A type `F` meets the future requirements if `F` is... *Requirements to be defined. Futures must provide `get`, `wait`, `then`, etc.*
+1. A type `F` meets the future requirements for some value type `T` if `F` is... *Requirements to be defined. Futures must provide `get`, `wait`, `then`, etc.*
 
 ### Proto-allocator requirements
 
@@ -255,7 +255,7 @@ Table: (Two-Way Executor requirements) \label{two_way_executor_requirements}
 
 | Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
 |------------|-------------|-----------------------|-------------------------------------|
-| `executor_-` `future_t<X,R>` | | A type that satisfies the `Future` requirements. | |
+| `executor_-` `future_t<X,R>` | | A type that satisfies the `Future` requirements for the value type `R`. | |
 | `x.async_-` `execute(std::move(f))` | `executor_-` `future_t<X,R>` | Creates an execution agent which invokes `f()`<br/>Returns the result of `f()` via the resulting future object.<br/>Returns any exception thrown by `f()` via the resulting future object.<br/>May block forward progress of the caller pending completion of `f()`. | |
 
 ### `NonBlockingTwoWayExecutor`
