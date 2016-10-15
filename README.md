@@ -152,7 +152,7 @@ all types of executors uniformly.
 
 **Executor:**
   Provides execution functions for running instruction streams on
-  an particular, observeable execution resource.
+  an particular, observable execution resource.
   A particular executor targets a particular execution architecture.
 
 # Proposed Wording
@@ -270,7 +270,7 @@ namespace execution {
 
 ## Requirements
 
-## `Future` requirements
+### `Future` requirements
 
 1. A type `F` meets the future requirements for some value type `T` if `F` is... *Requirements to be defined. Futures must provide `get`, `wait`, `then`, etc.*
 
@@ -493,7 +493,7 @@ This sub-clause contains templates that may be used to query the properties of a
     template<class Executor>
     struct executor_context
     {
-      using type = std::decay_t<decltype(declref<const Executor&>().context())>; // TODO check this
+      using type = std::decay_t<decltype(declval<const Executor&>().context())>; // TODO check this
     };
 
 ### Associated future type
