@@ -1,8 +1,45 @@
+% A Unified Executors Proposal for C++ | P0443R0
+
+----------------    -------------------------------------
+Authors:            Jared Hoberock, jhoberock@nvidia.com
+
+                    Michael Garland, mgarland@nvidia.com
+
+                    Chris Kohlhoff, chris@kohlhoff.com
+
+                    Chris Mysen, mysen@google.com
+
+                    Carter Edwards, hcedwar@sandia.gov
+
+Other Contributors: Hans Boehm, hboehm@google.com
+
+                    Gordon Brown, gordon@codeplay.com
+
+                    Thomas Heller, thom.heller@gmail.com
+
+                    Lee Howes, lee@codeplay.com
+
+                    Bryce Lelbach, brycelelbach@gmail.com
+
+                    Hartmut Kaiser, hartmut.kaiser@gmail.com
+
+                    Gor Nishanov, gorn@microsoft.com
+
+                    Michael Wong, michael@codeplay.com
+
+Document Number:    P0443R0
+
+Date:               2016-10-17
+
+Reply-to:           jhoberock@nvidia.com
+
+------------------------------------------------------
+
 # Introduction
 
 This paper describes a programming model for *executors*, which are modular
 components for creating execution. Executors decouple control structures from
-the details of work creation and prevent multiplicative explosions inside
+the details of work creation and prevent multiplicative explosion inside
 control structure implementations. The model proposed by this paper represents
 what we think is the *minimal* functionality necessary to compose executors
 with existing standard control structures such as `std::async()` and parallel
@@ -10,7 +47,7 @@ algorithms, as well as near-standards such as the functionality found in
 various technical specifications, including the Concurrency, Networking, and
 Parallelism TSes. While this paper's feature set is minimal, it will form the
 basis for future development of executor features which are out of the scope of
-an initial proposal.
+a basic proposal.
 
 Our executor programming model was guided by years of independent design work
 by various experts. This proposal is the result of harmonizing that work in
