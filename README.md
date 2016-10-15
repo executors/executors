@@ -1362,14 +1362,14 @@ thread_pool();
 ```
 
 *Effects:* Constructs a `thread_pool` object with an implementation defined
-number of threads of execution, as if by creating objects of type `thread`.
+number of threads of execution, as if by creating objects of type `std::thread`.
 
 ```
 thread_pool(std::size_t num_threads);
 ```
 
 *Effects:* Constructs a `thread_pool` object with `num_threads` threads of
-execution, as if by creating objects of type `thread`. (QUESTION: Do we want to
+execution, as if by creating objects of type `std::thread`. (QUESTION: Do we want to
 allow 0?)
 
 ```
