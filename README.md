@@ -393,7 +393,7 @@ This sub-clause contains templates that may be used to query the properties of a
     template<class Executor>
     struct executor_context
     {
-      using type = std::decay_t<decltype(declref<const Executor&>().context())>; // TODO check this
+      using type = std::decay_t<decltype(declval<const Executor&>().context())>; // TODO check this
     };
 
     template <class Executor>
