@@ -476,13 +476,6 @@ Table: (Executor Work Tracker requirements) \label{executor_work_tracker_require
     template<class T> struct is_two_way_executor;
     template<class T> struct is_bulk_two_way_executor;
 
-    template<class T> constexpr bool is_one_way_executor_v = is_one_way_executor<T>::value;
-    template<class T> constexpr bool is_host_based_one_way_executor_v = is_host_based_one_way_executor<T>::value;
-    template<class T> constexpr bool is_non_blocking_one_way_executor_v = is_non_blocking_one_way_executor<T>::value;
-    template<class T> constexpr bool is_bulk_one_way_executor_v = is_bulk_one_way_executor<T>::value;
-    template<class T> constexpr bool is_two_way_executor_v = is_two_way_executor<T>::value;
-    template<class T> constexpr bool is_bulk_two_way_executor_v = is_bulk_two_way_executor<T>::value;
-
 This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
 
 | Template | Condition | Preconditions |
@@ -503,9 +496,6 @@ This sub-clause contains templates that may be used to query the properties of a
       using type = std::decay_t<decltype(declref<const Executor&>().context())>; // TODO check this
     };
 
-    template <class Executor>
-    using executor_context_t = typename executor_context<Executor>::type;
-
 ### Associated future type
 
     template<class Executor, class T>
@@ -514,9 +504,6 @@ This sub-clause contains templates that may be used to query the properties of a
       using type = see below;
     };
     
-    template<class Executor, class T>
-    using executor_future_t = typename executor_future<Executor,T>::type;
-
 The type of `executor_future<Executor, T>::type` is determined as follows:
 
 * if `is_two_way_executor<Executor>` is true, `decltype(declval<const Executor&>().async_execute(declval<T(*)()>())`;
@@ -552,9 +539,6 @@ The type of `executor_future<Executor, T>::type` is determined as follows:
         >;
     };
 
-    template<class Executor>
-    using executor_execution_category_t = typename executor_execution_category<Executor>::type;
-
 XXX TODO the relative "strength" of these categories should be defined
 
 ### Associated shape type
@@ -576,9 +560,6 @@ XXX TODO the relative "strength" of these categories should be defined
         static_assert(std::is_integral_v<type>, "shape type must be an integral type");
     };
 
-    template<class Executor>
-    using executor_shape_t = typename executor_shape<Executor>::type;
-
 ### Associated index type
 
     template<class Executor>
@@ -597,9 +578,6 @@ XXX TODO the relative "strength" of these categories should be defined
         // exposition only
         static_assert(std::is_integral_v<type>, "index type must be an integral type");
     };
-
-    template<class Executor>
-    using executor_index_t = typename executor_index<Executor>::type;
 
 ## Executor Customization Points
 
