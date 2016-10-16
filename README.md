@@ -1876,7 +1876,7 @@ future object with which it shares a state.
 ```
 template<class Executor, class Function, class... Args>
 executor_future_t<Executor, result_of_t<decay_t<Function>(decay_t<Args>...)>>
-async(Executor& exec, Function&& f, Args&&... args);
+async(const Executor& exec, Function&& f, Args&&... args);
 ```
 
 *Returns:* Equivalent to:
@@ -1894,7 +1894,7 @@ which will be executed on a new execution agent created by an executor.
 template<class T>
 template<class Executor, class Function>
 executor_future_t<Executor, see-below>
-future<T>::then(Executor& exec, Function&& f);
+future<T>::then(const Executor& exec, Function&& f);
 ```
 
 2. TODO: Concrete specification
@@ -1913,7 +1913,7 @@ which will be executed on a new execution agent created by an executor.
 template<class T>
 template<class Executor, class Function>
 executor_future_t<Executor, see-below>
-shared_future<T>::then(Executor& exec, Function&& f);
+shared_future<T>::then(const Executor& exec, Function&& f);
 ```
 
 TODO: Concrete specification
@@ -1932,7 +1932,7 @@ execution agent created by an executor and return result of the function.
 ```
 template<class Executor, class Function, class... Args>
 result_of_t<F&&(Args&&...)>
-invoke(Executor& exec, Function&& f, Args&&... args);
+invoke(const Executor& exec, Function&& f, Args&&... args);
 ```
 
 *Returns:* Equivalent to:
@@ -1945,7 +1945,7 @@ invoke(Executor& exec, Function&& f, Args&&... args);
 
 ```
 template<class Executor, class F>
-void define_task_block_restore_thread(Executor& exec, F&& f);
+void define_task_block_restore_thread(const Executor& exec, F&& f);
     ```
 
 *Requires:* Given an lvalue `tb` of type `task_block`, the expression `f(tb)` shall be well-formed.
@@ -1962,7 +1962,7 @@ void define_task_block_restore_thread(Executor& exec, F&& f);
 
 ```
 template<class Executor, class F>
-void run(Executor& exec, F&& f);
+void run(const Executor& exec, F&& f);
 ```
 
 *Requires:* `F` shall be `MoveConstructible`. `DECAY_COPY(std::forward<F>(f))()` shall be a valid expression.
