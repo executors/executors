@@ -389,15 +389,15 @@ namespace execution {
 
 A type `F` meets the future requirements for some value type `T` if `F` is... *Requirements to be defined. Futures must provide `get`, `wait`, `then`, etc.*
 
-### Proto-allocator requirements
+### `ProtoAllocator` requirements
 
 A type `A` meets the proto-allocator requirements if `A` is `CopyConstructible` (C++Std [copyconstructible]), `Destructible` (C++Std [destructible]), and `allocator_traits<A>::rebind_alloc<U>` meets the allocator requirements (C++Std [allocator.requirements]), where `U` is an object type. [*Note:* For example, `std::allocator<void>` meets the proto-allocator requirements but not the allocator requirements. *--end note*] No comparison operator, copy operation, move operation, or swap operation on these types shall exit via an exception.
 
-### `ExecutionContext`
+### `ExecutionContext` requirements
 
 A type meets the `ExecutionContext` requirements if it satisfies the `EqualityComparable` requirements (C++Std [equalitycomparable]). No comparison operator on these types shall exit via an exception.
 
-### `BaseExecutor`
+### `BaseExecutor` requirements
 
 A type `X` meets the `BaseExecutor` requirements if it satisfies the requirements of `CopyConstructible` (C++Std [copyconstructible]), `Destructible` (C++Std [destructible]), and `EqualityComparable` (C++Std [equalitycomparable]), as well as the additional requirements listed below.
 
@@ -419,7 +419,7 @@ Table: (Base executor requirements) \label{base_executor_requirements}
 | `x1 != x2` | `bool` | Same as `!(x1 == x2)`. |
 | `x1.context()` | `E&` or `const E&` where `E` is a type that satisfies the `ExecutionContext` requirements. | Shall not exit via an exception. The comparison operators and member functions defined in these requirements (TODO and the other executor requirements defined in this Technical Specification) shall not alter the reference returned by this function. |
 
-### `OneWayExecutor`
+### `OneWayExecutor` requirements
 
 The `OneWayExecutor` requirements form the basis of the one-way executor concept taxonomy. This set of requirements specifies operations for creating execution agents that need not synchronize with the thread which created them.
 
@@ -435,7 +435,7 @@ Table: (One-way executor requirements) \label{one_way_executor_requirements}
 |------------|-----------|------------------------|------------------------|
 | `x.execute(f)` | | Creates a weakly parallel execution agent which invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `execute`. <br/><br/>May block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))()` finishes execution. | *Synchronization:* The invocation of `execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. |
 
-### `HostBasedOneWayExecutor`
+### `HostBasedOneWayExecutor` requirements
 
 The `HostBasedOneWayExecutor` requirements form the basis of host-based executors in the one-way executor concept taxonomy. *TODO:* description of what host-based means, i.e. as if executed in a `std::thread`, but without the requirement for separate thread-local storage or a unique thread ID.
 
@@ -451,7 +451,7 @@ Table: (Host-based one-way executor requirements) \label{host_based_one_way_exec
 |------------|-----------|------------------------|------------------------|
 | `x.execute(f)` <br/>`x.execute(f,a)` | | Creates a parallel execution agent which invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `execute`. <br/><br/>May block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))()` finishes execution. <br/><br/>Executor implementations should use the supplied allocator (if any) to allocate any memory required to store the function object. Prior to invoking the function object, the executor shall deallocate any memory allocated. [*Note:* Executors defined in this Technical Specification always use the supplied allocator unless otherwise specified. *--end note*] | *Synchronization:* The invocation of `execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`.|
 
-### `NonBlockingOneWayExecutor`
+### `NonBlockingOneWayExecutor` requirements
 
 The `NonBlockingOneWayExecutor` requirements add one-way operations that are guaranteed not to block the caller pending completion of submitted function objects.
 
@@ -467,7 +467,7 @@ Table: (Non-blocking one-way executor requirements) \label{non_blocking_one_way_
 |------------|-----------|------------------------|------------------------|
 | `x.post(f)` <br/>`x.post(f,a)` <br/>`x.defer(f)` <br/>`x.defer(f,a)` | | Creates a parallel execution agent which invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `post` or `defer`. <br/><br/>Shall not block forward progress of the caller pending completion of `DECAY_COPY( std::forward<F>(f))()`. <br/><br/>Executor implementations should use the supplied allocator (if any) to allocate any memory required to store the function object. Prior to invoking the function object, the executor shall deallocate any memory allocated. [*Note:* Executors defined in this Technical Specification always use the supplied allocator unless otherwise specified. *--end note*] | *Synchronization:* The invocation of `post` or `defer` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. <br/><br/>*Note:* Although the requirements placed on `defer` are identical to `post`, the use of `post` conveys a preference that the caller does not block the first step of `f`'s progress, whereas `defer` conveys a preference that the caller does block the first step of `f`. One use of `defer` is to convey the intention of the caller that `f` is a continuation of the current call context. The executor may use this information to optimize or otherwise adjust the way in which `f` is invoked. |
 
-### `TwoWayExecutor`
+### `TwoWayExecutor` requirements
 
 The `TwoWayExecutor` requirements form the basis of the two-way executor concept taxonomy;
 every two-way executor satisfies the `TwoWayExecutor` requirements. This set of requirements
@@ -488,7 +488,7 @@ Table: (Two-Way Executor requirements) \label{two_way_executor_requirements}
 | `x.async_`- `execute(std::move(f))` | A type that satisfies the `Future` requirements for the value type `R`. | Creates an execution agent which invokes `f()`. <br/>Returns the result of `f()` via the resulting future object. <br/>Returns any exception thrown by `f()` via the resulting future object. <br/>May block forward progress of the caller pending completion of `f()`. | |
 | `x.sync_`- `execute(std::move(f))` | `R` | Creates an execution agent which invokes `f()`. <br/>Returns the result of `f()`. <br/>Throws any exception thrown by `f()`. | |
 
-### `NonBlockingTwoWayExecutor`
+### `NonBlockingTwoWayExecutor` requirements
 
 The `NonBlockingOneWayExecutor` requirements add two-way operations that are guaranteed not to block the caller pending completion of submitted function objects.
 
@@ -506,7 +506,7 @@ Table: (Non-Blocking Two-Way Executor requirements) \label{non_blocking_two_way_
 |-----------------|-------------|-----------------------|--------------------|
 | `x.async_`- `post(std::move(f))` <br/>`x.async_`- `defer(std::move(f))` | `executor_`- `future_t<X,R>` | Creates an execution agent which invokes `f()`. <br/>Returns the result of `f()` via the resulting future object. <br/>Returns any exception thrown by `f()` via the resulting future object. <br/>Shall not block forward progress of the caller pending completion of `f()`. | |
 
-### `BulkOneWayExecutor`
+### `BulkOneWayExecutor` requirements
 
 The `BulkOneWayExecutor` requirements form the basis of the bulk one-way executor concept.
 This set of requirements specifies operations for creating groups of execution agents in bulk from a single operation
@@ -530,7 +530,7 @@ Table: (Bulk one-way executor requirements) \label{bulk_one_way_executor_require
 |------------|-----------|------------------------|------------------------|
 | `x.bulk_`- `execute(f, n, sf)` | `void` | Creates a group of execution agents of shape `n` which invoke `f(i, s)`. <br/>This group of execution agents shall fulfill the forward progress requirements of `executor_execution_`- `category_t<X>` | Effects: invokes `sf(n)` on an unspecified execution agent. |
 
-### `BulkTwoWayExecutor`
+### `BulkTwoWayExecutor` requirements
 
 The `BulkTwoWayExecutor` requirements form the basis of the bulk two-way executor concept.
 This set of requirements specifies operations for creating groups of execution agents in bulk from a single operation
@@ -559,7 +559,7 @@ Table: (Bulk two-way executor requirements) \label{bulk_two_way_executor_require
 | `x.bulk_async_`- `execute(f, n, rf, sf)` | `executor_`- `future_t<X,R>` | Creates a group of execution agents of shape `n` which invoke `f(i, r, s)`. <br/>This group of execution agents shall fulfill the forward progress requirements of `executor_execution_`- `category_t<X>`. </br>Asynchronously returns the result of `rf(n)` via the resulting future object. | Effects: invokes `rf(n)` on an unspecified execution agent. <br/>Effects: invokes `sf(n)` on an unspecified execution agent. |
 | `x.bulk_then_`- `execute(f, n, rf, pred, sf)` | `executor_`- `future_t<X,R>` | Creates a group of execution agents of shape `n` which invoke `f(i, r, pr, s)` after `pred` becomes ready. <br/>This group of execution agents shall fulfill the forward progress requirements of `executor_execution_`- `category_t<X>`. <br/>Asynchronously returns the result of `rf(n)` via the resulting future. | Effects: invokes `rf(n)` on an unspecified execution agent. <br/>Effects: invokes `sf(n)` on an unspecified execution agent. <br/>If `pred`'s result type is `void`, `pr` is omitted from `f`'s invocation. |
 
-### `ExecutorWorkTracker`
+### `ExecutorWorkTracker` requirements
 
 The `ExecutorWorkTracker` requirements defines operations for tracking future work against an executor.
 
