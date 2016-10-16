@@ -17,13 +17,15 @@ Other Contributors: Hans Boehm, hboehm@google.com
 
                     Thomas Heller, thom.heller@gmail.com
 
-                    Lee Howes, lee@codeplay.com
+                    Lee Howes, xrikcus@gmail.com
 
                     Bryce Lelbach, brycelelbach@gmail.com
 
                     Hartmut Kaiser, hartmut.kaiser@gmail.com
 
                     Gor Nishanov, gorn@microsoft.com
+
+                    Thomas Rodgers, rodgert@twrodgers.com
 
                     Michael Wong, michael@codeplay.com
 
