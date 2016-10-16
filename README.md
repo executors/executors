@@ -407,7 +407,7 @@ The executor copy constructor, comparison operators, and other member functions 
 
 The destructor shall not block pending completion of the submitted function objects. [*Note:* The ability to wait for completion of submitted function objects may be provided by the associated execution context. *--end note*]
 
-In the table below, `x1` and `x2` denote (possibly const) values of type `X`, `mx1` denotes an xvalue of type `X`, and `u` denotes an identifier.
+In the Table \ref{base_executor_requirements} below, `x1` and `x2` denote (possibly const) values of type `X`, `mx1` denotes an xvalue of type `X`, and `u` denotes an identifier.
 
 Table: (Base executor requirements) \label{base_executor_requirements}
 
@@ -427,7 +427,7 @@ A type `X` satisfies the `OneWayExecutor` requirements if it satisfies the `Base
 
 The executor copy constructor, comparison operators, and other member functions defined in these requirements shall not introduce data races as a result of concurrent calls to those functions from different threads.
 
-In the table below, `x` denotes a (possibly const) value of type `X`, and `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
+In the Table \ref{one_way_executor_requirements} below, `x` denotes a (possibly const) value of type `X`, and `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
 
 Table: (One-way executor requirements) \label{one_way_executor_requirements}
 
@@ -443,7 +443,7 @@ A type `X` satisfies the `HostBasedOneWayExecutor` requirements if it satisfies 
 
 The executor copy constructor, comparison operators, and other member functions defined in these requirements shall not introduce data races as a result of concurrent calls to those functions from different threads.
 
-In the table below, `x` denotes a (possibly const) value of type `X`, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements, and `a` denotes a (possibly const) value of type `A` satisfying the `ProtoAllocator` requirements.
+In the Table \ref{host_based_one_way_executor_requirements} below, `x` denotes a (possibly const) value of type `X`, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements, and `a` denotes a (possibly const) value of type `A` satisfying the `ProtoAllocator` requirements.
 
 Table: (Host-based one-way executor requirements) \label{host_based_one_way_executor_requirements}
 
@@ -459,7 +459,7 @@ A type `X` satisfies the `NonBlockingOneWayExecutor` requirements if it satisfie
 
 The executor copy constructor, comparison operators, and other member functions defined in these requirements shall not introduce data races as a result of concurrent calls to those functions from different threads.
 
-In the table below, `x` denotes a (possibly const) value of type `X`, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements, and `a` denotes a (possibly const) value of type `A` satisfying the `ProtoAllocator` requirements.
+In the Table \ref{non_blocking_one_way_executor_requirements} below, `x` denotes a (possibly const) value of type `X`, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements, and `a` denotes a (possibly const) value of type `A` satisfying the `ProtoAllocator` requirements.
 
 Table: (Non-blocking one-way executor requirements) \label{non_blocking_one_way_executor_requirements}
 
@@ -474,7 +474,7 @@ every two-way executor satisfies the `TwoWayExecutor` requirements. This set of 
 specifies operations for creating execution agents that synchronize with the thread
 which created them.
 
-In Table \ref{two_way_executor_requirements}, `f`, denotes a `MoveConstructible` function object with zero arguments whose result type is `R`,
+In the Table \ref{two_way_executor_requirements} below, `f`, denotes a `MoveConstructible` function object with zero arguments whose result type is `R`,
 and `x` denotes an object of type `X`.
 
 A type `X` satisfies the `TwoWayExecutor` requirements if:
@@ -492,7 +492,7 @@ Table: (Two-Way Executor requirements) \label{two_way_executor_requirements}
 
 The `NonBlockingOneWayExecutor` requirements add two-way operations that are guaranteed not to block the caller pending completion of submitted function objects.
 
-In Table \ref{non_blocking_two_way_executor_requirements}, `f`, denotes a `MoveConstructible` function object with zero arguments whose result type is `R`,
+In the Table \ref{non_blocking_two_way_executor_requirements} below, `f`, denotes a `MoveConstructible` function object with zero arguments whose result type is `R`,
 and `x` denotes an object of type `X`.
 
 A type `X` satisfies the `NonBlockingTwoWayExecutor` requirements if:
@@ -512,7 +512,7 @@ The `BulkOneWayExecutor` requirements form the basis of the bulk one-way executo
 This set of requirements specifies operations for creating groups of execution agents in bulk from a single operation
 which need not synchronize with another thread.
 
-In Table \ref{bulk_one_way_executor_requirements},
+In the Table \ref{bulk_one_way_executor_requirements} below,
 
  * `f` denotes a `CopyConstructible` function object with three arguments,
  * `n` denotes a shape object whose type is `executor_shape_t<X>`.
@@ -536,7 +536,7 @@ The `BulkTwoWayExecutor` requirements form the basis of the bulk two-way executo
 This set of requirements specifies operations for creating groups of execution agents in bulk from a single operation
 with the ability to synchronize these groups of agents with another thread.
 
-In Table \ref{bulk_two_way_executor_requirements},
+In the Table \ref{bulk_two_way_executor_requirements} below,
 
   * `f` denotes a `CopyConstructible` function object with three arguments,
   * `n` denotes a shape object whose type is `executor_shape_t<X>`.
@@ -569,7 +569,7 @@ No constructor, comparison operator, copy operation, move operation, swap operat
 
 The executor copy constructor, comparison operators, and other member functions defined in these requirements shall not introduce data races as a result of concurrent calls to those functions from different threads.
 
-In Table \ref{executor_work_tracker_requirements}, `x` denotes an object of type `X`,
+In the Table \ref{executor_work_tracker_requirements} below, `x` denotes an object of type `X`,
 
 Table: (Executor Work Tracker requirements) \label{executor_work_tracker_requirements}
 
