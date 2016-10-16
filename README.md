@@ -1956,7 +1956,7 @@ invoke(const Executor& exec, Function&& f, Args&&... args);
 ```
 template<class Executor, class F>
 void define_task_block_restore_thread(const Executor& exec, F&& f);
-    ```
+```
 
 *Requires:* Given an lvalue `tb` of type `task_block`, the expression `f(tb)` shall be well-formed.
 
