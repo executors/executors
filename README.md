@@ -332,38 +332,91 @@ namespace execution {
 
   // Executor customization points:
 
-  template<class Executor, class Function>
-    void execute(Executor& exec, Function&& f);
+  template<class OneWayExecutor, class Function>
+    void execute(const OneWayExecutor& exec, Function&& f);
 
-  template<class Executor, class Function>
+  template<class NonBlockingOneWayExecutor, class Function>
+    void post(const NonBlockingOneWayExecutor& exec, Function&& f);
+
+  template<class NonBlockingOneWayExecutor, class Function>
+    void defer(const NonBlockingOneWayExecutor& exec, Function&& f);
+
+  template<class TwoWayExecutor, class Function>
     result_of_t<decay_t<Function>()>
-      sync_execute(Executor& exec, Function&& f);
+      sync_execute(const TwoWayExecutor& exec, Function&& f);
+  template<class OneWayExecutor, class Function>
+    result_of_t<decay_t<Function>()>
+      sync_execute(const OneWayExecutor& exec, Function&& f);
 
+  template<class TwoWayExecutor, class Function>
+    executor_future_t<TwoWayExecutor, result_of_t<decay_t<Function>()>>
+      async_execute(const TwoWayExecutor& exec, Function&& f);
   template<class Executor, class Function>
-    executor_future_t<Executor, result_of_t<decay_t<Function>()>>
-      async_execute(Executor& exec, Function&& f);
+    std::future<decay_t<result_of_t<decay_t<Function>()>>
+      async_execute(const Executor& exec, Function&& f);
 
-  template<class Executor, class Function, class Future>
-    executor_future_t<Executor, see-below>
-      then_execute(Executor& exec, Function&& f, Future& predecessor);
+  template<class NonBlockingTwoWayExecutor, class Function>
+    executor_future_t<NonBlockingTwoWayExecutor, result_of_t<decay_t<Function>()>>
+      async_post(const NonBlockingTwoWayExecutor& exec, Function&& f);
+  template<class NonBlockingOneWayExecutor, class Function>
+    std::future<decay_t<result_of_t<decay_t<Function>()>>
+      async_post(const NonBlockingOneWayExecutor& exec, Function&& f);
 
-  template<class Executor, class Function1, class Function2>
-    void bulk_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape,
+  template<class NonBlockingTwoWayExecutor, class Function>
+    executor_future_t<NonBlockingTwoWayExecutor, result_of_t<decay_t<Function>()>>
+      async_defer(const NonBlockingTwoWayExecutor& exec, Function&& f);
+  template<class NonBlockingOneWayExecutor, class Function>
+    std::future<decay_t<result_of_t<decay_t<Function>()>>
+      async_defer(const NonBlockingOneWayExecutor& exec, Function&& f);
+
+  template<class TwoWayExecutor, class Function, class Future>
+    executor_future_t<TwoWayExecutor, see-below>
+      then_execute(const TwoWayExecutor& exec, Function&& f, Future& predecessor);
+  template<class OneWayExecutor, class Function, class Future>
+    executor_future_t<OneWayExecutor, see-below>
+      then_execute(const OneWayExecutor& exec, Function&& f, Future& predecessor);
+
+  template<class BulkOneWayExecutor, class Function1, class Function2>
+    void bulk_execute(const BulkOneWayExecutor& exec, Function1 f,
+                      executor_shape_t<BulkOneWayExecutor> shape,
+                      Function2 shared_factory);
+  template<class OneWayExecutor, class Function1, class Function2>
+    void bulk_execute(const OneWayExecutor& exec, Function1 f,
+                      executor_shape_t<OneWayExecutor> shape,
                       Function2 shared_factory);
 
-  template<class Executor, class Function1, class Function2, class Function3>
+  template<class BulkTwoWayExecutor, class Function1, class Function2, class Function3>
     result_of_t<Function2()>
-      bulk_sync_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape,
+      bulk_sync_execute(const BulkTwoWayExecutor& exec, Function1 f,
+                        executor_shape_t<BulkTwoWayExecutor> shape,
+                        Function2 result_factory, Function3 shared_factory);
+  template<class OneWayExecutor, class Function1, class Function2, class Function3>
+    result_of_t<Function2()>
+      bulk_sync_execute(const OneWayExecutor& exec, Function1 f,
+                        executor_shape_t<OneWayExecutor> shape,
                         Function2 result_factory, Function3 shared_factory);
 
-  template<class Executor, class Function1, class Function2, class Function3>
-    executor_future_t<Executor, result_of_t<Function2()>>
-      bulk_async_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape,
+  template<class BulkTwoWayExecutor, class Function1, class Function2, class Function3>
+    executor_future_t<const BulkTwoWayExecutor, result_of_t<Function2()>>
+      bulk_async_execute(const BulkTwoWayExecutor& exec, Function1 f,
+                         executor_shape_t<BulkTwoWayExecutor> shape,
+                         Function2 result_factory, Function3 shared_factory);
+  template<class OneWayExecutor, class Function1, class Function2, class Function3>
+    executor_future_t<const OneWayExecutor, result_of_t<Function2()>>
+      bulk_async_execute(const OneWayExecutor& exec, Function1 f,
+                         executor_shape_t<OneWayExecutor> shape,
                          Function2 result_factory, Function3 shared_factory);
 
-  template<class Executor, class Function1, class Future, class Function2, class Function3>
+  template<class BulkTwoWayExecutor, class Function1, class Future, class Function2, class Function3>
     executor_future_t<Executor, result_of_t<Function2()>>
-      bulk_then_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape,
+      bulk_then_execute(const BulkTwoWayExecutor& exec, Function1 f,
+                        executor_shape_t<BulkTwoWayExecutor> shape,
+                        Future& predecessor,
+                        Function2 result_factory, Function3 shared_factory);
+  template<class OneWayExecutor, class Function1, class Future, class Function2, class Function3>
+    executor_future_t<OneWayExecutor, result_of_t<Function2()>>
+      bulk_then_execute(const OneWayExecutor& exec, Function1 f,
+                        executor_shape_t<OneWayExecutor> shape,
                         Future& predecessor,
                         Function2 result_factory, Function3 shared_factory);
 
@@ -707,54 +760,76 @@ The type of `executor_future<Executor, T>::type` is determined as follows:
 
 ### In general
 
-1. The functions described in this clause are *executor customization points*.
-   Executor customization points provide a uniform interface to all executor types.
-
-2. An executor customization point does not participate in overload resolution
-   if its `exec` parameter is neither a `OneWayExecutor` nor a `TwoWayExecutor`. Executor customization points
-   follow the design suggested by [N4381](https://wg21.link/N4381) and [P0285](https://wg21.link/P0285).
-
-   XXX the reason p2 is included is to define some general purpose wording for executor customization points in order to avoid repetition below.
-       but, there's still some repetition
+The functions described in this clause are *executor customization points*.
+Executor customization points provide a uniform interface to all executor types.
 
 ### Function template `execution::execute()`
 
-1.  ```
-    template<class Executor, class Function>
-    void execute(Executor& exec, Function&& f);
-    ```
+```
+template<class OneWayExecutor, class Function>
+  void execute(const OneWayExecutor& exec, Function&& f);
+```
 
-2. *Effects:* calls `exec.execute(std::forward<Function>(f))` if that call is well-formed; otherwise, calls
-   `DECAY_COPY(std::forward<Function>(f))()` in a new execution agent with the call to `DECAY_COPY()` being evaluated
-   in the thread that called `execute`. Any return value is discarded.
+*Effects:* calls `exec.execute(std::forward<Function>(f))`.
+
+*Remarks:* This function shall not participate in overload resolution unless `is_one_way_executor_v<OneWayExecutor>` is `true`.
+
+### Function template `execution::post()`
+
+```
+template<class NonBlockingOneWayExecutor, class Function>
+  void post(const NonBlockingOneWayExecutor& exec, Function&& f);
+```
+
+*Effects:* calls `exec.post(std::forward<Function>(f))`.
+
+*Remarks:* This function shall not participate in overload resolution unless `is_non_blocking_one_way_executor_v< NonBlockingOneWayExecutor>` is `true`.
+
+### Function template `execution::defer()`
+
+```
+template<class NonBlockingOneWayExecutor, class Function>
+  void defer(const NonBlockingOneWayExecutor& exec, Function&& f);
+```
+
+*Effects:* calls `exec.defer(std::forward<Function>(f))`.
+
+*Remarks:* This function shall not participate in overload resolution unless `is_non_blocking_one_way_executor_v< NonBlockingOneWayExecutor>` is `true`.
 
 ### Function template `execution::sync_execute()`
 
-1.  ```
-    template<class Executor, class Function>
-    result_of_t<decay_t<Function>()>
-    sync_execute(Executor& exec, Function&& f);
-    ```
+```
+template<class TwoWayExecutor, class Function>
+  result_of_t<decay_t<Function>()>
+    sync_execute(const TwoWayExecutor& exec, Function&& f);
+```
 
-2. *Effects:* calls `exec.sync_execute(std::forward<Function>(f))` if that call is well-formed; otherwise, calls
-   `DECAY_COPY(std::forward<Function>(f))()` in a new execution agent with the call to `DECAY_COPY()` being
-   evaluated in the thread that called `execute`.
+*Returns:* `exec.sync_execute(std::forward<Function>(f))`.
 
-3. *Returns:* The return value of `f`.
+*Remarks:* This function shall not participate in overload resolution unless `is_two_way_executor_v<TwoWayExecutor>` is `true`.
 
-4. *Synchronization:* The invocation of `sync_execute` synchronizes with (1.10) the invocation of `f`.
+```
+template<class OneWayExecutor, class Function>
+  result_of_t<decay_t<Function>()>
+    sync_execute(const OneWayExecutor& exec, Function&& f);
+```
 
-5. *Throws:* Any uncaught exception thrown by `f`.
+*Effects:* Calls `exec.execute(g)`, where `g` is a function object of unspecified type that performs `DECAY_COPY(std::forward<Function>(f))()` and stores the result in `r`, with the call to `DECAY_COPY()` being evaluated in the thread that called `sync_execute`. Blocks the caller of `sync_execute` until `g` completes.
+
+*Returns:* `r`.
+
+*Synchronization:* The invocation of `sync_execute` synchronizes with (1.10) the invocation of `f`.
+
+*Throws:* Any uncaught exception thrown by `f`.
+
+*Remarks:* This function shall not participate in overload resolution unless `is_two_way_executor_v<TwoWayExecutor>` is `false` and `is_one_way_executor_v<OneWayExecutor>` is `true`.
 
 ### Function template `execution::async_execute()`
 
 ```
 template<class TwoWayExecutor, class Function>
-executor_future_t<
-  Executor,
-  result_of_t<decay_t<Function>()>
->
-async_execute(const TwoWayExecutor& exec, Function&& f);
+  executor_future_t<TwoWayExecutor, result_of_t<decay_t<Function>()>>
+    async_execute(const TwoWayExecutor& exec, Function&& f);
 ```
 
 *Returns:* `exec.async_execute(std::forward<Function>(f))`.
@@ -763,180 +838,271 @@ async_execute(const TwoWayExecutor& exec, Function&& f);
 
 ```
 template<class OneWayExecutor, class Function>
-std::future<decay_t<result_of_t<decay_t<Function>()>>
-async_execute(const OneWayExecutor& exec, Function&& f);
+  std::future<decay_t<result_of_t<decay_t<Function>()>>
+    async_execute(const OneWayExecutor& exec, Function&& f);
 ```
 
 *Returns:* `exec.execute(std::forward<Function>(f))`.
 
-*Remarks:* This function shall not participate in overload resolution unless:
-- `is_two_way_executor_v<TwoWayExecutor>` is `false`; and
-- `is_one_way_executor_v<OnewayExecutor>` is `true`.
+*Effects:* Creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `exec.execute(g)` where `g` is a function object of unspecified type that performs `DECAY_COPY(std::forward<Function>(f))`, with the call to `DECAY_COPY` being performed in the thread that called `async_execute`. On successful completion of `DECAY_COPY(std::forward<Function>(f))`, the return value of `DECAY_COPY(std::forward<Function>(f))` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(std::forward<Function>(f))` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready.
 
-*Effects:* Creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Performs `exec.execute(g)` where `g` is a function object of unspecified type that performs `DECAY_COPY(std::forward<Function>(f))`, with the call to `DECAY_COPY` being performed in the thread that called `async_execute`. On successful completion of `DECAY_COPY(std::forward<Function>(f))`, the return value of `DECAY_COPY(std::forward<Function>(f))` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(std::forward<Function>(f))` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready.
+*Returns:* An object of type `std::future<result_of_t<decay_t<Function>>()>` that refers to the shared state created by `async_execute`.
 
-*Returns:* An object of type `future<result_of_t<decay_t<Function>>()>` that
-refers to the shared state created by `async_execute`.
+*Synchronization:*
+
+* the invocation of `async_execute` synchronizes with (1.10) the invocation of `f`.
+* the completion of the invocation of `f` is sequenced before (1.10) the shared state is made ready.
+
+*Remarks:* This function shall not participate in overload resolution unless `is_two_way_executor_v<TwoWayExecutor>` is `false` and `is_one_way_executor_v<OneWayExecutor>` is `true`.
+
+### Function template `execution::async_post()`
 
 ```
-auto async_execute(ExecutionContext& ctx, Function&& f)
-  -> decltype(async_execute(ctx.executor(), std::forward<Function>(f)));
+template<class NonBlockingTwoWayExecutor, class Function>
+  executor_future_t<NonBlockingTwoWayExecutor, result_of_t<decay_t<Function>()>>
+    async_post(const NonBlockingTwoWayExecutor& exec, Function&& f);
 ```
 
-*Returns:* `async_execute(ctx.executor(), std::forward<Function>(f))`.
+*Returns:* `exec.async_post(std::forward<Function>(f))`.
 
-*Remarks:* This function shall not participate in overload resolution unless:
-- `is_same<ExecutionContext, typename ExecutionContext::executor_type>>>` is `false`; and
-- `is_same<ExecutionContext, decay_t<execution_context_t<typename ExecutionContext::executor_type>>>` is `true`.
+*Remarks:* This function shall not participate in overload resolution unless `is_non_blocking_two_way_executor_v< NonBlockingTwoWayExecutor>` is `true`.
+
+```
+template<class NonBlockingOneWayExecutor, class Function>
+  std::future<decay_t<result_of_t<decay_t<Function>()>>
+    async_post(const NonBlockingOneWayExecutor& exec, Function&& f);
+```
+
+*Returns:* `exec.post(std::forward<Function>(f))`.
+
+*Effects:* Creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `exec.post(g)` where `g` is a function object of unspecified type that performs `DECAY_COPY(std::forward<Function>(f))`, with the call to `DECAY_COPY` being performed in the thread that called `async_post`. On successful completion of `DECAY_COPY(std::forward<Function>(f))`, the return value of `DECAY_COPY(std::forward<Function>(f))` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(std::forward<Function>(f))` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready.
+
+*Returns:* An object of type `std::future<result_of_t<decay_t<Function>>()>` that refers to the shared state created by `async_post`.
+
+*Synchronization:*
+
+* the invocation of `async_post` synchronizes with (1.10) the invocation of `f`.
+* the completion of the invocation of `f` is sequenced before (1.10) the shared state is made ready.
+
+*Remarks:* This function shall not participate in overload resolution unless `is_non_blocking_two_way_executor_v< NonBlockingTwoWayExecutor>` is `false` and `is_non_blocking_one_way_executor_v< NonBlockingOneWayExecutor>` is `true`.
+
+### Function template `execution::async_defer()`
+
+```
+template<class NonBlockingTwoWayExecutor, class Function>
+  executor_future_t<NonBlockingTwoWayExecutor, result_of_t<decay_t<Function>()>>
+    async_defer(const NonBlockingTwoWayExecutor& exec, Function&& f);
+```
+
+*Returns:* `exec.async_defer(std::forward<Function>(f))`.
+
+*Remarks:* This function shall not participate in overload resolution unless `is_non_blocking_two_way_executor_v< NonBlockingTwoWayExecutor>` is `true`.
+
+```
+template<class NonBlockingOneWayExecutor, class Function>
+  std::future<decay_t<result_of_t<decay_t<Function>()>>
+    async_defer(const NonBlockingOneWayExecutor& exec, Function&& f);
+```
+
+*Returns:* `exec.defer(std::forward<Function>(f))`.
+
+*Effects:* Creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `exec.defer(g)` where `g` is a function object of unspecified type that performs `DECAY_COPY(std::forward<Function>(f))`, with the call to `DECAY_COPY` being performed in the thread that called `async_defer`. On successful completion of `DECAY_COPY(std::forward<Function>(f))`, the return value of `DECAY_COPY(std::forward<Function>(f))` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(std::forward<Function>(f))` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready.
+
+*Returns:* An object of type `std::future<result_of_t<decay_t<Function>>()>` that refers to the shared state created by `async_defer`.
+
+*Synchronization:*
+
+* the invocation of `async_defer` synchronizes with (1.10) the invocation of `f`.
+* the completion of the invocation of `f` is sequenced before (1.10) the shared state is made ready.
+
+*Remarks:* This function shall not participate in overload resolution unless `is_non_blocking_two_way_executor_v< NonBlockingTwoWayExecutor>` is `false` and `is_non_blocking_one_way_executor_v< NonBlockingOneWayExecutor>` is `true`.
 
 ### Function template `execution::then_execute()`
 
-1.  ```
-    template<class Executor, class Function, class Future>
-    executor_future_t<Executor,see-below>
-    then_execute(Executor& exec, Function&& f, Future& predecessor);
-    ```
+```
+template<class TwoWayExecutor, class Function, class Future>
+  executor_future_t<TwoWayExecutor, see-below>
+    then_execute(const TwoWayExecutor& exec, Function&& f, Future& predecessor);
+```
 
-2. *Effects:* calls
+*Returns:* `exec.then_execute(std::forward<Function>(f), predecessor)`. The return type is `executor_future_t<Executor, result_of_t<decay_t<Function>()>` when `predecessor` is a `void` future. Otherwise, the return type is `executor_future_t<Executor, result_of_t<decay_t<Function>(T&)>>` where `T` is the result type of the `predecessor` future.
 
-    `exec.then_execute(std::forward<Function>(f), std::forward<Future>(predecessor))`
-    
-    if that call is well-formed; otherwise, returns
+*Remarks:* This function shall not participate in overload resolution unless `is_two_way_executor_v< TwoWayExecutor>` is `true`.
 
-    `predecessor.then(std::forward<Function>(f))`.
+```
+template<class OneWayExecutor, class Function, class Future>
+  executor_future_t<OneWayExecutor, see-below>
+    then_execute(const OneWayExecutor& exec, Function&& f, Future& predecessor);
+```
 
-3. *Returns:* `executor_future_t<Executor,result_of_t<decay_t<Function>()>` when `predecessor` is a `void` future. Otherwise,
-   `executor_future_t<Executor,result_of_t<decay_t<Function>(T&)>>` where `T` is the result type of the `predecessor` future.
+*Returns:* `predecessor.then(std::forward<Function>(f))`. The return type is `executor_future_t<Executor, result_of_t<decay_t<Function>()>` when `predecessor` is a `void` future. Otherwise, the return type is `executor_future_t<Executor, result_of_t<decay_t<Function>(T&)>>` where `T` is the result type of the `predecessor` future.
 
-4. *Synchronization:*
-    * the invocation of `then_execute` synchronizes with (1.10) the invocation of `f`.
-    * the completion of the invocation of `f` is sequenced before (1.10) the shared state is made ready.
+*Synchronization:*
 
-5. *Postconditions:* If the `predecessor` future is not a shared future, then `predecessor.valid() == false`.
+* the invocation of `then_execute` synchronizes with (1.10) the invocation of `f`.
+* the completion of the invocation of `f` is sequenced before (1.10) the shared state is made ready.
 
+*Postconditions:* If the `predecessor` future is not a shared future, then `predecessor.valid() == false`.
+
+*Remarks:* This function shall not participate in overload resolution unless `is_two_way_executor_v< TwoWayExecutor>` is `false` and `is_one_way_executor_v< OneWayExecutor>` is `true`.
 
 ### Function template `execution::bulk_execute()`
 
-1.  ```
-    template<class Executor, class Function1, class Function2>
-    void bulk_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape,
-                      Function2 shared_factory);
-    ```
+```
+template<class BulkOneWayExecutor, class Function1, class Function2>
+  void bulk_execute(const BulkOneWayExecutor& exec, Function1 f,
+                    executor_shape_t<BulkOneWayExecutor> shape,
+                    Function2 shared_factory);
+```
 
-2. *Effects:* calls `exec.bulk_execute(f, shape, shared_factory)` if that call is well-formed;
-   otherwise:
+*Returns:* `exec.bulk_execute(f, shape, shared_factory)`.
 
-   * Calls `shared_factory()` in an unspecified execution agent. The result of this invocation is stored to shared state.
+*Remarks:* This function shall not participate in overload resolution unless `is_bulk_one_way_executor_v< BulkOneWayExecutor>` is `true`.
 
-   * Creates a new group of execution agents of shape `shape`. Each execution agent calls `f(idx, shared)`, where
-     `idx` is the index of the execution agent, and `shared` is a reference to the shared state.
+```
+template<class OneWayExecutor, class Function1, class Function2>
+  void bulk_execute(const OneWayExecutor& exec, Function1 f,
+                    executor_shape_t<OneWayExecutor> shape,
+                    Function2 shared_factory);
+```
 
-   * If any invocation of `f` exists via an uncaught exception, `terminate` is called.
+*Effects:* Performs `exec.execute(g)` where `g` is a function object of unspecified type that:
 
-3. *Synchronization:* The completion of the function `shared_factory` happens before the creation of the group of execution agents.
+* Calls `shared_factory()` and stores the result of this invocation to some shared state `shared`.
 
+* Using `exec.execute`, submits a new group of function objects of shape `shape`. Each function object calls `f(idx, shared)`, where `idx` is the index of the execution agent, and `shared` is a reference to the shared state.
+
+* If any invocation of `f` exits via an uncaught exception, `terminate` is called.
+
+*Synchronization:* The completion of the function `shared_factory` happens before the creation of the group of function objects.
+
+*Remarks:* This function shall not participate in overload resolution unless `is_bulk_one_way_executor_v< BulkOneWayExecutor>` is `false` and `is_one_way_executor_v< OneWayExecutor>` is `true`.
 
 ### Function template `execution::bulk_sync_execute()`
 
-1.  ```
-    template<class Executor, class Function1, class Function2, class Function3>
-    result_of_t<Function2()>
-    bulk_sync_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape,
+```
+template<class BulkTwoWayExecutor, class Function1, class Function2, class Function3>
+  result_of_t<Function2()>
+    bulk_sync_execute(const BulkTwoWayExecutor& exec, Function1 f,
+                      executor_shape_t<BulkTwoWayExecutor> shape,
                       Function2 result_factory, Function3 shared_factory);
-    ```
+```
 
-2. *Effects:* calls `exec.bulk_sync_execute(f, shape, result_factory, shared_factory)` if that call is well-formed;
-   otherwise:
-   
-   * Calls `result_factory()` and `shared_factory()` in an unspecified execution agent. The results
-     of these invocations are stored to shared state.
+*Returns:* `exec.bulk_sync_execute(f, shape, result_factory, shared_factory)`.
 
-   * Creates a new group of execution agents of shape `shape`. Each execution agent calls `f(idx, result, shared)`, where
-     `idx` is the index of the execution agent, and `result` and `shared` are references to the respective shared state.
-     Any return value of `f` is discarded.
+*Remarks:* This function shall not participate in overload resolution unless `is_bulk_two_way_executor_v< BulkTwoWayExecutor>` is `true`.
 
-   * If any invocation of `f` exits via an uncaught exception, `terminate` is called.
+```
+template<class OneWayExecutor, class Function1, class Function2, class Function3>
+  result_of_t<Function2()>
+    bulk_sync_execute(const OneWayExecutor& exec, Function1 f,
+                      executor_shape_t<OneWayExecutor> shape,
+                      Function2 result_factory, Function3 shared_factory);
+```
 
-3. *Returns:* An object of type `result_of_t<Function2()>` that refers to the result shared state created by
-   this call to `bulk_sync_execute`.
+*Effects:* Performs `exec.execute(g)` where `g` is a function object of unspecified type that:
 
-4. *Synchronization:* The completion of the functions `result_factory` and
-   `shared_factory` happen before the creation of the group of execution
-   agents.
+* Calls `result_factory()` and `shared_factory()`, and stores the results of these invocations to some shared state `result` and `shared` respectively.
+
+* Using `exec.execute`, submits a new group of function objects of shape `shape`. Each function object calls `f(idx, result, shared)`, where `idx` is the index of the execution agent, and `result` and `shared` are references to the respective shared state. Any return value of `f` is discarded.
+
+* If any invocation of `f` exits via an uncaught exception, `terminate` is called.
+
+* Blocks the caller until all invocations of `f` are complete and the result is ready.
+
+*Returns:* An object of type `result_of_t<Function2()>` that refers to the result shared state created by this call to `bulk_sync_execute`.
+
+*Synchronization:* The completion of the functions `result_factory` and `shared_factory` happen before the creation of the group of function objects.
+
+*Remarks:* This function shall not participate in overload resolution unless `is_bulk_two_way_executor_v< BulkTwoWayExecutor>` is `false` and `is_one_way_executor_v< OneWayExecutor>` is `true`.
 
 ### Function template `execution::bulk_async_execute()`
 
-1.  ```
-    template<class Executor, class Function1, class Function2, class Function3>
-    executor_future_t<
-      Executor,
-      result_of_t<Function2()>
-    >
-    bulk_async_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape,
+```
+template<class BulkTwoWayExecutor, class Function1, class Function2, class Function3>
+  executor_future_t<const BulkTwoWayExecutor, result_of_t<Function2()>>
+    bulk_async_execute(const BulkTwoWayExecutor& exec, Function1 f,
+                       executor_shape_t<BulkTwoWayExecutor> shape,
                        Function2 result_factory, Function3 shared_factory);
-    ```
+```
 
-2. *Effects:* calls `exec.bulk_async_execute(f, shape, result_factory, shared_factory)` if that call is well-formed;
-   otherwise:
+*Returns:* `exec.bulk_async_execute(f, shape, result_factory, shared_factory)`.
 
-    * Calls `result_factory()` and `shared_factory()` in an unspecified execution agent. The results of these
-      invocations are stored to shared state.
+*Remarks:* This function shall not participate in overload resolution unless `is_bulk_two_way_executor_v< BulkTwoWayExecutor>` is `true`.
 
-    * Creates a new group of execution agents of shape `shape`. Each execution agent calls `f(idx, result, shared)`, where
-      `idx` is the index of the execution agent, and `result` and `shared` are references to the respective shared state.
-      Any return value of `f` is discarded.
+```
+template<class OneWayExecutor, class Function1, class Function2, class Function3>
+  executor_future_t<const OneWayExecutor, result_of_t<Function2()>>
+    bulk_async_execute(const OneWayExecutor& exec, Function1 f,
+                       executor_shape_t<OneWayExecutor> shape,
+                       Function2 result_factory, Function3 shared_factory);
+```
 
-   * If any invocation of `f` exits via an uncaught exception, `terminate` is called.
+*Effects:* Performs `exec.execute(g)` where `g` is a function object of unspecified type that:
 
-3. *Returns:* An object of type
+* Calls `result_factory()` and `shared_factory()`, and stores the results of these invocations to some shared state `result` and `shared` respectively.
 
-    `executor_future_t<Executor,result_of_t<Function2()>`
-    
-    that refers to the shared result state created by this call to `bulk_async_execute`.
+* Using `exec.execute`, submits a new group of function objects of shape `shape`. Each function object calls `f(idx, result, shared)`, where `idx` is the index of the function object, and `result` and `shared` are references to the respective shared state. Any return value of `f` is discarded.
 
-4. *Synchronization:*
-    * the invocation of `bulk_async_execute` synchronizes with (1.10) the invocations of `f`.
-    * the completion of the functions `result_factory` and `shared_factory` happen before the creation of the group of execution agents.
-    * the completion of the invocations of `f` are sequenced before (1.10) the result shared state is made ready.
+* If any invocation of `f` exits via an uncaught exception, `terminate` is called.
+
+*Returns:* An object of type `executor_future_t<Executor,result_of_t<Function2()>` that refers to the shared result state created by this call to `bulk_async_execute`.
+
+*Synchronization:*
+
+* The invocation of `bulk_async_execute` synchronizes with (1.10) the invocations of `f`.
+
+* The completion of the functions `result_factory` and `shared_factory` happen before the creation of the group of function objects.
+
+* The completion of the invocations of `f` are sequenced before (1.10) the result shared state is made ready.
+
+*Remarks:* This function shall not participate in overload resolution unless `is_bulk_two_way_executor_v< BulkTwoWayExecutor>` is `false` and `is_one_way_executor_v< OneWayExecutor>` is `true`.
 
 ### Function template `execution::bulk_then_execute()`
 
-1.  ```
-    template<class Executor, class Function1, class Future, class Function2, class Function3>
-    executor_future_t<
-      Executor,
-      result_of_t<Function2()>
-    >
-    bulk_then_execute(Executor& exec, Function1 f, executor_shape_t<Executor> shape,
+```
+template<class BulkTwoWayExecutor, class Function1, class Future, class Function2, class Function3>
+  executor_future_t<Executor, result_of_t<Function2()>>
+    bulk_then_execute(const BulkTwoWayExecutor& exec, Function1 f,
+                      executor_shape_t<BulkTwoWayExecutor> shape,
                       Future& predecessor,
                       Function2 result_factory, Function3 shared_factory);
-    ```
+```
 
-2. *Effects:* calls `exec.bulk_then_execute(f, shape, predecessor, result_factory, shared_factory)` if that call is well-formed;
-   otherwise:
+*Returns:* `exec.bulk_then_execute(f, shape, result_factory, shared_factory)`.
 
-   * Calls `result_factory()` and `shared_factory()` in an unspecified execution agent. The results of these
-     invocations are stored to shared state.
+*Remarks:* This function shall not participate in overload resolution unless `is_bulk_two_way_executor_v< BulkTwoWayExecutor>` is `true`.
 
-   * Creates a new group of execution agents of shape `shape` after `predecessor` becomes ready. Each execution agent calls `f(idx, result, pred, shared)`, where
-     `idx` is the index of the execution agent, `result` is a reference to the result shared state, `pred` is a reference to
-     the `predecessor` state if it is not `void`. Otherwise, each execution agent calls `f(idx, result, shared)`.
-     Any return value of `f` is discarded.
+```
+template<class OneWayExecutor, class Function1, class Future, class Function2, class Function3>
+  executor_future_t<OneWayExecutor, result_of_t<Function2()>>
+    bulk_then_execute(const OneWayExecutor& exec, Function1 f,
+                      executor_shape_t<OneWayExecutor> shape,
+                      Future& predecessor,
+                      Function2 result_factory, Function3 shared_factory);
+```
 
-   * If any invocation of `f` exits via an uncaught exception, `terminate` is called.
+*Effects:* Performs `exec.execute(g)` where `g` is a function object of unspecified type that:
 
-3. *Returns:* An object of type
+* Calls `result_factory()` and `shared_factory()` in an unspecified execution agent. The results of these invocations are stored to shared state.
 
-    `executor_future_t<Executor,result_of_t<Function2()>`
-    
-    that refers to the shared result state created by this call to `bulk_then_execute`.
+* Using `exec.execute`, submits a new group of function objects of shape `shape` after `predecessor` becomes ready. Each execution agent calls `f(idx, result, pred, shared)`, where `idx` is the index of the execution agent, `result` is a reference to the result shared state, `pred` is a reference to the `predecessor` state if it is not `void`. Otherwise, each execution agent calls `f(idx, result, shared)`. Any return value of `f` is discarded.
 
-4. *Synchronization:*
-    * the invocation of `bulk_then_execute` synchronizes with (1.10) the invocations of `f`.
-    * the completion of the functions `result_factory` and `shared_factory` happen before the creation of the group of execution agents.
-    * the completion of the invocations of `f` are sequenced before (1.10) the result shared state is made ready.
+* If any invocation of `f` exits via an uncaught exception, `terminate` is called.
 
-5. *Postconditions:* If the `predecessor` future is not a shared future, then `predecessor.valid() == false`.
+*Returns:* An object of type `executor_future_t<Executor,result_of_t<Function2()>` that refers to the shared result state created by this call to `bulk_then_execute`.
+
+*Synchronization:*
+
+* the invocation of `bulk_then_execute` synchronizes with (1.10) the invocations of `f`.
+
+* the completion of the functions `result_factory` and `shared_factory` happen before the creation of the group of execution agents.
+
+* the completion of the invocations of `f` are sequenced before (1.10) the result shared state is made ready.
+
+*Postconditions:* If the `predecessor` future is not a shared future, then `predecessor.valid() == false`.
+
+*Remarks:* This function shall not participate in overload resolution unless `is_bulk_two_way_executor_v< BulkTwoWayExecutor>` is `false` and `is_one_way_executor_v< OneWayExecutor>` is `true`.
 
 ## Executor work guard
 
