@@ -1904,6 +1904,11 @@ particular type of `OneWayExecutor` that cannot block in `.execute()`.
 `.then()` stores `f` as the next continuation in the future state, and when
 the future is ready, creates an execution agent using a copy of `exec`.
 
+One approach is for `.then()` to require a `NonBlockingOneWayExecutor`, and to
+specify that `.then()` submits the continuation using `exec.post()` if the
+future is already ready at the time when `.then()` is called, and to submit
+using `exec.execute()` otherwise.
+
 #### `std::shared_future::then()`
 
 The member function template `then` provides a mechanism for attaching a *continuation* to a `std::shared_future` object,
@@ -1923,6 +1928,11 @@ particular type of `OneWayExecutor` that cannot block in `.execute()`.
 `.then()` stores `f` as the next continuation in the underlying future
 state, and when the underlying future is ready, creates an execution agent
 using a copy of `exec`.
+
+One approach is for `.then()` to require a `NonBlockingOneWayExecutor`, and to
+specify that `.then()` submits the continuation using `exec.post()` if the
+future is already ready at the time when `.then()` is called, and to submit
+using `exec.execute()` otherwise.
 
 #### Function template `invoke`
 
