@@ -623,7 +623,7 @@ This sub-clause contains templates that may be used to query the properties of a
     
 The type of `executor_future<Executor, T>::type` is determined as follows:
 
-* if `is_two_way_executor<Executor>` is true, `decltype(declval<const Executor&>().async_execute(declval<T(*)()>())`;
+* if `is_two_way_executor<Executor>` is true, `decltype(declval<const Executor&>().async_execute( declval<T(*)()>())`;
 
 * otherwise, if `is_one_way_executor<Executor>` is true, `std::future<T>`;
 
