@@ -411,10 +411,10 @@ In the table below, `x1` and `x2` denote (possibly const) values of type `X`, `m
 
 Table: (Base executor requirements) \label{base_executor_requirements}
 
-| Expression | Type | Assertion/note/pre-/post-condition |
-|------------|------|------------------------------------|
-| `X u(x1);` | | Shall not exit via an exception.<br/><br/>*Post:* `u == x1` and `u.context() == x1.context()`. |
-| `X u(mx1);` | | Shall not exit via an exception.<br/><br/>*Post:* `u` equals the prior value of `mx1` and `u.context()` equals the prior value of `mx1.context()`. |
+| Expression   | Type       | Assertion/note/pre-/post-condition |
+|--------------|------------|------------------------------------|
+| `X u(x1);` | | Shall not exit via an exception. <br/><br/>*Post:* `u == x1` and `u.context() == x1.context()`. |
+| `X u(mx1);` | | Shall not exit via an exception. <br/><br/>*Post:* `u` equals the prior value of `mx1` and `u.context()` equals the prior value of `mx1.context()`. |
 | `x1 == x2` | `bool` | Returns `true` only if `x1` and `x2` can be interchanged with identical effects in any of the expressions defined in these type requirements (TODO and the other executor requirements defined in this Technical Specification). [*Note:* Returning `false` does not necessarily imply that the effects are not identical. *--end note*] `operator==` shall be reflexive, symmetric, and transitive, and shall not exit via an exception. |
 | `x1 != x2` | `bool` | Same as `!(x1 == x2)`. |
 | `x1.context()` | `E&` or `const E&` where `E` is a type that satisfies the `ExecutionContext` requirements. | Shall not exit via an exception. The comparison operators and member functions defined in these requirements (TODO and the other executor requirements defined in this Technical Specification) shall not alter the reference returned by this function. |
@@ -432,8 +432,8 @@ In the table below, `x` denotes a (possibly const) value of type `X`, and `f` de
 Table: (One-way executor requirements) \label{one_way_executor_requirements}
 
 | Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
-|------------|-------------|-----------------------|-------------------------------------|
-| `x.execute(f)` | | Creates a weakly parallel execution agent which invokes `DECAY_COPY(std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `execute`.<br/><br/>May block forward progress of the caller until `DECAY_COPY(std::forward<F>(f))()` finishes execution. | *Synchronization:* The invocation of `execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. |
+|------------|-----------|------------------------|------------------------|
+| `x.execute(f)` | | Creates a weakly parallel execution agent which invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `execute`. <br/><br/>May block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))()` finishes execution. | *Synchronization:* The invocation of `execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. |
 
 ### `HostBasedOneWayExecutor`
 
@@ -448,8 +448,8 @@ In the table below, `x` denotes a (possibly const) value of type `X`, `f` denote
 Table: (Host-based one-way executor requirements) \label{host_based_one_way_executor_requirements}
 
 | Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
-|------------|-------------|-----------------------|-------------------------------------|
-| `x.execute(f)`<br/>`x.execute(f,a)` | | Creates a parallel execution agent which invokes `DECAY_COPY(std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `execute`.<br/><br/>May block forward progress of the caller until `DECAY_COPY(std::forward<F>(f))()` finishes execution.<br/><br/>Executor implementations should use the supplied allocator (if any) to allocate any memory required to store the function object. Prior to invoking the function object, the executor shall deallocate any memory allocated. [*Note:* Executors defined in this Technical Specification always use the supplied allocator unless otherwise specified. *--end note*] | *Synchronization:* The invocation of `execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`.|
+|------------|-----------|------------------------|------------------------|
+| `x.execute(f)` <br/>`x.execute(f,a)` | | Creates a parallel execution agent which invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `execute`. <br/><br/>May block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))()` finishes execution. <br/><br/>Executor implementations should use the supplied allocator (if any) to allocate any memory required to store the function object. Prior to invoking the function object, the executor shall deallocate any memory allocated. [*Note:* Executors defined in this Technical Specification always use the supplied allocator unless otherwise specified. *--end note*] | *Synchronization:* The invocation of `execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`.|
 
 ### `NonBlockingOneWayExecutor`
 
@@ -464,8 +464,8 @@ In the table below, `x` denotes a (possibly const) value of type `X`, `f` denote
 Table: (Non-blocking one-way executor requirements) \label{non_blocking_one_way_executor_requirements}
 
 | Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
-|------------|-------------|-----------------------|-------------------------------------|
-| `x.post(f)`<br/>`x.post(f,a)`<br/>`x.defer(f)`<br/>`x.defer(f,a)` | | Creates a parallel execution agent which invokes `DECAY_COPY(std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `post` or `defer`.<br/><br/>Shall not block forward progress of the caller pending completion of `DECAY_COPY(std::forward<F>(f))()`.<br/><br/>Executor implementations should use the supplied allocator (if any) to allocate any memory required to store the function object. Prior to invoking the function object, the executor shall deallocate any memory allocated. [*Note:* Executors defined in this Technical Specification always use the supplied allocator unless otherwise specified. *--end note*] | *Synchronization:* The invocation of `post` or `defer` synchronizes with (C++Std [intro.multithread]) the invocation of `f`.<br/><br/>*Note:* Although the requirements placed on `defer` are identical to `post`, the use of `post` conveys a preference that the caller does not block the first step of `f`'s progress, whereas `defer` conveys a preference that the caller does block the first step of `f`. One use of `defer` is to convey the intention of the caller that `f` is a continuation of the current call context. The executor may use this information to optimize or otherwise adjust the way in which `f` is invoked. |
+|------------|-----------|------------------------|------------------------|
+| `x.post(f)` <br/>`x.post(f,a)` <br/>`x.defer(f)` <br/>`x.defer(f,a)` | | Creates a parallel execution agent which invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `post` or `defer`. <br/><br/>Shall not block forward progress of the caller pending completion of `DECAY_COPY( std::forward<F>(f))()`. <br/><br/>Executor implementations should use the supplied allocator (if any) to allocate any memory required to store the function object. Prior to invoking the function object, the executor shall deallocate any memory allocated. [*Note:* Executors defined in this Technical Specification always use the supplied allocator unless otherwise specified. *--end note*] | *Synchronization:* The invocation of `post` or `defer` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. <br/><br/>*Note:* Although the requirements placed on `defer` are identical to `post`, the use of `post` conveys a preference that the caller does not block the first step of `f`'s progress, whereas `defer` conveys a preference that the caller does block the first step of `f`. One use of `defer` is to convey the intention of the caller that `f` is a continuation of the current call context. The executor may use this information to optimize or otherwise adjust the way in which `f` is invoked. |
 
 ### `TwoWayExecutor`
 
@@ -483,10 +483,10 @@ A type `X` satisfies the `TwoWayExecutor` requirements if:
 
 Table: (Two-Way Executor requirements) \label{two_way_executor_requirements}
 
-| Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
-|------------|-------------|-----------------------|-------------------------------------|
-| `x.async_-` `execute(std::move(f))` | A type that satisfies the `Future` requirements for the value type `R`. | Creates an execution agent which invokes `f()`<br/>Returns the result of `f()` via the resulting future object.<br/>Returns any exception thrown by `f()` via the resulting future object.<br/>May block forward progress of the caller pending completion of `f()`. | |
-| `x.sync_-` `execute(std::move(f))` | `R` | Creates an execution agent which invokes `f()`.<br/>Returns the result of `f()`.<br/>Throws any exception thrown by `f()`. | |
+| Expression      | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
+|-----------------|-------------|-----------------------|--------------------|
+| `x.async_`- `execute(std::move(f))` | A type that satisfies the `Future` requirements for the value type `R`. | Creates an execution agent which invokes `f()`. <br/>Returns the result of `f()` via the resulting future object. <br/>Returns any exception thrown by `f()` via the resulting future object. <br/>May block forward progress of the caller pending completion of `f()`. | |
+| `x.sync_`- `execute(std::move(f))` | `R` | Creates an execution agent which invokes `f()`. <br/>Returns the result of `f()`. <br/>Throws any exception thrown by `f()`. | |
 
 ### `NonBlockingTwoWayExecutor`
 
@@ -502,9 +502,9 @@ A type `X` satisfies the `NonBlockingTwoWayExecutor` requirements if:
 
 Table: (Non-Blocking Two-Way Executor requirements) \label{non_blocking_two_way_executor_requirements}
 
-| Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
-|------------|-------------|-----------------------|-------------------------------------|
-| `x.async_post(std::move(f))`<br/>`x.async_defer(std::move(f))` | `executor_-` `future_t<X,R>` | Creates an execution agent which invokes `f()`<br/>Returns the result of `f()` via the resulting future object.<br/>Returns any exception thrown by `f()` via the resulting future object.<br/>Shall not block forward progress of the caller pending completion of `f()`. | |
+| Expression      | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
+|-----------------|-------------|-----------------------|--------------------|
+| `x.async_`- `post(std::move(f))` <br/>`x.async_`- `defer(std::move(f))` | `executor_`- `future_t<X,R>` | Creates an execution agent which invokes `f()`. <br/>Returns the result of `f()` via the resulting future object. <br/>Returns any exception thrown by `f()` via the resulting future object. <br/>Shall not block forward progress of the caller pending completion of `f()`. | |
 
 ### `BulkOneWayExecutor`
 
@@ -526,12 +526,9 @@ either the `OneWayExecutor` or `TwoWayExecutor` requirements and the expressions
 
 Table: (Bulk one-way executor requirements) \label{bulk_one_way_executor_requirements}
 
-| Expression                                               | Return Type                                                       |  Operational semantics                                                                                                | Assertion/note/pre-/post-condition                                                                                                                         |
-|----------------------------------------------------------|-------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `x.bulk_-` `execute(f, n, sf)`                           | `void`                                                            |  Creates a group of execution agents of shape `n` which invoke `f(i, s)`                                              | Effects: invokes `sf(n)` on an unspecified execution agent.                                                                                                |
-|                                                          |                                                                   |  This group of execution agents shall fulfill the forward progress requirements of `executor_execution_category_t<X>`                                                                                                                                                              | 
-|                                                          |                                                                   |                                                                                                            |                                                                                                                                                                       |
-|                                                          |                                                                   |                                                                                                            |                                                                                                                                                                       |
+| Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
+|------------|-----------|------------------------|------------------------|
+| `x.bulk_`- `execute(f, n, sf)` | `void` | Creates a group of execution agents of shape `n` which invoke `f(i, s)`. <br/>This group of execution agents shall fulfill the forward progress requirements of `executor_execution_`- `category_t<X>` | Effects: invokes `sf(n)` on an unspecified execution agent. |
 
 ### `BulkTwoWayExecutor`
 
@@ -556,23 +553,11 @@ either the `OneWayExecutor` or `TwoWayExecutor` requirements and the expressions
 
 Table: (Bulk two-way executor requirements) \label{bulk_two_way_executor_requirements}
 
-| Expression                                                        | Return Type                                                       |  Operational semantics                                                                                                | Assertion/note/pre-/post-condition                                                                                                                         |
-|-------------------------------------------------------------------|-------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `x.bulk_sync_-` `execute(f, n, rf, sf)`                           | `R`                                                               |  Creates a group of execution agents of shape `n` which invoke `f(i, r, s)`                                           | Note: blocks the forward progress of the caller until all invocations of `f` are finished.                                                                 |
-|                                                                   |                                                                   |  This group of execution agents shall fulfill the forward progress requirements of `executor_execution_category_t<X>` |
-|                                                                   |                                                                   |  Returns the result of `rf(n)`                                                                                        | Effects: invokes `rf(n)` on an unspecified execution agent.                                                                                                |
-|                                                                   |                                                                   |                                                                                                                       | Effects: invokes `sf(n)` on an unspecified execution agent.                                                                                                |
-|                                                                   |                                                                   |                                                                                                                       |                                                                                                                                                            |
-| `x.bulk_async_-` `execute(f, n, rf, sf)`                          | `executor_-` `future_t<X,R>`                                      |  Creates a group of execution agents of shape `n` which invoke `f(i, r, s)`                                           | Effects: invokes `rf(n)` on an unspecified execution agent.                                                                                                |
-|                                                                   |                                                                   |  This group of execution agents shall fulfill the forward progress requirements of `executor_execution_category_t<X>` |
-|                                                                   |                                                                   |  Asynchronously returns the result of `rf(n)` via the resulting future object                                         | Effects: invokes `sf(n)` on an unspecified execution agent.                                                                                                |
-|                                                                   |                                                                   |                                                                                                                       |                                                                                                                                                            |
-|                                                                   |                                                                   |                                                                                                                       |                                                                                                                                                            |
-| `x.bulk_then_-` `execute(f, n, rf, pred, sf)`                     | `executor_-` `future_t<X,R>`                                      |  Creates a group of execution agents of shape `n` which invoke `f(i, r, pr, s)` after `pred` becomes ready            | Effects: invokes `rf(n)` on an unspecified execution agent.                                                                                                |
-|                                                                   |                                                                   |  This group of execution agents shall fulfill the forward progress requirements of `executor_execution_category_t<X>` |
-|                                                                   |                                                                   |  Asynchronously returns the result of `rf(n)` via the resulting future.                                               | Effects: invokes `sf(n)` on an unspecified execution agent.                                                                                                |
-|                                                                   |                                                                   |                                                                                                                       | If `pred`'s result type is `void`, `pr` is omitted from `f`'s invocation.                                                                                  |
-|                                                                   |                                                                   |                                                                                                                       | Post: `pred` is invalid if it is not a shared future.                                                                                                      |
+| Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
+|------------|-----------|------------------------|------------------------|
+| `x.bulk_sync_`- `execute(f, n, rf, sf)` | `R` |  Creates a group of execution agents of shape `n` which invoke `f(i, r, s)`. <br/>This group of execution agents shall fulfill the forward progress requirements of `executor_execution_`- `category_t<X>`. <br/>Returns the result of `rf(n)`. | Note: blocks the forward progress of the caller until all invocations of `f` are finished. <br/>Effects: invokes `rf(n)` on an unspecified execution agent. <br/>Effects: invokes `sf(n)` on an unspecified execution agent. |
+| `x.bulk_async_`- `execute(f, n, rf, sf)` | `executor_`- `future_t<X,R>` | Creates a group of execution agents of shape `n` which invoke `f(i, r, s)`. <br/>This group of execution agents shall fulfill the forward progress requirements of `executor_execution_`- `category_t<X>`. </br>Asynchronously returns the result of `rf(n)` via the resulting future object. | Effects: invokes `rf(n)` on an unspecified execution agent. <br/>Effects: invokes `sf(n)` on an unspecified execution agent. |
+| `x.bulk_then_`- `execute(f, n, rf, pred, sf)` | `executor_`- `future_t<X,R>` | Creates a group of execution agents of shape `n` which invoke `f(i, r, pr, s)` after `pred` becomes ready. <br/>This group of execution agents shall fulfill the forward progress requirements of `executor_execution_`- `category_t<X>`. <br/>Asynchronously returns the result of `rf(n)` via the resulting future. | Effects: invokes `rf(n)` on an unspecified execution agent. <br/>Effects: invokes `sf(n)` on an unspecified execution agent. <br/>If `pred`'s result type is `void`, `pr` is omitted from `f`'s invocation. |
 
 ### `ExecutorWorkTracker`
 
@@ -588,8 +573,8 @@ In Table \ref{executor_work_tracker_requirements}, `x` denotes an object of type
 
 Table: (Executor Work Tracker requirements) \label{executor_work_tracker_requirements}
 
-| Expression | Return Type | Assertion/note/pre-/post-condition |
-|------------|-------------|------------------------------------|
+| Expression         | Return Type | Assertion/note/pre-/post-condition |
+|--------------------|-------------|------------------------------------|
 | `x.on_work_started()` | `bool` | Shall not exit via an exception. |
 | `x.on_work_finished()` | | Shall not exit via an exception. Precondition: A corresponding preceding call to `on_work_started` that returned `true`. |
 
