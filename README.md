@@ -111,7 +111,7 @@ member functions of executors directly:
 
     template<class Function>
     future<result_of_t<Function()>>
-    foo(simple_two_way_executor& exec, Function f)
+    foo(const simple_two_way_executor& exec, Function f)
     {
       return exec.async_execute(f);
     }
@@ -130,7 +130,7 @@ For example, the customization point `execution::async_execute()` allows
 
     template<class Executor, class Function>
     executor_future_t<Executor,result_of_t<Function()>>
-    foo(Executor& exec, Function f)
+    foo(const Executor& exec, Function f)
     {
       return execution::async_execute(exec, f);
     }
@@ -149,7 +149,7 @@ following example creates a simple executor fulfilling the requirements of the
       public:
         void log(std::string msg);
 
-        bool operator==(const logging_context& rhs) const
+        bool operator==(const logging_context& rhs) const noexcept
         {
           return this == &rhs;
         }
@@ -160,25 +160,30 @@ following example creates a simple executor fulfilling the requirements of the
       public:
         logging_executor(logging_context& ctx) : context_(ctx) {}
 
-        bool operator==(const logging_executor& rhs) const
+        bool operator==(const logging_executor& rhs) const noexcept
         {
           return context() == rhs.context();
         }
 
-        const logging_context& context() const
+        bool operator!=(const logging_executor& rhs) const noexcept
+        {
+          return !(*this == rhs);
+        }
+
+        const logging_context& context() const noexcept
         {
           return context_;
         }
 
         template<class Function>
-        void execute(Function&& f)
+        void execute(Function&& f) const
         {
           context_.log("executing function");
           f();
         }
 
       private:
-        logging_context& context_;
+        mutable logging_context& context_;
     };
 
 Executors are also useful in insulating non-standard means of creating
@@ -191,18 +196,23 @@ uses OpenMP language extensions to invoke a function a number of times in parall
       public:
         using execution_category = parallel_execution_tag;
 
-        bool operator==(const omp_executor&) const
+        bool operator==(const omp_executor&) const noexcept
         {
           return true;
         }
 
-        const omp_executor& context() const
+        bool operator!=(const omp_executor&) const noexcept
+        {
+          return false;
+        }
+
+        const omp_executor& context() const noexcept
         {
           return *this;
         }
 
         template<class Function, class ResultFactory, class SharedFactory>
-        auto bulk_sync_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory)
+        auto bulk_sync_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory) const
         {
           auto result = result_factory();
           auto shared_arg = shared_factory();
