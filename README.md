@@ -601,15 +601,15 @@ Table: (Executor Work Tracker requirements) \label{executor_work_tracker_require
 
 This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
 
-| Template | Condition | Preconditions |
-|----------|-----------|---------------|
-| `template<class T>`<br/>`struct is_one_way_executor` | `T` meets the syntactic requirements for `OneWayExecutor`. | `T` is a complete type. |
-| `template<class T>`<br/>`struct is_host_based_one_way_executor` | `T` meets the syntactic requirements for `HostBasedOneWayExecutor`. | `T` is a complete type. |
-| `template<class T>`<br/>`struct is_non_blocking_one_way_executor` | `T` meets the syntactic requirements for `NonBlockingOneWayExecutor`. | `T` is a complete type. |
-| `template<class T>`<br/>`struct is_bulk_one_way_executor` | `T` meets the syntactic requirements for `BulkOneWayExecutor`. | `T` is a complete type. |
-| `template<class T>`<br/>`struct is_two_way_executor` | `T` meets the syntactic requirements for `TwoWayExecutor`. | `T` is a complete type. |
-| `template<class T>`<br/>`struct is_non_blocking_two_way_executor` | `T` meets the syntactic requirements for `NonBlockingTwoWayExecutor`. | `T` is a complete type. |
-| `template<class T>`<br/>`struct is_bulk_two_way_executor` | `T` meets the syntactic requirements for `BulkTwoWayExecutor`. | `T` is a complete type. |
+| Template                   | Condition           | Preconditions  |
+|----------------------------|---------------------|----------------|
+| `template<class T>` <br/>`struct is_one_way_executor` | `T` meets the syntactic requirements for `OneWayExecutor`. | `T` is a complete type. |
+| `template<class T>` <br/>`struct is_host_based_one_way_executor` | `T` meets the syntactic requirements for `HostBasedOneWayExecutor`. | `T` is a complete type. |
+| `template<class T>` <br/>`struct is_non_blocking_one_way_executor` | `T` meets the syntactic requirements for `NonBlockingOneWayExecutor`. | `T` is a complete type. |
+| `template<class T>` <br/>`struct is_bulk_one_way_executor` | `T` meets the syntactic requirements for `BulkOneWayExecutor`. | `T` is a complete type. |
+| `template<class T>` <br/>`struct is_two_way_executor` | `T` meets the syntactic requirements for `TwoWayExecutor`. | `T` is a complete type. |
+| `template<class T>` <br/>`struct is_non_blocking_two_way_executor` | `T` meets the syntactic requirements for `NonBlockingTwoWayExecutor`. | `T` is a complete type. |
+| `template<class T>` <br/>`struct is_bulk_two_way_executor` | `T` meets the syntactic requirements for `BulkTwoWayExecutor`. | `T` is a complete type. |
 
 ### Associated execution context type
 
@@ -629,13 +629,13 @@ This sub-clause contains templates that may be used to query the properties of a
     
 The type of `executor_future<Executor, T>::type` is determined as follows:
 
-* if `is_two_way_executor<Executor>` is true, `decltype(declval<const Executor&>().async_execute(declval<T(*)()>())`;
+* if `is_two_way_executor<Executor>` is true, `decltype(declval<const Executor&>().async_execute( declval<T(*)()>())`;
 
 * otherwise, if `is_one_way_executor<Executor>` is true, `std::future<T>`;
 
 * otherwise, the program is ill formed.
 
-*[Note:* The effect of this specification is that all execute functions of an executor that satisfies the `TwoWayExecutor`, `NonBlockingTwoWayExecutor`, or `BulkTwoWayExecutor` requirements must utilize the same future type, and that this future type is determined by `async_execute`. Programs may specialize this trait for user-defined `Executor` types. *--end note]*
+[*Note:* The effect of this specification is that all execute functions of an executor that satisfies the `TwoWayExecutor`, `NonBlockingTwoWayExecutor`, or `BulkTwoWayExecutor` requirements must utilize the same future type, and that this future type is determined by `async_execute`. Programs may specialize this trait for user-defined `Executor` types. *--end note*]
 
 ## Bulk executor traits
 
@@ -662,14 +662,14 @@ The type of `executor_future<Executor, T>::type` is determined as follows:
         >;
     };
 
-1. Components which create groups of execution agents may use *execution
-   categories* to communicate the forward progress and ordering guarantees of
-   these execution agents with respect to other agents within the same group.
+Components which create groups of execution agents may use *execution
+categories* to communicate the forward progress and ordering guarantees of
+these execution agents with respect to other agents within the same group.
   
-2. *The meanings and relative "strength" of these categores are to be defined.
-   Most of the wording for `sequenced_execution_tag`, `parallel_execution_tag`,
-   and `unsequenced_execution_tag` can be migrated from S 25.2.3 p2, p3, and
-   p4, respectively.*
+*The meanings and relative "strength" of these categores are to be defined.
+Most of the wording for `sequenced_execution_tag`, `parallel_execution_tag`,
+and `unsequenced_execution_tag` can be migrated from S 25.2.3 p2, p3, and
+p4, respectively.*
 
 ### Associated shape type
 
