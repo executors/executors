@@ -19,9 +19,9 @@ Other Contributors: Hans Boehm, hboehm@google.com
 
                     Lee Howes, xrikcus@gmail.com
 
-                    Bryce Lelbach, brycelelbach@gmail.com
-
                     Hartmut Kaiser, hartmut.kaiser@gmail.com
+
+                    Bryce Lelbach, brycelelbach@gmail.com
 
                     Gor Nishanov, gorn@microsoft.com
 
@@ -214,7 +214,9 @@ uses OpenMP language extensions to invoke a function a number of times in parall
         }
 
         template<class Function, class ResultFactory, class SharedFactory>
-        auto bulk_sync_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory) const
+        auto bulk_sync_execute(Function f, size_t n,
+                               ResultFactory result_factory,
+                               SharedFactory shared_factory) const
         {
           auto result = result_factory();
           auto shared_arg = shared_factory();
