@@ -1227,7 +1227,7 @@ bool operator==(const C& a, const C& b) noexcept;
 
 *Returns:*
 
-- if `!a` and `!b`;
+- `true` if `!a` and `!b`;
 - `true` if `a` and `b` share a target;
 - `true` if `e` and `f` are the same type and `e == f`, where `e` is the target of `a` and `f` is the target of `b`;
 - otherwise `false`.
