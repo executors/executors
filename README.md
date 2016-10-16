@@ -1987,8 +1987,32 @@ class parallel_unsequenced_execution_tag { by-analogy-to-parallel_execution_poli
 
 # Relationship to other proposals and specifications
 
-## (Networking TS) executor category
+## Networking TS
 
-XXX TODO
+Executors in the Networking TS may be defined as refinements of the type requirements in this proposal, as illustrated below. In addition to these requirements, some minor changes would be required to member function names and parameters used in the Networking TS, to conform to the requirements defined in this proposal.
+
+### `NetworkingExecutor` requirements
+
+A type `X` satisfies the `NetworkingExecutor` requirements if it satisfies the `NonBlockingOneWayExecutor` requirements, the `ExecutorWorkTracker` requirements, and satisfies the additional requirements listed below.
+
+In the Table \ref{net_execution_context_requirements} below, `x` denotes a (possibly const) value of type `X`.
+
+| expression    | return type   | assertion/note pre/post-condition |
+|---------------|----------------------------|----------------------|
+| `x.context()` | `net::execution_context&`, or `E&` where `E` is a type that satisfies the `NetworkingExecutionContext` requirements. | |
+
+### `NetworkingExecutionContext` requirements
+
+A type `X` satisfies the `NetworkingExecutionContext` requirements if it satisfies the `ExecutionContext` requirements, is publicly and unambiguously derived from `net::execution_context`, and satisfies the additional requirements listed below.
+
+In the Table \ref{net_execution_context_requirements} below, `x` denotes a value of type `X`.
+
+Table: (NetworkingExecutionContext requirements) \label{net_execution_context_requirements}
+
+| expression    | return type   | assertion/note pre/post-condition |
+|---------------|----------------------------|----------------------|
+| `X::executor_type` | type meeting `NetworkingExecutor` requirements | |
+| `x.~X()` | | Destroys all unexecuted function objects that were submitted via an executor object that is associated with the execution context. |
+| `x.get_executor()` | `X::executor_type` | Returns an executor object that is associated with the execution context. |
 
 # Future work
