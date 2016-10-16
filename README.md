@@ -1532,7 +1532,8 @@ class thread_pool::executor_type
       void defer(Func&& f, const ProtoAllocator& a = ProtoAllocator()) const;
 
     template<class Function>
-      void sync_execute(Function&& f) const;
+      result_of_t<decay_t<Function>()>
+        sync_execute(Function&& f) const;
 
     template<class Function>
       std::future<result_of_t<decay_t<Function>()>>
@@ -1665,7 +1666,8 @@ template<class Func, class ProtoAllocator = std::allocator<void>>
 
 ```
 template<class Function>
-  void sync_execute(Function&& f) const;
+  result_of_t<decay_t<Function>()>
+    sync_execute(Function&& f) const;
 ```
 
 *Effects:* If `running_in_this_thread()` is `true`, calls
