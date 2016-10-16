@@ -1220,7 +1220,6 @@ template<class Executor> const Executor* target() const noexcept;
 ```
 
 *Returns:* If `target_type() == typeid(Executor)` a pointer to the stored executor target; otherwise a null pointer value.
-\end{itemdescr}
 
 #### Polymorphic executor comparisons
 
