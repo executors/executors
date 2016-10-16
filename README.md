@@ -409,6 +409,8 @@ The destructor shall not block pending completion of the submitted function obje
 
 In the table below, `x1` and `x2` denote (possibly const) values of type `X`, `mx1` denotes an xvalue of type `X`, and `u` denotes an identifier.
 
+Table: (Base executor requirements) \label{base_executor_requirements}
+
 | Expression | Type | Assertion/note/pre-/post-condition |
 |------------|------|------------------------------------|
 | `X u(x1);` | | Shall not exit via an exception.<br/><br/>*Post:* `u == x1` and `u.context() == x1.context()`. |
@@ -427,6 +429,8 @@ The executor copy constructor, comparison operators, and other member functions 
 
 In the table below, `x` denotes a (possibly const) value of type `X`, and `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
 
+Table: (One-way executor requirements) \label{one_way_executor_requirements}
+
 | Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
 |------------|-------------|-----------------------|-------------------------------------|
 | `x.execute(f)` | | Creates a weakly parallel execution agent which invokes `DECAY_COPY(std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `execute`.<br/><br/>May block forward progress of the caller until `DECAY_COPY(std::forward<F>(f))()` finishes execution. | *Synchronization:* The invocation of `execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. |
@@ -441,6 +445,8 @@ The executor copy constructor, comparison operators, and other member functions 
 
 In the table below, `x` denotes a (possibly const) value of type `X`, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements, and `a` denotes a (possibly const) value of type `A` satisfying the `ProtoAllocator` requirements.
 
+Table: (Host-based one-way executor requirements) \label{host_based_one_way_executor_requirements}
+
 | Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
 |------------|-------------|-----------------------|-------------------------------------|
 | `x.execute(f)`<br/>`x.execute(f,a)` | | Creates a parallel execution agent which invokes `DECAY_COPY(std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `execute`.<br/><br/>May block forward progress of the caller until `DECAY_COPY(std::forward<F>(f))()` finishes execution.<br/><br/>Executor implementations should use the supplied allocator (if any) to allocate any memory required to store the function object. Prior to invoking the function object, the executor shall deallocate any memory allocated. *[Note:* Executors defined in this Technical Specification always use the supplied allocator unless otherwise specified. *--end note]* | *Synchronization:* The invocation of `execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`.|
@@ -454,6 +460,8 @@ A type `X` satisfies the `NonBlockingOneWayExecutor` requirements if it satisfie
 The executor copy constructor, comparison operators, and other member functions defined in these requirements shall not introduce data races as a result of concurrent calls to those functions from different threads.
 
 In the table below, `x` denotes a (possibly const) value of type `X`, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements, and `a` denotes a (possibly const) value of type `A` satisfying the `ProtoAllocator` requirements.
+
+Table: (Non-blocking one-way executor requirements) \label{non_blocking_one_way_executor_requirements}
 
 | Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
 |------------|-------------|-----------------------|-------------------------------------|
