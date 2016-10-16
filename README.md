@@ -438,7 +438,10 @@ namespace execution {
   // Polymorphic executor wrappers:
 
   class one_way_executor;
+  class host_based_one_way_executor;
+  class non_blocking_one_way_executor;
   class two_way_executor;
+  class non_blocking_two_way_executor;
 
 } // namespace execution
 } // inline namespace concurrency_v2
@@ -1202,307 +1205,464 @@ void reset() noexcept;
 
 ## Polymorphic executor wrappers
 
+### General requirements on polymorphic executor wrappers
+
+Polymorphic executors defined in this Technical Specification satisfy the `BaseExecutor`, `DefaultConstructible` (C++Std [defaultconstructible]), and `CopyAssignable` (C++Std [copyassignable]) requirements, and are defined as follows.
+
+```
+class C
+{
+public:
+  class context_type; // TODO define this
+
+  // construct / copy / destroy:
+
+  C() noexcept;
+  C(nullptr_t) noexcept;
+  C(const executor& e) noexcept;
+  C(executor&& e) noexcept;
+  template<class Executor> C(Executor e);
+  template<class Executor, class ProtoAllocator>
+    C(allocator_arg_t, const ProtoAllocator& a, Executor e);
+
+  C& operator=(const C& e) noexcept;
+  C& operator=(C&& e) noexcept;
+  C& operator=(nullptr_t) noexcept;
+  template<class Executor> C& operator=(Executor e);
+
+  ~C();
+
+  // polymorphic executor modifiers:
+
+  void swap(C& other) noexcept;
+  template<class Executor, class ProtoAllocator>
+    void assign(Executor e, const ProtoAllocator& a);
+
+  // C operations:
+
+  context_type context() const noexcept;
+
+  // polymorphic executor capacity:
+
+  explicit operator bool() const noexcept;
+
+  // polymorphic executor target access:
+
+  const type_info& target_type() const noexcept;
+  template<class Executor> Executor* target() noexcept;
+  template<class Executor> const Executor* target() const noexcept;
+};
+
+// polymorphic executor comparisons:
+
+bool operator==(const C& a, const C& b) noexcept;
+bool operator==(const C& e, nullptr_t) noexcept;
+bool operator==(nullptr_t, const C& e) noexcept;
+bool operator!=(const C& a, const C& b) noexcept;
+bool operator!=(const C& e, nullptr_t) noexcept;
+bool operator!=(nullptr_t, const C& e) noexcept;
+
+// executor specialized algorithms:
+
+void swap(C& a, C& b) noexcept;
+
+// in namespace std:
+
+template<class Allocator>
+  struct uses_allocator<C, Allocator>
+    : true_type {};
+```
+
+[*Note:* To meet the `noexcept` requirements for executor copy constructors and move constructors, implementations may share a target between two or more `executor` objects. *--end note*]
+
+The *target* is the executor object that is held by the wrapper.
+
+#### Polymorphic executor constructors
+
+```
+C() noexcept;
+```
+
+*Postconditions:* `!*this`.
+
+```
+C(nullptr_t) noexcept;
+```
+
+*Postconditions:* `!*this`.
+
+```
+C(const C& e) noexcept;
+```
+
+*Postconditions:* `!*this` if `!e`; otherwise, `*this` targets `e.target()` or a copy of `e.target()`.
+
+```
+C(C&& e) noexcept;
+```
+
+*Effects:* If `!e`, `*this` has no target; otherwise, moves `e.target()` or move-constructs the target of `e` into the target of `*this`, leaving `e` in a valid state with an unspecified value.
+
+```
+template<class Executor> C(Executor e);
+```
+
+*Effects:* `*this` targets a copy of `e` initialized with `std::move(e)`.
+
+```
+template<class Executor, class ProtoAllocator>
+  C(allocator_arg_t, const ProtoAllocator& a, Executor e);
+```
+
+*Effects:* `*this` targets a copy of `e` initialized with `std::move(e)`.
+
+A copy of the allocator argument is used to allocate memory, if necessary, for the internal data structures of the constructed `C` object.
+
+#### Polymorphic executor assignment
+
+```
+C& operator=(const C& e) noexcept;
+```
+
+*Effects:* `C(e).swap(*this)`.
+
+*Returns:* `*this`.
+
+```
+C& operator=(C&& e) noexcept;
+```
+
+*Effects:* Replaces the target of `*this` with the target of `e`, leaving `e` in a valid state with an unspecified value.
+
+*Returns:* `*this`.
+
+```
+C& operator=(nullptr_t) noexcept;
+```
+
+*Effects:* `C(nullptr).swap(*this)`.
+
+*Returns:* `*this`.
+
+```
+template<class Executor> C& operator=(Executor e);
+```
+
+*Effects:* `C(std::move(e)).swap(*this)`.
+
+*Returns:* `*this`.
+
+#### Polymorphic executor destructor
+
+```
+~C();
+```
+
+*Effects:* If `*this != nullptr`, releases shared ownership of, or destroys, the target of `*this`.
+
+#### Polymorphic executor modifiers
+
+```
+void swap(C& other) noexcept;
+```
+
+*Effects:* Interchanges the targets of `*this` and `other`.
+
+```
+template<class Executor, class ProtoAllocator>
+  void assign(Executor e, const ProtoAllocator& a);
+```
+
+*Effects:* `C(allocator_arg, a, std::move(e)).swap(*this)`.
+
+#### Polymorphic executor operations
+
+```
+context_type context() const noexcept;
+```
+
+*Requires:* `*this != nullptr`.
+
+*Returns:* A polymorphic wrapper for `e.context()`, where `e` is the target object of `*this`.
+
+#### Polymorphic executor capacity
+
+```
+explicit operator bool() const noexcept;
+```
+
+*Returns:* `true` if `*this` has a target, otherwise `false`.
+
+#### Polymorphic executor target access
+
+```
+const type_info& target_type() const noexcept;
+```
+
+*Returns:* If `*this` has a target of type `T`, `typeid(T)`; otherwise, `typeid(void)`.
+
+```
+template<class Executor> Executor* target() noexcept;
+template<class Executor> const Executor* target() const noexcept;
+```
+
+*Returns:* If `target_type() == typeid(Executor)` a pointer to the stored executor target; otherwise a null pointer value.
+
+#### Polymorphic executor comparisons
+
+```
+bool operator==(const C& a, const C& b) noexcept;
+```
+
+*Returns:*
+
+- `true` if `!a` and `!b`;
+- `true` if `a` and `b` share a target;
+- `true` if `e` and `f` are the same type and `e == f`, where `e` is the target of `a` and `f` is the target of `b`;
+- otherwise `false`.
+
+```
+bool operator==(const C& e, nullptr_t) noexcept;
+bool operator==(nullptr_t, const C& e) noexcept;
+```
+
+*Returns:* `!e`.
+
+```
+bool operator!=(const C& a, const C& b) noexcept;
+```
+
+*Returns:* `!(a == b)`.
+
+```
+bool operator!=(const C& e, nullptr_t) noexcept;
+bool operator!=(nullptr_t, const C& e) noexcept;
+```
+
+*Returns:* `(bool) e`.
+
+#### Polymorphic executor specialized algorithms
+
+```
+void swap(C& a, C& b) noexcept;
+```
+
+*Effects:* `a.swap(b)`.
+
 ### Class `one_way_executor`
 
-XXX this section has a lot of wording redundant with `any`. it would be nice if the constructors & 
-    modifiers effects/return clauses could say something like "as if by corresponding-expression-involving-some-expository-`std::any`-object"
-
+Class `one_way_executor` satisfies the general requirements on polymorphic executor wrappers, with the additional definitions below.
 
 ```
 class one_way_executor
 {
-  public:
-    // construction and destruction
-  
-    // XXX a future proposal can introduce the default constructor
-    //     and account for empty states
-    // one_way_executor() noexcept;
-
-    one_way_executor(const one_way_executor& other);
-
-    // XXX this proposal omits move construction because
-    //     it seems like it would leave the other executor
-    //     in an empty state
-    // one_way_executor(one_way_executor&& other) noexcept;
-
-    template<class OneWayExecutor>
-    one_way_executor(OneWayExecutor&& exec);
-
-    // assignments
-    one_way_executor& operator=(const one_way_executor& rhs);
-
-    template<class OneWayExecutor>
-    one_way_executor& operator=(exec& rhs);
-
-    // modifiers
-    void swap(one_way_executor& rhs) noexcept;
-
-    // execution agent creation
-    template<class Function>
-    void execute(Function&& f);
-
-    // XXX future proposals can introduce member functions for each
-    //     Executor customization point
-
-  private:
-    std::any contained_executor_; // exposition only
+public:
+  // execution agent creation
+  template<class Function>
+    void execute(Function&& f) const;
 };
-
-// non-member functions
-void swap(one_way_executor& x, one_way_executor& y);
-
-bool operator==(const one_way_executor& x, const one_way_executor& y);
 ```
 
-1. An object of class `one_way_executor` stores an instance of any `OneWayExecutor` type. The stored instance is called the *contained executor*.
+Class `one_way_executor` satisfies the `OneWayExecutor` requirements. The target object shall satisfy the `OneWayExecutor` requirements.
 
-#### Construction and destruction
+```
+template<class Function>
+  void execute(Function&& f) const;
+```
 
-1.  ```
-    one_way_executor(const one_way_executor& other);
-    ```
+Let `e` be the target object of `*this`. Let `fd` be the result of `DECAY_COPY(std::forward<Function>(f))`.
 
-2. *Effects:* Constructs an object of type `one_ay_executor` with a copy of `other`'s contained executor.
+*Effects:* Performs `e.execute(g)`, where `g` is a function object of unspecified type that, when called as `g()`, performs `fd()`.
 
-3. *Throws:* Any exceptions arising from calling the selected constructor of the contained executor.
+### Class `host_based_one_way_executor`
 
+Class `host_based_one_way_executor` satisfies the general requirements on polymorphic executor wrappers, with the additional definitions below.
 
-4.  ```
-    one_way_executor(one_way_executor&& other);
-    ```
+```
+class host_based_one_way_executor
+{
+public:
+  // execution agent creation
+  template<class Function, class ProtoAllocator = std::allocator<void>>
+    void execute(Function&& f, const ProtoAllocator& a = ProtoAllocator()) const;
+};
+```
 
-5. *Effects:* Constructs an object of type `one_way_executor` with a contained executor move constructed from `other`'s contained executor.
+Class `host_based_one_way_executor` satisfies the `HostBasedOneWayExecutor` requirements. The target object shall satisfy the `HostBasedOneWayExecutor` requirements.
 
-6.  ```
-    template<class OneWayExecutor>
-    one_way_executor(OneWayExecutor&& exec);
-    ```
+```
+template<class Function, class ProtoAllocator>
+  void execute(Function&& f, const ProtoAllocator& a) const;
+```
 
-7. Let `T` be `decay_t<OneWayExecutor>`.
+Let `e` be the target object of `*this`. Let `a1` be the allocator that was specified when the target was set. Let `fd` be the result of `DECAY_COPY(std::forward<Function>(f))`.
 
-8. *Effects:* Constructs an object of type `one_way_executor` that contains an executor of type `T` direct-initialized with
-   `std::forward<OneWayExecutor>(exec)`.
+*Effects:* Performs `e.execute(g, a1)`, where `g` is a function object of unspecified type that, when called as `g()`, performs `fd()`. The allocator `a` is used to allocate any memory required to implement `g`.
 
-9. *Remarks:* This constructor shall not participate in overload resolution unless `is_one_way_executor_v<T>` is `true` or if `T` is the same type as `one_way_executor`.
+### Class `non_blocking_one_way_executor`
 
-10. *Throws:* Any exception thrown by the selected constructor of `T`.
+Class `non_blocking_one_way_executor` satisfies the general requirements on polymorphic executor wrappers, with the additional definitions below.
 
-#### Assignment
+```
+class non_blocking_one_way_executor
+{
+public:
+  // execution agent creation
+  template<class Function, class ProtoAllocator = std::allocator<void>>
+    void execute(Function&& f, const ProtoAllocator& a = ProtoAllocator()) const;
+  template<class Function, class ProtoAllocator = std::allocator<void>>
+    void post(Function&& f, const ProtoAllocator& a = ProtoAllocator()) const;
+  template<class Function, class ProtoAllocator = std::allocator<void>>
+    void defer(Function&& f, const ProtoAllocator& a = ProtoAllocator()) const;
+};
+```
 
-1.  ```
-    one_way_executor& operator=(const one_way_executor& rhs);
-    ```
+Class `non_blocking_one_way_executor` satisfies the `NonBlockingOneWayExecutor` requirements. The target object shall satisfy the `NonBlockingOneWayExecutor` requirements.
 
-2. *Effects:* As if by `one_way_executor(rhs).swap(*this)`. No effects if an exception is thrown.
+```
+template<class Function, class ProtoAllocator>
+  void execute(Function&& f, const ProtoAllocator& a) const;
+```
 
-3. *Returns:* `*this`.
+Let `e` be the target object of `*this`. Let `a1` be the allocator that was specified when the target was set. Let `fd` be the result of `DECAY_COPY(std::forward<Function>(f))`.
 
-4. *Throws:* Any exceptions arising from the copy constructor of the contained executor.
+*Effects:* Performs `e.execute(g, a1)`, where `g` is a function object of unspecified type that, when called as `g()`, performs `fd()`. The allocator `a` is used to allocate any memory required to implement `g`.
 
-5.  ```
-    template<class OneWayExecutor>
-    one_way_executor& operator=(OneWayExecutor&& rhs);
-    ```
+```
+template<class Function, class ProtoAllocator>
+  void post(Function&& f, const ProtoAllocator& a) const;
+```
 
-6. Let `T` be `decay_t<OneWayExecutor>`.
+Let `e` be the target object of `*this`. Let `a1` be the allocator that was specified when the target was set. Let `fd` be the result of `DECAY_COPY(std::forward<Function>(f))`.
 
-7. *Effects:* Constructs an object `tmp` of type `one_way_executor` that contains an executor of type `T` direct-initialized with
-   `std::forward<OneWayExecutor>(rhs)`, and `tmp.swap(*this)`. No effects if an exception is thrown.
+*Effects:* Performs `e.post(g, a1)`, where `g` is a function object of unspecified type that, when called as `g()`, performs `fd()`. The allocator `a` is used to allocate any memory required to implement `g`.
 
-7. *Remarks*: This operator does not participate in overload resolution unless `is_one_way_executor_v<T>` is `true` or if `T` is the same type as `one_way_executor`.
+```
+template<class Function, class ProtoAllocator>
+  void defer(Function&& f, const ProtoAllocator& a) const;
+```
 
-8. *Throws:* Any exception thrown by the selected constructor of `T`.
+Let `e` be the target object of `*this`. Let `a1` be the allocator that was specified when the target was set. Let `fd` be the result of `DECAY_COPY(std::forward<Function>(f))`.
 
-#### Modifiers
-
-1.  ```
-    void swap(one_way_executor& rhs) noexcept;
-    ```
-
-2. *Effects:* Exchanges the contained executors of `*this` and `rhs`.
-
-#### Execution agent creation
-
-##### Member function `execute`
-
-1.  ```
-    template<class Function>
-    void execute(Function&& f);
-    ```
-
-2. Let `exec` be this `one_way_executor`'s contained executor.
-
-3. *Effects:* As if by `execution::execute(exec, std::forward<Function>(f))`.
-
-#### Non-member functions
-
-1.  ```
-    void swap(one_way_executor& x, one_way_executor& y) noexcept;
-    ```
-
-2. *Effects:* As if by `x.swap(y)`.
-
-
-3.  ```
-    bool operator==(const one_way_executor& x, const one_way_executor& y)
-    ```
-
-4. Let `x_exec` be `x`'s contained executor and `y_exec` be `y`'s contained executor.
-
-4. *Returns:* `x_exec == y_exec`.
-
+*Effects:* Performs `e.defer(g, a1)`, where `g` is a function object of unspecified type that, when called as `g()`, performs `fd()`. The allocator `a` is used to allocate any memory required to implement `g`.
 
 ### Class `two_way_executor`
 
-XXX this section has a lot of wording redundant with `any`. it would be nice if the constructors & 
-    modifiers effects/return clauses could say something like "as if by corresponding-expression-involving-some-expository-`std::any`-object"
-
+Class `two_way_executor` satisfies the general requirements on polymorphic executor wrappers, with the additional definitions below.
 
 ```
 class two_way_executor
 {
-  public:
-    // construction and destruction
-  
-    // XXX a future proposal can introduce the default constructor
-    //     and account for empty states
-    // two_way_executor() noexcept;
-
-    two_way_executor(const two_way_executor& other);
-
-    // XXX this proposal omits move construction because
-    //     it seems like it would leave the other executor
-    //     in an empty state
-    // two_way_executor(two_way_executor&& other) noexcept;
-
-    template<class TwoWayExecutor>
-    two_way_executor(TwoWayExecutor&& exec);
-
-    // assignments
-    two_way_executor& operator=(const two_way_executor& rhs);
-
-    template<class OneWayExecutor>
-    two_way_executor& operator=(exec& rhs);
-
-    // modifiers
-    void swap(two_way_executor& rhs) noexcept;
-
-    // execution agent creation
-    template<class Function>
-    future<result_of_t<decay_t<Function>()>>
-    async_execute(Function&& f);
-
-    // XXX future proposals can introduce member functions for each
-    //     Executor customization point
-
-  private:
-    std::any contained_executor_; // exposition only
+public:
+  // execution agent creation
+  template<class Function>
+    result_of_t<decay_t<Function>()>
+      sync_execute(Function&& f) const;
+  template<class Function>
+    std::future<result_of_t<decay_t<Function>()>>
+      async_execute(Function&& f) const;
 };
-
-// non-member functions
-void swap(two_way_executor& x, two_way_executor& y);
-
-bool operator==(const two_way_executor& x, const two_way_executor& y);
 ```
 
-1. An object of class `two_way_executor` stores an instance of any `TwoWayExecutor` type. The stored instance is called the *contained executor*.
+Class `two_way_executor` satisfies the `TwoWayExecutor` requirements. The target object shall satisfy the `TwoWayExecutor` requirements.
 
-#### Construction and destruction
+```
+template<class Executor, class Function>
+  result_of_t<decay_t<Function>()>
+    sync_execute(Function&& f);
+```
 
-1.  ```
-    two_way_executor(const two_way_executor& other);
-    ```
+Let `e` be the target object of `*this`. Let `fd` be the result of `DECAY_COPY(std::forward<Function>(f))`.
 
-2. *Effects:* Constructs an object of type `one_way_executor` with a copy of `other`'s contained executor.
+*Effects:* Performs `e.execute(g)`, where `g` is a function object of unspecified type that, when called as `g()`, performs `fd()`.
 
-3. *Throws:* Any exceptions arising from calling the selected constructor of the contained executor.
+*Returns:* The return value of `fd()`.
 
+```
+template<class Function>
+  std::future<result_of_t<decay_t<Function>()>>
+    async_execute(Function&& f) const;
+```
 
-4.  ```
-    two_way_executor(two_way_executor&& other);
-    ```
+Let `e` be the target object of `*this`. Let `fd` be the result of `DECAY_COPY(std::forward<Function>(f))`.
 
-5. *Effects:* Constructs an object of type `two_way_executor` with a contained executor move constructed from `other`'s contained executor.
+*Effects:* Performs `e.async_execute(g)`, where `g` is a function object of unspecified type that, when called as `g()`, performs `fd()`.
 
-6.  ```
-    template<class OneWayExecutor>
-    two_way_executor(OneWayExecutor&& exec);
-    ```
+*Returns:* A future with an associated shared state that will contain the result of `fd()`. [*Note:* `e.async_execute(g)` may return any future type that satisfies the Future requirements, and not necessarily `std::future`. One possible implementation approach is for the polymorphic wrapper to attach a continuation to the inner future via that object's `then()` member function. When invoked, this continuation stores the result in the outer future's associated shared and makes that shared state ready. *--end note*]
 
-7. Let `T` be `decay_t<OneWayExecutor>`.
+### Class `non_blocking_two_way_executor`
 
-8. *Effects:* Constructs an object of type `two_way_executor` that contains an executor of type `T` direct-initialized with
-   `std::forward<OneWayExecutor>(exec)`.
+Class `non_blocking_two_way_executor` satisfies the general requirements on polymorphic executor wrappers, with the additional definitions below.
 
-9. *Remarks:* This constructor shall not participate in overload resolution unless `is_two_way_executor_v<T>` is `true` or if `T` is the same type as `two_way_executor`.
+```
+class non_blocking_two_way_executor
+{
+public:
+  // execution agent creation
+  template<class Function>
+    result_of_t<decay_t<Function>()>
+      sync_execute(Function&& f) const;
+  template<class Function>
+    std::future<result_of_t<decay_t<Function>()>>
+      async_execute(Function&& f) const;
+  template<class Function>
+    std::future<result_of_t<decay_t<Function>()>>
+      async_post(Function&& f) const;
+  template<class Function>
+    std::future<result_of_t<decay_t<Function>()>>
+      async_defer(Function&& f) const;
+};
+```
 
-10. *Throws:* Any exception thrown by the selected constructor of `T`.
+Class `non_blocking_two_way_executor` satisfies the `NonBlockingTwoWayExecutor` requirements. The target object shall satisfy the `NonBlockingTwoWayExecutor` requirements.
 
-#### Assignment
+```
+template<class Executor, class Function>
+  result_of_t<decay_t<Function>()>
+    sync_execute(Function&& f);
+```
 
-1.  ```
-    two_way_executor& operator=(const two_way_executor& rhs);
-    ```
+Let `e` be the target object of `*this`. Let `fd` be the result of `DECAY_COPY(std::forward<Function>(f))`.
 
-2. *Effects:* As if by `two_way_executor(rhs).swap(*this)`. No effects if an exception is thrown.
+*Effects:* Performs `e.execute(g)`, where `g` is a function object of unspecified type that, when called as `g()`, performs `fd()`.
 
-3. *Returns:* `*this`.
+*Returns:* The return value of `fd()`.
 
-4. *Throws:* Any exceptions arising from the copy constructor of the contained executor.
+```
+template<class Function>
+  std::future<result_of_t<decay_t<Function>()>>
+    async_execute(Function&& f) const;
+```
 
-5.  ```
-    template<class OneWayExecutor>
-    two_way_executor& operator=(OneWayExecutor&& rhs);
-    ```
+Let `e` be the target object of `*this`. Let `fd` be the result of `DECAY_COPY(std::forward<Function>(f))`.
 
-6. Let `T` be `decay_t<OneWayExecutor>`.
+*Effects:* Performs `e.async_execute(g)`, where `g` is a function object of unspecified type that, when called as `g()`, performs `fd()`.
 
-7. *Effects:* Constructs an object `tmp` of type `two_way_executor` that contains an executor of type `T` direct-initialized with
-   `std::forward<OneWayExecutor>(rhs)`, and `tmp.swap(*this)`. No effects if an exception is thrown.
+*Returns:* A future with an associated shared state that will contain the result of `fd()`.
 
-7. *Remarks*: This operator does not participate in overload resolution unless `is_two_way_executor_v<T>` is `true` or if `T` is the same type as `two_way_executor`.
+```
+template<class Function>
+  std::future<result_of_t<decay_t<Function>()>>
+    async_post(Function&& f) const;
+```
 
-8. *Throws:* Any exception thrown by the selected constructor of `T`.
+Let `e` be the target object of `*this`. Let `fd` be the result of `DECAY_COPY(std::forward<Function>(f))`.
 
-#### Modifiers
+*Effects:* Performs `e.async_post(g)`, where `g` is a function object of unspecified type that, when called as `g()`, performs `fd()`.
 
-1.  ```
-    void swap(two_way_executor& rhs) noexcept;
-    ```
+*Returns:* A future with an associated shared state that will contain the result of `fd()`.
 
-2. *Effects:* Exchanges the contained executors of `*this` and `rhs`.
+```
+template<class Function>
+  std::future<result_of_t<decay_t<Function>()>>
+    async_defer(Function&& f) const;
+```
 
-#### Execution agent creation
+Let `e` be the target object of `*this`. Let `fd` be the result of `DECAY_COPY(std::forward<Function>(f))`.
 
-##### Member function `async_execute`
+*Effects:* Performs `e.async_defer(g)`, where `g` is a function object of unspecified type that, when called as `g()`, performs `fd()`.
 
-1.  ```
-    template<class Function>
-    future<result_of_t<decay_t<Function>()>>
-    async_execute(Function&& f);
-    ```
-
-2. Let `exec` be this `executor`'s contained executor.
-
-3. *Returns:* Equivalent to `execution::async_execute(exec, std::forward<Function>(f))`.
-
-XXX This equivalent expression requires giving `std::future<T>` a constructor which would move convert from `executor_future_t<X,T>`, where `X` is the type of `exec`.
-
-#### Non-member functions
-
-1.  ```
-    void swap(two_way_executor& x, two_way_executor& y) noexcept;
-    ```
-
-2. *Effects:* As if by `x.swap(y)`.
-
-3.  ```
-    bool operator==(const two_way_executor& x, const two_way_executor& y)
-    ```
-
-4. Let `x_exec` be `x`'s contained executor and `y_exec` be `y`'s contained executor.
-
-4. *Returns:* `x_exec == y_exec`.
+*Returns:* A future with an associated shared state that will contain the result of `fd()`.
 
 ## Thread pool type
 
