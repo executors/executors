@@ -1194,7 +1194,7 @@ template<class Executor, class ProtoAllocator>
 context_type context() const noexcept;
 ```
 
-\requires `*this != nullptr`.
+*Requires:* `*this != nullptr`.
 
 *Returns:* A polymorphic wrapper for `e.context()`, where `e` is the target object of `*this`.
 
