@@ -1881,7 +1881,7 @@ async(const Executor& exec, Function&& f, Args&&... args);
 
 *Returns:* Equivalent to:
 
-`return execution::async_execute(exec, [=]{ return INVOKE(f, args...); });`
+`return execution::async_post(exec, [=]{ return INVOKE(f, args...); });`
 
 XXX This forwarding doesn't look correct to me
 
