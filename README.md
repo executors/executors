@@ -1086,7 +1086,7 @@ template<class Allocator>
     : true_type {};
 ```
 
-*[Note:* To meet the `noexcept` requirements for executor copy constructors and move constructors, implementations may share a target between two or more `executor` objects. *--end note]*
+[*Note:* To meet the `noexcept` requirements for executor copy constructors and move constructors, implementations may share a target between two or more `executor` objects. *--end note*]
 
 The *target* is the executor object that is held by the wrapper.
 
@@ -1402,7 +1402,7 @@ Let `e` be the target object of `*this`. Let `fd` be the result of `DECAY_COPY(s
 
 *Effects:* Performs `e.async_execute(g)`, where `g` is a function object of unspecified type that, when called as `g()`, performs `fd()`.
 
-*Returns:* A future with an associated shared state that will contain the result of `fd()`. *[Note:* `e.async_execute(g)` may return any future type that satisfies the Future requirements, and not necessarily `std::future`. One possible implementation approach is for the polymorphic wrapper to attach a continuation to the inner future via that object's `then()` member function. When invoked, this continuation stores the result in the outer future's associated shared and makes that shared state ready. *--end note]*
+*Returns:* A future with an associated shared state that will contain the result of `fd()`. [*Note:* `e.async_execute(g)` may return any future type that satisfies the Future requirements, and not necessarily `std::future`. One possible implementation approach is for the polymorphic wrapper to attach a continuation to the inner future via that object's `then()` member function. When invoked, this continuation stores the result in the outer future's associated shared and makes that shared state ready. *--end note*]
 
 ### Class `non_blocking_two_way_executor`
 
