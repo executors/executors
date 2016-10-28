@@ -17,7 +17,7 @@ Other Contributors: Hans Boehm, hboehm@google.com
 
                     Thomas Heller, thom.heller@gmail.com
 
-                    Lee Howes, lee@codeplay.com
+                    Lee Howes, lwh@fb.com
 
                     Bryce Lelbach, brycelelbach@gmail.com
 
