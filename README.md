@@ -17,7 +17,7 @@ Other Contributors: Hans Boehm, hboehm@google.com
 
                     Thomas Heller, thom.heller@gmail.com
 
-                    Lee Howes, xrikcus@gmail.com
+                    Lee Howes, lwh@fb.com
 
                     Hartmut Kaiser, hartmut.kaiser@gmail.com
 
