@@ -851,7 +851,7 @@ template<class TwoWayExecutor, class Function>
 
 ```
 template<class OneWayExecutor, class Function>
-  std::future<decay_t<result_of_t<decay_t<Function>()>>
+  std::future<decay_t<result_of_t<decay_t<Function>()>>>
     async_execute(const OneWayExecutor& exec, Function&& f);
 ```
 
@@ -882,7 +882,7 @@ template<class NonBlockingTwoWayExecutor, class Function>
 
 ```
 template<class NonBlockingOneWayExecutor, class Function>
-  std::future<decay_t<result_of_t<decay_t<Function>()>>
+  std::future<decay_t<result_of_t<decay_t<Function>()>>>
     async_post(const NonBlockingOneWayExecutor& exec, Function&& f);
 ```
 
@@ -913,7 +913,7 @@ template<class NonBlockingTwoWayExecutor, class Function>
 
 ```
 template<class NonBlockingOneWayExecutor, class Function>
-  std::future<decay_t<result_of_t<decay_t<Function>()>>
+  std::future<decay_t<result_of_t<decay_t<Function>()>>>
     async_defer(const NonBlockingOneWayExecutor& exec, Function&& f);
 ```
 
@@ -1075,7 +1075,7 @@ template<class OneWayExecutor, class Function1, class Function2, class Function3
 
 ```
 template<class BulkTwoWayExecutor, class Function1, class Future, class Function2, class Function3>
-  executor_future_t<Executor, result_of_t<Function2()>>
+  executor_future_t<BulkTwoWayExecutor, result_of_t<Function2()>>
     bulk_then_execute(const BulkTwoWayExecutor& exec, Function1 f,
                       executor_shape_t<BulkTwoWayExecutor> shape,
                       Future& predecessor,
