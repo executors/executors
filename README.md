@@ -366,21 +366,21 @@ namespace execution {
     executor_future_t<TwoWayExecutor, result_of_t<decay_t<Function>()>>
       async_execute(const TwoWayExecutor& exec, Function&& f);
   template<class Executor, class Function>
-    std::future<decay_t<result_of_t<decay_t<Function>()>>
+    std::future<decay_t<result_of_t<decay_t<Function>()>>>
       async_execute(const Executor& exec, Function&& f);
 
   template<class NonBlockingTwoWayExecutor, class Function>
     executor_future_t<NonBlockingTwoWayExecutor, result_of_t<decay_t<Function>()>>
       async_post(const NonBlockingTwoWayExecutor& exec, Function&& f);
   template<class NonBlockingOneWayExecutor, class Function>
-    std::future<decay_t<result_of_t<decay_t<Function>()>>
+    std::future<decay_t<result_of_t<decay_t<Function>()>>>
       async_post(const NonBlockingOneWayExecutor& exec, Function&& f);
 
   template<class NonBlockingTwoWayExecutor, class Function>
     executor_future_t<NonBlockingTwoWayExecutor, result_of_t<decay_t<Function>()>>
       async_defer(const NonBlockingTwoWayExecutor& exec, Function&& f);
   template<class NonBlockingOneWayExecutor, class Function>
-    std::future<decay_t<result_of_t<decay_t<Function>()>>
+    std::future<decay_t<result_of_t<decay_t<Function>()>>>
       async_defer(const NonBlockingOneWayExecutor& exec, Function&& f);
 
   template<class TwoWayExecutor, class Function, class Future>
@@ -422,7 +422,7 @@ namespace execution {
                          Function2 result_factory, Function3 shared_factory);
 
   template<class BulkTwoWayExecutor, class Function1, class Future, class Function2, class Function3>
-    executor_future_t<Executor, result_of_t<Function2()>>
+    executor_future_t<BulkTwoWayExecutor, result_of_t<Function2()>>
       bulk_then_execute(const BulkTwoWayExecutor& exec, Function1 f,
                         executor_shape_t<BulkTwoWayExecutor> shape,
                         Future& predecessor,
