@@ -473,7 +473,7 @@ A type `X` meets the `BaseExecutor` requirements if it satisfies the requirement
 
 No comparison operator, copy operation, move operation, swap operation, or member function `context` on these types shall exit via an exception.
 
-The executor copy constructor, comparison operators, and other member functions defined in these requirements shall not introduce data races as a result of concurrent calls to those functions from different threads.
+The executor copy constructor, comparison operators, `context` member function, and other member functions defined in refinements (TODO: what should this word be?) of the `BaseExecutor` requirements shall not introduce data races as a result of concurrent calls to those functions from different threads.
 
 The destructor shall not block pending completion of the submitted function objects. [*Note:* The ability to wait for completion of submitted function objects may be provided by the associated execution context. *--end note*]
 
@@ -633,7 +633,7 @@ Table: (Bulk two-way executor requirements) \label{bulk_two_way_executor_require
 
 The `ExecutorWorkTracker` requirements defines operations for tracking future work against an executor.
 
-A type `X` meets the `ExecutorWorkTracker` requirements if it satisfies the requirements of `CopyConstructible` (C++Std [copyconstructible]) and `Destructible` (C++Std [destructible]), as well as the additional requirements listed below.
+A type `X` satisfies the `ExecutorWorkTracker` requirements if it satisfies the `BaseExecutor` requirements, as well as the additional requirements listed below.
 
 No constructor, comparison operator, copy operation, move operation, swap operation, or member functions `on_work_started` and `on_work_finished` on these types shall exit via an exception.
 
