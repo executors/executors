@@ -1972,6 +1972,9 @@ bool on_work_started() const noexcept;
 *Effects:* Increments the count of outstanding work associated with the
 `thread_pool`.
 
+*Returns:* `false` if there was a prior call to the `stop()` member function of
+the associated `thread_pool` object; otherwise `true`.
+
 ```
 void on_work_finished() const noexcept;
 ```
