@@ -631,7 +631,7 @@ Table: (Bulk two-way executor requirements) \label{bulk_two_way_executor_require
 
 ### `ExecutorWorkTracker` requirements
 
-The `ExecutorWorkTracker` requirements defines operations for tracking future work against an executor.
+The `ExecutorWorkTracker` requirements defines operations for tracking future work against an executor. These operations are used to advise an executor that function objects may be submitted to it at some point in the future.
 
 A type `X` satisfies the `ExecutorWorkTracker` requirements if it satisfies the `BaseExecutor` requirements, as well as the additional requirements listed below.
 
@@ -645,8 +645,8 @@ Table: (Executor Work Tracker requirements) \label{executor_work_tracker_require
 
 | Expression         | Return Type | Assertion/note/pre-/post-condition |
 |--------------------|-------------|------------------------------------|
-| `x.on_work_started()` | `bool` | Shall not exit via an exception. |
-| `x.on_work_finished()` | | Shall not exit via an exception. Precondition: A corresponding preceding call to `on_work_started` that returned `true`. |
+| `x.on_work_started()` | `bool` | Shall not exit via an exception. <br/>Must be paired with a corresponding subsequent call to `on_work_finished`. <br/>Returns `false` if the executor will not execute any further functions submitted to it; otherwise returns `true`. A return value of `true` does not guarantee that the executor will execute any further functions submitted to it.|
+| `x.on_work_finished()` | | Shall not exit via an exception. <br/>Precondition: A corresponding preceding call to `on_work_started` that returned `true`. |
 
 ## Executor type traits
 
