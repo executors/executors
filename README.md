@@ -262,11 +262,12 @@ uses OpenMP language extensions to invoke a function a number of times in parall
 
 **Execution Agent:**
   An instruction stream is run by an execution agent on an execution resource.
-  An execution agent may be *lightweight* in that its existance is only
-  observable while the instruction stream is running.
-  As such a lightweight execution agent may come into existence when
-  the instruction stream starts running and cease to exist when the
-  instruction stream ends.
+  This execution agent may be *lightweight* in that it only exists while the
+  instruction stream is running, but it serves as placeholder for describing the
+  observable properties of the context in which the instruction stream
+  executes. As such a lightweight execution agent may come into existence when
+  the instruction stream starts running and cease to exist when the instruction
+  stream ends.
 
 **Execution Context:**
   The mapping of execution agents to execution resources.
