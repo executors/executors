@@ -491,7 +491,7 @@ Table: (Base executor requirements) \label{base_executor_requirements}
 
 ### `OneWayExecutor` requirements
 
-The `OneWayExecutor` requirements form the basis of the one-way executor concept taxonomy. This set of requirements specifies operations for creating execution agents that need not synchronize with the thread which created them.
+The `OneWayExecutor` requirements form the basis of the one-way executor concept taxonomy. This set of requirements specifies operations for creating execution agents without a channel for awaiting the completion of a submitted function object and obtaining its result. [*Note:* That is, the executor provides fire-and-forget semantics. *--end note*]
 
 A type `X` satisfies the `OneWayExecutor` requirements if it satisfies the `BaseExecutor` requirements, as well as the additional requirements listed below.
 
@@ -541,8 +541,8 @@ Table: (Non-blocking one-way executor requirements) \label{non_blocking_one_way_
 
 The `TwoWayExecutor` requirements form the basis of the two-way executor concept taxonomy;
 every two-way executor satisfies the `TwoWayExecutor` requirements. This set of requirements
-specifies operations for creating execution agents that synchronize with the thread
-which created them.
+specifies operations for creating execution agents with a channel for awaiting the completion
+of a submitted function object and obtaining its result.
 
 In the Table \ref{two_way_executor_requirements} below, `f`, denotes a `MoveConstructible` function object with zero arguments whose result type is `R`,
 and `x` denotes an object of type `X`.
