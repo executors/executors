@@ -323,6 +323,24 @@ namespace execution {
   template<class Executor, class T>
     using executor_future_t = typename executor_future<Executor, T>::type;
 
+  struct other_execution_mapping_tag {};
+  struct thread_execution_mapping_tag {};
+  struct unique_thread_execution_mapping_tag {};
+
+  template<class Executor> struct executor_execution_mapping_category;
+
+  template<class Executor>
+    using executor_execution_mapping_category_t = typename executor_execution_mapping_catetory<Executor>::type;
+
+  struct blocking_execution_tag {};
+  struct possibly_blocking_execution_tag {};
+  struct nonblocking_execution_tag {};
+
+  template<class Executor> struct executor_blocking_category;
+
+  template<class Executor>
+    using executor_blocking_category_t = typename executor_blocking_category<Executor>::type;
+
   // Bulk executor traits:
 
   struct sequenced_execution_tag {};
@@ -699,6 +717,80 @@ The type of `executor_future<Executor, T>::type` is determined as follows:
 * otherwise, the program is ill formed.
 
 [*Note:* The effect of this specification is that all execute functions of an executor that satisfies the `TwoWayExecutor`, `NonBlockingTwoWayExecutor`, or `BulkTwoWayExecutor` requirements must utilize the same future type, and that this future type is determined by `async_execute`. Programs may specialize this trait for user-defined `Executor` types. *--end note*]
+
+### Classifying the mapping of execution agents
+
+    struct other_execution_mapping_tag {};
+    struct thread_execution_mapping_tag {};
+    struct unique_thread_execution_mapping_tag {};
+
+    template<class Executor>
+    struct executor_execution_mapping_category
+    {
+      private:
+        // exposition only
+        template<class T>
+        using helper = typename T::execution_mapping_category;
+
+      public:
+        using type = std::experimental::detected_or_t<
+          thread_execution_mapping_tag, helper, Executor
+        >;
+    };
+
+Components which create execution agents may use *execution mapping categories*
+to communicate the mapping of execution agents onto threads of execution.
+Execution mapping categories encode the characterisitics of that mapping, if it
+exists.
+
+`other_execution_mapping_tag` indicates that execution agents created by a
+component may not be mapped onto threads of execution.
+
+`thread_execution_mapping_tag` indicates that execution agents created by a
+component are mapped onto threads of execution.
+
+`unique_thread_execution_mapping_tag` indicates that each execution agent
+created by a component is mapped onto a new thread of execution.
+
+### Classifying the blocking behavior of potentially blocking operations
+
+    struct blocking_execution_tag {};
+    struct possibly_blocking_execution_tag {};
+    struct nonblocking_execution_tag {};
+
+    template<class Executor>
+    struct executor_blocking_category
+    {
+      private:
+        // exposition only
+        template<class T>
+        using helper = typename T::blocking_category;
+
+      public:
+        using type = std::experimental::detected_or_t<
+          possibly_blocking_execution_tag, helper, Executor
+        >;
+    };
+
+Components which create possibly blocking execution may use *blocking categories*
+to communicate the way in which this execution blocks the progress of its caller.
+
+`blocking_execution_tag` indicates that a component blocks its caller's
+progress pending the completion of execution created by that component.
+
+`possibly_blocking_execution_tag` indicates that a component may block its
+caller's progress pending the completion of execution created by that
+component.
+
+`nonblocking_execution_tag` indicates that a component does not block its
+caller's progress pending the completion of execution created by that
+component.
+
+Programs may use `executor_blocking_category` to query the blocking behavior of
+executor customization points whose semantics allow the possibility of
+blocking.
+
+[*Note:* These customization points which allow the possibility of blocking are `execute`, `async_execute`, `then_execute`, `bulk_execute`, `bulk_async_execute`, and `bulk_then_execute`. *--end note*]
 
 ## Bulk executor traits
 
