@@ -1,4 +1,4 @@
-% A Unified Executors Proposal for C++ | P0443R0
+% A Unified Executors Proposal for C++ | D0443R1
 
 ----------------    -------------------------------------
 Authors:            Jared Hoberock, jhoberock@nvidia.com
@@ -18,6 +18,8 @@ Other Contributors: Hans Boehm, hboehm@google.com
                     Thomas Heller, thom.heller@gmail.com
 
                     Lee Howes, lwh@fb.com
+
+                    Bryce Lelbach, brycelelbach@gmail.com
 
                     Hartmut Kaiser, hartmut.kaiser@gmail.com
 
