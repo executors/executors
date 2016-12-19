@@ -856,8 +856,6 @@ template<class OneWayExecutor, class Function>
     async_execute(const OneWayExecutor& exec, Function&& f);
 ```
 
-*Returns:* `exec.execute(std::forward<Function>(f))`.
-
 *Effects:* Creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `exec.execute(g)` where `g` is a function object of unspecified type that performs `DECAY_COPY(std::forward<Function>(f))`, with the call to `DECAY_COPY` being performed in the thread that called `async_execute`. On successful completion of `DECAY_COPY(std::forward<Function>(f))`, the return value of `DECAY_COPY(std::forward<Function>(f))` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(std::forward<Function>(f))` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready.
 
 *Returns:* An object of type `std::future<result_of_t<decay_t<Function>>()>` that refers to the shared state created by `async_execute`.
