@@ -490,6 +490,87 @@ Table: (Base executor requirements) \label{base_executor_requirements}
 | `x1 != x2` | `bool` | Same as `!(x1 == x2)`. |
 | `x1.context()` | `E&` or `const E&` where `E` is a type that satisfies the `ExecutionContext` requirements. | Shall not exit via an exception. The comparison operators and member functions defined in these requirements (TODO and the other executor requirements defined in this Technical Specification) shall not alter the reference returned by this function. |
 
+### Requirements on execution functions
+
+An execution function is a member function of the form:
+
+    x.e(...)
+
+or a non-member function of the form:
+
+    e(x, ...)
+
+where `x` denotes an executor object. The function name `e`, and the remaining arguments, are determined according to the properties and semantics of the execution function, as described below.
+
+#### Naming of execution functions
+
+The name of an execution function is determined by the combination of properties and semantics that apply to the function and to the execution agents created by it. A word or prefix is associated with each property, and these may be concatenated in the order below.
+
+| Cardinality | Directionality | Blocking semantics |
+|-------------|----------------|-------------------|
+| "" or "bulk_" | "" or "sync_" or "async_" | "execute" or "post" or "defer" |
+
+#### Cardinality
+
+The cardinality property of an execution function may be one of the following:
+
+* *Single:* The execution function permits submission of a single function object to the executor. The names of execution functions having single cardinality do not have an associated prefix.
+* *Bulk:* The execution function allows submission of multiple function objects in a single invocation, with the number determined at runtime. The names of execution functions having bulk cardinality have the prefix `bulk_`.
+
+##### Requirements on execution functions of single cardinality
+
+In the Table below, `x` denotes a (possibly const) executor object of type `X`, `e` denotes the name of the execution function, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements, and `a` denotes a (possibly const) value of type `A` satisfying the `ProtoAllocator` requirements.
+
+| Form | Semantics |
+|------|-----------|
+| `x.e(f)` | Equivalent to `x.e(f, executor_default_allocator_v<X>(x))`. |
+| `e(x,f)` | Equivalent to `e(x, f, executor_default_allocator_v<X>(x))`. |
+| `x.e(f,a)` <br/>`e(x,f,a)` | Creates a weakly parallel execution agent which invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `execute`. <br/><br/>May block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))()` finishes execution. <br/><br/>Executor implementations should use the supplied allocator (if any) to allocate any memory required to store the function object. Prior to invoking the function object, the executor shall deallocate any memory allocated. [*Note:* Executors defined in this Technical Specification always use the supplied allocator unless otherwise specified. *--end note*] | *Synchronization:* The invocation of `execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`.|
+
+##### Requirements on execution functions of bulk cardinality
+
+*TODO*
+
+#### Directionality
+
+The directionality property of an execution function may be one of the following:
+
+* *One-way:* The execution function creates execution agents without a channel for awaiting the completion of a submitted function object or for obtaining its result. *Note:* That is, the executor provides fire-and-forget semantics. *--end note*] The names of execution functions having one-way directionality do not have an associated prefix.
+* *Synchronous two-way:* The execution function blocks until execution of the submitted function is complete, and returns the result. The names of execution functions having synchronous two-way directionality have the prefix `sync_`.
+* *Asynchronous two-way:* The execution function provides a *TODO* future-like channel for awaiting the completion of a submitted function object and obtaining its result. The names of execution functions having asynchronous two-way directionality have the prefix `async_`.
+
+##### Requirements on execution functions of one-way directionality
+
+In the Table below, `x` denotes a (possibly const) executor object of type `X`, and `e` denotes the name of the execution function.
+
+| Form | Return Type |
+|------|-------------|
+| `x.e(...)` | `void` |
+| `e(x,...)` | `void` |
+
+##### Requirements on execution functions of synchronous two-way directionality
+
+*TODO*
+
+##### Requirements on execution functions of asynchronous two-way directionality
+
+*TODO*
+
+#### Blocking semantics
+
+The blocking semantics of an execution function may be one of the following:
+
+* *Potentially blocking:* The execution function may block the caller pending completion of the submitted function objects. Execution functions having potentially blocking semantics are named `execute`.
+* *Non-blocking:* The execution function shall not block the caller pending completion of the submitted function objects. Execution functions having non-blocking semantics are named `post` or `defer`.
+
+##### Requirements on execution functions having potentially blocking semantics
+
+*TODO*
+
+##### Requirements on execution functions having non-blocking semantics
+
+*TODO*
+
 ### `OneWayExecutor` requirements
 
 The `OneWayExecutor` requirements form the basis of the one-way executor concept taxonomy. This set of requirements specifies operations for creating execution agents without a channel for awaiting the completion of a submitted function object and obtaining its result. [*Note:* That is, the executor provides fire-and-forget semantics. *--end note*]
@@ -499,34 +580,19 @@ A type `X` satisfies the `OneWayExecutor` requirements if it satisfies the `Base
 The executor copy constructor, comparison operators, and other member functions defined in these requirements shall not introduce data races as a result of concurrent calls to those functions from different threads.
 
 In the Table \ref{one_way_executor_requirements} below, `x` denotes a (possibly const) value of type `X`, and `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
+In the Table \ref{host_based_one_way_executor_requirements} below, `x` denotes a (possibly const) value of type `X`, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements, and `a` denotes a (possibly const) value of type `A` satisfying the `ProtoAllocator` requirements.
 
 Table: (One-way executor requirements) \label{one_way_executor_requirements}
 
-| Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
-|------------|-----------|------------------------|------------------------|
-| `x.execute(f)` | | Creates a weakly parallel execution agent which invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `execute`. <br/><br/>May block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))()` finishes execution. | *Synchronization:* The invocation of `execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. |
-
-### `HostBasedOneWayExecutor` requirements
-
-The `HostBasedOneWayExecutor` requirements form the basis of host-based executors in the one-way executor concept taxonomy. *TODO:* description of what host-based means, i.e. as if executed in a `std::thread`, but without the requirement for separate thread-local storage or a unique thread ID.
-
-A type `X` satisfies the `HostBasedOneWayExecutor` requirements if it satisfies the `OneWayExecutor` requirements, as well as the additional requirements listed below.
-
-The executor copy constructor, comparison operators, and other member functions defined in these requirements shall not introduce data races as a result of concurrent calls to those functions from different threads.
-
-In the Table \ref{host_based_one_way_executor_requirements} below, `x` denotes a (possibly const) value of type `X`, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements, and `a` denotes a (possibly const) value of type `A` satisfying the `ProtoAllocator` requirements.
-
-Table: (Host-based one-way executor requirements) \label{host_based_one_way_executor_requirements}
-
-| Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
-|------------|-----------|------------------------|------------------------|
-| `x.execute(f)` <br/>`x.execute(f,a)` | | Creates a parallel execution agent which invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `execute`. <br/><br/>May block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))()` finishes execution. <br/><br/>Executor implementations should use the supplied allocator (if any) to allocate any memory required to store the function object. Prior to invoking the function object, the executor shall deallocate any memory allocated. [*Note:* Executors defined in this Technical Specification always use the supplied allocator unless otherwise specified. *--end note*] | *Synchronization:* The invocation of `execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`.|
+| Expression | Semantics |
+|------------|-----------|
+| `x.execute(f)` <br/>`x.executor(f,a)` | A one-way, potentially blocking execution function of single cardinality. |
 
 ### `NonBlockingOneWayExecutor` requirements
 
 The `NonBlockingOneWayExecutor` requirements add one-way operations that are guaranteed not to block the caller pending completion of submitted function objects.
 
-A type `X` satisfies the `NonBlockingOneWayExecutor` requirements if it satisfies the `HostBasedOneWayExecutor` requirements, as well as the additional requirements listed below.
+A type `X` satisfies the `NonBlockingOneWayExecutor` requirements if it satisfies the `OneWayExecutor` requirements, as well as the additional requirements listed below.
 
 The executor copy constructor, comparison operators, and other member functions defined in these requirements shall not introduce data races as a result of concurrent calls to those functions from different threads.
 
@@ -534,9 +600,9 @@ In the Table \ref{non_blocking_one_way_executor_requirements} below, `x` denotes
 
 Table: (Non-blocking one-way executor requirements) \label{non_blocking_one_way_executor_requirements}
 
-| Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
-|------------|-----------|------------------------|------------------------|
-| `x.post(f)` <br/>`x.post(f,a)` <br/>`x.defer(f)` <br/>`x.defer(f,a)` | | Creates a parallel execution agent which invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `post` or `defer`. <br/><br/>Shall not block forward progress of the caller pending completion of `DECAY_COPY( std::forward<F>(f))()`. <br/><br/>Executor implementations should use the supplied allocator (if any) to allocate any memory required to store the function object. Prior to invoking the function object, the executor shall deallocate any memory allocated. [*Note:* Executors defined in this Technical Specification always use the supplied allocator unless otherwise specified. *--end note*] | *Synchronization:* The invocation of `post` or `defer` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. <br/><br/>*Note:* Although the requirements placed on `defer` are identical to `post`, the use of `post` conveys a preference that the caller does not block the first step of `f`'s progress, whereas `defer` conveys a preference that the caller does block the first step of `f`. One use of `defer` is to convey the intention of the caller that `f` is a continuation of the current call context. The executor may use this information to optimize or otherwise adjust the way in which `f` is invoked. |
+| Expression | Semantics |
+|------------|-----------|
+| `x.post(f)` <br/>`x.post(f,a)` <br/>`x.defer(f)` <br/>`x.defer(f,a)` | A one-way, potentially blocking execution function of single cardinality. <br/><br/>*Note:* Although the requirements placed on `defer` are identical to `post`, the use of `post` conveys a preference that the caller does not block the first step of `f`'s progress, whereas `defer` conveys a preference that the caller does block the first step of `f`. One use of `defer` is to convey the intention of the caller that `f` is a continuation of the current call context. The executor may use this information to optimize or otherwise adjust the way in which `f` is invoked. |
 
 ### `TwoWayExecutor` requirements
 
