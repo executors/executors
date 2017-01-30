@@ -666,18 +666,9 @@ The blocking semantics of an execution function may be one of the following:
 
 The `OneWayExecutor` requirements form the basis of the one-way executor concept taxonomy. This set of requirements specifies operations for creating execution agents without a channel for awaiting the completion of a submitted function object and obtaining its result. [*Note:* That is, the executor provides fire-and-forget semantics. *--end note*]
 
-A type `X` satisfies the `OneWayExecutor` requirements if it satisfies the `BaseExecutor` requirements, as well as the additional requirements listed below.
+A type `X` satisfies the `OneWayExecutor` requirements if it satisfies the `BaseExecutor` requirements and `has_execute_v<X>` is true.
 
-The executor copy constructor, comparison operators, and other member functions defined in these requirements shall not introduce data races as a result of concurrent calls to those functions from different threads.
-
-In the Table \ref{one_way_executor_requirements} below, `x` denotes a (possibly const) value of type `X`, and `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
-In the Table \ref{host_based_one_way_executor_requirements} below, `x` denotes a (possibly const) value of type `X`, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements, and `a` denotes a (possibly const) value of type `A` satisfying the `ProtoAllocator` requirements.
-
-Table: (One-way executor requirements) \label{one_way_executor_requirements}
-
-| Expression | Semantics |
-|------------|-----------|
-| `x.execute(f)` <br/>`x.executor(f,a)` | A one-way, potentially blocking execution function of single cardinality. |
+The executor copy constructor, comparison operators, execution functions, and other member functions defined in these requirements shall not introduce data races as a result of concurrent calls to those functions from different threads.
 
 ### `NonBlockingOneWayExecutor` requirements
 
