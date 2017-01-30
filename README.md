@@ -323,6 +323,23 @@ namespace execution {
   template<class T> constexpr bool has_bulk_async_execute_member_v = has_bulk_async_execute_member<T>::value;
   template<class T> constexpr bool has_bulk_then_execute_member_v = has_bulk_then_execute_member<T>::value;
 
+  // Customization points:
+
+  namespace {
+    constexpr unspecified execute = unspecified;
+    constexpr unspecified post = unspecified;
+    constexpr unspecified defer = unspecified;
+    constexpr unspecified sync_execute = unspecified;
+    constexpr unspecified async_execute = unspecified;
+    constexpr unspecified async_post = unspecified;
+    constexpr unspecified async_defer = unspecified;
+    constexpr unspecified then_execute = unspecified;
+    constexpr unspecified bulk_execute = unspecified;
+    constexpr unspecified bulk_sync_execute = unspecified;
+    constexpr unspecified bulk_async_execute = unspecified;
+    constexpr unspecified bulk_then_execute = unspecified;
+  }
+
   // Executor type traits:
 
   template<class T> struct is_one_way_executor;
@@ -792,6 +809,68 @@ This sub-clause contains templates that may be used to query the properties of a
 | `template<class T>` <br/>`struct has_bulk_sync_execute_member` | `T` has a member function named `bulk_sync_execute` that satisfies the syntactic requirements of a synchronous two-way execution function of bulk cardinality. | `T` is a complete type. |
 | `template<class T>` <br/>`struct has_bulk_async_execute_member` | `T` has a member function named `bulk_async_execute` that satisfies the syntactic requirements of an asynchronous two-way, potentially blocking execution function of bulk cardinality. | `T` is a complete type. |
 | `template<class T>` <br/>`struct has_bulk_then_execute_member` | `T` has a member function named `bulk_then_execute` that satisfies the syntactic requirements of **TODO**. | `T` is a complete type. |
+
+## Customization points
+
+### `execute`
+
+    namespace {
+      constexpr unspecified execute = unspecified;
+    }
+
+The name `execute` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::execute(E, F)` for some expressions `E` and `F` is equivalent to:
+
+* `(E).execute(F)` if `has_execute_member_v<decay_t<decltype(E)>>` is true.
+
+* Otherwise, `execute(E, F)` if that expression satisfies the syntactic requirements for a one-way, potentially blocking execution function of single cardinality, with overload resolution performed in a context that includes the declaration `void get_trivial_executor(auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::execute`.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::execute(E, F)` is ill-formed.
+
+*Remarks:* Whenever `std::experimental::concurrency_v2::execution::execute(E, F)` is a valid expression, that expression satisfies the syntactics requirements for a one-way, potentially blocking execution function of single cardinality.
+
+### `post`
+
+*TODO*
+
+### `defer`
+
+*TODO*
+
+### `sync_execute`
+
+*TODO*
+
+### `async_execute`
+
+*TODO*
+
+### `async_post`
+
+*TODO*
+
+### `async_defer`
+
+*TODO*
+
+### `then_execute`
+
+*TODO*
+
+### `bulk_execute`
+
+*TODO*
+
+### `bulk_sync_execute`
+
+*TODO*
+
+### `bulk_async_execute`
+
+*TODO*
+
+### `bulk_then_execute`
+
+*TODO*
 
 ## Executor type traits
 
