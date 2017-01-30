@@ -295,6 +295,34 @@ namespace experimental {
 inline namespace concurrency_v2 {
 namespace execution {
 
+  // Member detection type traits:
+
+  template<class T> struct has_execute_member;
+  template<class T> struct has_post_member;
+  template<class T> struct has_defer_member;
+  template<class T> struct has_sync_execute_member;
+  template<class T> struct has_async_execute_member;
+  template<class T> struct has_async_post_member;
+  template<class T> struct has_async_defer_member;
+  template<class T> struct has_then_execute_member;
+  template<class T> struct has_bulk_execute_member;
+  template<class T> struct has_bulk_sync_execute_member;
+  template<class T> struct has_bulk_async_execute_member;
+  template<class T> struct has_bulk_then_execute_member;
+
+  template<class T> constexpr bool has_execute_member_v = has_execute_member<T>::value;
+  template<class T> constexpr bool has_post_member_v = has_post_member<T>::value;
+  template<class T> constexpr bool has_defer_member_v = has_defer_member<T>::value;
+  template<class T> constexpr bool has_sync_execute_member_v = has_sync_execute_member<T>::value;
+  template<class T> constexpr bool has_async_execute_member_v = has_async_execute_member<T>::value;
+  template<class T> constexpr bool has_async_post_member_v = has_async_post_member<T>::value;
+  template<class T> constexpr bool has_async_defer_member_v = has_async_defer_member<T>::value;
+  template<class T> constexpr bool has_then_execute_member_v = has_then_execute_member<T>::value;
+  template<class T> constexpr bool has_bulk_execute_member_v = has_bulk_execute_member<T>::value;
+  template<class T> constexpr bool has_bulk_sync_execute_member_v = has_bulk_sync_execute_member<T>::value;
+  template<class T> constexpr bool has_bulk_async_execute_member_v = has_bulk_async_execute_member<T>::value;
+  template<class T> constexpr bool has_bulk_then_execute_member_v = has_bulk_then_execute_member<T>::value;
+
   // Executor type traits:
 
   template<class T> struct is_one_way_executor;
@@ -714,6 +742,38 @@ Table: (Executor Work Tracker requirements) \label{executor_work_tracker_require
 |--------------------|-------------|------------------------------------|
 | `x.on_work_started()` | `bool` | Shall not exit via an exception. <br/>Must be paired with a corresponding subsequent call to `on_work_finished`. <br/>Returns `false` if the executor will not execute any further functions submitted to it; otherwise returns `true`. A return value of `true` does not guarantee that the executor will execute any further functions submitted to it.|
 | `x.on_work_finished()` | | Shall not exit via an exception. <br/>Precondition: A corresponding preceding call to `on_work_started` that returned `true`. |
+
+### Member detection type traits
+
+    template<class T> struct has_execute_member;
+    template<class T> struct has_post_member;
+    template<class T> struct has_defer_member;
+    template<class T> struct has_sync_execute_member;
+    template<class T> struct has_async_execute_member;
+    template<class T> struct has_async_post_member;
+    template<class T> struct has_async_defer_member;
+    template<class T> struct has_then_execute_member;
+    template<class T> struct has_bulk_execute_member;
+    template<class T> struct has_bulk_sync_execute_member;
+    template<class T> struct has_bulk_async_execute_member;
+    template<class T> struct has_bulk_then_execute_member;
+
+This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
+
+| Template                   | Condition           | Preconditions  |
+|----------------------------|---------------------|----------------|
+| `template<class T>` <br/>`struct has_execute_member` | `T` has a member function named `execute` that satisfies the syntactic requirements of a one-way, potentially blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_post_member` | `T` has a member function named `post` that satisfies the syntactic requirements of a one-way, non-blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_defer_member` | `T` has a member function named `defer` that satisfies the syntactic requirements of a one-way, non-blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_sync_execute_member` | `T` has a member function named `sync_execute` that satisfies the syntactic requirements of a synchronous two-way execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_async_execute_member` | `T` has a member function named `async_execute` that satisfies the syntactic requirements of an asynchronous two-way, potentially blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_async_post_member` | `T` has a member function named `async_post` that satisfies the syntactic requirements of an asynchronous two-way, non-blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_async_defer_member` | `T` has a member function named `async_defer` that satisfies the syntactic requirements of an asynchronous two-way, non-blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_then_execute_member` | `T` has a member function named `then_execute` that satisfies the syntactic requirements of **TODO**. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_execute_member` | `T` has a member function named `bulk_execute` that satisfies the syntactic requirements of a one-way, potentially blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_sync_execute_member` | `T` has a member function named `bulk_sync_execute` that satisfies the syntactic requirements of a synchronous two-way execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_async_execute_member` | `T` has a member function named `bulk_async_execute` that satisfies the syntactic requirements of an asynchronous two-way, potentially blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_then_execute_member` | `T` has a member function named `bulk_then_execute` that satisfies the syntactic requirements of **TODO**. | `T` is a complete type. |
 
 ## Executor type traits
 
