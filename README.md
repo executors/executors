@@ -344,31 +344,31 @@ namespace execution {
 
   // Customization point type traits:
 
-  template<class T> struct has_execute;
-  template<class T> struct has_post;
-  template<class T> struct has_defer;
-  template<class T> struct has_sync_execute;
-  template<class T> struct has_async_execute;
-  template<class T> struct has_async_post;
-  template<class T> struct has_async_defer;
-  template<class T> struct has_then_execute;
-  template<class T> struct has_bulk_execute;
-  template<class T> struct has_bulk_sync_execute;
-  template<class T> struct has_bulk_async_execute;
-  template<class T> struct has_bulk_then_execute;
+  template<class T> struct can_execute;
+  template<class T> struct can_post;
+  template<class T> struct can_defer;
+  template<class T> struct can_sync_execute;
+  template<class T> struct can_async_execute;
+  template<class T> struct can_async_post;
+  template<class T> struct can_async_defer;
+  template<class T> struct can_then_execute;
+  template<class T> struct can_bulk_execute;
+  template<class T> struct can_bulk_sync_execute;
+  template<class T> struct can_bulk_async_execute;
+  template<class T> struct can_bulk_then_execute;
 
-  template<class T> constexpr bool has_execute_v = has_execute<T>::value;
-  template<class T> constexpr bool has_post_v = has_post<T>::value;
-  template<class T> constexpr bool has_defer_v = has_defer<T>::value;
-  template<class T> constexpr bool has_sync_execute_v = has_sync_execute<T>::value;
-  template<class T> constexpr bool has_async_execute_v = has_async_execute<T>::value;
-  template<class T> constexpr bool has_async_post_v = has_async_post<T>::value;
-  template<class T> constexpr bool has_async_defer_v = has_async_defer<T>::value;
-  template<class T> constexpr bool has_then_execute_v = has_then_execute<T>::value;
-  template<class T> constexpr bool has_bulk_execute_v = has_bulk_execute<T>::value;
-  template<class T> constexpr bool has_bulk_sync_execute_v = has_bulk_sync_execute<T>::value;
-  template<class T> constexpr bool has_bulk_async_execute_v = has_bulk_async_execute<T>::value;
-  template<class T> constexpr bool has_bulk_then_execute_v = has_bulk_then_execute<T>::value;
+  template<class T> constexpr bool can_execute_v = can_execute<T>::value;
+  template<class T> constexpr bool can_post_v = can_post<T>::value;
+  template<class T> constexpr bool can_defer_v = can_defer<T>::value;
+  template<class T> constexpr bool can_sync_execute_v = can_sync_execute<T>::value;
+  template<class T> constexpr bool can_async_execute_v = can_async_execute<T>::value;
+  template<class T> constexpr bool can_async_post_v = can_async_post<T>::value;
+  template<class T> constexpr bool can_async_defer_v = can_async_defer<T>::value;
+  template<class T> constexpr bool can_then_execute_v = can_then_execute<T>::value;
+  template<class T> constexpr bool can_bulk_execute_v = can_bulk_execute<T>::value;
+  template<class T> constexpr bool can_bulk_sync_execute_v = can_bulk_sync_execute<T>::value;
+  template<class T> constexpr bool can_bulk_async_execute_v = can_bulk_async_execute<T>::value;
+  template<class T> constexpr bool can_bulk_then_execute_v = can_bulk_then_execute<T>::value;
 
   // Executor type traits:
 
@@ -686,7 +686,7 @@ The blocking semantics of an execution function may be one of the following:
 
 The `OneWayExecutor` requirements form the basis of the one-way executor concept taxonomy. This set of requirements specifies operations for creating execution agents without a channel for awaiting the completion of a submitted function object and obtaining its result. [*Note:* That is, the executor provides fire-and-forget semantics. *--end note*]
 
-A type `X` satisfies the `OneWayExecutor` requirements if it satisfies the `BaseExecutor` requirements and `has_execute_v<X>` is true.
+A type `X` satisfies the `OneWayExecutor` requirements if it satisfies the `BaseExecutor` requirements and `can_execute_v<X>` is true.
 
 The executor copy constructor, comparison operators, execution functions, and other member functions defined in these requirements shall not introduce data races as a result of concurrent calls to those functions from different threads.
 
@@ -913,35 +913,35 @@ The name `execute` denotes a customization point. The effect of the expression `
 
 ### Customization point type traits
 
-    template<class T> struct has_execute;
-    template<class T> struct has_post;
-    template<class T> struct has_defer;
-    template<class T> struct has_sync_execute;
-    template<class T> struct has_async_execute;
-    template<class T> struct has_async_post;
-    template<class T> struct has_async_defer;
-    template<class T> struct has_then_execute;
-    template<class T> struct has_bulk_execute;
-    template<class T> struct has_bulk_sync_execute;
-    template<class T> struct has_bulk_async_execute;
-    template<class T> struct has_bulk_then_execute;
+    template<class T> struct can_execute;
+    template<class T> struct can_post;
+    template<class T> struct can_defer;
+    template<class T> struct can_sync_execute;
+    template<class T> struct can_async_execute;
+    template<class T> struct can_async_post;
+    template<class T> struct can_async_defer;
+    template<class T> struct can_then_execute;
+    template<class T> struct can_bulk_execute;
+    template<class T> struct can_bulk_sync_execute;
+    template<class T> struct can_bulk_async_execute;
+    template<class T> struct can_bulk_then_execute;
 
 This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`. In the table below, `t` denotes an object of type `T`, *TODO define all other names*.
 
 | Template                   | Condition           | Preconditions  |
 |----------------------------|---------------------|----------------|
-| `template<class T>` <br/>`struct has_execute` | The expression `std::experimental::concurrency_v2::execution::execute(t, f)` is well-formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_post` | The expression `std::experimental::concurrency_v2::execution::post(t, f)` is well-formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_defer` | The expression `std::experimental::concurrency_v2::execution::defer(t, f)` is well-formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_sync_execute` | The expression `std::experimental::concurrency_v2::execution::sync_execute(t, f)` is well-formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_async_execute` | The expression `std::experimental::concurrency_v2::execution::async_execute(t, f)` is well-formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_async_post` | The expression `std::experimental::concurrency_v2::execution::async_post(t, f)` is well-formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_async_defer` | The expression `std::experimental::concurrency_v2::execution::async_defer(t, f)` is well-formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_then_execute` | *TODO* | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_bulk_execute` | *TODO* | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_bulk_sync_execute` | *TODO* | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_bulk_async_execute` | *TODO* | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_bulk_then_execute` | *TODO* | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_execute` | The expression `std::experimental::concurrency_v2::execution::execute(t, f)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_post` | The expression `std::experimental::concurrency_v2::execution::post(t, f)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_defer` | The expression `std::experimental::concurrency_v2::execution::defer(t, f)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_sync_execute` | The expression `std::experimental::concurrency_v2::execution::sync_execute(t, f)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_async_execute` | The expression `std::experimental::concurrency_v2::execution::async_execute(t, f)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_async_post` | The expression `std::experimental::concurrency_v2::execution::async_post(t, f)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_async_defer` | The expression `std::experimental::concurrency_v2::execution::async_defer(t, f)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_then_execute` | *TODO* | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_bulk_execute` | *TODO* | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_bulk_sync_execute` | *TODO* | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_bulk_async_execute` | *TODO* | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_bulk_then_execute` | *TODO* | `T` is a complete type. |
 
 ## Executor type traits
 
