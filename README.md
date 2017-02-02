@@ -437,9 +437,6 @@ namespace execution {
 
   // Executor customization points:
 
-  template<class OneWayExecutor, class Function>
-    void execute(const OneWayExecutor& exec, Function&& f);
-
   template<class NonBlockingOneWayExecutor, class Function>
     void post(const NonBlockingOneWayExecutor& exec, Function&& f);
 
@@ -1230,17 +1227,6 @@ p4, respectively.*
 
 The functions described in this clause are *executor customization points*.
 Executor customization points provide a uniform interface to all executor types.
-
-### Function template `execution::execute()`
-
-```
-template<class OneWayExecutor, class Function>
-  void execute(const OneWayExecutor& exec, Function&& f);
-```
-
-*Effects:* calls `exec.execute(std::forward<Function>(f))`.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_one_way_executor_v<OneWayExecutor>` is `true`.
 
 ### Function template `execution::post()`
 
