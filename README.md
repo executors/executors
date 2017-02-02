@@ -11,9 +11,9 @@ Authors:            Jared Hoberock, jhoberock@nvidia.com
 
                     Carter Edwards, hcedwar@sandia.gov
 
-Other Contributors: Hans Boehm, hboehm@google.com
-
                     Gordon Brown, gordon@codeplay.com
+
+Other Contributors: Hans Boehm, hboehm@google.com
 
                     Thomas Heller, thom.heller@gmail.com
 
