@@ -660,6 +660,25 @@ The blocking semantics of an execution function may be one of the following:
 
 *TODO*
 
+#### Execution function Combinations
+
+The table below describes the execution member functions and non-member functions that can be supported by an executor category via various combinations of the execution function requirements.
+
+| Cardinality | Directionality | Blocking semantics | Member function | Customization point |
+| ------------ | -------------- | --------------------- | ------------------- | ---------------------- |
+| Single | One-way | Potentially blocking | `x.execute(f)` <br/> `x.execute(f, a)` | `execute(x, f)` <br/> `execute(x, f, a)` |
+| Single | One-way | Non-blocking | `x.post(f)` <br/> `x.post(f, a)` <br/> `x.defer(f)`  <br/> `x.defer(f, a)` | `post(x, f)` <br/> `post(x, f, a)` <br/> `defer(x, f)`  <br/> `defer(x, f, a)` |
+| Single | Two-way synchronous | Potentially blocking | `x.sync_execute(f)` <br/> `x.sync_execute(f, a)` | `sync_execute(x, f)` <br/> `sync_execute(x, f, a)` |
+| Single | Two-way synchronous | Non-blocking | NA | NA |
+| Single | Two-way asynchronous | Potentially blocking | `x.async_execute(f)` <br/> `x.async_execute(f, a)`  <br/> `x.then_execute(f, pred)` <br/> `x.then_execute(f, pred, a)` | `async_execute(x, f)` <br/> `async_execute(x, f, a)`  <br/> `then_execute(x, f, pred)` <br/> `then_execute(x, f, pred, a)` |
+| Single | Two-way asynchronous | Non-blocking | `x.async_post(f)` <br/> `x.async_post(f, a)` | `async_post(x, f)` <br/> `x.async_post(x, f, a)` |
+| Bulk | One-way | Potentially blocking | `x.bulk_execute(f, s, sf)` | `bulk_execute(x, f, s, sf)` |
+| Bulk | One-way | Non-blocking | ? | ? |
+| Bulk | Two-way synchronous | Potentially blocking | `x.bulk_sync_execute(f, s, rf, sf)` | `bulk_sync_execute(x, f, s, rf, sf)` |
+| Bulk | Two-way synchronous | Non-blocking | ? | ? |
+| Bulk | Two-way asynchronous | Potentially blocking | `x.bulk_async_execute(f, s, rf, sf)` <br/> `x.bulk_then_execute(f, s, pred, rf, sf)` | `bulk_async_execute(x, f, s, rf, sf)` <br/> `bulk_then_execute(x, f, s, pred, rf, sf)` |
+| Bulk | Two-way asynchronous | Non-blocking | ? | ? |
+
 ### `BaseExecutor` requirements
 
 A type `X` meets the `BaseExecutor` requirements if it satisfies the requirements of `CopyConstructible` (C++Std [copyconstructible]), `Destructible` (C++Std [destructible]), and `EqualityComparable` (C++Std [equalitycomparable]), as well as the additional requirements listed below.
