@@ -980,22 +980,35 @@ The name `async_execute` denotes a customization point. The effect of the expres
     template<class T> struct can_bulk_async_execute;
     template<class T> struct can_bulk_then_execute;
 
-This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`. In the table below, `t` denotes an object of type `T`, *TODO define all other names*.
+This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
 
-| Template                   | Condition           | Preconditions  |
+In the Table below,
+* `t` denotes a (possibly const) executor object of type `T`,
+* `e` denotes the name of the execution function,
+* `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()`, where `decay_t<F>` satisfies the `MoveConstructible` requirements.
+* `bf` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))(i, s)`,
+ * where `i` denotes an object whose type is `executor_index_t<X>`,
+ * where `s` denotes an object whose type is `S` and
+ * where `decay_t<F>` satisfies the `MoveConstructible` requirements,
+* `rf` denotes a `CopyConstructible` function object with one argument whose result type is `R`,
+* `sf` denotes a `CopyConstructible` function object with one argument whose result type is `S`,
+* `pred` denotes a future object whose result is `pr` and
+* `a` denotes a (possibly const) value of type `A` satisfying the `ProtoAllocator` requirements.
+
+| Template                   | Conditions           | Preconditions  |
 |----------------------------|---------------------|----------------|
-| `template<class T>` <br/>`struct can_execute` | The expression `std::experimental::concurrency_v2::execution::execute(t, f)` is well-formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_post` | The expression `std::experimental::concurrency_v2::execution::post(t, f)` is well-formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_defer` | The expression `std::experimental::concurrency_v2::execution::defer(t, f)` is well-formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_sync_execute` | The expression `std::experimental::concurrency_v2::execution::sync_execute(t, f)` is well-formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_async_execute` | The expression `std::experimental::concurrency_v2::execution::async_execute(t, f)` is well-formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_async_post` | The expression `std::experimental::concurrency_v2::execution::async_post(t, f)` is well-formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_async_defer` | The expression `std::experimental::concurrency_v2::execution::async_defer(t, f)` is well-formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_then_execute` | *TODO* | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_bulk_execute` | *TODO* | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_bulk_sync_execute` | *TODO* | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_bulk_async_execute` | *TODO* | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_bulk_then_execute` | *TODO* | `T` is a complete type. |
+| `template<class T>` <br/> `struct can_execute` | The expressions `std::experimental::concurrency_v2::execution::execute(t, f)` and `std::experimental::concurrency_v2::execution::execute(t, f, a)` are well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_post` | The expressions `std::experimental::concurrency_v2::execution::post(t, f)` and `std::experimental::concurrency_v2::execution::post(t, f, a)` are well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_defer` | The expressions `std::experimental::concurrency_v2::execution::defer(t, f)` and `std::experimental::concurrency_v2::execution::defer(t, f, a)` are well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_sync_execute` | The expressions `std::experimental::concurrency_v2::execution::sync_execute(t, f)` and `std::experimental::concurrency_v2::execution::sync_execute(t, f, a)` are well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_async_execute` | The expressions `std::experimental::concurrency_v2::execution::async_execute(t, f)` and `std::experimental::concurrency_v2::execution::async_execute(t, f, a)` are well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_async_post` | The expressions `std::experimental::concurrency_v2::execution::async_post(t, f)` and `std::experimental::concurrency_v2::execution::async_post(t, f, a)` are well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_async_defer` | The expressions `std::experimental::concurrency_v2::execution::async_defer(t, f)` and `std::experimental::concurrency_v2::execution::async_defer(t, f, a)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_then_execute` | The expressions `std::experimental::concurrency_v2::execution::then_execute(t, f, pred)` and `std::experimental::concurrency_v2::execution::then_execute(t, f, pred)` are well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_bulk_execute` | The expression `std::experimental::concurrency_v2::execution::bulk_execute(t, bf, s, rf, sf)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_bulk_sync_execute` | The expression `std::experimental::concurrency_v2::execution::bulk_sync_execute(t, bf, s, rf, sf)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_bulk_async_execute` | The expression `std::experimental::concurrency_v2::execution::bulk_async_execute(t, bf, s, rf, sf)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_bulk_then_execute` | The expression `std::experimental::concurrency_v2::execution::bulk_then_execute(t, bf, s, pred, rf, sf)` is well-formed. | `T` is a complete type. |
 
 ## Executor type traits
 
