@@ -923,7 +923,19 @@ The name `sync_execute` denotes a customization point. The effect of the express
 
 ### `async_execute`
 
-*TODO*
+    namespace {
+      constexpr unspecified async_execute = unspecified;
+    }
+
+The name `async_execute` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::async_execute(E, F)` for some expressions `E` and `F` is equivalent to:
+
+* `(E).async_execute(F)` if `has_async_execute_member_v<decay_t<decltype(E)>>` is true.
+
+* Otherwise, `async_execute(E, F)` if that expression satisfies the syntactic requirements for an asynchronous two-way, potentially blocking execution function of single cardinality, with overload resolution performed in a context that includes the declaration `void async_execute(auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::async_execute`.
+
+* Otherwise, if `can_execute_v<decay_t<decltype(E)>>` is true, creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `std::experimental::concurrency_v2::execution::execute(E, g)` where `g` is a function object of unspecified type that performs `DECAY_COPY(F)()`, with the call to `DECAY_COPY` being performed in the thread that called `async_execute`. On successful completion of `DECAY_COPY(F)()`, the return value of `DECAY_COPY(F)()` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(F)()` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready. The result of the expression `std::experimental::concurrency_v2::execution::async_execute(E, F)` is an object of type `std::future<result_of_t<decay_t<decltype(F)>>()>` that refers to the shared state.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::async_execute(E, F)` is ill-formed.
 
 ### `async_post`
 
