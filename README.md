@@ -438,13 +438,6 @@ namespace execution {
   // Executor customization points:
 
   template<class TwoWayExecutor, class Function>
-    result_of_t<decay_t<Function>()>
-      sync_execute(const TwoWayExecutor& exec, Function&& f);
-  template<class OneWayExecutor, class Function>
-    result_of_t<decay_t<Function>()>
-      sync_execute(const OneWayExecutor& exec, Function&& f);
-
-  template<class TwoWayExecutor, class Function>
     executor_future_t<TwoWayExecutor, result_of_t<decay_t<Function>()>>
       async_execute(const TwoWayExecutor& exec, Function&& f);
   template<class Executor, class Function>
@@ -1221,34 +1214,6 @@ p4, respectively.*
 
 The functions described in this clause are *executor customization points*.
 Executor customization points provide a uniform interface to all executor types.
-
-### Function template `execution::sync_execute()`
-
-```
-template<class TwoWayExecutor, class Function>
-  result_of_t<decay_t<Function>()>
-    sync_execute(const TwoWayExecutor& exec, Function&& f);
-```
-
-*Returns:* `exec.sync_execute(std::forward<Function>(f))`.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_two_way_executor_v<TwoWayExecutor>` is `true`.
-
-```
-template<class OneWayExecutor, class Function>
-  result_of_t<decay_t<Function>()>
-    sync_execute(const OneWayExecutor& exec, Function&& f);
-```
-
-*Effects:* Calls `exec.execute(g)`, where `g` is a function object of unspecified type that performs `DECAY_COPY(std::forward<Function>(f))()` and stores the result in `r`, with the call to `DECAY_COPY()` being evaluated in the thread that called `sync_execute`. Blocks the caller of `sync_execute` until `g` completes.
-
-*Returns:* `r`.
-
-*Synchronization:* The invocation of `sync_execute` synchronizes with (1.10) the invocation of `f`.
-
-*Throws:* Any uncaught exception thrown by `f`.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_two_way_executor_v<TwoWayExecutor>` is `false` and `is_one_way_executor_v<OneWayExecutor>` is `true`.
 
 ### Function template `execution::async_execute()`
 
