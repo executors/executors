@@ -861,7 +861,7 @@ The name `execute` denotes a customization point. The effect of the expression `
 
 * `(E).execute(F)` if `has_execute_member_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `execute(E, F)` if that expression satisfies the syntactic requirements for a one-way, potentially blocking execution function of single cardinality, with overload resolution performed in a context that includes the declaration `void get_trivial_executor(auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::execute`.
+* Otherwise, `execute(E, F)` if that expression satisfies the syntactic requirements for a one-way, potentially blocking execution function of single cardinality, with overload resolution performed in a context that includes the declaration `void execute(auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::execute`.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::execute(E, F)` is ill-formed.
 
