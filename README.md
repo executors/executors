@@ -877,7 +877,21 @@ The name `execute` denotes a customization point. The effect of the expression `
 
 ### `sync_execute`
 
-*TODO*
+    namespace {
+      constexpr unspecified sync_execute = unspecified;
+    }
+
+The name `sync_execute` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::sync_execute(E, F)` for some expressions `E` and `F` is equivalent to:
+
+* `(E).sync_execute(F)` if `has_sync_execute_member_v<decay_t<decltype(E)>>` is true.
+
+* Otherwise, `sync_execute(E, F)` if that expression satisfies the syntactic requirements for a synchronous two-way, potentially blocking execution function of single cardinality, with overload resolution performed in a context that includes the declaration `void sync_execute(auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::sync_execute`.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::async_execute(E, F).get()` if `can_async_execute_v<decay_t<decltype(E)>>` is true.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::sync_execute(E, F)` is ill-formed.
+
+*Remarks:* Whenever `std::experimental::concurrency_v2::execution::sync_execute(E, F)` is a valid expression, that expression satisfies the syntactics requirements for a synchronous two-way, potentially blocking execution function of single cardinality.
 
 ### `async_execute`
 
