@@ -420,9 +420,6 @@ namespace execution {
   struct parallel_execution_tag {};
   struct unsequenced_execution_tag {};
 
-  // TODO a future proposal can define this category
-  // struct concurrent_execution_tag {};
-
   template<class Executor> struct executor_execution_category;
 
   template<class Executor>
