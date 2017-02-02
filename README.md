@@ -869,11 +869,39 @@ The name `execute` denotes a customization point. The effect of the expression `
 
 ### `post`
 
-*TODO*
+    namespace {
+      constexpr unspecified post = unspecified;
+    }
+
+The name `post` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::post(E, F)` for some expressions `E` and `F` is equivalent to:
+
+* `(E).post(F)` if `has_post_member_v<decay_t<decltype(E)>>` is true.
+
+* Otherwise, `post(E, F)` if that expression satisfies the syntactic requirements for a synchronous two-way, potentially blocking execution function of single cardinality, with overload resolution performed in a context that includes the declaration `void post(auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::post`.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::execute(E, F)` if `is_same_v<execution_execute_blocking_category_t<E>, non_blocking_execution_tag>` is true.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::post(E, F)` is ill-formed.
+
+*Remarks:* Whenever `std::experimental::concurrency_v2::execution::post(E, F)` is a valid expression, that expression satisfies the syntactics requirements for a one-way, non-blocking execution function of single cardinality.
 
 ### `defer`
 
-*TODO*
+    namespace {
+      constexpr unspecified defer = unspecified;
+    }
+
+The name `defer` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::defer(E, F)` for some expressions `E` and `F` is equivalent to:
+
+* `(E).defer(F)` if `has_defer_member_v<decay_t<decltype(E)>>` is true.
+
+* Otherwise, `defer(E, F)` if that expression satisfies the syntactic requirements for a synchronous two-way, potentially blocking execution function of single cardinality, with overload resolution performed in a context that includes the declaration `void defer(auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::defer`.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::execute(E, F)` if `is_same_v<execution_execute_blocking_category_t<E>, non_blocking_execution_tag>` is true.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::defer(E, F)` is ill-formed.
+
+*Remarks:* Whenever `std::experimental::concurrency_v2::execution::defer(E, F)` is a valid expression, that expression satisfies the syntactics requirements for a one-way, non-blocking execution function of single cardinality.
 
 ### `sync_execute`
 
