@@ -41,251 +41,206 @@ Reply-to:           jhoberock@nvidia.com
 
 # Introduction
 
-This paper describes a programming model for *executors*, which are modular
-components for creating execution. Executors decouple control structures from
-the details of work creation and prevent multiplicative explosion inside
-control structure implementations. The model proposed by this paper represents
-what we think is the *minimal* functionality necessary to compose executors
-with existing standard control structures such as `std::async()` and parallel
-algorithms, as well as near-standards such as the functionality found in
-various technical specifications, including the Concurrency, Networking, and
-Parallelism TSes. While this paper's feature set is minimal, it will form the
-basis for future development of executor features which are out of the scope of
-a basic proposal.
+This paper describes a programming model for executors, which are modular
+components for creating execution. Executors decouple software from the details
+of execution resources and present a uniform interface for work creation. The
+model proposed by this paper represents what we believe is the functionality
+necessary to compose executors with existing standard control structures such
+as `std::async()` and parallel algorithms, as well as near-standards such as
+the functionality found in various technical specifications, including the
+Concurrency, Networking, and Parallelism TSes. We intend this proposal to be
+an extensible basis for all future development of execution in C++ which
+necessarily entails functionality beyond the scope of this basic proposal.
 
-Our executor programming model was guided by years of independent design work
-by various experts. This proposal is the result of harmonizing that work in
-collaboration with those experts for several months. In particular, our
-programming model unifies three separate executor design tracks aimed at
-disparate use cases:
+In our programming model, executors introduce a uniform interface for creating
+execution that may not be common to the underlying execution resources actually
+responsible. Before discussing our design, we define the following terms:
 
-  1. Google's executor model for interfacing with thread pools [N4414](http://wg21.link/n4414),
-  2. Chris Kohlhoff's executor model for the Networking TS [N4370](http://wg21.link/n4370), and
-  3. NVIDIA's executor model for the Parallelism TS [P0058](http://wg21.link/p0058).
+An **execution resource** is an instance of a hardware and/or software facility
+capable of executing a callable function object.  Different resources may offer
+a broad array of functionality and semantics, and may range from SIMD vector
+units accessible in a single thread to an entire runtime managing a large
+collection of threads.  In practice, different resources may also exhibit
+different performance characteristics of interest to the performance-conscious
+programmer. For example, an implementation might expose different processor
+cores, with potentially non-uniform access to memory, as separate resources to
+enable programmers to reason about locality.
+ 
+An **execution context** is a program object that represents and manages a
+specific collection of execution resources.
+ 
+An **executor** is an object associated with a specific execution context.  It
+provides a mechanism for creating execution agents from a callable function
+object.  The agents created are bound to the executor's context, and hence to
+one or more of the resources that context represents.
 
-This unified executor proposal serves the use cases of those independent
-proposals with a single consistent programming model.
+**Design goals.** The design outlined in this proposal is intended to achieve
+our goals for executors, which are objects for creating all kinds of execution
+in C++. Executors should be *composable*, *adaptable*, and *customizable*,
+   which we believe reflects the needs of users, library implementors, and
+   executor authors, respectively. By *composable*, we mean that executors
+   should cross software boundaries allowing disparate software components to
+   interoperate using a commonly-understood protocol. By *adaptable*, we mean
+   that executors specially-designed for a particular use case should be useful
+   in other use cases when it is possible. By *customizable*, we mean that
+   requirements placed on executors should be broad enough to encompass
+   user-defined executors, rather than limited to the set of concrete executors
+   which may eventually become part of the C++ Standard Library. Only a design
+   including well-defined interfaces with clear semantics will achieve these
+   goals.
 
-**Executor categories.** This proposal categorizes executor types in terms of
-requirements on those types. An executor type is a member of one or more
-executor categories if it provides member functions and types with the
-semantics that those categories require. These categories are used in generic
-interfaces to communicate the requirements on executors interoperating with
-them. Such interfaces are already present in the C++ Standard; for example,
-control structures like `std::async()`, `std::invoke()`, and the parallel
-algorithms library. Other control structures this proposal targets are found
-in the Concurrency, Networking, and Parallelism TSes.
+**Customization points.** In our design, these well-defined interfaces with
+clearly-expressed execution semantics are called executor *customization
+points* and are foundational to the mechanics of our design. Each executor
+customization point is a function which delineates a specific use case which we
+have identified as fundamental to the needs of the C++ Standard Library and
+other technical specifications for execution creation. For example, the
+customization point `execution::async_execute()` asynchronously creates a
+single execution agent to invoke a given function and returns a future
+corresponding to that function's eventual result. A C++ Standard Library
+function like `std::async()` may compose with a user-supplied executor by using
+calling `execute::async_execute()` in its implementation. As another example,
+        the customization point `execution::sync_execute()` synchronously
+        creates a single execution agent to invoke a given function and
+        immediately returns that function's result. These semantics provide a
+        natural fit for the composition of user-provided executors with
+        `std::invoke()`.
 
-**Using executors with control structures.** We expect that the primary way
-that most programmers will interact with executors is by using them as
-parameters to control structures. When used as a parameter to a control
-structure, an executor indicates "where" the execution created by the control
-structure should happen.
+Because we envision executors to be the workhorses of execution in generic
+code, it is critical that they be adaptable to a variety of use cases. For
+example, a generic function like `std::invoke()` should be interoperable with
+as many types of executor as possible, not just that set of executors which
+natively provide the synchronous, single-agent operation `sync_execute()`. To
+generalize across use cases, we have designed executor customization points to
+adapt the behavior of an executor when its native behavior is not a precise
+match for the use case of interest. For example, `std::invoke()` may
+interoperate with an executor which natively provides the operation
+`async_execute()` by calling the customization point `execute::sync_execute()`.
+This customization point will adapt the executor by calling its natively
+provided `async_execute()` operation, and wait on the resulting future. In this
+way, generic code may uniformly compose with executors with minimal
+restriction.
 
-For example, a programmer may create an asynchronous task via `async()` by providing
-an executor:
+Our design focuses on defining a set of optional customization points instead
+of imposing a set of strict executor requirements to maximize the latitude of
+executor authors. Rather than prematurely attempt to circumscribe the universe
+of all possible executors with a set of universal requirements, we believe it
+is more flexible to identify a set of use cases for work creation which can
+grow in the future. Executor authors may choose to natively support one or more
+of these use cases by implementing the appropriate customization point, and may
+opt in to new customization points as they are standardized. Due to their
+adaptability, an executor will be future-proof to new customization points.
 
-    auto my_task = ...;
-    auto my_executor = ...;
-    auto fut = async(my_executor, my_task);
+**Executor categories.** Our design organizes executors into *executor
+categories* based on how they are expected to be used by software components
+composing with them. These categories correspond to the application domains
+served by the C++ Standard Library and the Parallelism, Concurrency, and
+Networking Technical Specifications. The requirements for membership in an
+executor category include basic requirements on executor types as well as
+requirements based on their compatibility with customization points. For
+example, the executor category `TwoWayExecutor` includes all executors
+compatible with the two-way, single-agent executor customization points such as
+`async_execute()`. Executor categories are not necessarily mutually exclusive,
+  and one executor type may be a member of multiple categories if the
+  requirements for those categories admit mutual membership.
 
-In this example, the executor parameter provides `std::async()` with explicit
-requirements concerning how to create the work responsible for executing the
-task.
+This proposal defines four named categories: `OneWayExecutor`,
+     `TwoWayExecutor`, `BulkTwoWayExecutor`, and `NonblockingOneWayExecutor`.
+     `OneWayExecutor` defines requirements for executors which create
+     single-agent execution and do not natively provide a channel for
+     synchronizing with the completion of execution. This category is useful
+     for summarizing the requirements of executors composing with
+     `future.then()` of the Concurrency TS. `TwoWayExecutor` defines
+     requirements for executors which create single-agent execution and *do*
+     natively provide a channel for synchronizing with the completion of
+     execution. This category is useful for summarizing the requirements of
+     executors composing with `std::async()`. `BulkTwoWayExecutor` summarizes
+     requirements for executors which create bulk-agent execution and also
+     provide a channel for synchronization. This category summarizes the
+     requirements for executors which can compose with parallel algorithms.
+     Finally, `NonblockingOneWayExecutor` extends `OneWayExecutor`'s
+     requirements by demanding that an executor's work creation operations do
+     not block the calling thread of those operations. This additional
+     requirement on blocking behavior is critical to the needs of the
+     Networking TS.
 
-Similarly, a programmer may require that the work created by a parallel
-algorithm happen "on" an executor:
+We have not attempted to completely capture every kind of interesting
+collection of executors in our categorization. By design, our categorization of
+executors is incomplete to accommodate future extension. Moreover, we recognize
+that the particular categories we define may not precisely match the
+requirements of all existing software interfaces which need to compose with
+executors. For example, the regularity of our design suggests the existence of
+a hypothetical executor category named
+`NonblockingHostBasedBulkTwoWayExecutor`. Such a category would correspond to
+executor types which create bulk, two-way execution hosted on a thread, and
+would create execution in a way that is guaranteed not to block the calling
+thread. However, our proposal does not define such a category. In order to help
+programmers define their own ad hoc requirements for executor types, our design
+provides a set of executor type traits for introspecting the properties of
+executors at compile time. These fine-grained type traits detect
+characteristics such as native support for executor operations as well as
+compatibility between an executor type and an executor customization point.
+Programmers may employ these type traits at software boundaries to define
+requirements for executor composition as well as reject types of executors
+which are known to be incompatible.
 
-    auto my_task = ...;
-    vector<int> vec = ...;
-    auto my_executor = ...;
-    for_each(execution::par.on(my_executor), vec.begin(), vec.end(), my_task);
+**Execution contexts.** In our design, *execution contexts* are objects that
+manage a specific collection of resources required by an executor to create
+execution. For example, a thread pool is an execution context which manages a
+collection of threads upon which an associated executor may create execution
+agents. For our purposes of defining a programming model for executors, the
+only salient expectation for execution contexts is the ability to obtain an
+executor from them. However, we have chosen not to prescribe a required
+interface for doing so. Instead, we have defined very basic requirements for
+execution contexts which allow almost any type of object to be an execution
+context. These requirements are so minimal that they permit an executor to act
+as its own execution context in use cases where no other object makes sense. We
+expect specific application domains to elaborate these basic requirements as
+appropriate. For example, we illustrate requirements for a
+`NetworkingExecutionContext` that we expect the Networking TS to define which
+would enumerate expectations on execution contexts compatible with networking
+use cases.
 
-**Executor customization points.** Executor categories require executor types to
-provide member functions with expected semantics. For example, the executor
-category `OneWayExecutor` requires an executor type to provide the member
-function `.execute(f)`, which may or may not block its caller pending
-completion of the function `f`. As another example, the executor category
-`TwoWayExecutor` requires an executor type to provide the member function
-`.async_execute(f)`, which returns a future object corresponding to the
-eventual completion of the function `f`'s invocation.
+In order to evaluate this proposal, it will be useful to have at least one
+concrete execution context readily available. Our proposal specifies a single
+execution context, `static_thread_pool`, which abstracts a explicitly-sized
+collection of threads and implements an effectively unbounded work queue. This
+thread pool type provides functions for typical thread pool operations as well
+as an `.executor()` function for obtaining an executor associated with the
+thread pool. We recognize that different types of thread pools are suited to
+different use cases and emphasize that this proposal's `static_thread_pool`
+represents a single design in this space which is not intended as definitive.
 
-In non-generic contexts, clients of executors may create work by calling the
-member functions of executors directly:
+**Extension.** This proposal is intended to provide a foundation for future
+enhancements to executors and execution in general in C++. Naturally, it is
+incomplete and we anticipate extension. Here, we discuss briefly our vision for
+how the major components of our overall design can be extended in the future.
 
-    template<class Function>
-    future<result_of_t<Function()>>
-    foo(const simple_two_way_executor& exec, Function f)
-    {
-      return exec.async_execute(f);
-    }
+**Future conceptualization.** One immediate concern is the conceptualization of
+`std::future`-like types. We anticipate that some types of executors will
+expose idiosyncratic, custom, and non-standard future types to represent
+asynchronous tasks due to requirements of underlying execution resources. An
+elaboration of the requirements of a hypothetical `Future` concept is needed.
 
-However, directly calling executor member functions is impossible in generic
-contexts where the concrete type of the executor, and therefore the
-availability of specific member functions, is unknown. To serve these use
-cases, for each of these special executor member functions, we introduce an
-executor [*customization point*](http://wg21.link/n4381) in namespace
-`execution::`. These customization points adapt the given executor in such a
-way as to guarantee the execution semantics of the customization point even if
-it is not natively provided by the executor as a member function.
+**Execution resources.** Our proposal is silent about how a program might
+enumerate and represent the available execution resources present in the
+system. A means of representing system resources with standard execution
+contexts and obtaining executors from them would provide programmers concerned
+with performance the tools to reason about locality.
 
-For example, the customization point `execution::async_execute()` allows
-`foo()` to compose with all executor types:
+**Execution contexts.** This paper proposes a single concrete execution context
+which encompasses one approach for representing a thread pool. There are other
+approaches to thread pools with different features and limitations. These and
+other types of execution contexts may be explored as extensions to this
+material.
 
-    template<class Executor, class Function>
-    executor_future_t<Executor,result_of_t<Function()>>
-    foo(const Executor& exec, Function f)
-    {
-      return execution::async_execute(exec, f);
-    }
-
-These customization points allow higher-level control structures and "fancy"
-executors which adapt the behavior of more primitive executors to manipulate
-all types of executors uniformly.
-
-**Defining executors.** Programmers may define their own executors by creating
-a type which satisfies the requirements of one or more executor categories. The
-following example creates a simple executor fulfilling the requirements of the
-`OneWayExecutor` category which logs a message before invoking a function:
-
-    class logging_context
-    {
-      public:
-        void log(std::string msg);
-
-        bool operator==(const logging_context& rhs) const noexcept
-        {
-          return this == &rhs;
-        }
-    };
-
-    class logging_executor
-    {
-      public:
-        logging_executor(logging_context& ctx) : context_(ctx) {}
-
-        bool operator==(const logging_executor& rhs) const noexcept
-        {
-          return context() == rhs.context();
-        }
-
-        bool operator!=(const logging_executor& rhs) const noexcept
-        {
-          return !(*this == rhs);
-        }
-
-        const logging_context& context() const noexcept
-        {
-          return context_;
-        }
-
-        template<class Function>
-        void execute(Function&& f) const
-        {
-          context_.log("executing function");
-          f();
-        }
-
-      private:
-        mutable logging_context& context_;
-    };
-
-Executors are also useful in insulating non-standard means of creating
-execution from the surrounding environment. The following example defines an
-executor fulfilling the requirements of the `BulkTwoWayExecutor` category which
-uses OpenMP language extensions to invoke a function a number of times in parallel:
-
-    class omp_executor
-    {
-      public:
-        using execution_category = parallel_execution_tag;
-
-        bool operator==(const omp_executor&) const noexcept
-        {
-          return true;
-        }
-
-        bool operator!=(const omp_executor&) const noexcept
-        {
-          return false;
-        }
-
-        const omp_executor& context() const noexcept
-        {
-          return *this;
-        }
-
-        template<class Function, class ResultFactory, class SharedFactory>
-        auto bulk_sync_execute(Function f, size_t n,
-                               ResultFactory result_factory,
-                               SharedFactory shared_factory) const
-        {
-          auto result = result_factory();
-          auto shared_arg = shared_factory();
-
-          #pragma omp parallel for
-          for(size_t i = 0; i < n; ++i)
-          {
-            f(i, result, shared_arg);
-          }
-
-          return result;
-        }
-    };
-
-## Conceptual Elements
-
-**Instruction Stream:**
-  Code to be run in a form appropriate for the target execution architecture.
-
-**Execution Architecture:**
-  Denotes the target architecture for an instruction stream.
-  The instruction stream defined by the *main* entry point
-  and associated global object initialization instruction streams
-  is the *host process* execution architecture.
-  Other possible target execution architectures include attached
-  accelerators such as GPU, remote procedure call (RPC), and
-  database management system (DBMS) servers.
-  The execution architecture may impose architecture-specific constraints
-  and provides architecture-specific facilities for an instruction stream.
-
-**Execution Resource:**
-  An instance of an execution architecture that is capable of running
-  an instruction stream targeting that architecture.
-  Examples include a collection of ``std::thread`` within the host process
-  that are bound to particular cores, GPU CUDA stream, an RPC server,
-  a DBMS server.
-  Execution resources typically have weak *locality* properties both with
-  respect to one another and with respect to memory resources.
-  For example, cores within a non-uniform memory access (NUMA) region
-  are *more local* to each other than cores in different NUMA regions
-  and hyperthreads within a single core are more local to each other than
-  hyperthreads in different cores.
-
-**Execution Agent:**
-  An instruction stream is run by an execution agent on an execution resource.
-  This execution agent may be *lightweight* in that it only exists while the
-  instruction stream is running, but it serves as placeholder for describing the
-  observable properties of the context in which the instruction stream
-  executes. As such a lightweight execution agent may come into existence when
-  the instruction stream starts running and cease to exist when the instruction
-  stream ends.
-
-**Execution Context:**
-  The mapping of execution agents to execution resources.
-
-**Execution Function:**
-  The binding of an instruction stream to one or more execution agents.
-  The instruction stream of a parallel algorithm may be bound to multiple
-  execution agents that can run concurrently on an execution resource.
-  An instruction stream's entry and return interface conforms to a
-  specification defined by an execution function.
-  An execution function targets a specific execution architecture.
-
-**Executor:**
-  Provides execution functions for running instruction streams on
-  an particular, observable execution resource.
-  A particular executor targets a particular execution architecture.
+**Executor categories.** Future extensions might expand our executor
+categorization to additional application domains if the categorizations
+proposed here are insufficient for representing their requirements. For
+example, our proposal does not directly address issues related to heterogeneous
+execution resources. These issues can be addressed in the future with new kinds
+of executors incorporated into the overall framework with the appropriate
+categorization.
 
 # Proposed Wording
 
