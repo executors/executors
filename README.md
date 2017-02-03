@@ -2672,21 +2672,124 @@ Table: (NetworkingExecutionContext requirements) \label{net_execution_context_re
 
 ## Code Examples
 
+These short code examples demonstrate how we expect programmers to use executors to create execution in different use cases.
+
 ### Simple use of an executor
 
-TODO
+A programmer may create an asynchronous task via `async()` by providing an executor obtained from a thread pool:
+
+    using namespace std::experimental::concurrency_v2;
+
+    // create a thread pool object
+    static_thread_pool pool(4);
+
+    // obtain an executor from the thread pool
+    auto exec = pool.executor()
+
+    auto my_task = ...
+
+    // compose the thread pool's executor with async:
+    async(exec, my_task);
+
+In this example, the executor parameter provides `std::async()` with explicit requirements concerning how to create the work responsible for executing the task.
+
+Similarly, a programmer may require that the work created by a parallel algorithm happen "on" an executor:
+
+    using namespace std::experimental::concurrency_v2;
+
+    // create a thread pool object
+    static_thread_pool pool(4);
+
+    // obtain an executor from the thread pool
+    auto exec = pool.executor()
+
+    auto my_task = ...
+
+    // compose the thread pool's executor with the par execution policy using .on():
+    for_each(execution::par.on(exec), vec.begin(), vec.end(), my_task);
+
+In this example, the executor parameter composes with `par` to create a new execution policy associated with the thread pool's executor. 
 
 ### Use of an executor in a generic context
 
-TODO
+Functions may receive executors as generic template parameters. A programmer
+may work at a lower-level yet retain generality by manipulating the executor
+through customization points. For example, consider this hypothetical
+implementation of `async()`:
 
+    template<class Executor, class Function, class... Args>
+    auto async(const Executor& exec, Function&& f, Args&&... args)
+    {
+      // bind f and args together
+      auto g = bind(f, args...);
+
+      using namespace std::experimental::concurrency_v2;
+
+      // use the customization point execution::async_execute() to asynchronously invoke g and return a future
+      return execution::async_execute(exec, g);
+    }
+
+Even if the executor in this example does not natively support the
+`async_execute()` operation through a member or free function, the executor may
+still be used as if it does support this operation. If native support does not
+exist, the customization point applies an adaptation to whatever native
+operations do exist to create the desired operation.
+ 
 ### Defining executors
 
-#### OpenMP executor
+A programmer may create an executor by defining a type with one or more executor customization points defined as members.
 
-TODO
+For example, an executor which creates a new thread for each execution agent may define the `execute()` customization point:
 
-#### Inline executor
+    struct per_thread_executor
+    {
+      template<class Function>
+      void execute(Function&& f) const
+      {
+        std::thread new_thread(std::forward<Function>(f));
 
-TODO
+        new_thread.detach();
+      }
+
+      const per_thread_executor& context() const
+      {
+        return *this;
+      }
+
+      bool operator==(const per_thread_executor&) const noexcept
+      {
+        return true;
+      }
+
+      bool operator!=(const per_thread_executor&) const noexcept
+      {
+        return false;
+      }
+    };
+
+An executor which executes work immediately within the calling thread may define the `sync_execute()` customization point:
+
+    struct inline_executor
+    {
+      template<class Function>
+      auto sync_execute(Function&& f) const
+      {
+        return std::forward<Function>(f)();
+      }
+
+      const inline_executor& context() const
+      {
+        return *this;
+      }
+
+      bool operator==(const inline_executor&) const noexcept
+      {
+        return true;
+      }
+
+      bool operator!=(const inline_executor&) const noexcept
+      {
+        return false;
+      }
+    };
 
