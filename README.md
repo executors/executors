@@ -27,6 +27,8 @@ Other Contributors: Hans Boehm, hboehm@google.com
 
                     Thomas Rodgers, rodgert@twrodgers.com
 
+                    David Hollman, dshollm@sandia.gov
+
                     Michael Wong, michael@codeplay.com
 
 Document Number:    P0443R0
@@ -458,7 +460,7 @@ namespace execution {
 
 ### `Future` requirements
 
-A type `F` meets the future requirements for some value type `T` if `F` is... *Requirements to be defined. Futures must provide `get`, `wait`, `then`, etc.*
+Currently, a type `F` meets the future requirements for some value type `T` if `F` is `std::experimental::future<T>` from the Concurrency TS (ISO/IEC TS 19571:2016).  [*Note:* We expect to expand on this concept later, with the requirements of the `Future` instances used with some customization points expected to decrease.] 
 
 ### `ProtoAllocator` requirements
 
