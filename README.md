@@ -1696,7 +1696,7 @@ This class represents a statically sized thread pool as a common/basic resource
 type. This pool is capable of being grown by attaching threads to the pool but
 it will not change size in any automatic way. This pool provides an
 effectively unbounded input queue and as such calls to add tasks to a
-thread_pool's associated executors will not block on the input queue.
+static_thread_pool's associated executors will not block on the input queue.
 
 The `static_thread_pool` provides parallel execution agents and therefore
 situations which assume concurrent execution properties will not guarantee
@@ -1771,8 +1771,7 @@ static_thread_pool(std::size_t num_threads);
 ```
 
 *Effects:* Constructs a `static_thread_pool` object with `num_threads` threads of
-execution, as if by creating objects of type `std::thread`. (QUESTION: Do we want to
-allow 0?)
+execution, as if by creating objects of type `std::thread`.
 
 ```
 ~static_thread_pool();
@@ -1790,7 +1789,7 @@ void attach();
 *Effects:* adds the calling thread to the pool of workers. Blocks the calling
 thread until signalled to complete by `stop()` or `wait()`, and then blocks
 until all the threads created during `static_thread_pool` object construction have
-completed. (Note: The implementation is encouraged, but not required, to use
+completed. (Note: The implementation is required to use
 the attached thread to execute submitted function objects. RATIONALE:
 implementations in terms of the Windows thread pool cannot utilise
 user-provided threads. --end note) (NAMING: a possible alternate name for this
