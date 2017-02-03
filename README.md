@@ -2668,4 +2668,25 @@ Table: (NetworkingExecutionContext requirements) \label{net_execution_context_re
 | `x.~X()` | | Destroys all unexecuted function objects that were submitted via an executor object that is associated with the execution context. |
 | `x.get_executor()` | `X::executor_type` | Returns an executor object that is associated with the execution context. |
 
-# Future work
+# Appendix
+
+## Code Examples
+
+### Simple use of an executor
+
+TODO
+
+### Use of an executor in a generic context
+
+TODO
+
+### Defining executors
+
+#### OpenMP executor
+
+TODO
+
+#### Inline executor
+
+TODO
+
