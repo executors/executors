@@ -11,9 +11,9 @@ Authors:            Jared Hoberock, jhoberock@nvidia.com
 
                     Carter Edwards, hcedwar@sandia.gov
 
-Other Contributors: Hans Boehm, hboehm@google.com
-
                     Gordon Brown, gordon@codeplay.com
+
+Other Contributors: Hans Boehm, hboehm@google.com
 
                     Thomas Heller, thom.heller@gmail.com
 
@@ -420,9 +420,6 @@ namespace execution {
   struct parallel_execution_tag {};
   struct unsequenced_execution_tag {};
 
-  // TODO a future proposal can define this category
-  // struct concurrent_execution_tag {};
-
   template<class Executor> struct executor_execution_category;
 
   template<class Executor>
@@ -439,29 +436,6 @@ namespace execution {
     using executor_index_t = typename executor_index<Executor>::type;
 
   // Executor customization points:
-
-  template<class OneWayExecutor, class Function>
-    void execute(const OneWayExecutor& exec, Function&& f);
-
-  template<class NonBlockingOneWayExecutor, class Function>
-    void post(const NonBlockingOneWayExecutor& exec, Function&& f);
-
-  template<class NonBlockingOneWayExecutor, class Function>
-    void defer(const NonBlockingOneWayExecutor& exec, Function&& f);
-
-  template<class TwoWayExecutor, class Function>
-    result_of_t<decay_t<Function>()>
-      sync_execute(const TwoWayExecutor& exec, Function&& f);
-  template<class OneWayExecutor, class Function>
-    result_of_t<decay_t<Function>()>
-      sync_execute(const OneWayExecutor& exec, Function&& f);
-
-  template<class TwoWayExecutor, class Function>
-    executor_future_t<TwoWayExecutor, result_of_t<decay_t<Function>()>>
-      async_execute(const TwoWayExecutor& exec, Function&& f);
-  template<class Executor, class Function>
-    std::future<decay_t<result_of_t<decay_t<Function>()>>>
-      async_execute(const Executor& exec, Function&& f);
 
   template<class NonBlockingTwoWayExecutor, class Function>
     executor_future_t<NonBlockingTwoWayExecutor, result_of_t<decay_t<Function>()>>
@@ -1233,96 +1207,6 @@ p4, respectively.*
 
 The functions described in this clause are *executor customization points*.
 Executor customization points provide a uniform interface to all executor types.
-
-### Function template `execution::execute()`
-
-```
-template<class OneWayExecutor, class Function>
-  void execute(const OneWayExecutor& exec, Function&& f);
-```
-
-*Effects:* calls `exec.execute(std::forward<Function>(f))`.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_one_way_executor_v<OneWayExecutor>` is `true`.
-
-### Function template `execution::post()`
-
-```
-template<class NonBlockingOneWayExecutor, class Function>
-  void post(const NonBlockingOneWayExecutor& exec, Function&& f);
-```
-
-*Effects:* calls `exec.post(std::forward<Function>(f))`.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_non_blocking_one_way_executor_v< NonBlockingOneWayExecutor>` is `true`.
-
-### Function template `execution::defer()`
-
-```
-template<class NonBlockingOneWayExecutor, class Function>
-  void defer(const NonBlockingOneWayExecutor& exec, Function&& f);
-```
-
-*Effects:* calls `exec.defer(std::forward<Function>(f))`.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_non_blocking_one_way_executor_v< NonBlockingOneWayExecutor>` is `true`.
-
-### Function template `execution::sync_execute()`
-
-```
-template<class TwoWayExecutor, class Function>
-  result_of_t<decay_t<Function>()>
-    sync_execute(const TwoWayExecutor& exec, Function&& f);
-```
-
-*Returns:* `exec.sync_execute(std::forward<Function>(f))`.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_two_way_executor_v<TwoWayExecutor>` is `true`.
-
-```
-template<class OneWayExecutor, class Function>
-  result_of_t<decay_t<Function>()>
-    sync_execute(const OneWayExecutor& exec, Function&& f);
-```
-
-*Effects:* Calls `exec.execute(g)`, where `g` is a function object of unspecified type that performs `DECAY_COPY(std::forward<Function>(f))()` and stores the result in `r`, with the call to `DECAY_COPY()` being evaluated in the thread that called `sync_execute`. Blocks the caller of `sync_execute` until `g` completes.
-
-*Returns:* `r`.
-
-*Synchronization:* The invocation of `sync_execute` synchronizes with (1.10) the invocation of `f`.
-
-*Throws:* Any uncaught exception thrown by `f`.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_two_way_executor_v<TwoWayExecutor>` is `false` and `is_one_way_executor_v<OneWayExecutor>` is `true`.
-
-### Function template `execution::async_execute()`
-
-```
-template<class TwoWayExecutor, class Function>
-  executor_future_t<TwoWayExecutor, result_of_t<decay_t<Function>()>>
-    async_execute(const TwoWayExecutor& exec, Function&& f);
-```
-
-*Returns:* `exec.async_execute(std::forward<Function>(f))`.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_two_way_executor_v<TwoWayExecutor>` is `true`.
-
-```
-template<class OneWayExecutor, class Function>
-  std::future<decay_t<result_of_t<decay_t<Function>()>>>
-    async_execute(const OneWayExecutor& exec, Function&& f);
-```
-
-*Effects:* Creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `exec.execute(g)` where `g` is a function object of unspecified type that performs `DECAY_COPY(std::forward<Function>(f))`, with the call to `DECAY_COPY` being performed in the thread that called `async_execute`. On successful completion of `DECAY_COPY(std::forward<Function>(f))`, the return value of `DECAY_COPY(std::forward<Function>(f))` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(std::forward<Function>(f))` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready.
-
-*Returns:* An object of type `std::future<result_of_t<decay_t<Function>>()>` that refers to the shared state created by `async_execute`.
-
-*Synchronization:*
-
-* the invocation of `async_execute` synchronizes with (1.10) the invocation of `f`.
-* the completion of the invocation of `f` is sequenced before (1.10) the shared state is made ready.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_two_way_executor_v<TwoWayExecutor>` is `false` and `is_one_way_executor_v<OneWayExecutor>` is `true`.
 
 ### Function template `execution::async_post()`
 
