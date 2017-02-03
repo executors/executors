@@ -54,8 +54,10 @@ necessarily entails functionality beyond the scope of this basic proposal.
 
 In our programming model, executors introduce a uniform interface for creating
 execution that may not be common to the underlying execution resources actually
-responsible. Before discussing the mechanics of our design, we define the
-following terms:
+responsible for the mechanics of implementing that execution. There are three
+major concepts involved in this interplay: execution resources, execution
+contexts, and executors. The executors themselves are the primary concern of
+our design.
 
 An **execution resource** is an instance of a hardware and/or software facility
 capable of executing a callable function object.  Different resources may offer
