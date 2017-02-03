@@ -1709,7 +1709,6 @@ class static_thread_pool
     class executor_type;
     
     // construction/destruction
-    static_thread_pool();
     explicit static_thread_pool(std::size_t num_threads);
     
     // nocopy
@@ -1758,13 +1757,6 @@ not introduce data races as a result of concurrent calls to those functions
 from different threads of execution.
 
 #### Construction and destruction
-
-```
-static_thread_pool();
-```
-
-*Effects:* Constructs a `static_thread_pool` object with an implementation defined
-number of threads of execution, as if by creating objects of type `std::thread`.
 
 ```
 static_thread_pool(std::size_t num_threads);
