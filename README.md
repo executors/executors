@@ -77,17 +77,20 @@ one or more of the resources that context represents.
 **Design goals.** The design outlined in this proposal is intended to achieve
 our goals for executors, which are objects for creating all kinds of execution
 in C++. Executors should be *composable*, *adaptable*, and *customizable*,
-   which we believe reflects the needs of users, library implementors, and
-   executor authors, respectively. By *composable*, we mean that executors
-   should cross software boundaries allowing disparate software components to
-   interoperate using a commonly-understood protocol. By *adaptable*, we mean
-   that executors specially-designed for a particular use case should be useful
-   in other use cases when it is possible. By *customizable*, we mean that
-   requirements placed on executors should be broad enough to encompass
-   user-defined executors, rather than limited to the set of concrete executors
-   which may eventually become part of the C++ Standard Library. Only a design
-   including well-defined interfaces with clear semantics will achieve these
-   goals.
+which we believe reflects the needs of users, library implementors, and
+executor authors, respectively. Short code examples demonstrating how our
+design accomodates the needs of these different audiences may be found in
+the appendix.
+   
+By *composable*, we mean that executors should cross software boundaries
+allowing disparate software components to interoperate using a
+commonly-understood protocol. By *adaptable*, we mean that executors
+specially-designed for a particular use case should be applicable in other
+use cases when it is possible. By *customizable*, we mean that requirements
+placed on executors should be broad enough to encompass user-defined
+executors, rather than limited to the set of concrete executors which may
+eventually become part of the C++ Standard Library.Only a design including
+well-defined interfaces with clear semantics will achieve these goals.
 
 **Customization points.** In our design, these well-defined interfaces with
 clearly-expressed execution semantics are called executor *customization
