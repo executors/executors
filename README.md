@@ -428,17 +428,6 @@ namespace execution {
                       executor_shape_t<OneWayExecutor> shape,
                       Function2 shared_factory);
 
-  template<class BulkTwoWayExecutor, class Function1, class Function2, class Function3>
-    executor_future_t<const BulkTwoWayExecutor, result_of_t<Function2()>>
-      bulk_async_execute(const BulkTwoWayExecutor& exec, Function1 f,
-                         executor_shape_t<BulkTwoWayExecutor> shape,
-                         Function2 result_factory, Function3 shared_factory);
-  template<class OneWayExecutor, class Function1, class Function2, class Function3>
-    executor_future_t<const OneWayExecutor, result_of_t<Function2()>>
-      bulk_async_execute(const OneWayExecutor& exec, Function1 f,
-                         executor_shape_t<OneWayExecutor> shape,
-                         Function2 result_factory, Function3 shared_factory);
-
   template<class BulkTwoWayExecutor, class Function1, class Future, class Function2, class Function3>
     executor_future_t<BulkTwoWayExecutor, result_of_t<Function2()>>
       bulk_then_execute(const BulkTwoWayExecutor& exec, Function1 f,
@@ -912,11 +901,25 @@ The name `bulk_sync_execute` denotes a customization point. The effect of the ex
 
 * Otherwise, `std::experimental::concurrency_v2::execution::bulk_sync_execute(E, F, S, RF, SF)` is ill-formed.
 
-*Remarks:* Whenever `std::experimental::concurrency_v2::execution::bulk_sync_execute(E, F, S, RF, SF)` is a valid expression, that expression satisfies the syntactics requirements for a synchronous two-way, blocking execution function of bulk cardinality.
+*Remarks:* Whenever `std::experimental::concurrency_v2::execution::bulk_sync_execute(E, F, S, RF, SF)` is a valid expression, that expression satisfies the syntactic requirements for a synchronous two-way, blocking execution function of bulk cardinality.
 
 ### `bulk_async_execute`
 
-*TODO*
+    namespace {
+      constexpr unspecified bulk_async_execute = unspecified;
+    }
+
+The name `bulk_async_execute` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::bulk_async_execute(E, F, S, RF, SF)` for some expressions `E`, `F`, `S`, `RF`, and `SF` is equivalent to:
+
+* `(E).bulk_async_execute(F, S, RF, SF)` if `has_bulk_async_execute_member_v<decay_t<decltype(E)>>` is true.
+
+* Otherwise, `bulk_async_execute(E, F, S, RF, SF)` if that expression satisfies the syntactic requirements for an asynchronous two-way, potentially-blocking execution function of bulk cardinality, with overload resolution performed in a context that includes the declaration `void bulk_async_execute(auto&, auto&, auto&, auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::bulk_async_execute`.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::bulk_then_execute(E, F, S, std::experimental::make_ready_future(), RF, SF)` if `can_bulk_then_execute_v<decay_t<decltype(E)>>` is true.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::bulk_async_execute(E, F, S, RF, SF)` is ill-formed.
+
+*Remarks:* Whenever `std::execution::concurrency_v2::execution::bulk_async_execute(E, F, S, RF, SF)` is a valid expression, that expression satisfies the syntactic requirements for an asynchronous two-way, potentially-blocking execution function of bulk cardinality.
 
 ### `bulk_then_execute`
 
@@ -1294,48 +1297,6 @@ template<class OneWayExecutor, class Function1, class Function2>
 *Synchronization:* The completion of the function `shared_factory` happens before the creation of the group of function objects.
 
 *Remarks:* This function shall not participate in overload resolution unless `is_bulk_one_way_executor_v< BulkOneWayExecutor>` is `false` and `is_one_way_executor_v< OneWayExecutor>` is `true`.
-
-### Function template `execution::bulk_async_execute()`
-
-```
-template<class BulkTwoWayExecutor, class Function1, class Function2, class Function3>
-  executor_future_t<const BulkTwoWayExecutor, result_of_t<Function2()>>
-    bulk_async_execute(const BulkTwoWayExecutor& exec, Function1 f,
-                       executor_shape_t<BulkTwoWayExecutor> shape,
-                       Function2 result_factory, Function3 shared_factory);
-```
-
-*Returns:* `exec.bulk_async_execute(f, shape, result_factory, shared_factory)`.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_bulk_two_way_executor_v< BulkTwoWayExecutor>` is `true`.
-
-```
-template<class OneWayExecutor, class Function1, class Function2, class Function3>
-  executor_future_t<const OneWayExecutor, result_of_t<Function2()>>
-    bulk_async_execute(const OneWayExecutor& exec, Function1 f,
-                       executor_shape_t<OneWayExecutor> shape,
-                       Function2 result_factory, Function3 shared_factory);
-```
-
-*Effects:* Performs `exec.execute(g)` where `g` is a function object of unspecified type that:
-
-* Calls `result_factory()` and `shared_factory()`, and stores the results of these invocations to some shared state `result` and `shared` respectively.
-
-* Using `exec.execute`, submits a new group of function objects of shape `shape`. Each function object calls `f(idx, result, shared)`, where `idx` is the index of the function object, and `result` and `shared` are references to the respective shared state. Any return value of `f` is discarded.
-
-* If any invocation of `f` exits via an uncaught exception, `terminate` is called.
-
-*Returns:* An object of type `executor_future_t<Executor,result_of_t<Function2()>` that refers to the shared result state created by this call to `bulk_async_execute`.
-
-*Synchronization:*
-
-* The invocation of `bulk_async_execute` synchronizes with (1.10) the invocations of `f`.
-
-* The completion of the functions `result_factory` and `shared_factory` happen before the creation of the group of function objects.
-
-* The completion of the invocations of `f` are sequenced before (1.10) the result shared state is made ready.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_bulk_two_way_executor_v< BulkTwoWayExecutor>` is `false` and `is_one_way_executor_v< OneWayExecutor>` is `true`.
 
 ### Function template `execution::bulk_then_execute()`
 
