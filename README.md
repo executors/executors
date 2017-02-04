@@ -806,7 +806,7 @@ The name `post` denotes a customization point. The effect of the expression `std
 
 * Otherwise, `std::experimental::concurrency_v2::execution::post(E, F)` is ill-formed.
 
-*Remarks:* Whenever `std::experimental::concurrency_v2::execution::post(E, F)` is a valid expression, that expression satisfies the syntactics requirements for a one-way, non-blocking execution function of single cardinality.
+*Remarks:* Whenever `std::experimental::concurrency_v2::execution::post(E, F)` is a valid expression, that expression satisfies the syntactic requirements for a one-way, non-blocking execution function of single cardinality.
 
 ### `defer`
 
@@ -824,7 +824,7 @@ The name `defer` denotes a customization point. The effect of the expression `st
 
 * Otherwise, `std::experimental::concurrency_v2::execution::defer(E, F)` is ill-formed.
 
-*Remarks:* Whenever `std::experimental::concurrency_v2::execution::defer(E, F)` is a valid expression, that expression satisfies the syntactics requirements for a one-way, non-blocking execution function of single cardinality.
+*Remarks:* Whenever `std::experimental::concurrency_v2::execution::defer(E, F)` is a valid expression, that expression satisfies the syntactic requirements for a one-way, non-blocking execution function of single cardinality.
 
 ### `sync_execute`
 
@@ -842,7 +842,7 @@ The name `sync_execute` denotes a customization point. The effect of the express
 
 * Otherwise, `std::experimental::concurrency_v2::execution::sync_execute(E, F)` is ill-formed.
 
-*Remarks:* Whenever `std::experimental::concurrency_v2::execution::sync_execute(E, F)` is a valid expression, that expression satisfies the syntactics requirements for a synchronous two-way, blocking execution function of single cardinality.
+*Remarks:* Whenever `std::experimental::concurrency_v2::execution::sync_execute(E, F)` is a valid expression, that expression satisfies the syntactic requirements for a synchronous two-way, blocking execution function of single cardinality.
 
 ### `async_execute`
 
