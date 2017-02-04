@@ -709,7 +709,7 @@ In the Table \ref{bulk_one_way_executor_requirements} below,
 
  * `f` denotes a `CopyConstructible` function object with three arguments,
  * `n` denotes a shape object whose type is `executor_shape_t<X>`.
- * `sf` denotes a `CopyConstructible` function object with one argument whose result type is `S`,
+ * `sf` denotes a `CopyConstructible` function object with zero arguments whose result type is `S`,
  * `i` denotes an object whose type is `executor_index_t<X>`, and
  * `s` denotes an object whose type is `S`.
 
@@ -721,7 +721,7 @@ Table: (Bulk one-way executor requirements) \label{bulk_one_way_executor_require
 
 | Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
 |------------|-----------|------------------------|------------------------|
-| `x.bulk_`- `execute(f, n, sf)` | `void` | Creates a group of execution agents of shape `n` which invoke `f(i, s)`. <br/>This group of execution agents shall fulfill the forward progress requirements of `executor_execution_`- `category_t<X>` | Effects: invokes `sf(n)` on an unspecified execution agent. |
+| `x.bulk_`- `execute(f, n, sf)` | `void` | Creates a group of execution agents of shape `n` which invoke `f(i, s)`. <br/>This group of execution agents shall fulfill the forward progress requirements of `executor_execution_`- `category_t<X>` | Effects: invokes `sf()` on an unspecified execution agent. |
 
 ### `BulkTwoWayExecutor` requirements
 
@@ -733,8 +733,8 @@ In the Table \ref{bulk_two_way_executor_requirements} below,
 
   * `f` denotes a `CopyConstructible` function object with three arguments,
   * `n` denotes a shape object whose type is `executor_shape_t<X>`.
-  * `rf` denotes a `CopyConstructible` function object with one argument whose result type is `R`,
-  * `sf` denotes a `CopyConstructible` function object with one argument whose result type is `S`,
+  * `rf` denotes a `CopyConstructible` function object with zero arguments whose result type is `R`,
+  * `sf` denotes a `CopyConstructible` function object with zero arguments whose result type is `S`,
   * `i` denotes an object whose type is `executor_index_t<X>`,
   * `r` denotes an object whose type is `R`, 
   * `s` denotes an object whose type is `S`, and
@@ -748,9 +748,9 @@ Table: (Bulk two-way executor requirements) \label{bulk_two_way_executor_require
 
 | Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
 |------------|-----------|------------------------|------------------------|
-| `x.bulk_sync_`- `execute(f, n, rf, sf)` | `R` |  Creates a group of execution agents of shape `n` which invoke `f(i, r, s)`. <br/>This group of execution agents shall fulfill the forward progress requirements of `executor_execution_`- `category_t<X>`. <br/>Returns the result of `rf(n)`. | Note: blocks the forward progress of the caller until all invocations of `f` are finished. <br/>Effects: invokes `rf(n)` on an unspecified execution agent. <br/>Effects: invokes `sf(n)` on an unspecified execution agent. |
-| `x.bulk_async_`- `execute(f, n, rf, sf)` | `executor_`- `future_t<X,R>` | Creates a group of execution agents of shape `n` which invoke `f(i, r, s)`. <br/>This group of execution agents shall fulfill the forward progress requirements of `executor_execution_`- `category_t<X>`. </br>Asynchronously returns the result of `rf(n)` via the resulting future object. | Effects: invokes `rf(n)` on an unspecified execution agent. <br/>Effects: invokes `sf(n)` on an unspecified execution agent. |
-| `x.bulk_then_`- `execute(f, n, rf, pred, sf)` | `executor_`- `future_t<X,R>` | Creates a group of execution agents of shape `n` which invoke `f(i, r, pr, s)` after `pred` becomes ready. <br/>This group of execution agents shall fulfill the forward progress requirements of `executor_execution_`- `category_t<X>`. <br/>Asynchronously returns the result of `rf(n)` via the resulting future. | Effects: invokes `rf(n)` on an unspecified execution agent. <br/>Effects: invokes `sf(n)` on an unspecified execution agent. <br/>If `pred`'s result type is `void`, `pr` is omitted from `f`'s invocation. |
+| `x.bulk_sync_`- `execute(f, n, rf, sf)` | `R` |  Creates a group of execution agents of shape `n` which invoke `f(i, r, s)`. <br/>This group of execution agents shall fulfill the forward progress requirements of `executor_execution_`- `category_t<X>`. <br/>Returns the result of `rf()`. | Note: blocks the forward progress of the caller until all invocations of `f` are finished. <br/>Effects: invokes `rf()` on an unspecified execution agent. <br/>Effects: invokes `sf()` on an unspecified execution agent. |
+| `x.bulk_async_`- `execute(f, n, rf, sf)` | `executor_`- `future_t<X,R>` | Creates a group of execution agents of shape `n` which invoke `f(i, r, s)`. <br/>This group of execution agents shall fulfill the forward progress requirements of `executor_execution_`- `category_t<X>`. </br>Asynchronously returns the result of `rf()` via the resulting future object. | Effects: invokes `rf()` on an unspecified execution agent. <br/>Effects: invokes `sf()` on an unspecified execution agent. |
+| `x.bulk_then_`- `execute(f, n, rf, pred, sf)` | `executor_`- `future_t<X,R>` | Creates a group of execution agents of shape `n` which invoke `f(i, r, pr, s)` after `pred` becomes ready. <br/>This group of execution agents shall fulfill the forward progress requirements of `executor_execution_`- `category_t<X>`. <br/>Asynchronously returns the result of `rf()` via the resulting future. | Effects: invokes `rf()` on an unspecified execution agent. <br/>Effects: invokes `sf()` on an unspecified execution agent. <br/>If `pred`'s result type is `void`, `pr` is omitted from `f`'s invocation. |
 
 ### `ExecutorWorkTracker` requirements
 
