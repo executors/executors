@@ -33,9 +33,9 @@ Other Contributors: Hans Boehm, hboehm@google.com
 
                     Michael Wong, michael@codeplay.com
 
-Document Number:    P0443R0
+Document Number:    P0443R1
 
-Date:               2016-10-17
+Date:               2017-01-06
 
 Reply-to:           jhoberock@nvidia.com
 
@@ -278,6 +278,21 @@ example, our proposal does not directly address issues related to heterogeneous
 execution resources. These issues can be addressed in the future with new kinds
 of executors incorporated into the overall framework with the appropriate
 categorization.
+
+## Changelog
+
+### Changes since R0
+
+* Executor category simplification
+* Specified executor customization points in detail
+* Introduced new fine-grained executor type traits
+    * Detectors for execution functions
+    * Traits for introspecting cross-cutting concerns
+        * Introspection of mapping of agents to threads
+        * Introspection of execution function blocking behavior
+* Allocator support for single agent execution functions
+* Renamed `thread_pool` to `static_thread_pool`
+* New introduction
 
 # Proposed Wording
 
