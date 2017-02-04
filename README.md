@@ -271,8 +271,12 @@ namespace execution {
   template<class T> struct has_async_defer_member;
   template<class T> struct has_then_execute_member;
   template<class T> struct has_bulk_execute_member;
+  template<class T> struct has_bulk_post_member;
+  template<class T> struct has_bulk_defer_member;
   template<class T> struct has_bulk_sync_execute_member;
   template<class T> struct has_bulk_async_execute_member;
+  template<class T> struct has_bulk_async_post_member;
+  template<class T> struct has_bulk_async_defer_member;
   template<class T> struct has_bulk_then_execute_member;
 
   template<class T> constexpr bool has_execute_member_v = has_execute_member<T>::value;
@@ -284,9 +288,49 @@ namespace execution {
   template<class T> constexpr bool has_async_defer_member_v = has_async_defer_member<T>::value;
   template<class T> constexpr bool has_then_execute_member_v = has_then_execute_member<T>::value;
   template<class T> constexpr bool has_bulk_execute_member_v = has_bulk_execute_member<T>::value;
+  template<class T> constexpr bool has_bulk_post_member_v = has_bulk_post_member<T>::value;
+  template<class T> constexpr bool has_bulk_defer_member_v = has_bulk_defer_member<T>::value;
   template<class T> constexpr bool has_bulk_sync_execute_member_v = has_bulk_sync_execute_member<T>::value;
   template<class T> constexpr bool has_bulk_async_execute_member_v = has_bulk_async_execute_member<T>::value;
+  emplate<class T> constexpr bool has_bulk_async_post_member_v = has_bulk_async_post_member<T>::value;
+  emplate<class T> constexpr bool has_bulk_async_defer_member_v = has_bulk_async_defer_member<T>::value;
   template<class T> constexpr bool has_bulk_then_execute_member_v = has_bulk_then_execute_member<T>::value;
+
+  // Free function detection type traits:
+
+  template<class T> struct has_execute_free_function;
+  template<class T> struct has_post_free_function;
+  template<class T> struct has_defer_free_function;
+  template<class T> struct has_sync_execute_free_function;
+  template<class T> struct has_async_execute_free_function;
+  template<class T> struct has_async_post_free_function;
+  template<class T> struct has_async_defer_free_function;
+  template<class T> struct has_then_execute_free_function;
+  template<class T> struct has_bulk_execute_free_function;
+  template<class T> struct has_bulk_post_free_function;
+  template<class T> struct has_bulk_defer_free_function;
+  template<class T> struct has_bulk_sync_execute_free_function;
+  template<class T> struct has_bulk_async_execute_free_function;
+  template<class T> struct has_bulk_async_post_free_function;
+  template<class T> struct has_bulk_async_defer_free_function;
+  template<class T> struct has_bulk_then_execute_free_function;
+
+  template<class T> constexpr bool has_execute_free_function_v = has_execute_free_function<T>::value;
+  template<class T> constexpr bool has_post_free_function_v = has_post_free_function<T>::value;
+  template<class T> constexpr bool has_defer_free_function_v = has_defer_free_function<T>::value;
+  template<class T> constexpr bool has_sync_execute_free_function_v = has_sync_execute_free_function<T>::value;
+  template<class T> constexpr bool has_async_execute_free_function_v = has_async_execute_free_function<T>::value;
+  template<class T> constexpr bool has_async_post_free_function_v = has_async_post_free_function<T>::value;
+  template<class T> constexpr bool has_async_defer_free_function_v = has_async_defer_free_function<T>::value;
+  template<class T> constexpr bool has_then_execute_free_function_v = has_then_execute_free_function<T>::value;
+  template<class T> constexpr bool has_bulk_execute_free_function_v = has_bulk_execute_free_function<T>::value;
+  template<class T> constexpr bool has_bulk_post_free_function_v = has_bulk_post_free_function<T>::value;
+  template<class T> constexpr bool has_bulk_defer_free_function_v = has_bulk_defer_free_function<T>::value;
+  template<class T> constexpr bool has_bulk_sync_execute_free_function_v = has_bulk_sync_execute_free_function<T>::value;
+  template<class T> constexpr bool has_bulk_async_execute_free_function_v = has_bulk_async_execute_free_function<T>::value;
+  emplate<class T> constexpr bool has_bulk_async_post_free_function_v = has_bulk_async_post_free_function<T>::value;
+  emplate<class T> constexpr bool has_bulk_async_defer_free_function_v = has_bulk_async_defer_free_function<T>::value;
+  template<class T> constexpr bool has_bulk_then_execute_free_function_v = has_bulk_then_execute_free_function<T>::value;
 
   // Customization points:
 
@@ -300,8 +344,12 @@ namespace execution {
     constexpr unspecified async_defer = unspecified;
     constexpr unspecified then_execute = unspecified;
     constexpr unspecified bulk_execute = unspecified;
+    constexpr unspecified bulk_post = unspecified;
+    constexpr unspecified bulk_defer = unspecified;
     constexpr unspecified bulk_sync_execute = unspecified;
     constexpr unspecified bulk_async_execute = unspecified;
+    constexpr unspecified bulk_async_post = unspecified;
+    constexpr unspecified bulk_async_defer = unspecified;
     constexpr unspecified bulk_then_execute = unspecified;
   }
 
@@ -316,8 +364,12 @@ namespace execution {
   template<class T> struct can_async_defer;
   template<class T> struct can_then_execute;
   template<class T> struct can_bulk_execute;
+  template<class T> struct can_post_execute;
+  template<class T> struct can_defer_execute;
   template<class T> struct can_bulk_sync_execute;
   template<class T> struct can_bulk_async_execute;
+  template<class T> struct can_bulk_async_post;
+  template<class T> struct can_bulk_async_defer;
   template<class T> struct can_bulk_then_execute;
 
   template<class T> constexpr bool can_execute_v = can_execute<T>::value;
@@ -329,8 +381,12 @@ namespace execution {
   template<class T> constexpr bool can_async_defer_v = can_async_defer<T>::value;
   template<class T> constexpr bool can_then_execute_v = can_then_execute<T>::value;
   template<class T> constexpr bool can_bulk_execute_v = can_bulk_execute<T>::value;
+  template<class T> constexpr bool can_bulk_post_v = can_bulk_post<T>::value;
+  template<class T> constexpr bool can_bulk_defer_v = can_bulk_defer<T>::value;
   template<class T> constexpr bool can_bulk_sync_execute_v = can_bulk_sync_execute<T>::value;
   template<class T> constexpr bool can_bulk_async_execute_v = can_bulk_async_execute<T>::value;
+  template<class T> constexpr bool can_bulk_async_post_v = can_bulk_async_post<T>::value;
+  template<class T> constexpr bool can_bulk_async_defer_v = can_bulk_async_defer<T>::value;
   template<class T> constexpr bool can_bulk_then_execute_v = can_bulk_then_execute<T>::value;
 
   // Executor type traits:
@@ -430,6 +486,24 @@ namespace execution {
                       executor_shape_t<OneWayExecutor> shape,
                       Function2 shared_factory);
 
+template<class BulkNonBlockingOneWayExecutor, class Function1, class Function2>
+    void bulk_post(const BulkNonBlockingOneWayExecutor& exec, Function1 f,
+                      executor_shape_t<BulkNonBlockingOneWayExecutor> shape,
+                      Function2 shared_factory);
+  template<class OneWayExecutor, class Function1, class Function2>
+    void bulk_post(const OneWayExecutor& exec, Function1 f,
+                      executor_shape_t<OneWayExecutor> shape,
+                      Function2 shared_factory);
+
+template<class BulkNonBlockingOneWayExecutor, class Function1, class Function2>
+    void bulk_defer(const BulkNonBlockingOneWayExecutor& exec, Function1 f,
+                      executor_shape_t<BulkNonBlockingOneWayExecutor> shape,
+                      Function2 shared_factory);
+  template<class OneWayExecutor, class Function1, class Function2>
+    void bulk_defer(const OneWayExecutor& exec, Function1 f,
+                      executor_shape_t<OneWayExecutor> shape,
+                      Function2 shared_factory);
+
   template<class BulkTwoWayExecutor, class Function1, class Function2, class Function3>
     result_of_t<Function2()>
       bulk_sync_execute(const BulkTwoWayExecutor& exec, Function1 f,
@@ -449,6 +523,28 @@ namespace execution {
   template<class OneWayExecutor, class Function1, class Function2, class Function3>
     executor_future_t<const OneWayExecutor, result_of_t<Function2()>>
       bulk_async_execute(const OneWayExecutor& exec, Function1 f,
+                         executor_shape_t<OneWayExecutor> shape,
+                         Function2 result_factory, Function3 shared_factory);
+
+  template<class BulkNonBlockingTwoWayExecutor, class Function1, class Function2, class Function3>
+    executor_future_t<const BulkNonBlockingTwoWayExecutor, result_of_t<Function2()>>
+      bulk_async_post(const BulkNonBlockingTwoWayExecutor& exec, Function1 f,
+                         executor_shape_t<BulkNonBlockingTwoWayExecutor> shape,
+                         Function2 result_factory, Function3 shared_factory);
+  template<class OneWayExecutor, class Function1, class Function2, class Function3>
+    executor_future_t<const OneWayExecutor, result_of_t<Function2()>>
+      bulk_async_post(const OneWayExecutor& exec, Function1 f,
+                         executor_shape_t<OneWayExecutor> shape,
+                         Function2 result_factory, Function3 shared_factory);
+
+  template<class BulkNonBlockingTwoWayExecutor, class Function1, class Function2, class Function3>
+    executor_future_t<const BulkNonBlockingTwoWayExecutor, result_of_t<Function2()>>
+      bulk_async_defer(const BulkNonBlockingTwoWayExecutor& exec, Function1 f,
+                         executor_shape_t<BulkNonBlockingTwoWayExecutor> shape,
+                         Function2 result_factory, Function3 shared_factory);
+  template<class OneWayExecutor, class Function1, class Function2, class Function3>
+    executor_future_t<const OneWayExecutor, result_of_t<Function2()>>
+      bulk_async_defer(const OneWayExecutor& exec, Function1 f,
                          executor_shape_t<OneWayExecutor> shape,
                          Function2 result_factory, Function3 shared_factory);
 
@@ -601,7 +697,7 @@ The blocking semantics of an execution function may be one of the following:
 
 The table below describes the execution member functions and non-member functions that can be supported by an executor category via various combinations of the execution function requirements.
 
-| Cardinality | Directionality | Blocking semantics | Member function | Customization point |
+| Cardinality | Directionality | Blocking semantics | Member function | Free function |
 | ------------ | -------------- | --------------------- | ------------------- | ---------------------- |
 | Single | One-way | Potentially blocking | `x.execute(f)` <br/> `x.execute(f, a)` | `execute(x, f)` <br/> `execute(x, f, a)` |
 | Single | One-way | Non-blocking | `x.post(f)` <br/> `x.post(f, a)` <br/> `x.defer(f)`  <br/> `x.defer(f, a)` | `post(x, f)` <br/> `post(x, f, a)` <br/> `defer(x, f)`  <br/> `defer(x, f, a)` |
@@ -610,11 +706,11 @@ The table below describes the execution member functions and non-member function
 | Single | Two-way asynchronous | Potentially blocking | `x.async_execute(f)` <br/> `x.async_execute(f, a)`  <br/> `x.then_execute(f, pred)` <br/> `x.then_execute(f, pred, a)` | `async_execute(x, f)` <br/> `async_execute(x, f, a)`  <br/> `then_execute(x, f, pred)` <br/> `then_execute(x, f, pred, a)` |
 | Single | Two-way asynchronous | Non-blocking | `x.async_post(f)` <br/> `x.async_post(f, a)` | `async_post(x, f)` <br/> `x.async_post(x, f, a)` |
 | Bulk | One-way | Potentially blocking | `x.bulk_execute(f, s, sf)` | `bulk_execute(x, f, s, sf)` |
-| Bulk | One-way | Non-blocking | ? | ? |
+| Bulk | One-way | Non-blocking | `x.bulk_post(f, s, sf)` <br/> `x.bulk_defer(f, s, sf)` | `bulk_post(x, f, s, sf)` <br/> `bulk_defer(x, f, s, sf)` |
 | Bulk | Two-way synchronous | Potentially blocking | `x.bulk_sync_execute(f, s, rf, sf)` | `bulk_sync_execute(x, f, s, rf, sf)` |
-| Bulk | Two-way synchronous | Non-blocking | ? | ? |
+| Bulk | Two-way synchronous | Non-blocking | NA | NA |
 | Bulk | Two-way asynchronous | Potentially blocking | `x.bulk_async_execute(f, s, rf, sf)` <br/> `x.bulk_then_execute(f, s, pred, rf, sf)` | `bulk_async_execute(x, f, s, rf, sf)` <br/> `bulk_then_execute(x, f, s, pred, rf, sf)` |
-| Bulk | Two-way asynchronous | Non-blocking | ? | ? |
+| Bulk | Two-way asynchronous | Non-blocking |  `x.bulk_async_post(f, s, rf, sf)` <br/> `x.bulk_async_defer(f, s, rf, sf)` | `bulk_async_post(x, f, s, rf, sf)` <br/> `bulk_async_defer(x, f, s, rf, sf)` |
 
 ### `BaseExecutor` requirements
 
@@ -784,8 +880,12 @@ Table: (Executor Work Tracker requirements) \label{executor_work_tracker_require
     template<class T> struct has_async_defer_member;
     template<class T> struct has_then_execute_member;
     template<class T> struct has_bulk_execute_member;
+    template<class T> struct has_bulk_post_member;
+    template<class T> struct has_bulk_defer_member;
     template<class T> struct has_bulk_sync_execute_member;
     template<class T> struct has_bulk_async_execute_member;
+    template<class T> struct has_bulk_async_post_member;
+    template<class T> struct has_bulk_async_defer_member;
     template<class T> struct has_bulk_then_execute_member;
 
 This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
@@ -799,11 +899,55 @@ This sub-clause contains templates that may be used to query the properties of a
 | `template<class T>` <br/>`struct has_async_execute_member` | `T` has a member function named `async_execute` that satisfies the syntactic requirements of an asynchronous two-way, potentially blocking execution function of single cardinality. | `T` is a complete type. |
 | `template<class T>` <br/>`struct has_async_post_member` | `T` has a member function named `async_post` that satisfies the syntactic requirements of an asynchronous two-way, non-blocking execution function of single cardinality. | `T` is a complete type. |
 | `template<class T>` <br/>`struct has_async_defer_member` | `T` has a member function named `async_defer` that satisfies the syntactic requirements of an asynchronous two-way, non-blocking execution function of single cardinality. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_then_execute_member` | `T` has a member function named `then_execute` that satisfies the syntactic requirements of **TODO**. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_then_execute_member` | `T` has a member function named `then_execute` that satisfies the syntactic requirements of an asynchronous two-way, potentially blocking execution function of single cardinality. | `T` is a complete type. |
 | `template<class T>` <br/>`struct has_bulk_execute_member` | `T` has a member function named `bulk_execute` that satisfies the syntactic requirements of a one-way, potentially blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_post_member` | `T` has a member function named `bulk_post` that satisfies the syntactic requirements of a one-way, non-blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_defer_member` | `T` has a member function named `bulk_defer` that satisfies the syntactic requirements of a one-way, non-blocking execution function of bulk cardinality. | `T` is a complete type. |
 | `template<class T>` <br/>`struct has_bulk_sync_execute_member` | `T` has a member function named `bulk_sync_execute` that satisfies the syntactic requirements of a synchronous two-way execution function of bulk cardinality. | `T` is a complete type. |
 | `template<class T>` <br/>`struct has_bulk_async_execute_member` | `T` has a member function named `bulk_async_execute` that satisfies the syntactic requirements of an asynchronous two-way, potentially blocking execution function of bulk cardinality. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_bulk_then_execute_member` | `T` has a member function named `bulk_then_execute` that satisfies the syntactic requirements of **TODO**. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_async_post_member` | `T` has a member function named `bulk_async_post` that satisfies the syntactic requirements of an asynchronous two-way, non-blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_async_defer_member` | `T` has a member function named `bulk_async_defer` that satisfies the syntactic requirements of an asynchronous two-way, non-blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_then_execute_member` | `T` has a member function named `bulk_then_execute` that satisfies the syntactic requirements of an a asynchronous two-way, potentially blocking execution function of bulk cardinality. | `T` is a complete type. |
+
+### Free function detection type traits
+
+    template<class T> struct has_execute_free_function;
+    template<class T> struct has_post_free_function;
+    template<class T> struct has_defer_free_function;
+    template<class T> struct has_sync_execute_free_function;
+    template<class T> struct has_async_execute_free_function;
+    template<class T> struct has_async_post_free_function;
+    template<class T> struct has_async_defer_free_function;
+    template<class T> struct has_then_execute_free_function;
+    template<class T> struct has_bulk_execute_free_function;
+    template<class T> struct has_bulk_post_free_function;
+    template<class T> struct has_bulk_defer_free_function;
+    template<class T> struct has_bulk_sync_execute_free_function;
+    template<class T> struct has_bulk_async_execute_free_function;
+    template<class T> struct has_bulk_async_post_free_function;
+    template<class T> struct has_bulk_async_defer_free_function;
+    template<class T> struct has_bulk_then_execute_free_function;
+
+This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
+
+| Template                   | Condition           | Preconditions  |
+|----------------------------|---------------------|----------------|
+| `template<class T>` <br/>`struct has_execute_free_function` | There exists a free function named `execute` taking an executor of type `T` that satisfies the syntactic requirements of a one-way, potentially blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_post_free_function` | There exists a free function named `post` taking an executor of type `T` that satisfies the syntactic requirements of a one-way, non-blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_defer_free_function` | There exists a free function named `defer` taking an executor of type `T` that satisfies the syntactic requirements of a one-way, non-blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_sync_execute_free_function` | There exists a free function named `sync_execute` taking an executor of type `T` that satisfies the syntactic requirements of a synchronous two-way execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_async_execute_free_function` | There exists a free function named `async_execute` taking an executor of type `T` that satisfies the syntactic requirements of an asynchronous two-way, potentially blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_async_post_free_function` | There exists a free function named `async_post` taking an executor of type `T` that satisfies the syntactic requirements of an asynchronous two-way, non-blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_async_defer_free_function` | There exists a free function named `async_defer` taking an executor of type `T` that satisfies the syntactic requirements of an asynchronous two-way, non-blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_then_execute_free_function` | There exists a free function named `then_execute` taking an executor of type `T` that satisfies the syntactic requirements of an asynchronous two-way, potentially blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_execute_free_function` | There exists a free function named `bulk_execute` taking an executor of type `T` that satisfies the syntactic requirements of a one-way, potentially blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_post_free_function` | There exists a free function named `bulk_post` taking an executor of type `T` that satisfies the syntactic requirements of a one-way, non-blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_defer_free_function` | There exists a free function named `bulk_defer` taking an executor of type `T` that satisfies the syntactic requirements of a one-way, non-blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_sync_execute_free_function` | There exists a free function named `bulk_sync_execute` taking an executor of type `T` that satisfies the syntactic requirements of a synchronous two-way execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_async_execute_free_function` | There exists a free function named `bulk_async_execute` taking an executor of type `T` that satisfies the syntactic requirements of an asynchronous two-way, potentially blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_async_post_free_function` | There exists a free function named `bulk_async_post` taking an executor of type `T` that satisfies the syntactic requirements of an asynchronous two-way, non-blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_async_defer_free_function` | There exists a free function named `bulk_async_defer` taking an executor of type `T` that satisfies the syntactic requirements of an asynchronous two-way, non-blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_then_execute_free_function` | There exists a free function named `bulk_then_execute` taking an executor of type `T` that satisfies the syntactic requirements of an an asynchronous two-way, potentially blocking execution function of bulk cardinality. | `T` is a complete type. |
 
 ## Customization points
 
@@ -909,11 +1053,27 @@ The name `async_execute` denotes a customization point. The effect of the expres
 
 *TODO*
 
+### `bulk_post`
+
+*TODO*
+
+### `bulk_defer`
+
+*TODO*
+
 ### `bulk_sync_execute`
 
 *TODO*
 
 ### `bulk_async_execute`
+
+*TODO*
+
+### `bulk_async_post`
+
+*TODO*
+
+### `bulk_async_defer`
 
 *TODO*
 
@@ -932,8 +1092,12 @@ The name `async_execute` denotes a customization point. The effect of the expres
     template<class T> struct can_async_defer;
     template<class T> struct can_then_execute;
     template<class T> struct can_bulk_execute;
+    template<class T> struct can_bulk_post;
+    template<class T> struct can_bulk_defer;
     template<class T> struct can_bulk_sync_execute;
     template<class T> struct can_bulk_async_execute;
+    template<class T> struct can_bulk_async_post;
+    template<class T> struct can_bulk_async_defer;
     template<class T> struct can_bulk_then_execute;
 
 This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
@@ -962,8 +1126,12 @@ In the Table below,
 | `template<class T>` <br/>`struct can_async_defer` | The expressions `std::experimental::concurrency_v2::execution::async_defer(t, f)` and `std::experimental::concurrency_v2::execution::async_defer(t, f, a)` is well-formed. | `T` is a complete type. |
 | `template<class T>` <br/>`struct can_then_execute` | The expressions `std::experimental::concurrency_v2::execution::then_execute(t, f, pred)` and `std::experimental::concurrency_v2::execution::then_execute(t, f, pred)` are well-formed. | `T` is a complete type. |
 | `template<class T>` <br/>`struct can_bulk_execute` | The expression `std::experimental::concurrency_v2::execution::bulk_execute(t, bf, s, rf, sf)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_bulk_post` | The expression `std::experimental::concurrency_v2::execution::bulk_post(t, bf, s, rf, sf)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_bulk_defer` | The expression `std::experimental::concurrency_v2::execution::bulk_defer(t, bf, s, rf, sf)` is well-formed. | `T` is a complete type. |
 | `template<class T>` <br/>`struct can_bulk_sync_execute` | The expression `std::experimental::concurrency_v2::execution::bulk_sync_execute(t, bf, s, rf, sf)` is well-formed. | `T` is a complete type. |
 | `template<class T>` <br/>`struct can_bulk_async_execute` | The expression `std::experimental::concurrency_v2::execution::bulk_async_execute(t, bf, s, rf, sf)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_bulk_async_post` | The expression `std::experimental::concurrency_v2::execution::bulk_async_post(t, bf, s, rf, sf)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_bulk_async_defer` | The expression `std::experimental::concurrency_v2::execution::bulk_async_defer(t, bf, s, rf, sf)` is well-formed. | `T` is a complete type. |
 | `template<class T>` <br/>`struct can_bulk_then_execute` | The expression `std::experimental::concurrency_v2::execution::bulk_then_execute(t, bf, s, pred, rf, sf)` is well-formed. | `T` is a complete type. |
 
 ## Executor type traits
@@ -1294,6 +1462,14 @@ template<class OneWayExecutor, class Function1, class Function2>
 
 *Remarks:* This function shall not participate in overload resolution unless `is_bulk_one_way_executor_v< BulkOneWayExecutor>` is `false` and `is_one_way_executor_v< OneWayExecutor>` is `true`.
 
+### Function template `execution::bulk_post()`
+
+TODO
+
+### Function template `execution::bulk_defer()`
+
+TODO
+
 ### Function template `execution::bulk_sync_execute()`
 
 ```
@@ -1373,6 +1549,14 @@ template<class OneWayExecutor, class Function1, class Function2, class Function3
 * The completion of the invocations of `f` are sequenced before (1.10) the result shared state is made ready.
 
 *Remarks:* This function shall not participate in overload resolution unless `is_bulk_two_way_executor_v< BulkTwoWayExecutor>` is `false` and `is_one_way_executor_v< OneWayExecutor>` is `true`.
+
+### Function template `execution::bulk_async_post()`
+
+TODO
+
+### Function template `execution::bulk_async_defer()`
+
+TODO
 
 ### Function template `execution::bulk_then_execute()`
 
