@@ -68,8 +68,8 @@ programmer. For example, an implementation might expose different processor
 cores, with potentially non-uniform access to memory, as separate resources to
 enable programmers to reason about locality.
  
-An **execution context** is a program object that represents and manages a
-specific collection of execution resources.
+An **execution context** is a program object that represents a specific
+collection of execution resources.
  
 An **executor** is an object associated with a specific execution context.  It
 provides a mechanism for creating execution agents from a callable function
@@ -199,8 +199,8 @@ which are known to be incompatible.
 
 ## Execution Contexts
 
-In our design, *execution contexts* are objects that manage a specific
-collection of resources required by an executor to create execution. For
+In our design, *execution contexts* are objects that represent a specific
+collection of resources and may be used by executor to create execution. For
 example, a thread pool is an execution context which manages a collection of
 threads upon which an associated executor may create execution agents. For our
 purposes of defining a programming model for executors, the only salient
