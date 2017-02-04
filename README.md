@@ -250,15 +250,24 @@ with performance the tools to reason about locality.
 **Execution contexts.** This paper proposes a single concrete execution
 context, `static_thread_pool`, which embodies one approach for representing a
 thread pool. There are other approaches to thread pools with different features
-and limitations. Besides introducing concrete execution context types, a future
-proposal could refine our `ExecutionContext` concept by introducing concepts
-with additional requirements. As an example, a parallel execution framework
-might define requirements for a hypothetical `IntrospectableExecutionContext`
-which would require contexts to provide functionality for resource
-introspection. Generic code could depend on such functionality to query the
-number of hardware threads associated with execution context. These and other
-extensions to our basic model of execution contexts may be explored as future
-work.
+and limitations. For example, a hypothetical `dynamic_thread_pool` type could
+automatically change its thread count to adapt to the state of the system, with
+the goal of guaranteeing concurrent execution. Another possible execution
+context could emulate the existing behavior of `std::async()` to aid in
+migration from the standard library's existing features for concurrency and
+parallelism to this new model of executors. Such a context would allow
+programmers to introduce executors without breaking any assumed semantics of
+`std::async()`, such as concurrent execution agents, thread-per-request, and
+future blocking behavior.
+
+Besides introducing concrete execution context types, a future proposal could
+refine our `ExecutionContext` concept by introducing concepts with additional
+requirements. As an example, a parallel execution framework might define
+requirements for a hypothetical `IntrospectableExecutionContext` which would
+require contexts to provide functionality for resource introspection. Generic
+code could depend on such functionality to query the number of hardware threads
+associated with execution context. These and other extensions to our basic
+model of execution contexts may be explored as future work.
 
 **Executor categories.** Future extensions might expand our executor
 categorization to additional application domains if the categorizations
