@@ -879,7 +879,7 @@ The name `post` denotes a customization point. The effect of the expression `std
 
 * `(E).post(F)` if `has_post_member_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `post(E, F)` if that expression satisfies the syntactic requirements for a synchronous two-way, potentially blocking execution function of single cardinality, with overload resolution performed in a context that includes the declaration `void post(auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::post`.
+* Otherwise, `post(E, F)` if that expression satisfies the syntactic requirements for a one-way, non-blocking execution function of single cardinality, with overload resolution performed in a context that includes the declaration `void post(auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::post`.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::execute(E, F)` if `is_same_v<execution_execute_blocking_category_t<E>, non_blocking_execution_tag>` is true.
 
@@ -897,7 +897,7 @@ The name `defer` denotes a customization point. The effect of the expression `st
 
 * `(E).defer(F)` if `has_defer_member_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `defer(E, F)` if that expression satisfies the syntactic requirements for a synchronous two-way, potentially blocking execution function of single cardinality, with overload resolution performed in a context that includes the declaration `void defer(auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::defer`.
+* Otherwise, `defer(E, F)` if that expression satisfies the syntactic requirements for a one-way, non-blocking execution function of single cardinality, with overload resolution performed in a context that includes the declaration `void defer(auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::defer`.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::execute(E, F)` if `is_same_v<execution_execute_blocking_category_t<E>, non_blocking_execution_tag>` is true.
 
@@ -939,6 +939,8 @@ The name `async_execute` denotes a customization point. The effect of the expres
 
 * Otherwise, `std::experimental::concurrency_v2::execution::async_execute(E, F)` is ill-formed.
 
+*Remarks:* Whenever `std::experimental::concurrency_v2::execution::async_execute(E, F)` is a valid expression, that expression satisfies the syntactic requirements for an asynchronous two-way, potentially blocking execution function of single cardinality.
+
 ### `async_post`
 
     namespace {
@@ -957,6 +959,8 @@ The name `async_post` denotes a customization point. The effect of the expressio
 
 * Otherwise, `std::experimental::concurrency_v2::execution::async_post(E, F)` is ill-formed.
 
+*Remarks:* Whenver `std::experimental::concurrency_v2::execution::async_post(E, F)` is a valid expression, that expression satisfies the syntactic requirements for an asynchronous two-way, non-blocking execution function of single cardinality.
+
 ### `async_defer`
 
     namespace {
@@ -974,6 +978,8 @@ The name `async_defer` denotes a customization point. The effect of the expressi
 * Otherwise, if `can_defer_v<decay_t<decltype(E)>>` is true, creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `std::experimental::concurrency_v2::execution::execute(E, g)` where `g` is a function object of unspecified type that performs `DECAY_COPY(F)()`, with the call to `DECAY_COPY` being performed in the thread that called `async_defer`. On successful completion of `DECAY_COPY(F)()`, the return value of `DECAY_COPY(F)()` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(F)()` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready. The result of the expression `std::experimental::concurrency_v2::execution::async_defer(E, F)` is an object of type `std::future<result_of_t<decay_t<decltype(F)>>()>` that refers to the shared state.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::async_defer(E, F)` is ill-formed.
+
+*Remarks:* Whenever `std::experimental::concurrency_v2::execution::async_defer(E, F)` is a valid expression, that expression satisfies the syntactic requirements for an asynchronous two-way, non-blocking execution function of single cardinality.
 
 ### `then_execute`
 
