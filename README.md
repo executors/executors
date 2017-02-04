@@ -2215,9 +2215,7 @@ Let `T` be `decay_t<Executor>`.
 
 *Returns:* An execution policy whose execution category is `execution_category`. If `T` satisfies the requirements of
 `BulkTwoWayExecutor`, the returned execution policy's associated executor is equal to `exec`. Otherwise,
-the returned execution policy's associated executor is an adaptation of `exec`.
-
-XXX TODO: need to define what adaptation means
+the returned execution policy's associated executor fulfills the `BulkTwoWayExecutor` requirements which creates execution agents using a copy of `exec`.
 
 *Remarks:* This member function shall not participate in overload resolution unless `is_executor_v<T>` is `true` and
 `executor_execution_category_t<T>` is as strong as `execution_category`.
