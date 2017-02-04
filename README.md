@@ -563,6 +563,58 @@ The name of an execution function is determined by the combination of properties
 |-------------|----------------|-------------------|
 | "" or "bulk_" | "" or "sync_" or "async_" | "execute" or "post" or "defer" |
 
+#### Blocking semantics
+
+The blocking semantics of an execution function may be one of the following:
+
+* *Potentially blocking:* The execution function may block the caller pending completion of the submitted function objects. Execution functions having potentially blocking semantics are named `execute`.
+* *Non-blocking:* The execution function shall not block the caller pending completion of the submitted function objects. Execution functions having non-blocking semantics are named `post` or `defer`.
+
+##### Requirements on execution functions having potentially blocking semantics
+
+In the Table below, `x` denotes a (possibly const) executor object of type `X`, `e` denotes the name of the execution function, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements, and `a` denotes a (possibly const) value of type `A` satisfying the `ProtoAllocator` requirements.
+
+| Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
+|------------|-------------|------------------------|------------------------------------|
+| `x.execute(f, ...)` <br/>`execute(x, f, ...)` | void | *Creation of agents:* Creates a weakly parallel execution agent which invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `e`. <br/> <br/> *Forward progress of caller:* May block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))()` finishes execution. | *Synchronization:* The invocation of `execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. |
+
+##### Requirements on execution functions having non-blocking semantics
+
+In the Table below, `x` denotes a (possibly const) executor object of type `X`, `e` denotes the name of the execution function, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements, and `a` denotes a (possibly const) value of type `A` satisfying the `ProtoAllocator` requirements.
+
+| Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
+|------------|-------------|------------------------|------------------------------------|
+| `x.post(f, ...)` <br/>`post(x, f, ...)` | void | *Creation of agents:* Creates a weakly parallel execution agent which invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `e`. <br/> <br/> *Forward progress of caller:* Shall not block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))()` finishes execution. | *Synchronization:* The invocation of `execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. |
+| `x.defer(f, ...)` <br/>`defer(x, f, ...)` | void | *Creation of agents:* Creates a weakly parallel execution agent which invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `e`. <br/> <br/> *Forward progress of caller:* Shall not block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))()` finishes execution. | *Synchronization:* The invocation of `execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. |
+
+
+
+
+
+
+
+
+-----------------------------
+
+| Form | Semantics |
+|------|-----------|
+| `x.e(f,a)` <br/>`e(x,f,a)` | Creates a weakly parallel execution agent which invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `execute`. <br/><br/>May block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))()` finishes execution. <br/><br/>Executor implementations should use the supplied allocator (if any) to allocate any memory required to store the function object. Prior to invoking the function object, the executor shall deallocate any memory allocated. [*Note:* Executors defined in this Technical Specification always use the supplied allocator unless otherwise specified. *--end note*] | *Synchronization:* The invocation of `execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`.|
+
+
+| Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
+|------------|-------------|------------------------|------------------------------------|
+| `x.post(f, a = executor_default_allocator_v<X>)` <br/><br/> `x.defer(f, a = executor_default_allocator_v<X>)` | void | **Adds** *Creation of agents:* Creates a weakly parallel execution agent which invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `post` or `defer`. <br/><br/> **Adds** *Forward progress of caller:* Shall not block forward progress of the caller pending completion of `DECAY_COPY( std::forward<F>(f))()`. <br/><br/> **Adds** *Forward progress of agents:* Created agents have weekly parallel forward progress guarantees with respect to each other. [*Note:* This requirement does not have any effect on it's own, it is only applicable if the `X` hasa the `BulkExecutor` property. *--end note*] <br/><br/> **Adds** *Function allocation:* Executor implementations should use the supplied allocator (if any) to allocate any memory required to store the function object. Prior to invoking the function object, the executor shall deallocate any memory allocated. [*Note:* Executors defined in this Technical Specification always use the supplied allocator unless otherwise specified. *--end note*] | **Adds** *Synchronization:* The invocation of `defer` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. <br/><br/> **Adds** *Note:* The use of `post` conveys a preference that the caller does not block the first step of `f`'s progress. <br/><br/> **Adds** *Note:* The use of `defer` conveys a preference that the caller does block the first step of `f`. One use of `defer` is to convey the intention of the caller that `f` is a continuation of the current call context. The executor may use this information to optimize or otherwise adjust the way in which `f` is invoked. |
+
+----------------------------
+
+
+
+
+
+
+
+
+
 #### Cardinality
 
 The cardinality property of an execution function may be one of the following:
@@ -606,21 +658,6 @@ In the Table below, `x` denotes a (possibly const) executor object of type `X`, 
 *TODO*
 
 ##### Requirements on execution functions of asynchronous two-way directionality
-
-*TODO*
-
-#### Blocking semantics
-
-The blocking semantics of an execution function may be one of the following:
-
-* *Potentially blocking:* The execution function may block the caller pending completion of the submitted function objects. Execution functions having potentially blocking semantics are named `execute`.
-* *Non-blocking:* The execution function shall not block the caller pending completion of the submitted function objects. Execution functions having non-blocking semantics are named `post` or `defer`.
-
-##### Requirements on execution functions having potentially blocking semantics
-
-*TODO*
-
-##### Requirements on execution functions having non-blocking semantics
 
 *TODO*
 
