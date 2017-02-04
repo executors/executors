@@ -494,15 +494,6 @@ namespace execution {
   template<class Executor>
     using executor_index_t = typename executor_index<Executor>::type;
 
-  // Executor customization points:
-
-  template<class TwoWayExecutor, class Function, class Future>
-    executor_future_t<TwoWayExecutor, see-below>
-      then_execute(const TwoWayExecutor& exec, Function&& f, Future& predecessor);
-  template<class OneWayExecutor, class Function, class Future>
-    executor_future_t<OneWayExecutor, see-below>
-      then_execute(const OneWayExecutor& exec, Function&& f, Future& predecessor);
-
   // Executor work guard:
 
   template <class Executor>
@@ -963,7 +954,7 @@ The name `async_defer` denotes a customization point. The effect of the expressi
 
 * `(E).async_defer(F)` if `has_async_defer_member_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `async_defer(E, F)` if `has_async_defer_free_function_v<decay_t<decltype()>>` is true.
+* Otherwise, `async_defer(E, F)` if `has_async_defer_free_function_v<decay_t<decltype(E)>>` is true.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::async_execute(E, F)` if `is_same_v<execution_execute_blocking_category_t<E>, non_blocking_execution_tag>` is true.
 
@@ -973,7 +964,36 @@ The name `async_defer` denotes a customization point. The effect of the expressi
 
 ### `then_execute`
 
-*TODO*
+    namespace {
+      constexpr unspecified then_execute = unspecified;
+    }
+
+The name `then_execute` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::then_execute(E, F, P)` for some expressions `E`, `F`, and `P` is equivalent to:
+
+* `(E).then_execute(F, P)` if `has_then_execute_member_v<decay_t<decltype(E)>>` is true.
+
+* Otherwise, `then_execute(E, F, P)` if `has_then_execute_free_function_v<decay_t<decltype(E)>>` is true.
+
+* Otherwise, equivalent to
+
+        auto __g = [__f = forward<decltype(F)>(F)](decltype(P)& __predecessor_future)
+        {
+          auto __predecessor_result = __predecessor_future.get();
+          return __f(__predecessor_result);
+        }
+        
+        return (P).then(E, std::move(__g));
+
+    when `P` is a non-`void` future. Otherwise,
+
+        auto __g = [__f = forward<decltype(F)>(F)](decltype(P)&)
+        {
+          return __f();
+        }
+
+        return (P).then(E, std::move(__g));
+
+* Otherwise, `std::experimental::concurrency_v2::execution::then_execute(E, F, P)` is ill-formed
 
 ### `bulk_execute`
 
@@ -1373,42 +1393,6 @@ p4, respectively.*
         // exposition only
         static_assert(std::is_integral_v<type>, "index type must be an integral type");
     };
-
-## Executor Customization Points
-
-### In general
-
-The functions described in this clause are *executor customization points*.
-Executor customization points provide a uniform interface to all executor types.
-
-### Function template `execution::then_execute()`
-
-```
-template<class TwoWayExecutor, class Function, class Future>
-  executor_future_t<TwoWayExecutor, see-below>
-    then_execute(const TwoWayExecutor& exec, Function&& f, Future& predecessor);
-```
-
-*Returns:* `exec.then_execute(std::forward<Function>(f), predecessor)`. The return type is `executor_future_t<Executor, result_of_t<decay_t<Function>()>` when `predecessor` is a `void` future. Otherwise, the return type is `executor_future_t<Executor, result_of_t<decay_t<Function>(T&)>>` where `T` is the result type of the `predecessor` future.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_two_way_executor_v< TwoWayExecutor>` is `true`.
-
-```
-template<class OneWayExecutor, class Function, class Future>
-  executor_future_t<OneWayExecutor, see-below>
-    then_execute(const OneWayExecutor& exec, Function&& f, Future& predecessor);
-```
-
-*Returns:* `predecessor.then(std::forward<Function>(f))`. The return type is `executor_future_t<Executor, result_of_t<decay_t<Function>()>` when `predecessor` is a `void` future. Otherwise, the return type is `executor_future_t<Executor, result_of_t<decay_t<Function>(T&)>>` where `T` is the result type of the `predecessor` future.
-
-*Synchronization:*
-
-* the invocation of `then_execute` synchronizes with (1.10) the invocation of `f`.
-* the completion of the invocation of `f` is sequenced before (1.10) the shared state is made ready.
-
-*Postconditions:* If the `predecessor` future is not a shared future, then `predecessor.valid() == false`.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_two_way_executor_v< TwoWayExecutor>` is `false` and `is_one_way_executor_v< OneWayExecutor>` is `true`.
 
 ## Executor work guard
 
