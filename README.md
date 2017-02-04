@@ -29,6 +29,8 @@ Other Contributors: Hans Boehm, hboehm@google.com
 
                     Thomas Rodgers, rodgert@twrodgers.com
 
+                    David Hollman, dshollm@sandia.gov
+
                     Michael Wong, michael@codeplay.com
 
 Document Number:    P0443R0
@@ -56,8 +58,7 @@ In our programming model, executors introduce a uniform interface for creating
 execution that may not be common to the underlying execution resources actually
 responsible for the mechanics of implementing that execution. There are three
 major concepts involved in this interplay: execution resources, execution
-contexts, and executors. The executors themselves are the primary concern of
-our design.
+contexts, and executors. 
 
 An **execution resource** is an instance of a hardware and/or software facility
 capable of executing a callable function object.  Different resources may offer
@@ -69,15 +70,19 @@ programmer. For example, an implementation might expose different processor
 cores, with potentially non-uniform access to memory, as separate resources to
 enable programmers to reason about locality.
  
-An **execution context** is a program object that represents and manages a
-specific collection of execution resources.
+An **execution context** is a program object that represents a specific
+collection of execution resources.
  
 An **executor** is an object associated with a specific execution context.  It
 provides a mechanism for creating execution agents from a callable function
-object.  The agents created are bound to the executor's context, and hence to
+object. The agents created are bound to the executor's context, and hence to
 one or more of the resources that context represents.
 
-**Design goals.** The design outlined in this proposal is intended to achieve
+Executors themselves are the primary concern of our design.
+
+## Design goals
+
+The design outlined in this proposal is intended to achieve
 our goals for executors, which are objects for creating all kinds of execution
 in C++. Executors should be *composable*, *adaptable*, and *customizable*,
 which we believe reflects the needs of users, library implementors, and
@@ -92,10 +97,12 @@ specially-designed for a particular use case should be applicable in other
 use cases when it is possible. By *customizable*, we mean that requirements
 placed on executors should be broad enough to encompass user-defined
 executors, rather than limited to the set of concrete executors which may
-eventually become part of the C++ Standard Library.Only a design including
+eventually become part of the C++ Standard Library. Only a design including
 well-defined interfaces with clear semantics will achieve these goals.
 
-**Customization points.** In our design, these well-defined interfaces with
+## Customization Points
+
+In our design, these well-defined interfaces with
 clearly-expressed execution semantics are called executor *customization
 points* and are foundational to the mechanics of our design. Each executor
 customization point is a function which delineates a specific use case which we
@@ -137,7 +144,9 @@ of these use cases by implementing the appropriate customization point, and may
 opt in to new customization points as they are standardized. Due to their
 adaptability, an executor will be future-proof to new customization points.
 
-**Executor categories.** Our design organizes executors into *executor
+## Executor Categories
+
+Our design organizes executors into *executor
 categories* based on how they are expected to be used by software components
 composing with them. These categories correspond to the application domains
 served by the C++ Standard Library and the Parallelism, Concurrency, and
@@ -190,22 +199,26 @@ Programmers may employ these type traits at software boundaries to define
 requirements for executor composition as well as reject types of executors
 which are known to be incompatible.
 
-**Execution contexts.** In our design, *execution contexts* are objects that
-manage a specific collection of resources required by an executor to create
-execution. For example, a thread pool is an execution context which manages a
-collection of threads upon which an associated executor may create execution
-agents. For our purposes of defining a programming model for executors, the
-only salient expectation for execution contexts is the ability to obtain an
-executor from them. However, we have chosen not to prescribe a required
-interface for doing so. Instead, we have defined very basic requirements for
-execution contexts which allow almost any type of object to be an execution
-context. These requirements are so minimal that they permit an executor to act
-as its own execution context in use cases where no other object makes sense. We
-expect specific application domains to elaborate these basic requirements as
-appropriate. For example, we illustrate requirements for a
-`NetworkingExecutionContext` that we expect the Networking TS to define which
-would enumerate expectations on execution contexts compatible with networking
-use cases.
+## Execution Contexts
+
+In our design, *execution contexts* are objects that represent a specific
+collection of resources and may be used by executor to create execution. For
+example, a thread pool is an execution context which manages a collection of
+threads upon which an associated executor may create execution agents. For our
+purposes of defining a programming model for executors, the only salient
+expectation for execution contexts is the ability to obtain an executor from
+them. However, we have chosen not to prescribe a required interface for doing
+so. Instead, we have defined very basic requirements for execution contexts
+which allow almost any type of object to be an execution context. Our
+requirements for execution contexts are deliberately minimal and intended to
+provide a standard protocol for obtaining an executor's context and reason
+about its identity in generic code. Yet, these minimal requirements still allow
+for further refinement in future libraries. For example, we illustrate
+requirements for a `NetworkingExecutionContext` that we expect the Networking
+TS to define which would enumerate expectations on execution contexts
+compatible with networking use cases. This refinement's requirements
+significantly strengthen our weak requirements in part by demanding that all
+such contexts derive from a specific concrete class.
 
 In order to evaluate this proposal, it will be useful to have at least one
 concrete execution context readily available. Our proposal specifies a single
@@ -217,12 +230,14 @@ thread pool. We recognize that different types of thread pools are suited to
 different use cases and emphasize that this proposal's `static_thread_pool`
 represents a single design in this space which is not intended as definitive.
 
-**Extension.** This proposal is intended to provide a foundation for future
-enhancements to executors and execution in general in C++. Naturally, it is
-incomplete and we anticipate extension. Here, we discuss briefly our vision for
-how the major components of our overall design can be extended in the future.
+## Extensibility
 
-**Future conceptualization.** One immediate concern is the conceptualization of
+This proposal is intended to provide a foundation for future enhancements to
+executors and execution in general in C++. Naturally, it is incomplete and we
+anticipate extension. Here, we discuss briefly our vision for how the major
+components of our overall design can be extended in the future.
+
+**`Future` concept.** One immediate concern is the conceptualization of
 `std::future`-like types. We anticipate that some types of executors will
 expose idiosyncratic, custom, and non-standard future types to represent
 asynchronous tasks due to requirements of underlying execution resources. An
@@ -234,11 +249,27 @@ system. A means of representing system resources with standard execution
 contexts and obtaining executors from them would provide programmers concerned
 with performance the tools to reason about locality.
 
-**Execution contexts.** This paper proposes a single concrete execution context
-which encompasses one approach for representing a thread pool. There are other
-approaches to thread pools with different features and limitations. These and
-other types of execution contexts may be explored as extensions to this
-material.
+**Execution contexts.** This paper proposes a single concrete execution
+context, `static_thread_pool`, which embodies one approach for representing a
+thread pool. There are other approaches to thread pools with different features
+and limitations. For example, a hypothetical `dynamic_thread_pool` type could
+automatically change its thread count to adapt to the state of the system, with
+the goal of guaranteeing concurrent execution. Another possible execution
+context could emulate the existing behavior of `std::async()` to aid in
+migration from the standard library's existing features for concurrency and
+parallelism to this new model of executors. Such a context would allow
+programmers to introduce executors without breaking any assumed semantics of
+`std::async()`, such as concurrent execution agents, thread-per-request, and
+future blocking behavior.
+
+Besides introducing concrete execution context types, a future proposal could
+refine our `ExecutionContext` concept by introducing concepts with additional
+requirements. As an example, a parallel execution framework might define
+requirements for a hypothetical `IntrospectableExecutionContext` which would
+require contexts to provide functionality for resource introspection. Generic
+code could depend on such functionality to query the number of hardware threads
+associated with execution context. These and other extensions to our basic
+model of execution contexts may be explored as future work.
 
 **Executor categories.** Future extensions might expand our executor
 categorization to additional application domains if the categorizations
@@ -269,8 +300,12 @@ namespace execution {
   template<class T> struct has_async_defer_member;
   template<class T> struct has_then_execute_member;
   template<class T> struct has_bulk_execute_member;
+  template<class T> struct has_bulk_post_member;
+  template<class T> struct has_bulk_defer_member;
   template<class T> struct has_bulk_sync_execute_member;
   template<class T> struct has_bulk_async_execute_member;
+  template<class T> struct has_bulk_async_post_member;
+  template<class T> struct has_bulk_async_defer_member;
   template<class T> struct has_bulk_then_execute_member;
 
   template<class T> constexpr bool has_execute_member_v = has_execute_member<T>::value;
@@ -282,9 +317,49 @@ namespace execution {
   template<class T> constexpr bool has_async_defer_member_v = has_async_defer_member<T>::value;
   template<class T> constexpr bool has_then_execute_member_v = has_then_execute_member<T>::value;
   template<class T> constexpr bool has_bulk_execute_member_v = has_bulk_execute_member<T>::value;
+  template<class T> constexpr bool has_bulk_post_member_v = has_bulk_post_member<T>::value;
+  template<class T> constexpr bool has_bulk_defer_member_v = has_bulk_defer_member<T>::value;
   template<class T> constexpr bool has_bulk_sync_execute_member_v = has_bulk_sync_execute_member<T>::value;
   template<class T> constexpr bool has_bulk_async_execute_member_v = has_bulk_async_execute_member<T>::value;
+  emplate<class T> constexpr bool has_bulk_async_post_member_v = has_bulk_async_post_member<T>::value;
+  emplate<class T> constexpr bool has_bulk_async_defer_member_v = has_bulk_async_defer_member<T>::value;
   template<class T> constexpr bool has_bulk_then_execute_member_v = has_bulk_then_execute_member<T>::value;
+
+  // Free function detection type traits:
+
+  template<class T> struct has_execute_free_function;
+  template<class T> struct has_post_free_function;
+  template<class T> struct has_defer_free_function;
+  template<class T> struct has_sync_execute_free_function;
+  template<class T> struct has_async_execute_free_function;
+  template<class T> struct has_async_post_free_function;
+  template<class T> struct has_async_defer_free_function;
+  template<class T> struct has_then_execute_free_function;
+  template<class T> struct has_bulk_execute_free_function;
+  template<class T> struct has_bulk_post_free_function;
+  template<class T> struct has_bulk_defer_free_function;
+  template<class T> struct has_bulk_sync_execute_free_function;
+  template<class T> struct has_bulk_async_execute_free_function;
+  template<class T> struct has_bulk_async_post_free_function;
+  template<class T> struct has_bulk_async_defer_free_function;
+  template<class T> struct has_bulk_then_execute_free_function;
+
+  template<class T> constexpr bool has_execute_free_function_v = has_execute_free_function<T>::value;
+  template<class T> constexpr bool has_post_free_function_v = has_post_free_function<T>::value;
+  template<class T> constexpr bool has_defer_free_function_v = has_defer_free_function<T>::value;
+  template<class T> constexpr bool has_sync_execute_free_function_v = has_sync_execute_free_function<T>::value;
+  template<class T> constexpr bool has_async_execute_free_function_v = has_async_execute_free_function<T>::value;
+  template<class T> constexpr bool has_async_post_free_function_v = has_async_post_free_function<T>::value;
+  template<class T> constexpr bool has_async_defer_free_function_v = has_async_defer_free_function<T>::value;
+  template<class T> constexpr bool has_then_execute_free_function_v = has_then_execute_free_function<T>::value;
+  template<class T> constexpr bool has_bulk_execute_free_function_v = has_bulk_execute_free_function<T>::value;
+  template<class T> constexpr bool has_bulk_post_free_function_v = has_bulk_post_free_function<T>::value;
+  template<class T> constexpr bool has_bulk_defer_free_function_v = has_bulk_defer_free_function<T>::value;
+  template<class T> constexpr bool has_bulk_sync_execute_free_function_v = has_bulk_sync_execute_free_function<T>::value;
+  template<class T> constexpr bool has_bulk_async_execute_free_function_v = has_bulk_async_execute_free_function<T>::value;
+  emplate<class T> constexpr bool has_bulk_async_post_free_function_v = has_bulk_async_post_free_function<T>::value;
+  emplate<class T> constexpr bool has_bulk_async_defer_free_function_v = has_bulk_async_defer_free_function<T>::value;
+  template<class T> constexpr bool has_bulk_then_execute_free_function_v = has_bulk_then_execute_free_function<T>::value;
 
   // Customization points:
 
@@ -298,8 +373,12 @@ namespace execution {
     constexpr unspecified async_defer = unspecified;
     constexpr unspecified then_execute = unspecified;
     constexpr unspecified bulk_execute = unspecified;
+    constexpr unspecified bulk_post = unspecified;
+    constexpr unspecified bulk_defer = unspecified;
     constexpr unspecified bulk_sync_execute = unspecified;
     constexpr unspecified bulk_async_execute = unspecified;
+    constexpr unspecified bulk_async_post = unspecified;
+    constexpr unspecified bulk_async_defer = unspecified;
     constexpr unspecified bulk_then_execute = unspecified;
   }
 
@@ -314,8 +393,12 @@ namespace execution {
   template<class T> struct can_async_defer;
   template<class T> struct can_then_execute;
   template<class T> struct can_bulk_execute;
+  template<class T> struct can_post_execute;
+  template<class T> struct can_defer_execute;
   template<class T> struct can_bulk_sync_execute;
   template<class T> struct can_bulk_async_execute;
+  template<class T> struct can_bulk_async_post;
+  template<class T> struct can_bulk_async_defer;
   template<class T> struct can_bulk_then_execute;
 
   template<class T> constexpr bool can_execute_v = can_execute<T>::value;
@@ -327,8 +410,12 @@ namespace execution {
   template<class T> constexpr bool can_async_defer_v = can_async_defer<T>::value;
   template<class T> constexpr bool can_then_execute_v = can_then_execute<T>::value;
   template<class T> constexpr bool can_bulk_execute_v = can_bulk_execute<T>::value;
+  template<class T> constexpr bool can_bulk_post_v = can_bulk_post<T>::value;
+  template<class T> constexpr bool can_bulk_defer_v = can_bulk_defer<T>::value;
   template<class T> constexpr bool can_bulk_sync_execute_v = can_bulk_sync_execute<T>::value;
   template<class T> constexpr bool can_bulk_async_execute_v = can_bulk_async_execute<T>::value;
+  template<class T> constexpr bool can_bulk_async_post_v = can_bulk_async_post<T>::value;
+  template<class T> constexpr bool can_bulk_async_defer_v = can_bulk_async_defer<T>::value;
   template<class T> constexpr bool can_bulk_then_execute_v = can_bulk_then_execute<T>::value;
 
   // Executor type traits:
@@ -396,70 +483,12 @@ namespace execution {
 
   // Executor customization points:
 
-  template<class NonBlockingTwoWayExecutor, class Function>
-    executor_future_t<NonBlockingTwoWayExecutor, result_of_t<decay_t<Function>()>>
-      async_post(const NonBlockingTwoWayExecutor& exec, Function&& f);
-  template<class NonBlockingOneWayExecutor, class Function>
-    std::future<decay_t<result_of_t<decay_t<Function>()>>>
-      async_post(const NonBlockingOneWayExecutor& exec, Function&& f);
-
-  template<class NonBlockingTwoWayExecutor, class Function>
-    executor_future_t<NonBlockingTwoWayExecutor, result_of_t<decay_t<Function>()>>
-      async_defer(const NonBlockingTwoWayExecutor& exec, Function&& f);
-  template<class NonBlockingOneWayExecutor, class Function>
-    std::future<decay_t<result_of_t<decay_t<Function>()>>>
-      async_defer(const NonBlockingOneWayExecutor& exec, Function&& f);
-
   template<class TwoWayExecutor, class Function, class Future>
     executor_future_t<TwoWayExecutor, see-below>
       then_execute(const TwoWayExecutor& exec, Function&& f, Future& predecessor);
   template<class OneWayExecutor, class Function, class Future>
     executor_future_t<OneWayExecutor, see-below>
       then_execute(const OneWayExecutor& exec, Function&& f, Future& predecessor);
-
-  template<class BulkOneWayExecutor, class Function1, class Function2>
-    void bulk_execute(const BulkOneWayExecutor& exec, Function1 f,
-                      executor_shape_t<BulkOneWayExecutor> shape,
-                      Function2 shared_factory);
-  template<class OneWayExecutor, class Function1, class Function2>
-    void bulk_execute(const OneWayExecutor& exec, Function1 f,
-                      executor_shape_t<OneWayExecutor> shape,
-                      Function2 shared_factory);
-
-  template<class BulkTwoWayExecutor, class Function1, class Function2, class Function3>
-    result_of_t<Function2()>
-      bulk_sync_execute(const BulkTwoWayExecutor& exec, Function1 f,
-                        executor_shape_t<BulkTwoWayExecutor> shape,
-                        Function2 result_factory, Function3 shared_factory);
-  template<class OneWayExecutor, class Function1, class Function2, class Function3>
-    result_of_t<Function2()>
-      bulk_sync_execute(const OneWayExecutor& exec, Function1 f,
-                        executor_shape_t<OneWayExecutor> shape,
-                        Function2 result_factory, Function3 shared_factory);
-
-  template<class BulkTwoWayExecutor, class Function1, class Function2, class Function3>
-    executor_future_t<const BulkTwoWayExecutor, result_of_t<Function2()>>
-      bulk_async_execute(const BulkTwoWayExecutor& exec, Function1 f,
-                         executor_shape_t<BulkTwoWayExecutor> shape,
-                         Function2 result_factory, Function3 shared_factory);
-  template<class OneWayExecutor, class Function1, class Function2, class Function3>
-    executor_future_t<const OneWayExecutor, result_of_t<Function2()>>
-      bulk_async_execute(const OneWayExecutor& exec, Function1 f,
-                         executor_shape_t<OneWayExecutor> shape,
-                         Function2 result_factory, Function3 shared_factory);
-
-  template<class BulkTwoWayExecutor, class Function1, class Future, class Function2, class Function3>
-    executor_future_t<BulkTwoWayExecutor, result_of_t<Function2()>>
-      bulk_then_execute(const BulkTwoWayExecutor& exec, Function1 f,
-                        executor_shape_t<BulkTwoWayExecutor> shape,
-                        Future& predecessor,
-                        Function2 result_factory, Function3 shared_factory);
-  template<class OneWayExecutor, class Function1, class Future, class Function2, class Function3>
-    executor_future_t<OneWayExecutor, result_of_t<Function2()>>
-      bulk_then_execute(const OneWayExecutor& exec, Function1 f,
-                        executor_shape_t<OneWayExecutor> shape,
-                        Future& predecessor,
-                        Function2 result_factory, Function3 shared_factory);
 
   // Executor work guard:
 
@@ -502,7 +531,7 @@ The library defines several named customization point objects. In every translat
 
 ### `Future` requirements
 
-A type `F` meets the future requirements for some value type `T` if `F` is... *Requirements to be defined. Futures must provide `get`, `wait`, `then`, etc.*
+Currently, a type `F` meets the future requirements for some value type `T` if `F` is `std::experimental::future<T>` from the Concurrency TS (ISO/IEC TS 19571:2016).  [*Note:* We expect to expand on this concept later, with the requirements of the `Future` instances used with some customization points expected to decrease. *--end note*]
 
 ### `ProtoAllocator` requirements
 
@@ -597,7 +626,7 @@ The blocking semantics of an execution function may be one of the following:
 
 The table below describes the execution member functions and non-member functions that can be supported by an executor category via various combinations of the execution function requirements.
 
-| Cardinality | Directionality | Blocking semantics | Member function | Customization point |
+| Cardinality | Directionality | Blocking semantics | Member function | Free function |
 | ------------ | -------------- | --------------------- | ------------------- | ---------------------- |
 | Single | One-way | Potentially blocking | `x.execute(f)` <br/> `x.execute(f, a)` | `execute(x, f)` <br/> `execute(x, f, a)` |
 | Single | One-way | Non-blocking | `x.post(f)` <br/> `x.post(f, a)` <br/> `x.defer(f)`  <br/> `x.defer(f, a)` | `post(x, f)` <br/> `post(x, f, a)` <br/> `defer(x, f)`  <br/> `defer(x, f, a)` |
@@ -606,11 +635,11 @@ The table below describes the execution member functions and non-member function
 | Single | Two-way asynchronous | Potentially blocking | `x.async_execute(f)` <br/> `x.async_execute(f, a)`  <br/> `x.then_execute(f, pred)` <br/> `x.then_execute(f, pred, a)` | `async_execute(x, f)` <br/> `async_execute(x, f, a)`  <br/> `then_execute(x, f, pred)` <br/> `then_execute(x, f, pred, a)` |
 | Single | Two-way asynchronous | Non-blocking | `x.async_post(f)` <br/> `x.async_post(f, a)` | `async_post(x, f)` <br/> `x.async_post(x, f, a)` |
 | Bulk | One-way | Potentially blocking | `x.bulk_execute(f, s, sf)` | `bulk_execute(x, f, s, sf)` |
-| Bulk | One-way | Non-blocking | ? | ? |
+| Bulk | One-way | Non-blocking | `x.bulk_post(f, s, sf)` <br/> `x.bulk_defer(f, s, sf)` | `bulk_post(x, f, s, sf)` <br/> `bulk_defer(x, f, s, sf)` |
 | Bulk | Two-way synchronous | Potentially blocking | `x.bulk_sync_execute(f, s, rf, sf)` | `bulk_sync_execute(x, f, s, rf, sf)` |
-| Bulk | Two-way synchronous | Non-blocking | ? | ? |
+| Bulk | Two-way synchronous | Non-blocking | NA | NA |
 | Bulk | Two-way asynchronous | Potentially blocking | `x.bulk_async_execute(f, s, rf, sf)` <br/> `x.bulk_then_execute(f, s, pred, rf, sf)` | `bulk_async_execute(x, f, s, rf, sf)` <br/> `bulk_then_execute(x, f, s, pred, rf, sf)` |
-| Bulk | Two-way asynchronous | Non-blocking | ? | ? |
+| Bulk | Two-way asynchronous | Non-blocking |  `x.bulk_async_post(f, s, rf, sf)` <br/> `x.bulk_async_defer(f, s, rf, sf)` | `bulk_async_post(x, f, s, rf, sf)` <br/> `bulk_async_defer(x, f, s, rf, sf)` |
 
 ### `BaseExecutor` requirements
 
@@ -689,8 +718,8 @@ In the Table \ref{bulk_two_way_executor_requirements} below,
 
   * `f` denotes a `CopyConstructible` function object with three arguments,
   * `n` denotes a shape object whose type is `executor_shape_t<X>`.
-  * `rf` denotes a `CopyConstructible` function object with one argument whose result type is `R`,
-  * `sf` denotes a `CopyConstructible` function object with one argument whose result type is `S`,
+  * `rf` denotes a `CopyConstructible` function object with zero arguments whose result type is `R`,
+  * `sf` denotes a `CopyConstructible` function object with zero arguments whose result type is `S`,
   * `i` denotes an object whose type is `executor_index_t<X>`,
   * `r` denotes an object whose type is `R`, 
   * `s` denotes an object whose type is `S`, and
@@ -704,9 +733,9 @@ Table: (Bulk two-way executor requirements) \label{bulk_two_way_executor_require
 
 | Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
 |------------|-----------|------------------------|------------------------|
-| `x.bulk_sync_`- `execute(f, n, rf, sf)` | `R` |  Creates a group of execution agents of shape `n` which invoke `f(i, r, s)`. <br/>This group of execution agents shall fulfill the forward progress requirements of `executor_execution_`- `category_t<X>`. <br/>Returns the result of `rf(n)`. | Note: blocks the forward progress of the caller until all invocations of `f` are finished. <br/>Effects: invokes `rf(n)` on an unspecified execution agent. <br/>Effects: invokes `sf(n)` on an unspecified execution agent. |
-| `x.bulk_async_`- `execute(f, n, rf, sf)` | `executor_`- `future_t<X,R>` | Creates a group of execution agents of shape `n` which invoke `f(i, r, s)`. <br/>This group of execution agents shall fulfill the forward progress requirements of `executor_execution_`- `category_t<X>`. </br>Asynchronously returns the result of `rf(n)` via the resulting future object. | Effects: invokes `rf(n)` on an unspecified execution agent. <br/>Effects: invokes `sf(n)` on an unspecified execution agent. |
-| `x.bulk_then_`- `execute(f, n, rf, pred, sf)` | `executor_`- `future_t<X,R>` | Creates a group of execution agents of shape `n` which invoke `f(i, r, pr, s)` after `pred` becomes ready. <br/>This group of execution agents shall fulfill the forward progress requirements of `executor_execution_`- `category_t<X>`. <br/>Asynchronously returns the result of `rf(n)` via the resulting future. | Effects: invokes `rf(n)` on an unspecified execution agent. <br/>Effects: invokes `sf(n)` on an unspecified execution agent. <br/>If `pred`'s result type is `void`, `pr` is omitted from `f`'s invocation. |
+| `x.bulk_sync_`- `execute(f, n, rf, sf)` | `R` |  Creates a group of execution agents of shape `n` which invoke `f(i, r, s)`. <br/>This group of execution agents shall fulfill the forward progress requirements of `executor_execution_`- `category_t<X>`. <br/>Returns the result of `rf()`. | Note: blocks the forward progress of the caller until all invocations of `f` are finished. <br/>Effects: invokes `rf()` on an unspecified execution agent. <br/>Effects: invokes `sf()` on an unspecified execution agent. |
+| `x.bulk_async_`- `execute(f, n, rf, sf)` | `executor_`- `future_t<X,R>` | Creates a group of execution agents of shape `n` which invoke `f(i, r, s)`. <br/>This group of execution agents shall fulfill the forward progress requirements of `executor_execution_`- `category_t<X>`. </br>Asynchronously returns the result of `rf()` via the resulting future object. | Effects: invokes `rf()` on an unspecified execution agent. <br/>Effects: invokes `sf()` on an unspecified execution agent. |
+| `x.bulk_then_`- `execute(f, n, rf, pred, sf)` | `executor_`- `future_t<X,R>` | Creates a group of execution agents of shape `n` which invoke `f(i, r, pr, s)` after `pred` becomes ready. <br/>This group of execution agents shall fulfill the forward progress requirements of `executor_execution_`- `category_t<X>`. <br/>Asynchronously returns the result of `rf()` via the resulting future. | Effects: invokes `rf()` on an unspecified execution agent. <br/>Effects: invokes `sf()` on an unspecified execution agent. <br/>If `pred`'s result type is `void`, `pr` is omitted from `f`'s invocation. |
 
 ### `ExecutorWorkTracker` requirements
 
@@ -738,8 +767,12 @@ Table: (Executor Work Tracker requirements) \label{executor_work_tracker_require
     template<class T> struct has_async_defer_member;
     template<class T> struct has_then_execute_member;
     template<class T> struct has_bulk_execute_member;
+    template<class T> struct has_bulk_post_member;
+    template<class T> struct has_bulk_defer_member;
     template<class T> struct has_bulk_sync_execute_member;
     template<class T> struct has_bulk_async_execute_member;
+    template<class T> struct has_bulk_async_post_member;
+    template<class T> struct has_bulk_async_defer_member;
     template<class T> struct has_bulk_then_execute_member;
 
 This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
@@ -753,11 +786,55 @@ This sub-clause contains templates that may be used to query the properties of a
 | `template<class T>` <br/>`struct has_async_execute_member` | `T` has a member function named `async_execute` that satisfies the syntactic requirements of an asynchronous two-way, potentially blocking execution function of single cardinality. | `T` is a complete type. |
 | `template<class T>` <br/>`struct has_async_post_member` | `T` has a member function named `async_post` that satisfies the syntactic requirements of an asynchronous two-way, non-blocking execution function of single cardinality. | `T` is a complete type. |
 | `template<class T>` <br/>`struct has_async_defer_member` | `T` has a member function named `async_defer` that satisfies the syntactic requirements of an asynchronous two-way, non-blocking execution function of single cardinality. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_then_execute_member` | `T` has a member function named `then_execute` that satisfies the syntactic requirements of **TODO**. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_then_execute_member` | `T` has a member function named `then_execute` that satisfies the syntactic requirements of an asynchronous two-way, potentially blocking execution function of single cardinality. | `T` is a complete type. |
 | `template<class T>` <br/>`struct has_bulk_execute_member` | `T` has a member function named `bulk_execute` that satisfies the syntactic requirements of a one-way, potentially blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_post_member` | `T` has a member function named `bulk_post` that satisfies the syntactic requirements of a one-way, non-blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_defer_member` | `T` has a member function named `bulk_defer` that satisfies the syntactic requirements of a one-way, non-blocking execution function of bulk cardinality. | `T` is a complete type. |
 | `template<class T>` <br/>`struct has_bulk_sync_execute_member` | `T` has a member function named `bulk_sync_execute` that satisfies the syntactic requirements of a synchronous two-way execution function of bulk cardinality. | `T` is a complete type. |
 | `template<class T>` <br/>`struct has_bulk_async_execute_member` | `T` has a member function named `bulk_async_execute` that satisfies the syntactic requirements of an asynchronous two-way, potentially blocking execution function of bulk cardinality. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_bulk_then_execute_member` | `T` has a member function named `bulk_then_execute` that satisfies the syntactic requirements of **TODO**. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_async_post_member` | `T` has a member function named `bulk_async_post` that satisfies the syntactic requirements of an asynchronous two-way, non-blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_async_defer_member` | `T` has a member function named `bulk_async_defer` that satisfies the syntactic requirements of an asynchronous two-way, non-blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_then_execute_member` | `T` has a member function named `bulk_then_execute` that satisfies the syntactic requirements of an a asynchronous two-way, potentially blocking execution function of bulk cardinality. | `T` is a complete type. |
+
+### Free function detection type traits
+
+    template<class T> struct has_execute_free_function;
+    template<class T> struct has_post_free_function;
+    template<class T> struct has_defer_free_function;
+    template<class T> struct has_sync_execute_free_function;
+    template<class T> struct has_async_execute_free_function;
+    template<class T> struct has_async_post_free_function;
+    template<class T> struct has_async_defer_free_function;
+    template<class T> struct has_then_execute_free_function;
+    template<class T> struct has_bulk_execute_free_function;
+    template<class T> struct has_bulk_post_free_function;
+    template<class T> struct has_bulk_defer_free_function;
+    template<class T> struct has_bulk_sync_execute_free_function;
+    template<class T> struct has_bulk_async_execute_free_function;
+    template<class T> struct has_bulk_async_post_free_function;
+    template<class T> struct has_bulk_async_defer_free_function;
+    template<class T> struct has_bulk_then_execute_free_function;
+
+This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
+
+| Template                   | Condition           | Preconditions  |
+|----------------------------|---------------------|----------------|
+| `template<class T>` <br/>`struct has_execute_free_function` | There exists a free function named `execute` taking an executor of type `T` that satisfies the syntactic requirements of a one-way, potentially blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_post_free_function` | There exists a free function named `post` taking an executor of type `T` that satisfies the syntactic requirements of a one-way, non-blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_defer_free_function` | There exists a free function named `defer` taking an executor of type `T` that satisfies the syntactic requirements of a one-way, non-blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_sync_execute_free_function` | There exists a free function named `sync_execute` taking an executor of type `T` that satisfies the syntactic requirements of a synchronous two-way execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_async_execute_free_function` | There exists a free function named `async_execute` taking an executor of type `T` that satisfies the syntactic requirements of an asynchronous two-way, potentially blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_async_post_free_function` | There exists a free function named `async_post` taking an executor of type `T` that satisfies the syntactic requirements of an asynchronous two-way, non-blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_async_defer_free_function` | There exists a free function named `async_defer` taking an executor of type `T` that satisfies the syntactic requirements of an asynchronous two-way, non-blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_then_execute_free_function` | There exists a free function named `then_execute` taking an executor of type `T` that satisfies the syntactic requirements of an asynchronous two-way, potentially blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_execute_free_function` | There exists a free function named `bulk_execute` taking an executor of type `T` that satisfies the syntactic requirements of a one-way, potentially blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_post_free_function` | There exists a free function named `bulk_post` taking an executor of type `T` that satisfies the syntactic requirements of a one-way, non-blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_defer_free_function` | There exists a free function named `bulk_defer` taking an executor of type `T` that satisfies the syntactic requirements of a one-way, non-blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_sync_execute_free_function` | There exists a free function named `bulk_sync_execute` taking an executor of type `T` that satisfies the syntactic requirements of a synchronous two-way execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_async_execute_free_function` | There exists a free function named `bulk_async_execute` taking an executor of type `T` that satisfies the syntactic requirements of an asynchronous two-way, potentially blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_async_post_free_function` | There exists a free function named `bulk_async_post` taking an executor of type `T` that satisfies the syntactic requirements of an asynchronous two-way, non-blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_async_defer_free_function` | There exists a free function named `bulk_async_defer` taking an executor of type `T` that satisfies the syntactic requirements of an asynchronous two-way, non-blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_then_execute_free_function` | There exists a free function named `bulk_then_execute` taking an executor of type `T` that satisfies the syntactic requirements of an an asynchronous two-way, potentially blocking execution function of bulk cardinality. | `T` is a complete type. |
 
 ## Customization points
 
@@ -775,7 +852,7 @@ The name `execute` denotes a customization point. The effect of the expression `
 
 * Otherwise, `std::experimental::concurrency_v2::execution::execute(E, F)` is ill-formed.
 
-*Remarks:* Whenever `std::experimental::concurrency_v2::execution::execute(E, F)` is a valid expression, that expression satisfies the syntactics requirements for a one-way, potentially blocking execution function of single cardinality.
+*Remarks:* Whenever `std::experimental::concurrency_v2::execution::execute(E, F)` is a valid expression, that expression satisfies the syntactic requirements for a one-way, potentially blocking execution function of single cardinality.
 
 ### `post`
 
@@ -787,13 +864,13 @@ The name `post` denotes a customization point. The effect of the expression `std
 
 * `(E).post(F)` if `has_post_member_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `post(E, F)` if that expression satisfies the syntactic requirements for a synchronous two-way, potentially blocking execution function of single cardinality, with overload resolution performed in a context that includes the declaration `void post(auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::post`.
+* Otherwise, `post(E, F)` if that expression satisfies the syntactic requirements for a one-way, non-blocking execution function of single cardinality, with overload resolution performed in a context that includes the declaration `void post(auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::post`.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::execute(E, F)` if `is_same_v<execution_execute_blocking_category_t<E>, non_blocking_execution_tag>` is true.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::post(E, F)` is ill-formed.
 
-*Remarks:* Whenever `std::experimental::concurrency_v2::execution::post(E, F)` is a valid expression, that expression satisfies the syntactics requirements for a one-way, non-blocking execution function of single cardinality.
+*Remarks:* Whenever `std::experimental::concurrency_v2::execution::post(E, F)` is a valid expression, that expression satisfies the syntactic requirements for a one-way, non-blocking execution function of single cardinality.
 
 ### `defer`
 
@@ -805,13 +882,13 @@ The name `defer` denotes a customization point. The effect of the expression `st
 
 * `(E).defer(F)` if `has_defer_member_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `defer(E, F)` if that expression satisfies the syntactic requirements for a synchronous two-way, potentially blocking execution function of single cardinality, with overload resolution performed in a context that includes the declaration `void defer(auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::defer`.
+* Otherwise, `defer(E, F)` if that expression satisfies the syntactic requirements for a one-way, non-blocking execution function of single cardinality, with overload resolution performed in a context that includes the declaration `void defer(auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::defer`.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::execute(E, F)` if `is_same_v<execution_execute_blocking_category_t<E>, non_blocking_execution_tag>` is true.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::defer(E, F)` is ill-formed.
 
-*Remarks:* Whenever `std::experimental::concurrency_v2::execution::defer(E, F)` is a valid expression, that expression satisfies the syntactics requirements for a one-way, non-blocking execution function of single cardinality.
+*Remarks:* Whenever `std::experimental::concurrency_v2::execution::defer(E, F)` is a valid expression, that expression satisfies the syntactic requirements for a one-way, non-blocking execution function of single cardinality.
 
 ### `sync_execute`
 
@@ -823,13 +900,13 @@ The name `sync_execute` denotes a customization point. The effect of the express
 
 * `(E).sync_execute(F)` if `has_sync_execute_member_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `sync_execute(E, F)` if that expression satisfies the syntactic requirements for a synchronous two-way, potentially blocking execution function of single cardinality, with overload resolution performed in a context that includes the declaration `void sync_execute(auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::sync_execute`.
+* Otherwise, `sync_execute(E, F)` if that expression satisfies the syntactic requirements for a synchronous two-way, blocking execution function of single cardinality, with overload resolution performed in a context that includes the declaration `void sync_execute(auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::sync_execute`.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::async_execute(E, F).get()` if `can_async_execute_v<decay_t<decltype(E)>>` is true.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::sync_execute(E, F)` is ill-formed.
 
-*Remarks:* Whenever `std::experimental::concurrency_v2::execution::sync_execute(E, F)` is a valid expression, that expression satisfies the syntactics requirements for a synchronous two-way, potentially blocking execution function of single cardinality.
+*Remarks:* Whenever `std::experimental::concurrency_v2::execution::sync_execute(E, F)` is a valid expression, that expression satisfies the syntactic requirements for a synchronous two-way, blocking execution function of single cardinality.
 
 ### `async_execute`
 
@@ -847,13 +924,47 @@ The name `async_execute` denotes a customization point. The effect of the expres
 
 * Otherwise, `std::experimental::concurrency_v2::execution::async_execute(E, F)` is ill-formed.
 
+*Remarks:* Whenever `std::experimental::concurrency_v2::execution::async_execute(E, F)` is a valid expression, that expression satisfies the syntactic requirements for an asynchronous two-way, potentially blocking execution function of single cardinality.
+
 ### `async_post`
 
-*TODO*
+    namespace {
+      constexpr unspecified async_post = unspecified;
+    }
+
+The name `async_post` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::async_post(E, F)` for some expressions `E` and `F` is equivalent to:
+
+* `(E).async_post(F)` if `has_async_post_member_v<decay_t<decltype(E)>>` is true.
+
+* Otherwise, `async_post(E, F)` if that expression satisfies the syntactic requirements for an asynchronous two-way, non-blocking execution function of single cardinality, with overload resolution performed in a context that includes the declaration `void async_post(auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::async_post`.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::async_execute(E, F)` if `is_same_v<execution_execute_blocking_category_t<E>, non_blocking_execution_tag>` is true.
+
+* Otherwise, if `can_post_v<decay_t<decltype(E)>>` is true, creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `std::experimental::concurrency_v2::execution::execute(E, g)` where `g` is a function object of unspecified type that performs `DECAY_COPY(F)()`, with the call to `DECAY_COPY` being performed in the thread that called `async_post`. On successful completion of `DECAY_COPY(F)()`, the return value of `DECAY_COPY(F)()` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(F)()` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready. The result of the expression `std::experimental::concurrency_v2::execution::async_post(E, F)` is an object of type `std::future<result_of_t<decay_t<decltype(F)>>()>` that refers to the shared state.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::async_post(E, F)` is ill-formed.
+
+*Remarks:* Whenver `std::experimental::concurrency_v2::execution::async_post(E, F)` is a valid expression, that expression satisfies the syntactic requirements for an asynchronous two-way, non-blocking execution function of single cardinality.
 
 ### `async_defer`
 
-*TODO*
+    namespace {
+      constexpr unspecified async_defer = unspecified;
+    }
+
+The name `async_defer` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::async_defer(E, F)` for some expressions `E` and `F` is equivalent to:
+
+* `(E).async_defer(F)` if `has_async_defer_member_v<decay_t<decltype(E)>>` is true.
+
+* Otherwise, `async_defer(E, F)` if that expression satisfies the syntactic requirements for an asynchronous two-way, non-blocking execution function of single cardinality, with overload resolution performed in a context that includes the declaration `void async_defer(auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::async_defer`.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::async_execute(E, F)` if `is_same_v<execution_execute_blocking_category_t<E>, non_blocking_execution_tag>` is true.
+
+* Otherwise, if `can_defer_v<decay_t<decltype(E)>>` is true, creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `std::experimental::concurrency_v2::execution::execute(E, g)` where `g` is a function object of unspecified type that performs `DECAY_COPY(F)()`, with the call to `DECAY_COPY` being performed in the thread that called `async_defer`. On successful completion of `DECAY_COPY(F)()`, the return value of `DECAY_COPY(F)()` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(F)()` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready. The result of the expression `std::experimental::concurrency_v2::execution::async_defer(E, F)` is an object of type `std::future<result_of_t<decay_t<decltype(F)>>()>` that refers to the shared state.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::async_defer(E, F)` is ill-formed.
+
+*Remarks:* Whenever `std::experimental::concurrency_v2::execution::async_defer(E, F)` is a valid expression, that expression satisfies the syntactic requirements for an asynchronous two-way, non-blocking execution function of single cardinality.
 
 ### `then_execute`
 
@@ -861,19 +972,175 @@ The name `async_execute` denotes a customization point. The effect of the expres
 
 ### `bulk_execute`
 
-*TODO*
+    namespace {
+      constexpr unspecified bulk_execute = unspecified;
+    }
+
+The name `bulk_execute` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::bulk_execute(E, F, S, SF)` for some expressions `E`, `F`, `S`, and `SF` is equivalent to:
+
+* `(E).bulk_execute(F, S, SF)` if `has_bulk_execute_member_v<decay_t<decltype(E)>>` is true.
+
+* Otherwise, `bulk_execute(E, F, S, SF)` if that expression satisfies the syntactic requirements for a one-way, potentially blocking execution function of bulk cardinality, with overload resolution performed in a context that includes the declaration `void bulk_execute(auto&, auto&, auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::bulk_execute`.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::bulk_execute(E, F, S, SF)` is ill-formed.
+
+*Remarks:* Whenever `std::experimental::concurrency_v2::execution::bulk_execute(E, F, S, SF)` is a valid expression, that expression satisfies the syntactic requirements for a one-way, potentially blocking execution function of bulk cardinality.
+
+### `bulk_post`
+
+    namespace {
+      constexpr unspecified bulk_post = unspecified;
+    }
+
+The name `bulk_post` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::bulk_post(E, F, S, SF)` for some expressions `E`, `F`, `S`, and `SF` is equivalent to:
+
+* `(E).bulk_post(F, S, SF)` if `has_bulk_post_member_v<decay_t<decltype(E)>>` is true.
+
+* Otherwise, `bulk_post(E, F, S, SF)` if that expression satisfies the syntactic requirements for a one-way, non-blocking execution function of bulk cardinality, with overload resolution performed in a context that includes the declaration `void bulk_post(auto&, auto&, auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::bulk_post`.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::bulk_execute(E, F, S, SF)` if `is_same_v<execution_execute_blocking_category_t<E>, non_blocking_execution_tag>` is true.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::bulk_post(E, F, S, SF)` is ill-formed.
+
+*Remarks:* Whenever `std::experimental::concurrency_v2::execution::bulk_post(E, F, S, SF)` is a valid expression, that expression satisfies the syntactic requirements for a one-way, non-blocking execution function of bulk cardinality.
+
+### `bulk_defer`
+
+    namespace {
+      constexpr unspecified bulk_defer = unspecified;
+    }
+
+The name `bulk_defer` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::bulk_defer(E, F, S, SF)` for some expressions `E`, `F`, `S`, and `SF` is equivalent to:
+
+* `(E).bulk_defer(F, S, SF)` if `has_bulk_defer_member_v<decay_t<decltype(E)>>` is true.
+
+* Otherwise, `bulk_defer(E, F, S, SF)` if that expression satisfies the syntactic requirements for a one-way, non-blocking execution function of bulk cardinality, with overload resolution performed in a context that includes the declaration `void bulk_defer(auto&, auto&, auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::bulk_defer`.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::bulk_execute(E, F, S, SF)` if `is_same_v<execution_execute_blocking_category_t<E>, non_blocking_execution_tag>` is true.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::bulk_defer(E, F, S, SF)` is ill-formed.
+
+*Remarks:* Whenever `std::experimental::concurrency_v2::execution::bulk_defer(E, F, S, SF)` is a valid expression, that expression satisfies the syntactic requirements for a one-way, non-blocking execution function of bulk cardinality.
 
 ### `bulk_sync_execute`
 
-*TODO*
+    namespace {
+      constexpr unspecified bulk_sync_execute = unspecified;
+    }
+
+The name `bulk_sync_execute` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::bulk_sync_execute(E, F, S, RF, SF)` for some expressions `E`, `F`, `S`, `RF`, and `SF` is equivalent to:
+
+* `(E).bulk_sync_execute(F, S, RF, SF)` if `has_bulk_sync_execute_member_v<decay_t<decltype(E)>>` is true.
+
+* Otherwise, `bulk_sync_execute(E, F, S, RF, SF)` if that expression satisfies the syntactic requirements for a synchronous two-way, blocking execution function of bulk cardinality, with overload resolution performed in a context that includes the declaration `void bulk_sync_execute(auto&, auto&, auto&, auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::bulk_sync_execute`.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::bulk_async_execute(E, F, S, RF, SF).get()` if `can_bulk_async_execute_v<decay_t<decltype(E)>>` is true.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::bulk_sync_execute(E, F, S, RF, SF)` is ill-formed.
+
+*Remarks:* Whenever `std::experimental::concurrency_v2::execution::bulk_sync_execute(E, F, S, RF, SF)` is a valid expression, that expression satisfies the syntactic requirements for a synchronous two-way, blocking execution function of bulk cardinality.
 
 ### `bulk_async_execute`
 
-*TODO*
+    namespace {
+      constexpr unspecified bulk_async_execute = unspecified;
+    }
+
+The name `bulk_async_execute` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::bulk_async_execute(E, F, S, RF, SF)` for some expressions `E`, `F`, `S`, `RF`, and `SF` is equivalent to:
+
+* `(E).bulk_async_execute(F, S, RF, SF)` if `has_bulk_async_execute_member_v<decay_t<decltype(E)>>` is true.
+
+* Otherwise, `bulk_async_execute(E, F, S, RF, SF)` if that expression satisfies the syntactic requirements for an asynchronous two-way, potentially-blocking execution function of bulk cardinality, with overload resolution performed in a context that includes the declaration `void bulk_async_execute(auto&, auto&, auto&, auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::bulk_async_execute`.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::bulk_then_execute(E, F, S, std::experimental::make_ready_future(), RF, SF)` if `can_bulk_then_execute_v<decay_t<decltype(E)>>` is true.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::bulk_async_execute(E, F, S, RF, SF)` is ill-formed.
+
+*Remarks:* Whenever `std::execution::concurrency_v2::execution::bulk_async_execute(E, F, S, RF, SF)` is a valid expression, that expression satisfies the syntactic requirements for an asynchronous two-way, potentially-blocking execution function of bulk cardinality.
+
+### `bulk_async_post`
+
+    namespace {
+      constexpr unspecified bulk_async_post = unspecified;
+    }
+
+The name `bulk_async_post` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::bulk_async_post(E, F, S, RF, SF)` for some expressions `E`, `F`, `S`, `RF`, and `SF` is equivalent to:
+
+* `(E).bulk_async_post(F, S, RF, SF)` if `has_bulk_async_post_member_v<decay_t<decltype(E)>>` is true.
+
+* Otherwise, `bulk_async_post(E, F, S, RF, SF)` if that expression satisfies the syntactic requirements for an asynchronous two-way, non-blocking execution function of bulk cardinality, with overload resolution performed in a context that includes the declaration `void bulk_async_post(auto&, auto&, auto&, auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::bulk_async_post`.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::bulk_async_execute(E, F, S, RF, SF)` if `is_same_v<execution_execute_blocking_category_t<E>, non_blocking_execution_tag>` is true.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::bulk_async_post(E, F)` is ill-formed.
+
+*Remarks:* Whenver `std::experimental::concurrency_v2::execution::bulk_async_post(E, F)` is a valid expression, that expression satisfies the syntactic requirements for an asynchronous two-way, non-blocking execution function of bulk cardinality.
+
+### `bulk_async_defer`
+
+    namespace {
+      constexpr unspecified bulk_async_defer = unspecified;
+    }
+
+The name `bulk_async_defer` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::bulk_async_defer(E, F, S, RF, SF)` for some expressions `E`, `F`, `S`, `RF`, and `SF` is equivalent to:
+
+* `(E).bulk_async_defer(F, S, RF, SF)` if `has_bulk_async_defer_member_v<decay_t<decltype(E)>>` is true.
+
+* Otherwise, `bulk_async_defer(E, F, S, RF, SF)` if that expression satisfies the syntactic requirements for an asynchronous two-way, non-blocking execution function of bulk cardinality, with overload resolution performed in a context that includes the declaration `void bulk_async_defer(auto&, auto&, auto&, auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::bulk_async_defer`.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::bulk_async_execute(E, F, S, RF, SF)` if `is_same_v<execution_execute_blocking_category_t<E>, non_blocking_execution_tag>` is true.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::bulk_async_defer(E, F)` is ill-formed.
+
+*Remarks:* Whenver `std::experimental::concurrency_v2::execution::bulk_async_defer(E, F)` is a valid expression, that expression satisfies the syntactic requirements for an asynchronous two-way, non-blocking execution function of bulk cardinality.
 
 ### `bulk_then_execute`
 
-*TODO*
+    namespace {
+      constexpr unspecified bulk_then_execute = unspecified;
+    }
+
+The name `bulk_then_execute` denotes a customization point. The effect of the expression `std::expression::concurrency_v2::execution::bulk_then_execute(E, F, S, P, RF, SF)` for some expressions `E`, `F`, `S`, `P`, `RF`, and `SF` is equivalent to:
+
+* `(E).bulk_then_execute(F, S, P, RF, SF)` if `has_bulk_then_execute_member_v<decay_t<decltype(E)>>` is true.
+
+* Otherwise, `bulk_then_execute(E, F, S, P, RF, SF)` if that expression satisfies the syntactic requirements for an asynchronous two-way, potentially-blocking execution function of bulk cardinality, with overload resolution performed in a context which includes the declaration `void bulk_then_execute(auto&, auto&, auto&, auto&, auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::bulk_then_execute`.
+
+* Otherwise, let `DE` be `decay_t<decltype(E)>`. If `can_then_execute_v<DE> && (has_bulk_sync_execute_member_v<DE> || has_bulk_sync_execute_free_function_v<DE> || has_bulk_async_execute_member_v<DE> || has_bulk_async_execute_free_function_v<DE>)` is true, equivalent to the following:
+
+        auto __f = F;
+
+        auto __g = [=](auto& __predecessor)
+        {
+          return std::experimental::concurrency_v2::bulk_sync_execute(E, S, RF, SF,
+            [=,&__predecessor](auto& __result, auto& __shared)
+          {
+            __f(__i, __predecessor, __result, __shared);
+          });
+        };
+
+        return std::experimental::concurrency_v2::execution::then_execute(E, __g, P);
+
+    if `P` is a non-`void` future. Otherwise,
+
+        auto __f = F;
+
+        auto __g = [=]
+        {
+          return std::experimental::concurrency_v2::bulk_sync_execute(E, S, RF, SF,
+            [=](auto& __result, auto& __shared)
+          {
+            __f(__i, __result, __shared);
+          });
+        };
+
+        return std::experimental::concurrency_v2::execution::then_execute(E, __g, P);
+
+    [*Note:* The explicit use of execution function detectors for `bulk_sync_execute` and `bulk_async_execute` above is intentional to avoid cycles in this code. *--end note*]
+
+* Otherwise, `std::experimental::concurrency_v2::execution::bulk_then_execute(E, F, S, P, RF, SF)` is ill-formed.
+
+*Remarks:* Whenever `std::execution::concurrency_v2::execution::bulk_then_execute(E, F, S, P, RF, SF)` is a valid expression, that expression satisfies the syntactic requirements for an asynchronous two-way, potentially-blocking execution function of bulk cardinality.
 
 ### Customization point type traits
 
@@ -886,8 +1153,12 @@ The name `async_execute` denotes a customization point. The effect of the expres
     template<class T> struct can_async_defer;
     template<class T> struct can_then_execute;
     template<class T> struct can_bulk_execute;
+    template<class T> struct can_bulk_post;
+    template<class T> struct can_bulk_defer;
     template<class T> struct can_bulk_sync_execute;
     template<class T> struct can_bulk_async_execute;
+    template<class T> struct can_bulk_async_post;
+    template<class T> struct can_bulk_async_defer;
     template<class T> struct can_bulk_then_execute;
 
 This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
@@ -916,8 +1187,12 @@ In the Table below,
 | `template<class T>` <br/>`struct can_async_defer` | The expressions `std::experimental::concurrency_v2::execution::async_defer(t, f)` and `std::experimental::concurrency_v2::execution::async_defer(t, f, a)` is well-formed. | `T` is a complete type. |
 | `template<class T>` <br/>`struct can_then_execute` | The expressions `std::experimental::concurrency_v2::execution::then_execute(t, f, pred)` and `std::experimental::concurrency_v2::execution::then_execute(t, f, pred)` are well-formed. | `T` is a complete type. |
 | `template<class T>` <br/>`struct can_bulk_execute` | The expression `std::experimental::concurrency_v2::execution::bulk_execute(t, bf, s, rf, sf)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_bulk_post` | The expression `std::experimental::concurrency_v2::execution::bulk_post(t, bf, s, rf, sf)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_bulk_defer` | The expression `std::experimental::concurrency_v2::execution::bulk_defer(t, bf, s, rf, sf)` is well-formed. | `T` is a complete type. |
 | `template<class T>` <br/>`struct can_bulk_sync_execute` | The expression `std::experimental::concurrency_v2::execution::bulk_sync_execute(t, bf, s, rf, sf)` is well-formed. | `T` is a complete type. |
 | `template<class T>` <br/>`struct can_bulk_async_execute` | The expression `std::experimental::concurrency_v2::execution::bulk_async_execute(t, bf, s, rf, sf)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_bulk_async_post` | The expression `std::experimental::concurrency_v2::execution::bulk_async_post(t, bf, s, rf, sf)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_bulk_async_defer` | The expression `std::experimental::concurrency_v2::execution::bulk_async_defer(t, bf, s, rf, sf)` is well-formed. | `T` is a complete type. |
 | `template<class T>` <br/>`struct can_bulk_then_execute` | The expression `std::experimental::concurrency_v2::execution::bulk_then_execute(t, bf, s, pred, rf, sf)` is well-formed. | `T` is a complete type. |
 
 ## Executor type traits
@@ -1119,68 +1394,6 @@ p4, respectively.*
 The functions described in this clause are *executor customization points*.
 Executor customization points provide a uniform interface to all executor types.
 
-### Function template `execution::async_post()`
-
-```
-template<class NonBlockingTwoWayExecutor, class Function>
-  executor_future_t<NonBlockingTwoWayExecutor, result_of_t<decay_t<Function>()>>
-    async_post(const NonBlockingTwoWayExecutor& exec, Function&& f);
-```
-
-*Returns:* `exec.async_post(std::forward<Function>(f))`.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_non_blocking_two_way_executor_v< NonBlockingTwoWayExecutor>` is `true`.
-
-```
-template<class NonBlockingOneWayExecutor, class Function>
-  std::future<decay_t<result_of_t<decay_t<Function>()>>>
-    async_post(const NonBlockingOneWayExecutor& exec, Function&& f);
-```
-
-*Returns:* `exec.post(std::forward<Function>(f))`.
-
-*Effects:* Creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `exec.post(g)` where `g` is a function object of unspecified type that performs `DECAY_COPY(std::forward<Function>(f))`, with the call to `DECAY_COPY` being performed in the thread that called `async_post`. On successful completion of `DECAY_COPY(std::forward<Function>(f))`, the return value of `DECAY_COPY(std::forward<Function>(f))` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(std::forward<Function>(f))` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready.
-
-*Returns:* An object of type `std::future<result_of_t<decay_t<Function>>()>` that refers to the shared state created by `async_post`.
-
-*Synchronization:*
-
-* the invocation of `async_post` synchronizes with (1.10) the invocation of `f`.
-* the completion of the invocation of `f` is sequenced before (1.10) the shared state is made ready.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_non_blocking_two_way_executor_v< NonBlockingTwoWayExecutor>` is `false` and `is_non_blocking_one_way_executor_v< NonBlockingOneWayExecutor>` is `true`.
-
-### Function template `execution::async_defer()`
-
-```
-template<class NonBlockingTwoWayExecutor, class Function>
-  executor_future_t<NonBlockingTwoWayExecutor, result_of_t<decay_t<Function>()>>
-    async_defer(const NonBlockingTwoWayExecutor& exec, Function&& f);
-```
-
-*Returns:* `exec.async_defer(std::forward<Function>(f))`.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_non_blocking_two_way_executor_v< NonBlockingTwoWayExecutor>` is `true`.
-
-```
-template<class NonBlockingOneWayExecutor, class Function>
-  std::future<decay_t<result_of_t<decay_t<Function>()>>>
-    async_defer(const NonBlockingOneWayExecutor& exec, Function&& f);
-```
-
-*Returns:* `exec.defer(std::forward<Function>(f))`.
-
-*Effects:* Creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `exec.defer(g)` where `g` is a function object of unspecified type that performs `DECAY_COPY(std::forward<Function>(f))`, with the call to `DECAY_COPY` being performed in the thread that called `async_defer`. On successful completion of `DECAY_COPY(std::forward<Function>(f))`, the return value of `DECAY_COPY(std::forward<Function>(f))` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(std::forward<Function>(f))` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready.
-
-*Returns:* An object of type `std::future<result_of_t<decay_t<Function>>()>` that refers to the shared state created by `async_defer`.
-
-*Synchronization:*
-
-* the invocation of `async_defer` synchronizes with (1.10) the invocation of `f`.
-* the completion of the invocation of `f` is sequenced before (1.10) the shared state is made ready.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_non_blocking_two_way_executor_v< NonBlockingTwoWayExecutor>` is `false` and `is_non_blocking_one_way_executor_v< NonBlockingOneWayExecutor>` is `true`.
-
 ### Function template `execution::then_execute()`
 
 ```
@@ -1209,164 +1422,6 @@ template<class OneWayExecutor, class Function, class Future>
 *Postconditions:* If the `predecessor` future is not a shared future, then `predecessor.valid() == false`.
 
 *Remarks:* This function shall not participate in overload resolution unless `is_two_way_executor_v< TwoWayExecutor>` is `false` and `is_one_way_executor_v< OneWayExecutor>` is `true`.
-
-### Function template `execution::bulk_execute()`
-
-```
-template<class BulkOneWayExecutor, class Function1, class Function2>
-  void bulk_execute(const BulkOneWayExecutor& exec, Function1 f,
-                    executor_shape_t<BulkOneWayExecutor> shape,
-                    Function2 shared_factory);
-```
-
-*Returns:* `exec.bulk_execute(f, shape, shared_factory)`.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_bulk_one_way_executor_v< BulkOneWayExecutor>` is `true`.
-
-```
-template<class OneWayExecutor, class Function1, class Function2>
-  void bulk_execute(const OneWayExecutor& exec, Function1 f,
-                    executor_shape_t<OneWayExecutor> shape,
-                    Function2 shared_factory);
-```
-
-*Effects:* Performs `exec.execute(g)` where `g` is a function object of unspecified type that:
-
-* Calls `shared_factory()` and stores the result of this invocation to some shared state `shared`.
-
-* Using `exec.execute`, submits a new group of function objects of shape `shape`. Each function object calls `f(idx, shared)`, where `idx` is the index of the execution agent, and `shared` is a reference to the shared state.
-
-* If any invocation of `f` exits via an uncaught exception, `terminate` is called.
-
-*Synchronization:* The completion of the function `shared_factory` happens before the creation of the group of function objects.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_bulk_one_way_executor_v< BulkOneWayExecutor>` is `false` and `is_one_way_executor_v< OneWayExecutor>` is `true`.
-
-### Function template `execution::bulk_sync_execute()`
-
-```
-template<class BulkTwoWayExecutor, class Function1, class Function2, class Function3>
-  result_of_t<Function2()>
-    bulk_sync_execute(const BulkTwoWayExecutor& exec, Function1 f,
-                      executor_shape_t<BulkTwoWayExecutor> shape,
-                      Function2 result_factory, Function3 shared_factory);
-```
-
-*Returns:* `exec.bulk_sync_execute(f, shape, result_factory, shared_factory)`.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_bulk_two_way_executor_v< BulkTwoWayExecutor>` is `true`.
-
-```
-template<class OneWayExecutor, class Function1, class Function2, class Function3>
-  result_of_t<Function2()>
-    bulk_sync_execute(const OneWayExecutor& exec, Function1 f,
-                      executor_shape_t<OneWayExecutor> shape,
-                      Function2 result_factory, Function3 shared_factory);
-```
-
-*Effects:* Performs `exec.execute(g)` where `g` is a function object of unspecified type that:
-
-* Calls `result_factory()` and `shared_factory()`, and stores the results of these invocations to some shared state `result` and `shared` respectively.
-
-* Using `exec.execute`, submits a new group of function objects of shape `shape`. Each function object calls `f(idx, result, shared)`, where `idx` is the index of the execution agent, and `result` and `shared` are references to the respective shared state. Any return value of `f` is discarded.
-
-* If any invocation of `f` exits via an uncaught exception, `terminate` is called.
-
-* Blocks the caller until all invocations of `f` are complete and the result is ready.
-
-*Returns:* An object of type `result_of_t<Function2()>` that refers to the result shared state created by this call to `bulk_sync_execute`.
-
-*Synchronization:* The completion of the functions `result_factory` and `shared_factory` happen before the creation of the group of function objects.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_bulk_two_way_executor_v< BulkTwoWayExecutor>` is `false` and `is_one_way_executor_v< OneWayExecutor>` is `true`.
-
-### Function template `execution::bulk_async_execute()`
-
-```
-template<class BulkTwoWayExecutor, class Function1, class Function2, class Function3>
-  executor_future_t<const BulkTwoWayExecutor, result_of_t<Function2()>>
-    bulk_async_execute(const BulkTwoWayExecutor& exec, Function1 f,
-                       executor_shape_t<BulkTwoWayExecutor> shape,
-                       Function2 result_factory, Function3 shared_factory);
-```
-
-*Returns:* `exec.bulk_async_execute(f, shape, result_factory, shared_factory)`.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_bulk_two_way_executor_v< BulkTwoWayExecutor>` is `true`.
-
-```
-template<class OneWayExecutor, class Function1, class Function2, class Function3>
-  executor_future_t<const OneWayExecutor, result_of_t<Function2()>>
-    bulk_async_execute(const OneWayExecutor& exec, Function1 f,
-                       executor_shape_t<OneWayExecutor> shape,
-                       Function2 result_factory, Function3 shared_factory);
-```
-
-*Effects:* Performs `exec.execute(g)` where `g` is a function object of unspecified type that:
-
-* Calls `result_factory()` and `shared_factory()`, and stores the results of these invocations to some shared state `result` and `shared` respectively.
-
-* Using `exec.execute`, submits a new group of function objects of shape `shape`. Each function object calls `f(idx, result, shared)`, where `idx` is the index of the function object, and `result` and `shared` are references to the respective shared state. Any return value of `f` is discarded.
-
-* If any invocation of `f` exits via an uncaught exception, `terminate` is called.
-
-*Returns:* An object of type `executor_future_t<Executor,result_of_t<Function2()>` that refers to the shared result state created by this call to `bulk_async_execute`.
-
-*Synchronization:*
-
-* The invocation of `bulk_async_execute` synchronizes with (1.10) the invocations of `f`.
-
-* The completion of the functions `result_factory` and `shared_factory` happen before the creation of the group of function objects.
-
-* The completion of the invocations of `f` are sequenced before (1.10) the result shared state is made ready.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_bulk_two_way_executor_v< BulkTwoWayExecutor>` is `false` and `is_one_way_executor_v< OneWayExecutor>` is `true`.
-
-### Function template `execution::bulk_then_execute()`
-
-```
-template<class BulkTwoWayExecutor, class Function1, class Future, class Function2, class Function3>
-  executor_future_t<BulkTwoWayExecutor, result_of_t<Function2()>>
-    bulk_then_execute(const BulkTwoWayExecutor& exec, Function1 f,
-                      executor_shape_t<BulkTwoWayExecutor> shape,
-                      Future& predecessor,
-                      Function2 result_factory, Function3 shared_factory);
-```
-
-*Returns:* `exec.bulk_then_execute(f, shape, result_factory, shared_factory)`.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_bulk_two_way_executor_v< BulkTwoWayExecutor>` is `true`.
-
-```
-template<class OneWayExecutor, class Function1, class Future, class Function2, class Function3>
-  executor_future_t<OneWayExecutor, result_of_t<Function2()>>
-    bulk_then_execute(const OneWayExecutor& exec, Function1 f,
-                      executor_shape_t<OneWayExecutor> shape,
-                      Future& predecessor,
-                      Function2 result_factory, Function3 shared_factory);
-```
-
-*Effects:* Performs `exec.execute(g)` where `g` is a function object of unspecified type that:
-
-* Calls `result_factory()` and `shared_factory()` in an unspecified execution agent. The results of these invocations are stored to shared state.
-
-* Using `exec.execute`, submits a new group of function objects of shape `shape` after `predecessor` becomes ready. Each execution agent calls `f(idx, result, pred, shared)`, where `idx` is the index of the execution agent, `result` is a reference to the result shared state, `pred` is a reference to the `predecessor` state if it is not `void`. Otherwise, each execution agent calls `f(idx, result, shared)`. Any return value of `f` is discarded.
-
-* If any invocation of `f` exits via an uncaught exception, `terminate` is called.
-
-*Returns:* An object of type `executor_future_t<Executor,result_of_t<Function2()>` that refers to the shared result state created by this call to `bulk_then_execute`.
-
-*Synchronization:*
-
-* the invocation of `bulk_then_execute` synchronizes with (1.10) the invocations of `f`.
-
-* the completion of the functions `result_factory` and `shared_factory` happen before the creation of the group of execution agents.
-
-* the completion of the invocations of `f` are sequenced before (1.10) the result shared state is made ready.
-
-*Postconditions:* If the `predecessor` future is not a shared future, then `predecessor.valid() == false`.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_bulk_two_way_executor_v< BulkTwoWayExecutor>` is `false` and `is_one_way_executor_v< OneWayExecutor>` is `true`.
 
 ## Executor work guard
 
@@ -1921,9 +1976,12 @@ Let `e` be the target object of `*this`. Let `fd` be the result of `DECAY_COPY(s
 
 ## Thread pool type
 
-XXX Consider whether we should include a wording for a concurrent executor which
-would satisfy the needs of async (thread pool provides parallel execution
-semantics).
+The thread pool class is meant to represent a common approach to introducing
+concurrency or parallelism to code without the siginificant overhead of creating
+and destroying threads whenever concurrency is needed. There are a significant
+number of possible thread pool approaches, the statically sized thread pool is
+one of the simplest that still provides the ability for code to introduce low
+cost concurrency.
 
 ### Header `<thread_pool>` synopsis
 
@@ -1932,35 +1990,40 @@ namespace std {
 namespace experimental {
 inline namespace concurrency_v2 {
 
-  class thread_pool;
+  class static_thread_pool;
 
 } // inline namespace concurrency_v2
 } // namespace experimental
 } // namespace std
 ```
 
-### Class `thread_pool`
+### Class `static_thread_pool`
 
 This class represents a statically sized thread pool as a common/basic resource
-type. This pool provides an effectively unbounded input queue and as such calls
-to add tasks to a thread_pool's executor will not block on the input queue.
+type. This pool is capable of being grown by attaching threads to the pool but
+it will not change size in any automatic way. This pool provides an
+effectively unbounded input queue and as such calls to add tasks to a
+static_thread_pool's associated executors will not block on the input queue.
+
+The `static_thread_pool` provides parallel execution agents and therefore
+situations which assume concurrent execution properties will not guarantee
+correctness.
 
 ```
-class thread_pool
+class static_thread_pool
 {
   public:
     class executor_type;
     
     // construction/destruction
-    thread_pool();
-    explicit thread_pool(std::size_t num_threads);
+    explicit static_thread_pool(std::size_t num_threads);
     
     // nocopy
-    thread_pool(const thread_pool&) = delete;
-    thread_pool& operator=(const thread_pool&) = delete;
+    static_thread_pool(const static_thread_pool&) = delete;
+    static_thread_pool& operator=(const static_thread_pool&) = delete;
 
     // stop accepting incoming work and wait for work to drain
-    ~thread_pool();
+    ~static_thread_pool();
 
     // attach current thread to the thread pools list of worker threads
     void attach();
@@ -1976,52 +2039,44 @@ class thread_pool
     executor_type executor() noexcept;
 };
 
-bool operator==(const thread_pool& a, const thread_pool& b) noexcept;
-bool operator!=(const thread_pool& a, const thread_pool& b) noexcept;
+bool operator==(const static_thread_pool& a, const static_thread_pool& b) noexcept;
+bool operator!=(const static_thread_pool& a, const static_thread_pool& b) noexcept;
 ```
 
-The class `thread_pool` satisfies the `ExecutionContext` requirements.
+The class `static_thread_pool` satisfies the `ExecutionContext` requirements.
 
-For an object of type `thread_pool`, *outstanding work* is defined as the sum
+For an object of type `static_thread_pool`, *outstanding work* is defined as the sum
 of:
 
 * the total number of calls to the `on_work_started` function that returned
   `true`, less the total number of calls to the `on_work_finished` function, on
-  any executor associated with the `thread_pool`.
+  any executor associated with the `static_thread_pool`.
 
-* the number of function objects that have been added to the `thread_pool`
-  via the `thread_pool` executor, but not yet executed; and
+* the number of function objects that have been added to the `static_thread_pool`
+  via the `static_thread_pool` executor, but not yet executed; and
 
 * the number of function objects that are currently being executed by the
-  `thread_pool`.
+  `static_thread_pool`.
 
-The `thread_pool` member functions `executor`, `attach`, `wait`, and `stop`,
-and the `thread_pool::executor_type` copy constructors and member functions, do
+The `static_thread_pool` member functions `executor`, `attach`, `wait`, and `stop`,
+and the `static_thread_pool::executor_type` copy constructors and member functions, do
 not introduce data races as a result of concurrent calls to those functions
 from different threads of execution.
 
 #### Construction and destruction
 
 ```
-thread_pool();
+static_thread_pool(std::size_t num_threads);
 ```
 
-*Effects:* Constructs a `thread_pool` object with an implementation defined
-number of threads of execution, as if by creating objects of type `std::thread`.
+*Effects:* Constructs a `static_thread_pool` object with `num_threads` threads of
+execution, as if by creating objects of type `std::thread`.
 
 ```
-thread_pool(std::size_t num_threads);
+~static_thread_pool();
 ```
 
-*Effects:* Constructs a `thread_pool` object with `num_threads` threads of
-execution, as if by creating objects of type `std::thread`. (QUESTION: Do we want to
-allow 0?)
-
-```
-~thread_pool();
-```
-
-*Effects:* Destroys an object of class `thread_pool`. Performs `stop()`
+*Effects:* Destroys an object of class `static_thread_pool`. Performs `stop()`
 followed by `wait()`.
 
 #### Worker Management
@@ -2032,8 +2087,8 @@ void attach();
 
 *Effects:* adds the calling thread to the pool of workers. Blocks the calling
 thread until signalled to complete by `stop()` or `wait()`, and then blocks
-until all the threads created during `thread_pool` object construction have
-completed. (Note: The implementation is encouraged, but not required, to use
+until all the threads created during `static_thread_pool` object construction have
+completed. (Note: The implementation is required to use
 the attached thread to execute submitted function objects. RATIONALE:
 implementations in terms of the Windows thread pool cannot utilise
 user-provided threads. --end note) (NAMING: a possible alternate name for this
@@ -2074,26 +2129,27 @@ thread pool.
 #### Comparisons
 
 ```
-bool operator==(const thread_pool& a, const thread_pool& b) noexcept;
+bool operator==(const static_thread_pool& a, const static_thread_pool& b) noexcept;
 ```
 
 *Returns:* `std::addressof(a) == std::addressof(b)`.
 
 ```
-bool operator!=(const thread_pool& a, const thread_pool& b) noexcept;
+bool operator!=(const static_thread_pool& a, const static_thread_pool& b) noexcept;
 ```
 
 *Returns:* `!(a == b)`.
 
-### Class `thread_pool::executor_type`
+### Class `static_thread_pool::executor_type`
 
 ```
-class thread_pool::executor_type
+class static_thread_pool::executor_type
 {
   public:
     // types:
 
     typedef parallel_execution_category execution_category;
+    typedef possibly_blocking_execution_tag blocking_category;
     typedef std::size_t shape_type;
     typedef std::size_t index_type;
 
@@ -2109,67 +2165,35 @@ class thread_pool::executor_type
 
     bool running_in_this_thread() const noexcept;
 
-    thread_pool& context() const noexcept;
+    static_thread_pool& context() const noexcept;
 
     bool on_work_started() const noexcept;
     void on_work_finished() const noexcept;
-
-    template<class Func, class ProtoAllocator = std::allocator<void>>
-      void execute(Func&& f, const ProtoAllocator& a = ProtoAllocator()) const;
-
-    template<class Func, class ProtoAllocator = std::allocator<void>>
-      void post(Func&& f, const ProtoAllocator& a = ProtoAllocator()) const;
-
-    template<class Func, class ProtoAllocator = std::allocator<void>>
-      void defer(Func&& f, const ProtoAllocator& a = ProtoAllocator()) const;
-
-    template<class Function>
-      result_of_t<decay_t<Function>()>
-        sync_execute(Function&& f) const;
-
-    template<class Function>
-      std::future<result_of_t<decay_t<Function>()>>
-        async_execute(Function&& f) const;
-
-    template<class Function>
-      std::future<result_of_t<decay_t<Function>()>>
-        async_post(Function&& f) const;
-
-    template<class Function>
-      std::future<result_of_t<decay_t<Function>()>>
-        async_defer(Function&& f) const;
-
-    template<class Function1, class Function2>
-    void bulk_execute(Function1 f, shape_type shape,
-                      Function2 shared_factory) const;
-
-    template<class Function1, class Function2, class Function3>
-    result_of_t<Function2()>
-    bulk_sync_execute(Function1 f, shape_type shape,
-                      Function2 result_factory,
-                      Function3 shared_factory) const;
-
-    template<class Function1, class Function2, class Function3>
-    std::future<result_of_t<Function2()>>
-    bulk_async_execute(Function1 f, shape_type shape,
-                       Function2 result_factory,
-                       Function3 shared_factory) const;
 };
 
-bool operator==(const thread_pool::executor_type& a,
-                const thread_pool::executor_type& b) noexcept;
-bool operator!=(const thread_pool::executor_type& a,
-                const thread_pool::executor_type& b) noexcept;
+bool operator==(const static_thread_pool::executor_type& a,
+                const static_thread_pool::executor_type& b) noexcept;
+bool operator!=(const static_thread_pool::executor_type& a,
+                const static_thread_pool::executor_type& b) noexcept;
 ```
 
-`thread_pool::executor_type` is a type satisfying the
-`NonBlockingOneWayExecutor`, `NonBlockingTwoWayExecutor`, `BulkOneWayExecutor`,
-`BulkTwoWayExecutor`, and `ExecutorWorkTracker` requirements. Objects of type
-`thread_pool::executor_type` are associated with a `thread_pool`, and function
-objects submitted using the `execute`, `post`, `defer`, `sync_execute`,
-`async_execute`, `async_post`, `async_defer`, `bulk_execute`,
-`bulk_sync_execute`, and `bulk_async_execute` member functions will be executed
-by the `thread_pool`.
+`static_thread_pool::executor_type` is a type satisfying the `BaseExecutor` and
+`ExecutorWorkTracker` requirements. Objects of type
+`static_thread_pool::executor` are associated with a `static_thread_pool`.
+
+The customization points `execute`, `post`, `defer`, `sync_execute`,
+`async_execute`, `async_post`, `async_defer`, `then_execute`, `bulk_execute`,
+`bulk_post`, `bulk_defer`, `bulk_sync_execute`, `bulk_async_execute`,
+`bulk_async_post`, `bulk_async_defer`, and `bulk_then_execute` are well-formed
+for this executor. Function objects submitted using these customization points
+will be executed by the `static_thread_pool`.
+
+For the customization points `execute`, `sync_execute`, `async_execute`,
+`bulk_execute`, `bulk_sync_execute`, and `bulk_async_execute`, if
+`running_in_this_thread()` is `true`, calls at least one of the submitted
+function objects in the current thread prior to returning from the
+customization point. *[Note:* If this function object exits via an exception,
+the exception propagates to the caller. *--end note]*
 
 #### Constructors
 
@@ -2210,189 +2234,43 @@ bool running_in_this_thread() const noexcept;
 ```
 
 *Returns:* `true` if the current thread of execution is a thread that was
-created by or attached to the associated `thread_pool` object.
+created by or attached to the associated `static_thread_pool` object.
 
 ```
-thread_pool& context() const noexcept;
+static_thread_pool& context() const noexcept;
 ```
 
-*Returns:* A reference to the associated `thread_pool` object.
+*Returns:* A reference to the associated `static_thread_pool` object.
 
 ```
 bool on_work_started() const noexcept;
 ```
 
 *Effects:* Increments the count of outstanding work associated with the
-`thread_pool`.
+`static_thread_pool`.
 
 *Returns:* `false` if there was a prior call to the `stop()` member function of
-the associated `thread_pool` object; otherwise `true`.
+the associated `static_thread_pool` object; otherwise `true`.
 
 ```
 void on_work_finished() const noexcept;
 ```
 
 *Effects:* Decrements the count of outstanding work associated with the
-`thread_pool`.
-
-```
-template<class Func, class ProtoAllocator = std::allocator<void>>
-  void execute(Func&& f, const ProtoAllocator& a = ProtoAllocator()) const;
-```
-
-*Effects:* If `running_in_this_thread()` is `true`, calls
-`DECAY_COPY(forward<Func>(f))()`. *[Note:* If `f` exits via an exception, the
-exception propagates to the caller of `execute`. *--end note]* Otherwise, calls
-`post(forward<Func>(f), a)`.
-
-```
-template<class Func, class ProtoAllocator = std::allocator<void>>
-  void post(Func&& f, const ProtoAllocator& a = ProtoAllocator()) const;
-```
-
-*Effects:* Adds `f` to the `thread_pool`.
-
-```
-template<class Func, class ProtoAllocator = std::allocator<void>>
-  void defer(Func&& f, const ProtoAllocator& a = ProtoAllocator()) const;
-```
-
-*Effects:* Adds `f` to the `thread_pool`.
-
-```
-template<class Function>
-  result_of_t<decay_t<Function>()>
-    sync_execute(Function&& f) const;
-```
-
-*Effects:* If `running_in_this_thread()` is `true`, calls
-`DECAY_COPY(forward<Func>(f))()`. Otherwise, adds `f` to the `thread_pool` and
-blocks the caller pending completion of `f`.
-
-*Returns:* The return value of `f`.
-
-*Throws:* Any uncaught exception thrown by `f`.
-
-```
-template<class Function>
-  future<result_of_t<decay_t<Function>()>>
-    async_execute(Function&& f) const;
-template<class Function>
-  future<result_of_t<decay_t<Function>()>>
-    async_post(Function&& f) const;
-template<class Function>
-  future<result_of_t<decay_t<Function>()>>
-    async_defer(Function&& f) const;
-```
-
-*Effects:* Creates an asynchronous provider with an associated shared state
-(C++Std [futures.state]). Adds `f` to the `thread_pool`. On successful
-completion of `f`, the return value of `f` is atomically stored in the shared
-state and the shared state is made ready. If `f` exits via an exception, the
-exception is atomically stored in the shared state and the shared state is made
-ready.
-
-*Returns:* An object of type `future<result_of_t<decay_t<Function>>()>` that
-refers to the shared state created by `async_execute`.
-
-```
-template<class Function1, class Function2>
-void bulk_execute(Function1 f, shape_type shape,
-                  Function2 shared_factory) const;
-```
-
-*Effects:* Submits a function object to the thread pool that:
-
-  * Calls `shared_factory()` and stores the result of this invocation
-    to some shared state `shared`.
-
-  * Submits a new group of function objects of shape `shape`. Each function
-    object calls `f(idx, shared)`, where `idx` is the index of the execution
-    agent, and `shared` is a reference to the shared state.
-
-  * If any invocation of `f` exits via an uncaught exception, `terminate` is
-    called.
-
-*Synchronization:* The completion of the function `shared_factory` happens
-before the creation of the group of function objects.
-
-```
-template<class Function1, class Function2, class Function3>
-result_of_t<Function2()>
-bulk_sync_execute(Function1 f, shape_type shape,
-                  Function2 result_factory,
-                  Function3 shared_factory) const;
-```
-
-*Effects:* Submits a function object to the thread pool that:
-
-  * Calls `result_factory()` and `shared_factory()`, and stores the results of
-    these invocations to some shared state `result` and `shared` respectively.
-
-  * Submits a new group of function objects of shape `shape`. Each function
-    object calls `f(idx, result, shared)`, where `idx` is the index of the
-    execution agent, and `result` and `shared` are references to the respective
-    shared state. Any return value of `f` is discarded.
-
-  * If any invocation of `f` exits via an uncaught exception, `terminate` is
-    called.
-
-  * Blocks the caller until all invocations of `f` are complete and the result
-    is ready.
-
-*Returns:* An object of type `result_of_t<Function2()>` that refers to the
-result shared state created by this call to `bulk_sync_execute`.
-
-*Synchronization:* The completion of the functions `result_factory` and
-`shared_factory` happen before the creation of the group of function objects.
-
-```
-template<class Function1, class Function2, class Function3>
-std::future<result_of_t<Function2()>>
-bulk_async_execute(Function1 f, shape_type shape,
-                   Function2 result_factory,
-                   Function3 shared_factory) const;
-```
-
-*Effects:* Submits a function object to the thread pool that:
-
-  * Calls `result_factory()` and `shared_factory()`, and stores the results of
-    these invocations to some shared state `result` and `shared` respectively.
-
-  * Submits a new group of function objects of shape `shape`. Each function
-    object calls `f(idx, result, shared)`, where `idx` is the index of the
-    function object, and `result` and `shared` are references to the respective
-    shared state. Any return value of `f` is discarded.
-
-  * If any invocation of `f` exits via an uncaught exception, `terminate` is
-    called.
-
-*Returns:* An object of type `std::future<result_of_t<Function2()>>` that
-refers to the shared result state created by this call to `bulk_async_execute`.
-
-*Synchronization:*
-
-  * The invocation of `bulk_async_execute` synchronizes with (1.10) the
-    invocations of `f`.
-
-  * The completion of the functions `result_factory` and `shared_factory`
-    happen before the creation of the group of function objects.
-
-  * The completion of the invocations of `f` are sequenced before (1.10) the
-    result shared state is made ready.
+`static_thread_pool`.
 
 #### Comparisons
 
 ```
-bool operator==(const thread_pool::executor_type& a,
-                const thread_pool::executor_type& b) noexcept;
+bool operator==(const static_thread_pool::executor_type& a,
+                const static_thread_pool::executor_type& b) noexcept;
 ```
 
 *Returns:* `a.context() == b.context()`.
 
 ```
-bool operator!=(const thread_pool::executor_type& a,
-                const thread_pool::executor_type& b) noexcept;
+bool operator!=(const static_thread_pool::executor_type& a,
+                const static_thread_pool::executor_type& b) noexcept;
 ```
 
 *Returns:* `!(a == b)`.
