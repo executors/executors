@@ -853,6 +853,10 @@ This sub-clause contains templates that may be used to query the properties of a
 
 ## Customization points
 
+When an executor customization point named `name` invokes a free execution function of the same name, overload resolution is performed in a context that includes the declaration `void name(auto&... args) = delete;`, where `sizeof...(args)` is the arity of the free execution function. This context also does not include a declaration of the executor customization point.
+
+[*Note:* This provision allows executor customization points to call the executor's free, non-member execution function of the same name without recursion. *--end note*]
+
 ### `execute`
 
     namespace {
