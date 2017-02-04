@@ -58,8 +58,7 @@ In our programming model, executors introduce a uniform interface for creating
 execution that may not be common to the underlying execution resources actually
 responsible for the mechanics of implementing that execution. There are three
 major concepts involved in this interplay: execution resources, execution
-contexts, and executors. The executors themselves are the primary concern of
-our design.
+contexts, and executors. 
 
 An **execution resource** is an instance of a hardware and/or software facility
 capable of executing a callable function object.  Different resources may offer
@@ -71,15 +70,19 @@ programmer. For example, an implementation might expose different processor
 cores, with potentially non-uniform access to memory, as separate resources to
 enable programmers to reason about locality.
  
-An **execution context** is a program object that represents and manages a
-specific collection of execution resources.
+An **execution context** is a program object that represents a specific
+collection of execution resources.
  
 An **executor** is an object associated with a specific execution context.  It
 provides a mechanism for creating execution agents from a callable function
-object.  The agents created are bound to the executor's context, and hence to
+object. The agents created are bound to the executor's context, and hence to
 one or more of the resources that context represents.
 
-**Design goals.** The design outlined in this proposal is intended to achieve
+Executors themselves are the primary concern of our design.
+
+## Design goals
+
+The design outlined in this proposal is intended to achieve
 our goals for executors, which are objects for creating all kinds of execution
 in C++. Executors should be *composable*, *adaptable*, and *customizable*,
 which we believe reflects the needs of users, library implementors, and
@@ -94,10 +97,12 @@ specially-designed for a particular use case should be applicable in other
 use cases when it is possible. By *customizable*, we mean that requirements
 placed on executors should be broad enough to encompass user-defined
 executors, rather than limited to the set of concrete executors which may
-eventually become part of the C++ Standard Library.Only a design including
+eventually become part of the C++ Standard Library. Only a design including
 well-defined interfaces with clear semantics will achieve these goals.
 
-**Customization points.** In our design, these well-defined interfaces with
+## Customization Points
+
+In our design, these well-defined interfaces with
 clearly-expressed execution semantics are called executor *customization
 points* and are foundational to the mechanics of our design. Each executor
 customization point is a function which delineates a specific use case which we
@@ -139,7 +144,9 @@ of these use cases by implementing the appropriate customization point, and may
 opt in to new customization points as they are standardized. Due to their
 adaptability, an executor will be future-proof to new customization points.
 
-**Executor categories.** Our design organizes executors into *executor
+## Executor Categories
+
+Our design organizes executors into *executor
 categories* based on how they are expected to be used by software components
 composing with them. These categories correspond to the application domains
 served by the C++ Standard Library and the Parallelism, Concurrency, and
@@ -192,22 +199,26 @@ Programmers may employ these type traits at software boundaries to define
 requirements for executor composition as well as reject types of executors
 which are known to be incompatible.
 
-**Execution contexts.** In our design, *execution contexts* are objects that
-manage a specific collection of resources required by an executor to create
-execution. For example, a thread pool is an execution context which manages a
-collection of threads upon which an associated executor may create execution
-agents. For our purposes of defining a programming model for executors, the
-only salient expectation for execution contexts is the ability to obtain an
-executor from them. However, we have chosen not to prescribe a required
-interface for doing so. Instead, we have defined very basic requirements for
-execution contexts which allow almost any type of object to be an execution
-context. These requirements are so minimal that they permit an executor to act
-as its own execution context in use cases where no other object makes sense. We
-expect specific application domains to elaborate these basic requirements as
-appropriate. For example, we illustrate requirements for a
-`NetworkingExecutionContext` that we expect the Networking TS to define which
-would enumerate expectations on execution contexts compatible with networking
-use cases.
+## Execution Contexts
+
+In our design, *execution contexts* are objects that represent a specific
+collection of resources and may be used by executor to create execution. For
+example, a thread pool is an execution context which manages a collection of
+threads upon which an associated executor may create execution agents. For our
+purposes of defining a programming model for executors, the only salient
+expectation for execution contexts is the ability to obtain an executor from
+them. However, we have chosen not to prescribe a required interface for doing
+so. Instead, we have defined very basic requirements for execution contexts
+which allow almost any type of object to be an execution context. Our
+requirements for execution contexts are deliberately minimal and intended to
+provide a standard protocol for obtaining an executor's context and reason
+about its identity in generic code. Yet, these minimal requirements still allow
+for further refinement in future libraries. For example, we illustrate
+requirements for a `NetworkingExecutionContext` that we expect the Networking
+TS to define which would enumerate expectations on execution contexts
+compatible with networking use cases. This refinement's requirements
+significantly strengthen our weak requirements in part by demanding that all
+such contexts derive from a specific concrete class.
 
 In order to evaluate this proposal, it will be useful to have at least one
 concrete execution context readily available. Our proposal specifies a single
@@ -219,12 +230,14 @@ thread pool. We recognize that different types of thread pools are suited to
 different use cases and emphasize that this proposal's `static_thread_pool`
 represents a single design in this space which is not intended as definitive.
 
-**Extension.** This proposal is intended to provide a foundation for future
-enhancements to executors and execution in general in C++. Naturally, it is
-incomplete and we anticipate extension. Here, we discuss briefly our vision for
-how the major components of our overall design can be extended in the future.
+## Extensibility
 
-**Future conceptualization.** One immediate concern is the conceptualization of
+This proposal is intended to provide a foundation for future enhancements to
+executors and execution in general in C++. Naturally, it is incomplete and we
+anticipate extension. Here, we discuss briefly our vision for how the major
+components of our overall design can be extended in the future.
+
+**`Future` concept.** One immediate concern is the conceptualization of
 `std::future`-like types. We anticipate that some types of executors will
 expose idiosyncratic, custom, and non-standard future types to represent
 asynchronous tasks due to requirements of underlying execution resources. An
@@ -236,11 +249,27 @@ system. A means of representing system resources with standard execution
 contexts and obtaining executors from them would provide programmers concerned
 with performance the tools to reason about locality.
 
-**Execution contexts.** This paper proposes a single concrete execution context
-which encompasses one approach for representing a thread pool. There are other
-approaches to thread pools with different features and limitations. These and
-other types of execution contexts may be explored as extensions to this
-material.
+**Execution contexts.** This paper proposes a single concrete execution
+context, `static_thread_pool`, which embodies one approach for representing a
+thread pool. There are other approaches to thread pools with different features
+and limitations. For example, a hypothetical `dynamic_thread_pool` type could
+automatically change its thread count to adapt to the state of the system, with
+the goal of guaranteeing concurrent execution. Another possible execution
+context could emulate the existing behavior of `std::async()` to aid in
+migration from the standard library's existing features for concurrency and
+parallelism to this new model of executors. Such a context would allow
+programmers to introduce executors without breaking any assumed semantics of
+`std::async()`, such as concurrent execution agents, thread-per-request, and
+future blocking behavior.
+
+Besides introducing concrete execution context types, a future proposal could
+refine our `ExecutionContext` concept by introducing concepts with additional
+requirements. As an example, a parallel execution framework might define
+requirements for a hypothetical `IntrospectableExecutionContext` which would
+require contexts to provide functionality for resource introspection. Generic
+code could depend on such functionality to query the number of hardware threads
+associated with execution context. These and other extensions to our basic
+model of execution contexts may be explored as future work.
 
 **Executor categories.** Future extensions might expand our executor
 categorization to additional application domains if the categorizations
