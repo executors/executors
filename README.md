@@ -747,7 +747,7 @@ The table below describes the execution member functions and non-member function
 | Bulk | Two-way synchronous | Potentially blocking | `x.bulk_sync_execute(f, s, rf, sf)` | `bulk_sync_execute(x, f, s, rf, sf)` |
 | Bulk | Two-way synchronous | Non-blocking | NA | NA |
 | Bulk | Two-way asynchronous | Potentially blocking | `x.bulk_async_execute(f, s, rf, sf)` <br/> `x.bulk_then_execute(f, s, pred, rf, sf)` | `bulk_async_execute(x, f, s, rf, sf)` <br/> `bulk_then_execute(x, f, s, pred, rf, sf)` |
-| Bulk | Two-way asynchronous | Non-blocking |  `x.bulk_async_post(f, s, rf, sf)` <br/> `x.bulk_async_defer(f, s, rf, sf)` | `bulk_sync_post(x, f, s, rf, sf)` <br/> `bulk_sync_defer(x, f, s, rf, sf)` |
+| Bulk | Two-way asynchronous | Non-blocking |  `x.bulk_async_post(f, s, rf, sf)` <br/> `x.bulk_async_defer(f, s, rf, sf)` | `bulk_async_post(x, f, s, rf, sf)` <br/> `bulk_async_defer(x, f, s, rf, sf)` |
 
 ### `BaseExecutor` requirements
 
