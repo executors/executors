@@ -321,8 +321,8 @@ namespace execution {
   template<class T> constexpr bool has_bulk_defer_member_v = has_bulk_defer_member<T>::value;
   template<class T> constexpr bool has_bulk_sync_execute_member_v = has_bulk_sync_execute_member<T>::value;
   template<class T> constexpr bool has_bulk_async_execute_member_v = has_bulk_async_execute_member<T>::value;
-  emplate<class T> constexpr bool has_bulk_async_post_member_v = has_bulk_async_post_member<T>::value;
-  emplate<class T> constexpr bool has_bulk_async_defer_member_v = has_bulk_async_defer_member<T>::value;
+  template<class T> constexpr bool has_bulk_async_post_member_v = has_bulk_async_post_member<T>::value;
+  template<class T> constexpr bool has_bulk_async_defer_member_v = has_bulk_async_defer_member<T>::value;
   template<class T> constexpr bool has_bulk_then_execute_member_v = has_bulk_then_execute_member<T>::value;
 
   // Free function detection type traits:
