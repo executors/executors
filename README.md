@@ -542,11 +542,11 @@ The library defines several named customization point objects. In every translat
 
 ### `Future` requirements
 
-Currently, a type `F` meets the future requirements for some value type `T` if `F` is `std::experimental::future<T>` from the Concurrency TS (ISO/IEC TS 19571:2016).  [*Note:* We expect to expand on this concept later, with the requirements of the `Future` instances used with some customization points expected to decrease. *--end note*]
+A type `F` meets the `Future` requirements for some value type `T` if `F` is `std::experimental::future<T>` (defined in the C++ Concurrency TS, ISO/IEC TS 19571:2016).  [*Note:* This concept is included as a placeholder to be elaborate, with the expectation that the elaborated requirements for `Future` will expand the applicability of some executor customization points. *--end note*]
 
 ### `ProtoAllocator` requirements
 
-A type `A` meets the proto-allocator requirements if `A` is `CopyConstructible` (C++Std [copyconstructible]), `Destructible` (C++Std [destructible]), and `allocator_traits<A>::rebind_alloc<U>` meets the allocator requirements (C++Std [allocator.requirements]), where `U` is an object type. [*Note:* For example, `std::allocator<void>` meets the proto-allocator requirements but not the allocator requirements. *--end note*] No comparison operator, copy operation, move operation, or swap operation on these types shall exit via an exception.
+A type `A` meets the `ProtoAllocator` requirements if `A` is `CopyConstructible` (C++Std [copyconstructible]), `Destructible` (C++Std [destructible]), and `allocator_traits<A>::rebind_alloc<U>` meets the allocator requirements (C++Std [allocator.requirements]), where `U` is an object type. [*Note:* For example, `std::allocator<void>` meets the proto-allocator requirements but not the allocator requirements. *--end note*] No comparison operator, copy operation, move operation, or swap operation on these types shall exit via an exception.
 
 ### `ExecutionContext` requirements
 
