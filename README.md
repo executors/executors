@@ -1021,7 +1021,7 @@ The name `bulk_post` denotes a customization point. The effect of the expression
 
 * Otherwise, `bulk_post(E, F, S, SF)` if `has_bulk_post_free_function_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `std::experimental::concurrency_v2::execution::bulk_execute(E, F, S, SF)` if `is_same_v<execution_execute_blocking_category_t<E>, non_blocking_execution_tag>` is true.
+* Otherwise, `std::experimental::concurrency_v2::execution::bulk_execute(E, F, S, SF)` if `can_bulk_execute_v<decay_t<decltype(E)>>` and `is_same_v<execution_execute_blocking_category_t<E>, non_blocking_execution_tag>` is true.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::bulk_post(E, F, S, SF)` is ill-formed.
 
@@ -1037,7 +1037,7 @@ The name `bulk_defer` denotes a customization point. The effect of the expressio
 
 * Otherwise, `bulk_defer(E, F, S, SF)` if `has_bulk_defer_free_function_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `std::experimental::concurrency_v2::execution::bulk_execute(E, F, S, SF)` if `is_same_v<execution_execute_blocking_category_t<E>, non_blocking_execution_tag>` is true.
+* Otherwise, `std::experimental::concurrency_v2::execution::bulk_execute(E, F, S, SF)` if `can_bulk_execute_v<decay_t<decltype(E)>>` and `is_same_v<execution_execute_blocking_category_t<E>, non_blocking_execution_tag>` is true.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::bulk_defer(E, F, S, SF)` is ill-formed.
 
