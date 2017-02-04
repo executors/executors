@@ -2146,6 +2146,7 @@ class static_thread_pool::executor_type
     // types:
 
     typedef parallel_execution_category execution_category;
+    typedef possibly_blocking_execution_tag blocking_category;
     typedef std::size_t shape_type;
     typedef std::size_t index_type;
 
@@ -2165,47 +2166,6 @@ class static_thread_pool::executor_type
 
     bool on_work_started() const noexcept;
     void on_work_finished() const noexcept;
-
-    template<class Func, class ProtoAllocator = std::allocator<void>>
-      void execute(Func&& f, const ProtoAllocator& a = ProtoAllocator()) const;
-
-    template<class Func, class ProtoAllocator = std::allocator<void>>
-      void post(Func&& f, const ProtoAllocator& a = ProtoAllocator()) const;
-
-    template<class Func, class ProtoAllocator = std::allocator<void>>
-      void defer(Func&& f, const ProtoAllocator& a = ProtoAllocator()) const;
-
-    template<class Function>
-      result_of_t<decay_t<Function>()>
-        sync_execute(Function&& f) const;
-
-    template<class Function>
-      std::future<result_of_t<decay_t<Function>()>>
-        async_execute(Function&& f) const;
-
-    template<class Function>
-      std::future<result_of_t<decay_t<Function>()>>
-        async_post(Function&& f) const;
-
-    template<class Function>
-      std::future<result_of_t<decay_t<Function>()>>
-        async_defer(Function&& f) const;
-
-    template<class Function1, class Function2>
-    void bulk_execute(Function1 f, shape_type shape,
-                      Function2 shared_factory) const;
-
-    template<class Function1, class Function2, class Function3>
-    result_of_t<Function2()>
-    bulk_sync_execute(Function1 f, shape_type shape,
-                      Function2 result_factory,
-                      Function3 shared_factory) const;
-
-    template<class Function1, class Function2, class Function3>
-    std::future<result_of_t<Function2()>>
-    bulk_async_execute(Function1 f, shape_type shape,
-                       Function2 result_factory,
-                       Function3 shared_factory) const;
 };
 
 bool operator==(const static_thread_pool::executor_type& a,
@@ -2214,14 +2174,23 @@ bool operator!=(const static_thread_pool::executor_type& a,
                 const static_thread_pool::executor_type& b) noexcept;
 ```
 
-`static_thread_pool::executor_type` is a type satisfying the
-`NonBlockingOneWayExecutor`, `NonBlockingTwoWayExecutor`, `BulkOneWayExecutor`,
-`BulkTwoWayExecutor`, and `ExecutorWorkTracker` requirements. Objects of type
-`static_thread_pool::executor_type` are associated with a `static_thread_pool`, and function
-objects submitted using the `execute`, `post`, `defer`, `sync_execute`,
-`async_execute`, `async_post`, `async_defer`, `bulk_execute`,
-`bulk_sync_execute`, and `bulk_async_execute` member functions will be executed
-by the `static_thread_pool`.
+`static_thread_pool::executor_type` is a type satisfying the `BaseExecutor` and
+`ExecutorWorkTracker` requirements. Objects of type
+`static_thread_pool::executor` are associated with a `static_thread_pool`.
+
+The customization points `execute`, `post`, `defer`, `sync_execute`,
+`async_execute`, `async_post`, `async_defer`, `then_execute`, `bulk_execute`,
+`bulk_post`, `bulk_defer`, `bulk_sync_execute`, `bulk_async_execute`,
+`bulk_async_post`, `bulk_async_defer`, and `bulk_then_execute` are well-formed
+for this executor. Function objects submitted using these customization points
+will be executed by the `static_thread_pool`.
+
+For the customization points `execute`, `sync_execute`, `async_execute`,
+`bulk_execute`, `bulk_sync_execute`, and `bulk_async_execute`, if
+`running_in_this_thread()` is `true`, calls at least one of the submitted
+function objects in the current thread prior to returning from the
+customization point. *[Note:* If this function object exits via an exception,
+the exception propagates to the caller. *--end note]*
 
 #### Constructors
 
@@ -2286,152 +2255,6 @@ void on_work_finished() const noexcept;
 
 *Effects:* Decrements the count of outstanding work associated with the
 `static_thread_pool`.
-
-```
-template<class Func, class ProtoAllocator = std::allocator<void>>
-  void execute(Func&& f, const ProtoAllocator& a = ProtoAllocator()) const;
-```
-
-*Effects:* If `running_in_this_thread()` is `true`, calls
-`DECAY_COPY(forward<Func>(f))()`. *[Note:* If `f` exits via an exception, the
-exception propagates to the caller of `execute`. *--end note]* Otherwise, calls
-`post(forward<Func>(f), a)`.
-
-```
-template<class Func, class ProtoAllocator = std::allocator<void>>
-  void post(Func&& f, const ProtoAllocator& a = ProtoAllocator()) const;
-```
-
-*Effects:* Adds `f` to the `static_thread_pool`.
-
-```
-template<class Func, class ProtoAllocator = std::allocator<void>>
-  void defer(Func&& f, const ProtoAllocator& a = ProtoAllocator()) const;
-```
-
-*Effects:* Adds `f` to the `static_thread_pool`.
-
-```
-template<class Function>
-  result_of_t<decay_t<Function>()>
-    sync_execute(Function&& f) const;
-```
-
-*Effects:* If `running_in_this_thread()` is `true`, calls
-`DECAY_COPY(forward<Func>(f))()`. Otherwise, adds `f` to the `static_thread_pool` and
-blocks the caller pending completion of `f`.
-
-*Returns:* The return value of `f`.
-
-*Throws:* Any uncaught exception thrown by `f`.
-
-```
-template<class Function>
-  future<result_of_t<decay_t<Function>()>>
-    async_execute(Function&& f) const;
-template<class Function>
-  future<result_of_t<decay_t<Function>()>>
-    async_post(Function&& f) const;
-template<class Function>
-  future<result_of_t<decay_t<Function>()>>
-    async_defer(Function&& f) const;
-```
-
-*Effects:* Creates an asynchronous provider with an associated shared state
-(C++Std [futures.state]). Adds `f` to the `static_thread_pool`. On successful
-completion of `f`, the return value of `f` is atomically stored in the shared
-state and the shared state is made ready. If `f` exits via an exception, the
-exception is atomically stored in the shared state and the shared state is made
-ready.
-
-*Returns:* An object of type `future<result_of_t<decay_t<Function>>()>` that
-refers to the shared state created by `async_execute`.
-
-```
-template<class Function1, class Function2>
-void bulk_execute(Function1 f, shape_type shape,
-                  Function2 shared_factory) const;
-```
-
-*Effects:* Submits a function object to the thread pool that:
-
-  * Calls `shared_factory()` and stores the result of this invocation
-    to some shared state `shared`.
-
-  * Submits a new group of function objects of shape `shape`. Each function
-    object calls `f(idx, shared)`, where `idx` is the index of the execution
-    agent, and `shared` is a reference to the shared state.
-
-  * If any invocation of `f` exits via an uncaught exception, `terminate` is
-    called.
-
-*Synchronization:* The completion of the function `shared_factory` happens
-before the creation of the group of function objects.
-
-```
-template<class Function1, class Function2, class Function3>
-result_of_t<Function2()>
-bulk_sync_execute(Function1 f, shape_type shape,
-                  Function2 result_factory,
-                  Function3 shared_factory) const;
-```
-
-*Effects:* Submits a function object to the thread pool that:
-
-  * Calls `result_factory()` and `shared_factory()`, and stores the results of
-    these invocations to some shared state `result` and `shared` respectively.
-
-  * Submits a new group of function objects of shape `shape`. Each function
-    object calls `f(idx, result, shared)`, where `idx` is the index of the
-    execution agent, and `result` and `shared` are references to the respective
-    shared state. Any return value of `f` is discarded.
-
-  * If any invocation of `f` exits via an uncaught exception, `terminate` is
-    called.
-
-  * Blocks the caller until all invocations of `f` are complete and the result
-    is ready.
-
-*Returns:* An object of type `result_of_t<Function2()>` that refers to the
-result shared state created by this call to `bulk_sync_execute`.
-
-*Synchronization:* The completion of the functions `result_factory` and
-`shared_factory` happen before the creation of the group of function objects.
-
-```
-template<class Function1, class Function2, class Function3>
-std::future<result_of_t<Function2()>>
-bulk_async_execute(Function1 f, shape_type shape,
-                   Function2 result_factory,
-                   Function3 shared_factory) const;
-```
-
-*Effects:* Submits a function object to the thread pool that:
-
-  * Calls `result_factory()` and `shared_factory()`, and stores the results of
-    these invocations to some shared state `result` and `shared` respectively.
-
-  * Submits a new group of function objects of shape `shape`. Each function
-    object calls `f(idx, result, shared)`, where `idx` is the index of the
-    function object, and `result` and `shared` are references to the respective
-    shared state. Any return value of `f` is discarded.
-
-  * If any invocation of `f` exits via an uncaught exception, `terminate` is
-    called.
-
-*Returns:* An object of type `std::future<result_of_t<Function2()>>` that
-refers to the shared result state created by this call to `bulk_async_execute`.
-
-*Synchronization:*
-
-  * The invocation of `bulk_async_execute` synchronizes with (1.10) the
-    invocations of `f`.
-
-  * The completion of the functions `result_factory` and `shared_factory`
-    happen before the creation of the group of function objects.
-
-  * The completion of the invocations of `f` are sequenced before (1.10) the
-    result shared state is made ready.
 
 #### Comparisons
 
