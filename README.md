@@ -1973,9 +1973,12 @@ Let `e` be the target object of `*this`. Let `fd` be the result of `DECAY_COPY(s
 
 ## Thread pool type
 
-XXX Consider whether we should include a wording for a concurrent executor which
-would satisfy the needs of async (thread pool provides parallel execution
-semantics).
+The thread pool class is meant to represent a common approach to introducing
+concurrency or parallelism to code without the siginificant overhead of creating
+and destroying threads whenever concurrency is needed. There are a significant
+number of possible thread pool approaches, the statically sized thread pool is
+one of the simplest that still provides the ability for code to introduce low
+cost concurrency.
 
 ### Header `<thread_pool>` synopsis
 
@@ -1984,35 +1987,40 @@ namespace std {
 namespace experimental {
 inline namespace concurrency_v2 {
 
-  class thread_pool;
+  class static_thread_pool;
 
 } // inline namespace concurrency_v2
 } // namespace experimental
 } // namespace std
 ```
 
-### Class `thread_pool`
+### Class `static_thread_pool`
 
 This class represents a statically sized thread pool as a common/basic resource
-type. This pool provides an effectively unbounded input queue and as such calls
-to add tasks to a thread_pool's executor will not block on the input queue.
+type. This pool is capable of being grown by attaching threads to the pool but
+it will not change size in any automatic way. This pool provides an
+effectively unbounded input queue and as such calls to add tasks to a
+static_thread_pool's associated executors will not block on the input queue.
+
+The `static_thread_pool` provides parallel execution agents and therefore
+situations which assume concurrent execution properties will not guarantee
+correctness.
 
 ```
-class thread_pool
+class static_thread_pool
 {
   public:
     class executor_type;
     
     // construction/destruction
-    thread_pool();
-    explicit thread_pool(std::size_t num_threads);
+    explicit static_thread_pool(std::size_t num_threads);
     
     // nocopy
-    thread_pool(const thread_pool&) = delete;
-    thread_pool& operator=(const thread_pool&) = delete;
+    static_thread_pool(const static_thread_pool&) = delete;
+    static_thread_pool& operator=(const static_thread_pool&) = delete;
 
     // stop accepting incoming work and wait for work to drain
-    ~thread_pool();
+    ~static_thread_pool();
 
     // attach current thread to the thread pools list of worker threads
     void attach();
@@ -2028,52 +2036,44 @@ class thread_pool
     executor_type executor() noexcept;
 };
 
-bool operator==(const thread_pool& a, const thread_pool& b) noexcept;
-bool operator!=(const thread_pool& a, const thread_pool& b) noexcept;
+bool operator==(const static_thread_pool& a, const static_thread_pool& b) noexcept;
+bool operator!=(const static_thread_pool& a, const static_thread_pool& b) noexcept;
 ```
 
-The class `thread_pool` satisfies the `ExecutionContext` requirements.
+The class `static_thread_pool` satisfies the `ExecutionContext` requirements.
 
-For an object of type `thread_pool`, *outstanding work* is defined as the sum
+For an object of type `static_thread_pool`, *outstanding work* is defined as the sum
 of:
 
 * the total number of calls to the `on_work_started` function that returned
   `true`, less the total number of calls to the `on_work_finished` function, on
-  any executor associated with the `thread_pool`.
+  any executor associated with the `static_thread_pool`.
 
-* the number of function objects that have been added to the `thread_pool`
-  via the `thread_pool` executor, but not yet executed; and
+* the number of function objects that have been added to the `static_thread_pool`
+  via the `static_thread_pool` executor, but not yet executed; and
 
 * the number of function objects that are currently being executed by the
-  `thread_pool`.
+  `static_thread_pool`.
 
-The `thread_pool` member functions `executor`, `attach`, `wait`, and `stop`,
-and the `thread_pool::executor_type` copy constructors and member functions, do
+The `static_thread_pool` member functions `executor`, `attach`, `wait`, and `stop`,
+and the `static_thread_pool::executor_type` copy constructors and member functions, do
 not introduce data races as a result of concurrent calls to those functions
 from different threads of execution.
 
 #### Construction and destruction
 
 ```
-thread_pool();
+static_thread_pool(std::size_t num_threads);
 ```
 
-*Effects:* Constructs a `thread_pool` object with an implementation defined
-number of threads of execution, as if by creating objects of type `std::thread`.
+*Effects:* Constructs a `static_thread_pool` object with `num_threads` threads of
+execution, as if by creating objects of type `std::thread`.
 
 ```
-thread_pool(std::size_t num_threads);
+~static_thread_pool();
 ```
 
-*Effects:* Constructs a `thread_pool` object with `num_threads` threads of
-execution, as if by creating objects of type `std::thread`. (QUESTION: Do we want to
-allow 0?)
-
-```
-~thread_pool();
-```
-
-*Effects:* Destroys an object of class `thread_pool`. Performs `stop()`
+*Effects:* Destroys an object of class `static_thread_pool`. Performs `stop()`
 followed by `wait()`.
 
 #### Worker Management
@@ -2084,8 +2084,8 @@ void attach();
 
 *Effects:* adds the calling thread to the pool of workers. Blocks the calling
 thread until signalled to complete by `stop()` or `wait()`, and then blocks
-until all the threads created during `thread_pool` object construction have
-completed. (Note: The implementation is encouraged, but not required, to use
+until all the threads created during `static_thread_pool` object construction have
+completed. (Note: The implementation is required to use
 the attached thread to execute submitted function objects. RATIONALE:
 implementations in terms of the Windows thread pool cannot utilise
 user-provided threads. --end note) (NAMING: a possible alternate name for this
@@ -2126,21 +2126,21 @@ thread pool.
 #### Comparisons
 
 ```
-bool operator==(const thread_pool& a, const thread_pool& b) noexcept;
+bool operator==(const static_thread_pool& a, const static_thread_pool& b) noexcept;
 ```
 
 *Returns:* `std::addressof(a) == std::addressof(b)`.
 
 ```
-bool operator!=(const thread_pool& a, const thread_pool& b) noexcept;
+bool operator!=(const static_thread_pool& a, const static_thread_pool& b) noexcept;
 ```
 
 *Returns:* `!(a == b)`.
 
-### Class `thread_pool::executor_type`
+### Class `static_thread_pool::executor_type`
 
 ```
-class thread_pool::executor_type
+class static_thread_pool::executor_type
 {
   public:
     // types:
@@ -2161,7 +2161,7 @@ class thread_pool::executor_type
 
     bool running_in_this_thread() const noexcept;
 
-    thread_pool& context() const noexcept;
+    static_thread_pool& context() const noexcept;
 
     bool on_work_started() const noexcept;
     void on_work_finished() const noexcept;
@@ -2208,20 +2208,20 @@ class thread_pool::executor_type
                        Function3 shared_factory) const;
 };
 
-bool operator==(const thread_pool::executor_type& a,
-                const thread_pool::executor_type& b) noexcept;
-bool operator!=(const thread_pool::executor_type& a,
-                const thread_pool::executor_type& b) noexcept;
+bool operator==(const static_thread_pool::executor_type& a,
+                const static_thread_pool::executor_type& b) noexcept;
+bool operator!=(const static_thread_pool::executor_type& a,
+                const static_thread_pool::executor_type& b) noexcept;
 ```
 
-`thread_pool::executor_type` is a type satisfying the
+`static_thread_pool::executor_type` is a type satisfying the
 `NonBlockingOneWayExecutor`, `NonBlockingTwoWayExecutor`, `BulkOneWayExecutor`,
 `BulkTwoWayExecutor`, and `ExecutorWorkTracker` requirements. Objects of type
-`thread_pool::executor_type` are associated with a `thread_pool`, and function
+`static_thread_pool::executor_type` are associated with a `static_thread_pool`, and function
 objects submitted using the `execute`, `post`, `defer`, `sync_execute`,
 `async_execute`, `async_post`, `async_defer`, `bulk_execute`,
 `bulk_sync_execute`, and `bulk_async_execute` member functions will be executed
-by the `thread_pool`.
+by the `static_thread_pool`.
 
 #### Constructors
 
@@ -2262,30 +2262,30 @@ bool running_in_this_thread() const noexcept;
 ```
 
 *Returns:* `true` if the current thread of execution is a thread that was
-created by or attached to the associated `thread_pool` object.
+created by or attached to the associated `static_thread_pool` object.
 
 ```
-thread_pool& context() const noexcept;
+static_thread_pool& context() const noexcept;
 ```
 
-*Returns:* A reference to the associated `thread_pool` object.
+*Returns:* A reference to the associated `static_thread_pool` object.
 
 ```
 bool on_work_started() const noexcept;
 ```
 
 *Effects:* Increments the count of outstanding work associated with the
-`thread_pool`.
+`static_thread_pool`.
 
 *Returns:* `false` if there was a prior call to the `stop()` member function of
-the associated `thread_pool` object; otherwise `true`.
+the associated `static_thread_pool` object; otherwise `true`.
 
 ```
 void on_work_finished() const noexcept;
 ```
 
 *Effects:* Decrements the count of outstanding work associated with the
-`thread_pool`.
+`static_thread_pool`.
 
 ```
 template<class Func, class ProtoAllocator = std::allocator<void>>
@@ -2302,14 +2302,14 @@ template<class Func, class ProtoAllocator = std::allocator<void>>
   void post(Func&& f, const ProtoAllocator& a = ProtoAllocator()) const;
 ```
 
-*Effects:* Adds `f` to the `thread_pool`.
+*Effects:* Adds `f` to the `static_thread_pool`.
 
 ```
 template<class Func, class ProtoAllocator = std::allocator<void>>
   void defer(Func&& f, const ProtoAllocator& a = ProtoAllocator()) const;
 ```
 
-*Effects:* Adds `f` to the `thread_pool`.
+*Effects:* Adds `f` to the `static_thread_pool`.
 
 ```
 template<class Function>
@@ -2318,7 +2318,7 @@ template<class Function>
 ```
 
 *Effects:* If `running_in_this_thread()` is `true`, calls
-`DECAY_COPY(forward<Func>(f))()`. Otherwise, adds `f` to the `thread_pool` and
+`DECAY_COPY(forward<Func>(f))()`. Otherwise, adds `f` to the `static_thread_pool` and
 blocks the caller pending completion of `f`.
 
 *Returns:* The return value of `f`.
@@ -2338,7 +2338,7 @@ template<class Function>
 ```
 
 *Effects:* Creates an asynchronous provider with an associated shared state
-(C++Std [futures.state]). Adds `f` to the `thread_pool`. On successful
+(C++Std [futures.state]). Adds `f` to the `static_thread_pool`. On successful
 completion of `f`, the return value of `f` is atomically stored in the shared
 state and the shared state is made ready. If `f` exits via an exception, the
 exception is atomically stored in the shared state and the shared state is made
@@ -2436,15 +2436,15 @@ refers to the shared result state created by this call to `bulk_async_execute`.
 #### Comparisons
 
 ```
-bool operator==(const thread_pool::executor_type& a,
-                const thread_pool::executor_type& b) noexcept;
+bool operator==(const static_thread_pool::executor_type& a,
+                const static_thread_pool::executor_type& b) noexcept;
 ```
 
 *Returns:* `a.context() == b.context()`.
 
 ```
-bool operator!=(const thread_pool::executor_type& a,
-                const thread_pool::executor_type& b) noexcept;
+bool operator!=(const static_thread_pool::executor_type& a,
+                const static_thread_pool::executor_type& b) noexcept;
 ```
 
 *Returns:* `!(a == b)`.
