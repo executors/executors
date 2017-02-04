@@ -419,15 +419,6 @@ namespace execution {
     executor_future_t<OneWayExecutor, see-below>
       then_execute(const OneWayExecutor& exec, Function&& f, Future& predecessor);
 
-  template<class BulkOneWayExecutor, class Function1, class Function2>
-    void bulk_execute(const BulkOneWayExecutor& exec, Function1 f,
-                      executor_shape_t<BulkOneWayExecutor> shape,
-                      Function2 shared_factory);
-  template<class OneWayExecutor, class Function1, class Function2>
-    void bulk_execute(const OneWayExecutor& exec, Function1 f,
-                      executor_shape_t<OneWayExecutor> shape,
-                      Function2 shared_factory);
-
   template<class BulkTwoWayExecutor, class Function1, class Future, class Function2, class Function3>
     executor_future_t<BulkTwoWayExecutor, result_of_t<Function2()>>
       bulk_then_execute(const BulkTwoWayExecutor& exec, Function1 f,
@@ -797,7 +788,7 @@ The name `execute` denotes a customization point. The effect of the expression `
 
 * Otherwise, `std::experimental::concurrency_v2::execution::execute(E, F)` is ill-formed.
 
-*Remarks:* Whenever `std::experimental::concurrency_v2::execution::execute(E, F)` is a valid expression, that expression satisfies the syntactics requirements for a one-way, potentially blocking execution function of single cardinality.
+*Remarks:* Whenever `std::experimental::concurrency_v2::execution::execute(E, F)` is a valid expression, that expression satisfies the syntactic requirements for a one-way, potentially blocking execution function of single cardinality.
 
 ### `post`
 
@@ -883,7 +874,19 @@ The name `async_execute` denotes a customization point. The effect of the expres
 
 ### `bulk_execute`
 
-*TODO*
+    namespace {
+      constexpr unspecified bulk_execute = unspecified;
+    }
+
+The name `bulk_execute` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::bulk_execute(E, F, S, SF)` for some expressions `E`, `F`, `S`, and `SF` is equivalent to:
+
+* `(E).bulk_execute(F, S, SF)` if `has_bulk_execute_member_v<decay_t<decltype(E)>>` is true.
+
+* Otherwise, `bulk_execute(E, F, S, SF)` if that expression satisfies the syntactic requirements for a one-way, potentially blocking execution function of bulk cardinality, with overload resolution performed in a context that includes the declaration `void bulk_execute(auto&, auto&, auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::bulk_execute`.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::bulk_execute(E, F, S, SF)` is ill-formed.
+
+*Remarks:* Whenever `std::experimental::concurrency_v2::execution::bulk_execute(E, F, S, SF)` is a valid expression, that expression satisfies the syntactic requirements for a one-way, potentially blocking execution function of bulk cardinality.
 
 ### `bulk_sync_execute`
 
@@ -1265,38 +1268,6 @@ template<class OneWayExecutor, class Function, class Future>
 *Postconditions:* If the `predecessor` future is not a shared future, then `predecessor.valid() == false`.
 
 *Remarks:* This function shall not participate in overload resolution unless `is_two_way_executor_v< TwoWayExecutor>` is `false` and `is_one_way_executor_v< OneWayExecutor>` is `true`.
-
-### Function template `execution::bulk_execute()`
-
-```
-template<class BulkOneWayExecutor, class Function1, class Function2>
-  void bulk_execute(const BulkOneWayExecutor& exec, Function1 f,
-                    executor_shape_t<BulkOneWayExecutor> shape,
-                    Function2 shared_factory);
-```
-
-*Returns:* `exec.bulk_execute(f, shape, shared_factory)`.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_bulk_one_way_executor_v< BulkOneWayExecutor>` is `true`.
-
-```
-template<class OneWayExecutor, class Function1, class Function2>
-  void bulk_execute(const OneWayExecutor& exec, Function1 f,
-                    executor_shape_t<OneWayExecutor> shape,
-                    Function2 shared_factory);
-```
-
-*Effects:* Performs `exec.execute(g)` where `g` is a function object of unspecified type that:
-
-* Calls `shared_factory()` and stores the result of this invocation to some shared state `shared`.
-
-* Using `exec.execute`, submits a new group of function objects of shape `shape`. Each function object calls `f(idx, shared)`, where `idx` is the index of the execution agent, and `shared` is a reference to the shared state.
-
-* If any invocation of `f` exits via an uncaught exception, `terminate` is called.
-
-*Synchronization:* The completion of the function `shared_factory` happens before the creation of the group of function objects.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_bulk_one_way_executor_v< BulkOneWayExecutor>` is `false` and `is_one_way_executor_v< OneWayExecutor>` is `true`.
 
 ### Function template `execution::bulk_then_execute()`
 
