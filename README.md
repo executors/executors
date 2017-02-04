@@ -419,19 +419,6 @@ namespace execution {
     executor_future_t<OneWayExecutor, see-below>
       then_execute(const OneWayExecutor& exec, Function&& f, Future& predecessor);
 
-  template<class BulkTwoWayExecutor, class Function1, class Future, class Function2, class Function3>
-    executor_future_t<BulkTwoWayExecutor, result_of_t<Function2()>>
-      bulk_then_execute(const BulkTwoWayExecutor& exec, Function1 f,
-                        executor_shape_t<BulkTwoWayExecutor> shape,
-                        Future& predecessor,
-                        Function2 result_factory, Function3 shared_factory);
-  template<class OneWayExecutor, class Function1, class Future, class Function2, class Function3>
-    executor_future_t<OneWayExecutor, result_of_t<Function2()>>
-      bulk_then_execute(const OneWayExecutor& exec, Function1 f,
-                        executor_shape_t<OneWayExecutor> shape,
-                        Future& predecessor,
-                        Function2 result_factory, Function3 shared_factory);
-
   // Executor work guard:
 
   template <class Executor>
@@ -926,7 +913,49 @@ The name `bulk_async_execute` denotes a customization point. The effect of the e
 
 ### `bulk_then_execute`
 
-*TODO*
+    namespace {
+      constexpr unspecified bulk_then_execute = unspecified;
+    }
+
+The name `bulk_then_execute` denotes a customization point. The effect of the expression `std::expression::concurrency_v2::execution::bulk_then_execute(E, F, S, P, RF, SF)` for some expressions `E`, `F`, `S`, `P`, `RF`, and `SF` is equivalent to:
+
+* `(E).bulk_then_execute(F, S, P, RF, SF)` if `has_bulk_then_execute_member_v<decay_t<decltype(E)>>` is true.
+
+* Otherwise, `bulk_then_execute(E, F, S, P, RF, SF)` if that expression satisfies the syntactic requirements for a potentially-blocking continuation function of bulk cardinality, with overload resolution performed in a context which includes the declaration `void bulk_then_execute(auto&, auto&, auto&, auto&, auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::bulk_then_execute`.
+
+* Otherwise, if `can_then_execute_v<decay_t<decltype(E)>> && can_bulk_sync_execute_v<decay_t<decltype(E)>>` is true, equivalent to the following:
+
+        auto __f = F;
+
+        auto __g = [=](auto& __predecessor)
+        {
+          return std::experimental::concurrency_v2::bulk_sync_execute(E, S, RF, SF,
+            [=,&__predecessor](auto& __result, auto& __shared)
+          {
+            __f(__i, __predecessor, __result, __shared);
+          });
+        };
+
+        return std::experimental::concurrency_v2::execution::then_execute(E, __g, P);
+
+    if `P` is a non-`void` future. Otherwise,
+
+        auto __f = F;
+
+        auto __g = [=]
+        {
+          return std::experimental::concurrency_v2::bulk_sync_execute(E, S, RF, SF,
+            [=](auto& __result, auto& __shared)
+          {
+            __f(__i, __result, __shared);
+          });
+        };
+
+        return std::experimental::concurrency_v2::execution::then_execute(E, __g, P);
+
+* Otherwise, `std::experimental::concurrency_v2::execution::bulk_then_execute(E, F, S, P, RF, SF)` is ill-formed.
+
+*Remarks:* Whenever `std::execution::concurrency_v2::execution::bulk_then_execute(E, F, S, P, RF, SF)` is a valid expression, that expression satisfies the syntactic requirements for a potentially-blocking continuation function of bulk cardinality.
 
 ### Customization point type traits
 
@@ -1268,52 +1297,6 @@ template<class OneWayExecutor, class Function, class Future>
 *Postconditions:* If the `predecessor` future is not a shared future, then `predecessor.valid() == false`.
 
 *Remarks:* This function shall not participate in overload resolution unless `is_two_way_executor_v< TwoWayExecutor>` is `false` and `is_one_way_executor_v< OneWayExecutor>` is `true`.
-
-### Function template `execution::bulk_then_execute()`
-
-```
-template<class BulkTwoWayExecutor, class Function1, class Future, class Function2, class Function3>
-  executor_future_t<BulkTwoWayExecutor, result_of_t<Function2()>>
-    bulk_then_execute(const BulkTwoWayExecutor& exec, Function1 f,
-                      executor_shape_t<BulkTwoWayExecutor> shape,
-                      Future& predecessor,
-                      Function2 result_factory, Function3 shared_factory);
-```
-
-*Returns:* `exec.bulk_then_execute(f, shape, result_factory, shared_factory)`.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_bulk_two_way_executor_v< BulkTwoWayExecutor>` is `true`.
-
-```
-template<class OneWayExecutor, class Function1, class Future, class Function2, class Function3>
-  executor_future_t<OneWayExecutor, result_of_t<Function2()>>
-    bulk_then_execute(const OneWayExecutor& exec, Function1 f,
-                      executor_shape_t<OneWayExecutor> shape,
-                      Future& predecessor,
-                      Function2 result_factory, Function3 shared_factory);
-```
-
-*Effects:* Performs `exec.execute(g)` where `g` is a function object of unspecified type that:
-
-* Calls `result_factory()` and `shared_factory()` in an unspecified execution agent. The results of these invocations are stored to shared state.
-
-* Using `exec.execute`, submits a new group of function objects of shape `shape` after `predecessor` becomes ready. Each execution agent calls `f(idx, result, pred, shared)`, where `idx` is the index of the execution agent, `result` is a reference to the result shared state, `pred` is a reference to the `predecessor` state if it is not `void`. Otherwise, each execution agent calls `f(idx, result, shared)`. Any return value of `f` is discarded.
-
-* If any invocation of `f` exits via an uncaught exception, `terminate` is called.
-
-*Returns:* An object of type `executor_future_t<Executor,result_of_t<Function2()>` that refers to the shared result state created by this call to `bulk_then_execute`.
-
-*Synchronization:*
-
-* the invocation of `bulk_then_execute` synchronizes with (1.10) the invocations of `f`.
-
-* the completion of the functions `result_factory` and `shared_factory` happen before the creation of the group of execution agents.
-
-* the completion of the invocations of `f` are sequenced before (1.10) the result shared state is made ready.
-
-*Postconditions:* If the `predecessor` future is not a shared future, then `predecessor.valid() == false`.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_bulk_two_way_executor_v< BulkTwoWayExecutor>` is `false` and `is_one_way_executor_v< OneWayExecutor>` is `true`.
 
 ## Executor work guard
 
