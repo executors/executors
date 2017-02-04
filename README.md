@@ -838,6 +838,12 @@ This sub-clause contains templates that may be used to query the properties of a
 
 ## Customization points
 
+When an executor customization point named *NAME* invokes a free execution function of the same name, overload resolution is performed in a context that includes the declaration `void `*NAME*`(auto&... args) = delete;`, where `sizeof...(args)` is the arity of the free execution function. This context also does not include a declaration of the executor customization point.
+
+[*Note:* This provision allows executor customization points to call the executor's free, non-member execution function of the same name without recursion. *--end note*]
+
+Whenever `std::experimental::concurrency_v2::execution::`*NAME*`(`*ARGS*`)` is a valid expression, that expression satisfies the syntactic requirements for the free execution function named *NAME* with arity `sizeof...(`*ARGS*`)` with that free execution function's semantics.
+
 ### `execute`
 
     namespace {
@@ -848,11 +854,9 @@ The name `execute` denotes a customization point. The effect of the expression `
 
 * `(E).execute(F)` if `has_execute_member_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `execute(E, F)` if that expression satisfies the syntactic requirements for a one-way, potentially blocking execution function of single cardinality, with overload resolution performed in a context that includes the declaration `void execute(auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::execute`.
+* Otherwise, `execute(E, F)` if `has_execute_free_function_v<decay_t<decltype(E)>>` is true.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::execute(E, F)` is ill-formed.
-
-*Remarks:* Whenever `std::experimental::concurrency_v2::execution::execute(E, F)` is a valid expression, that expression satisfies the syntactic requirements for a one-way, potentially blocking execution function of single cardinality.
 
 ### `post`
 
@@ -864,13 +868,11 @@ The name `post` denotes a customization point. The effect of the expression `std
 
 * `(E).post(F)` if `has_post_member_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `post(E, F)` if that expression satisfies the syntactic requirements for a one-way, non-blocking execution function of single cardinality, with overload resolution performed in a context that includes the declaration `void post(auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::post`.
+* Otherwise, `post(E, F)` if `has_post_free_function_v<decay_t<decltype(E)>>` is true.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::execute(E, F)` if `is_same_v<execution_execute_blocking_category_t<E>, non_blocking_execution_tag>` is true.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::post(E, F)` is ill-formed.
-
-*Remarks:* Whenever `std::experimental::concurrency_v2::execution::post(E, F)` is a valid expression, that expression satisfies the syntactic requirements for a one-way, non-blocking execution function of single cardinality.
 
 ### `defer`
 
@@ -882,13 +884,11 @@ The name `defer` denotes a customization point. The effect of the expression `st
 
 * `(E).defer(F)` if `has_defer_member_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `defer(E, F)` if that expression satisfies the syntactic requirements for a one-way, non-blocking execution function of single cardinality, with overload resolution performed in a context that includes the declaration `void defer(auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::defer`.
+* Otherwise, `defer(E, F)` if `has_defer_free_function_v<decay_t<decltype(E)>>` is true.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::execute(E, F)` if `is_same_v<execution_execute_blocking_category_t<E>, non_blocking_execution_tag>` is true.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::defer(E, F)` is ill-formed.
-
-*Remarks:* Whenever `std::experimental::concurrency_v2::execution::defer(E, F)` is a valid expression, that expression satisfies the syntactic requirements for a one-way, non-blocking execution function of single cardinality.
 
 ### `sync_execute`
 
@@ -900,13 +900,11 @@ The name `sync_execute` denotes a customization point. The effect of the express
 
 * `(E).sync_execute(F)` if `has_sync_execute_member_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `sync_execute(E, F)` if that expression satisfies the syntactic requirements for a synchronous two-way, blocking execution function of single cardinality, with overload resolution performed in a context that includes the declaration `void sync_execute(auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::sync_execute`.
+* Otherwise, `sync_execute(E, F)` if `has_sync_execute_free_function_v<decay_t<decltype(E)>>` is true.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::async_execute(E, F).get()` if `can_async_execute_v<decay_t<decltype(E)>>` is true.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::sync_execute(E, F)` is ill-formed.
-
-*Remarks:* Whenever `std::experimental::concurrency_v2::execution::sync_execute(E, F)` is a valid expression, that expression satisfies the syntactic requirements for a synchronous two-way, blocking execution function of single cardinality.
 
 ### `async_execute`
 
@@ -918,13 +916,11 @@ The name `async_execute` denotes a customization point. The effect of the expres
 
 * `(E).async_execute(F)` if `has_async_execute_member_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `async_execute(E, F)` if that expression satisfies the syntactic requirements for an asynchronous two-way, potentially blocking execution function of single cardinality, with overload resolution performed in a context that includes the declaration `void async_execute(auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::async_execute`.
+* Otherwise, `async_execute(E, F)` if `has_async_execute_free_function_v<decay_t<decltype(E)>>` is true.
 
 * Otherwise, if `can_execute_v<decay_t<decltype(E)>>` is true, creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `std::experimental::concurrency_v2::execution::execute(E, g)` where `g` is a function object of unspecified type that performs `DECAY_COPY(F)()`, with the call to `DECAY_COPY` being performed in the thread that called `async_execute`. On successful completion of `DECAY_COPY(F)()`, the return value of `DECAY_COPY(F)()` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(F)()` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready. The result of the expression `std::experimental::concurrency_v2::execution::async_execute(E, F)` is an object of type `std::future<result_of_t<decay_t<decltype(F)>>()>` that refers to the shared state.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::async_execute(E, F)` is ill-formed.
-
-*Remarks:* Whenever `std::experimental::concurrency_v2::execution::async_execute(E, F)` is a valid expression, that expression satisfies the syntactic requirements for an asynchronous two-way, potentially blocking execution function of single cardinality.
 
 ### `async_post`
 
@@ -936,15 +932,13 @@ The name `async_post` denotes a customization point. The effect of the expressio
 
 * `(E).async_post(F)` if `has_async_post_member_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `async_post(E, F)` if that expression satisfies the syntactic requirements for an asynchronous two-way, non-blocking execution function of single cardinality, with overload resolution performed in a context that includes the declaration `void async_post(auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::async_post`.
+* Otherwise, `async_post(E, F)` if `has_async_post_free_function_v<decay_t<decltype(E)>>` is true.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::async_execute(E, F)` if `is_same_v<execution_execute_blocking_category_t<E>, non_blocking_execution_tag>` is true.
 
 * Otherwise, if `can_post_v<decay_t<decltype(E)>>` is true, creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `std::experimental::concurrency_v2::execution::execute(E, g)` where `g` is a function object of unspecified type that performs `DECAY_COPY(F)()`, with the call to `DECAY_COPY` being performed in the thread that called `async_post`. On successful completion of `DECAY_COPY(F)()`, the return value of `DECAY_COPY(F)()` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(F)()` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready. The result of the expression `std::experimental::concurrency_v2::execution::async_post(E, F)` is an object of type `std::future<result_of_t<decay_t<decltype(F)>>()>` that refers to the shared state.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::async_post(E, F)` is ill-formed.
-
-*Remarks:* Whenver `std::experimental::concurrency_v2::execution::async_post(E, F)` is a valid expression, that expression satisfies the syntactic requirements for an asynchronous two-way, non-blocking execution function of single cardinality.
 
 ### `async_defer`
 
@@ -956,15 +950,13 @@ The name `async_defer` denotes a customization point. The effect of the expressi
 
 * `(E).async_defer(F)` if `has_async_defer_member_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `async_defer(E, F)` if that expression satisfies the syntactic requirements for an asynchronous two-way, non-blocking execution function of single cardinality, with overload resolution performed in a context that includes the declaration `void async_defer(auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::async_defer`.
+* Otherwise, `async_defer(E, F)` if `has_async_defer_free_function_v<decay_t<decltype()>>` is true.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::async_execute(E, F)` if `is_same_v<execution_execute_blocking_category_t<E>, non_blocking_execution_tag>` is true.
 
 * Otherwise, if `can_defer_v<decay_t<decltype(E)>>` is true, creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `std::experimental::concurrency_v2::execution::execute(E, g)` where `g` is a function object of unspecified type that performs `DECAY_COPY(F)()`, with the call to `DECAY_COPY` being performed in the thread that called `async_defer`. On successful completion of `DECAY_COPY(F)()`, the return value of `DECAY_COPY(F)()` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(F)()` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready. The result of the expression `std::experimental::concurrency_v2::execution::async_defer(E, F)` is an object of type `std::future<result_of_t<decay_t<decltype(F)>>()>` that refers to the shared state.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::async_defer(E, F)` is ill-formed.
-
-*Remarks:* Whenever `std::experimental::concurrency_v2::execution::async_defer(E, F)` is a valid expression, that expression satisfies the syntactic requirements for an asynchronous two-way, non-blocking execution function of single cardinality.
 
 ### `then_execute`
 
@@ -980,11 +972,9 @@ The name `bulk_execute` denotes a customization point. The effect of the express
 
 * `(E).bulk_execute(F, S, SF)` if `has_bulk_execute_member_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `bulk_execute(E, F, S, SF)` if that expression satisfies the syntactic requirements for a one-way, potentially blocking execution function of bulk cardinality, with overload resolution performed in a context that includes the declaration `void bulk_execute(auto&, auto&, auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::bulk_execute`.
+* Otherwise, `bulk_execute(E, F, S, SF)` if `has_bulk_execute_free_function_v<decay_t<decltype(E)>>` is true.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::bulk_execute(E, F, S, SF)` is ill-formed.
-
-*Remarks:* Whenever `std::experimental::concurrency_v2::execution::bulk_execute(E, F, S, SF)` is a valid expression, that expression satisfies the syntactic requirements for a one-way, potentially blocking execution function of bulk cardinality.
 
 ### `bulk_post`
 
@@ -996,13 +986,11 @@ The name `bulk_post` denotes a customization point. The effect of the expression
 
 * `(E).bulk_post(F, S, SF)` if `has_bulk_post_member_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `bulk_post(E, F, S, SF)` if that expression satisfies the syntactic requirements for a one-way, non-blocking execution function of bulk cardinality, with overload resolution performed in a context that includes the declaration `void bulk_post(auto&, auto&, auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::bulk_post`.
+* Otherwise, `bulk_post(E, F, S, SF)` if `has_bulk_post_free_function_v<decay_t<decltype(E)>>` is true.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::bulk_execute(E, F, S, SF)` if `is_same_v<execution_execute_blocking_category_t<E>, non_blocking_execution_tag>` is true.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::bulk_post(E, F, S, SF)` is ill-formed.
-
-*Remarks:* Whenever `std::experimental::concurrency_v2::execution::bulk_post(E, F, S, SF)` is a valid expression, that expression satisfies the syntactic requirements for a one-way, non-blocking execution function of bulk cardinality.
 
 ### `bulk_defer`
 
@@ -1014,13 +1002,11 @@ The name `bulk_defer` denotes a customization point. The effect of the expressio
 
 * `(E).bulk_defer(F, S, SF)` if `has_bulk_defer_member_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `bulk_defer(E, F, S, SF)` if that expression satisfies the syntactic requirements for a one-way, non-blocking execution function of bulk cardinality, with overload resolution performed in a context that includes the declaration `void bulk_defer(auto&, auto&, auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::bulk_defer`.
+* Otherwise, `bulk_defer(E, F, S, SF)` if `has_bulk_defer_free_function_v<decay_t<decltype(E)>>` is true.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::bulk_execute(E, F, S, SF)` if `is_same_v<execution_execute_blocking_category_t<E>, non_blocking_execution_tag>` is true.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::bulk_defer(E, F, S, SF)` is ill-formed.
-
-*Remarks:* Whenever `std::experimental::concurrency_v2::execution::bulk_defer(E, F, S, SF)` is a valid expression, that expression satisfies the syntactic requirements for a one-way, non-blocking execution function of bulk cardinality.
 
 ### `bulk_sync_execute`
 
@@ -1032,13 +1018,11 @@ The name `bulk_sync_execute` denotes a customization point. The effect of the ex
 
 * `(E).bulk_sync_execute(F, S, RF, SF)` if `has_bulk_sync_execute_member_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `bulk_sync_execute(E, F, S, RF, SF)` if that expression satisfies the syntactic requirements for a synchronous two-way, blocking execution function of bulk cardinality, with overload resolution performed in a context that includes the declaration `void bulk_sync_execute(auto&, auto&, auto&, auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::bulk_sync_execute`.
+* Otherwise, `bulk_sync_execute(E, F, S, RF, SF)` if `has_bulk_sync_execute_free_function_v<decay_t<decltype(E)>>` is true.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::bulk_async_execute(E, F, S, RF, SF).get()` if `can_bulk_async_execute_v<decay_t<decltype(E)>>` is true.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::bulk_sync_execute(E, F, S, RF, SF)` is ill-formed.
-
-*Remarks:* Whenever `std::experimental::concurrency_v2::execution::bulk_sync_execute(E, F, S, RF, SF)` is a valid expression, that expression satisfies the syntactic requirements for a synchronous two-way, blocking execution function of bulk cardinality.
 
 ### `bulk_async_execute`
 
@@ -1050,13 +1034,11 @@ The name `bulk_async_execute` denotes a customization point. The effect of the e
 
 * `(E).bulk_async_execute(F, S, RF, SF)` if `has_bulk_async_execute_member_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `bulk_async_execute(E, F, S, RF, SF)` if that expression satisfies the syntactic requirements for an asynchronous two-way, potentially-blocking execution function of bulk cardinality, with overload resolution performed in a context that includes the declaration `void bulk_async_execute(auto&, auto&, auto&, auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::bulk_async_execute`.
+* Otherwise, `bulk_async_execute(E, F, S, RF, SF)` if `has_bulk_async_execute_free_function_v<decay_t<decltype(E)>>` is true.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::bulk_then_execute(E, F, S, std::experimental::make_ready_future(), RF, SF)` if `can_bulk_then_execute_v<decay_t<decltype(E)>>` is true.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::bulk_async_execute(E, F, S, RF, SF)` is ill-formed.
-
-*Remarks:* Whenever `std::execution::concurrency_v2::execution::bulk_async_execute(E, F, S, RF, SF)` is a valid expression, that expression satisfies the syntactic requirements for an asynchronous two-way, potentially-blocking execution function of bulk cardinality.
 
 ### `bulk_async_post`
 
@@ -1068,13 +1050,11 @@ The name `bulk_async_post` denotes a customization point. The effect of the expr
 
 * `(E).bulk_async_post(F, S, RF, SF)` if `has_bulk_async_post_member_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `bulk_async_post(E, F, S, RF, SF)` if that expression satisfies the syntactic requirements for an asynchronous two-way, non-blocking execution function of bulk cardinality, with overload resolution performed in a context that includes the declaration `void bulk_async_post(auto&, auto&, auto&, auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::bulk_async_post`.
+* Otherwise, `bulk_async_post(E, F, S, RF, SF)` if `has_bulk_async_post_free_function_v<decay_t<decltype(E)>>` is true.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::bulk_async_execute(E, F, S, RF, SF)` if `is_same_v<execution_execute_blocking_category_t<E>, non_blocking_execution_tag>` is true.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::bulk_async_post(E, F)` is ill-formed.
-
-*Remarks:* Whenver `std::experimental::concurrency_v2::execution::bulk_async_post(E, F)` is a valid expression, that expression satisfies the syntactic requirements for an asynchronous two-way, non-blocking execution function of bulk cardinality.
 
 ### `bulk_async_defer`
 
@@ -1086,13 +1066,11 @@ The name `bulk_async_defer` denotes a customization point. The effect of the exp
 
 * `(E).bulk_async_defer(F, S, RF, SF)` if `has_bulk_async_defer_member_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `bulk_async_defer(E, F, S, RF, SF)` if that expression satisfies the syntactic requirements for an asynchronous two-way, non-blocking execution function of bulk cardinality, with overload resolution performed in a context that includes the declaration `void bulk_async_defer(auto&, auto&, auto&, auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::bulk_async_defer`.
+* Otherwise, `bulk_async_defer(E, F, S, RF, SF)` if `has_bulk_async_defer_free_function_v<decay_t<decltype(E)>>` is true.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::bulk_async_execute(E, F, S, RF, SF)` if `is_same_v<execution_execute_blocking_category_t<E>, non_blocking_execution_tag>` is true.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::bulk_async_defer(E, F)` is ill-formed.
-
-*Remarks:* Whenver `std::experimental::concurrency_v2::execution::bulk_async_defer(E, F)` is a valid expression, that expression satisfies the syntactic requirements for an asynchronous two-way, non-blocking execution function of bulk cardinality.
 
 ### `bulk_then_execute`
 
@@ -1104,7 +1082,7 @@ The name `bulk_then_execute` denotes a customization point. The effect of the ex
 
 * `(E).bulk_then_execute(F, S, P, RF, SF)` if `has_bulk_then_execute_member_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `bulk_then_execute(E, F, S, P, RF, SF)` if that expression satisfies the syntactic requirements for an asynchronous two-way, potentially-blocking execution function of bulk cardinality, with overload resolution performed in a context which includes the declaration `void bulk_then_execute(auto&, auto&, auto&, auto&, auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::bulk_then_execute`.
+* Otherwise, `bulk_then_execute(E, F, S, P, RF, SF)` if `has_bulk_then_execute_free_function_v<decay_t<decltype(E)>>` is true.
 
 * Otherwise, let `DE` be `decay_t<decltype(E)>`. If `can_then_execute_v<DE> && (has_bulk_sync_execute_member_v<DE> || has_bulk_sync_execute_free_function_v<DE> || has_bulk_async_execute_member_v<DE> || has_bulk_async_execute_free_function_v<DE>)` is true, equivalent to the following:
 
@@ -1139,8 +1117,6 @@ The name `bulk_then_execute` denotes a customization point. The effect of the ex
     [*Note:* The explicit use of execution function detectors for `bulk_sync_execute` and `bulk_async_execute` above is intentional to avoid cycles in this code. *--end note*]
 
 * Otherwise, `std::experimental::concurrency_v2::execution::bulk_then_execute(E, F, S, P, RF, SF)` is ill-formed.
-
-*Remarks:* Whenever `std::execution::concurrency_v2::execution::bulk_then_execute(E, F, S, P, RF, SF)` is a valid expression, that expression satisfies the syntactic requirements for an asynchronous two-way, potentially-blocking execution function of bulk cardinality.
 
 ### Customization point type traits
 
