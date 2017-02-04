@@ -570,13 +570,13 @@ template<class BulkNonBlockingOneWayExecutor, class Function1, class Function2>
                          Function2 result_factory, Function3 shared_factory);
   template<class OneWayExecutor, class Function1, class Function2, class Function3>
     executor_future_t<const OneWayExecutor, result_of_t<Function2()>>
-      bulk_async_defer(const OneWayExecutor& exec, Function1 f,
+      bulk_async_post(const OneWayExecutor& exec, Function1 f,
                          executor_shape_t<OneWayExecutor> shape,
                          Function2 result_factory, Function3 shared_factory);
 
   template<class BulkNonBlockingTwoWayExecutor, class Function1, class Function2, class Function3>
     executor_future_t<const BulkNonBlockingTwoWayExecutor, result_of_t<Function2()>>
-      bulk_async_post(const BulkNonBlockingTwoWayExecutor& exec, Function1 f,
+      bulk_async_defer(const BulkNonBlockingTwoWayExecutor& exec, Function1 f,
                          executor_shape_t<BulkNonBlockingTwoWayExecutor> shape,
                          Function2 result_factory, Function3 shared_factory);
   template<class OneWayExecutor, class Function1, class Function2, class Function3>
