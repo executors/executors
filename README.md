@@ -1075,11 +1075,39 @@ The name `bulk_async_execute` denotes a customization point. The effect of the e
 
 ### `bulk_async_post`
 
-*TODO*
+    namespace {
+      constexpr unspecified bulk_async_post = unspecified;
+    }
+
+The name `bulk_async_post` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::bulk_async_post(E, F, S, RF, SF)` for some expressions `E`, `F`, `S`, `RF`, and `SF` is equivalent to:
+
+* `(E).bulk_async_post(F, S, RF, SF)` if `has_bulk_async_post_member_v<decay_t<decltype(E)>>` is true.
+
+* Otherwise, `bulk_async_post(E, F, S, RF, SF)` if that expression satisfies the syntactic requirements for an asynchronous two-way, non-blocking execution function of bulk cardinality, with overload resolution performed in a context that includes the declaration `void bulk_async_post(auto&, auto&, auto&, auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::bulk_async_post`.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::bulk_async_execute(E, F, S, RF, SF)` if `is_same_v<execution_execute_blocking_category_t<E>, non_blocking_execution_tag>` is true.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::bulk_async_post(E, F)` is ill-formed.
+
+*Remarks:* Whenver `std::experimental::concurrency_v2::execution::bulk_async_post(E, F)` is a valid expression, that expression satisfies the syntactic requirements for an asynchronous two-way, non-blocking execution function of bulk cardinality.
 
 ### `bulk_async_defer`
 
-*TODO*
+    namespace {
+      constexpr unspecified bulk_async_defer = unspecified;
+    }
+
+The name `bulk_async_defer` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::bulk_async_defer(E, F, S, RF, SF)` for some expressions `E`, `F`, `S`, `RF`, and `SF` is equivalent to:
+
+* `(E).bulk_async_defer(F, S, RF, SF)` if `has_bulk_async_defer_member_v<decay_t<decltype(E)>>` is true.
+
+* Otherwise, `bulk_async_defer(E, F, S, RF, SF)` if that expression satisfies the syntactic requirements for an asynchronous two-way, non-blocking execution function of bulk cardinality, with overload resolution performed in a context that includes the declaration `void bulk_async_defer(auto&, auto&, auto&, auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::bulk_async_defer`.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::bulk_async_execute(E, F, S, RF, SF)` if `is_same_v<execution_execute_blocking_category_t<E>, non_blocking_execution_tag>` is true.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::bulk_async_defer(E, F)` is ill-formed.
+
+*Remarks:* Whenver `std::experimental::concurrency_v2::execution::bulk_async_defer(E, F)` is a valid expression, that expression satisfies the syntactic requirements for an asynchronous two-way, non-blocking execution function of bulk cardinality.
 
 ### `bulk_then_execute`
 
