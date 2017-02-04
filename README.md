@@ -423,14 +423,12 @@ namespace execution {
   template<class T> struct is_one_way_executor;
   template<class T> struct is_host_based_one_way_executor;
   template<class T> struct is_non_blocking_one_way_executor;
-  template<class T> struct is_bulk_one_way_executor;
   template<class T> struct is_two_way_executor;
   template<class T> struct is_bulk_two_way_executor;
 
   template<class T> constexpr bool is_one_way_executor_v = is_one_way_executor<T>::value;
   template<class T> constexpr bool is_host_based_one_way_executor_v = is_host_based_one_way_executor<T>::value;
   template<class T> constexpr bool is_non_blocking_one_way_executor_v = is_non_blocking_one_way_executor<T>::value;
-  template<class T> constexpr bool is_bulk_one_way_executor_v = is_bulk_one_way_executor<T>::value;
   template<class T> constexpr bool is_two_way_executor_v = is_two_way_executor<T>::value;
   template<class T> constexpr bool is_bulk_two_way_executor_v = is_bulk_two_way_executor<T>::value;
 
@@ -709,48 +707,6 @@ Table: (Two-Way Executor requirements) \label{two_way_executor_requirements}
 |-----------------|-------------|-----------------------|--------------------|
 | `x.async_`- `execute(std::move(f))` | A type that satisfies the `Future` requirements for the value type `R`. | Creates an execution agent which invokes `f()`. <br/>Returns the result of `f()` via the resulting future object. <br/>Returns any exception thrown by `f()` via the resulting future object. <br/>May block forward progress of the caller pending completion of `f()`. | |
 | `x.sync_`- `execute(std::move(f))` | `R` | Creates an execution agent which invokes `f()`. <br/>Returns the result of `f()`. <br/>Throws any exception thrown by `f()`. | |
-
-### `NonBlockingTwoWayExecutor` requirements
-
-The `NonBlockingOneWayExecutor` requirements add two-way operations that are guaranteed not to block the caller pending completion of submitted function objects.
-
-In the Table \ref{non_blocking_two_way_executor_requirements} below, `f`, denotes a `MoveConstructible` function object with zero arguments whose result type is `R`,
-and `x` denotes an object of type `X`.
-
-A type `X` satisfies the `NonBlockingTwoWayExecutor` requirements if:
-
-  * `X` satisfies the `TwoWayExecutor` requirements.
-  * For any `f` and `x`, the expressions in Table \ref{non_blocking_two_way_executor_requirements} are valid and have the indicated semantics.
-
-Table: (Non-Blocking Two-Way Executor requirements) \label{non_blocking_two_way_executor_requirements}
-
-| Expression      | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
-|-----------------|-------------|-----------------------|--------------------|
-| `x.async_`- `post(std::move(f))` <br/>`x.async_`- `defer(std::move(f))` | `executor_`- `future_t<X,R>` | Creates an execution agent which invokes `f()`. <br/>Returns the result of `f()` via the resulting future object. <br/>Returns any exception thrown by `f()` via the resulting future object. <br/>Shall not block forward progress of the caller pending completion of `f()`. | |
-
-### `BulkOneWayExecutor` requirements
-
-The `BulkOneWayExecutor` requirements form the basis of the bulk one-way executor concept.
-This set of requirements specifies operations for creating groups of execution agents in bulk from a single operation
-which need not synchronize with another thread.
-
-In the Table \ref{bulk_one_way_executor_requirements} below,
-
- * `f` denotes a `CopyConstructible` function object with three arguments,
- * `n` denotes a shape object whose type is `executor_shape_t<X>`.
- * `sf` denotes a `CopyConstructible` function object with zero arguments whose result type is `S`,
- * `i` denotes an object whose type is `executor_index_t<X>`, and
- * `s` denotes an object whose type is `S`.
-
-A class `X` satisfies the requirements of a bulk one-way executor if `X` satisfies
-either the `OneWayExecutor` or `TwoWayExecutor` requirements and the expressions of Table
-\ref{bulk_one_way_executor_requirements} are valid and have the indicated semantics.
-
-Table: (Bulk one-way executor requirements) \label{bulk_one_way_executor_requirements}
-
-| Expression | Return Type | Operational semantics | Assertion/note/ pre-/post-condition |
-|------------|-----------|------------------------|------------------------|
-| `x.bulk_`- `execute(f, n, sf)` | `void` | Creates a group of execution agents of shape `n` which invoke `f(i, s)`. <br/>This group of execution agents shall fulfill the forward progress requirements of `executor_execution_`- `category_t<X>` | Effects: invokes `sf()` on an unspecified execution agent. |
 
 ### `BulkTwoWayExecutor` requirements
 
@@ -1246,7 +1202,6 @@ In the Table below,
     template<class T> struct is_one_way_executor;
     template<class T> struct is_host_based_one_way_executor;
     template<class T> struct is_non_blocking_one_way_executor;
-    template<class T> struct is_bulk_one_way_executor;
     template<class T> struct is_two_way_executor;
     template<class T> struct is_bulk_two_way_executor;
 
@@ -1257,9 +1212,7 @@ This sub-clause contains templates that may be used to query the properties of a
 | `template<class T>` <br/>`struct is_one_way_executor` | `T` meets the syntactic requirements for `OneWayExecutor`. | `T` is a complete type. |
 | `template<class T>` <br/>`struct is_host_based_one_way_executor` | `T` meets the syntactic requirements for `HostBasedOneWayExecutor`. | `T` is a complete type. |
 | `template<class T>` <br/>`struct is_non_blocking_one_way_executor` | `T` meets the syntactic requirements for `NonBlockingOneWayExecutor`. | `T` is a complete type. |
-| `template<class T>` <br/>`struct is_bulk_one_way_executor` | `T` meets the syntactic requirements for `BulkOneWayExecutor`. | `T` is a complete type. |
 | `template<class T>` <br/>`struct is_two_way_executor` | `T` meets the syntactic requirements for `TwoWayExecutor`. | `T` is a complete type. |
-| `template<class T>` <br/>`struct is_non_blocking_two_way_executor` | `T` meets the syntactic requirements for `NonBlockingTwoWayExecutor`. | `T` is a complete type. |
 | `template<class T>` <br/>`struct is_bulk_two_way_executor` | `T` meets the syntactic requirements for `BulkTwoWayExecutor`. | `T` is a complete type. |
 
 ### Associated execution context type
@@ -1372,9 +1325,6 @@ blocking.
     struct sequenced_execution_tag {};
     struct parallel_execution_tag {};
     struct unsequenced_execution_tag {};
-
-    // TODO a future proposal can define this category
-    // struct concurrent_execution_tag {};
 
     template<class Executor>
     struct executor_execution_category
