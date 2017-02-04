@@ -1057,7 +1057,7 @@ The name `bulk_then_execute` denotes a customization point. The effect of the ex
 
 * `(E).bulk_then_execute(F, S, P, RF, SF)` if `has_bulk_then_execute_member_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `bulk_then_execute(E, F, S, P, RF, SF)` if that expression satisfies the syntactic requirements for a potentially-blocking continuation function of bulk cardinality, with overload resolution performed in a context which includes the declaration `void bulk_then_execute(auto&, auto&, auto&, auto&, auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::bulk_then_execute`.
+* Otherwise, `bulk_then_execute(E, F, S, P, RF, SF)` if that expression satisfies the syntactic requirements for an asynchronous two-way, potentially-blocking execution function of bulk cardinality, with overload resolution performed in a context which includes the declaration `void bulk_then_execute(auto&, auto&, auto&, auto&, auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::bulk_then_execute`.
 
 * Otherwise, let `DE` be `decay_t<decltype(E)>`. If `can_then_execute_v<DE> && (has_bulk_sync_execute_member_v<DE> || has_bulk_sync_execute_free_function_v<DE> || has_bulk_async_execute_member_v<DE> || has_bulk_async_execute_free_function_v<DE>)` is true, equivalent to the following:
 
@@ -1093,7 +1093,7 @@ The name `bulk_then_execute` denotes a customization point. The effect of the ex
 
 * Otherwise, `std::experimental::concurrency_v2::execution::bulk_then_execute(E, F, S, P, RF, SF)` is ill-formed.
 
-*Remarks:* Whenever `std::execution::concurrency_v2::execution::bulk_then_execute(E, F, S, P, RF, SF)` is a valid expression, that expression satisfies the syntactic requirements for a potentially-blocking continuation function of bulk cardinality.
+*Remarks:* Whenever `std::execution::concurrency_v2::execution::bulk_then_execute(E, F, S, P, RF, SF)` is a valid expression, that expression satisfies the syntactic requirements for an asynchronous two-way, potentially-blocking execution function of bulk cardinality.
 
 ### Customization point type traits
 
