@@ -627,7 +627,7 @@ In the Table below, `x` denotes a (possibly const) executor object of type `X`, 
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.sync_'e'(...)` <br/> `sync_'e'(x, ...)` | `R` | Returns the result of `f()`. <br/><br/> Throws any exception thrown by `f()`. <br/> <br/> Shall not block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))()` finishes execution. |
+| `x.sync_'e'(...)` <br/> `sync_'e'(x, ...)` | `R` | Returns the result of `f()`. <br/><br/> Throws any exception thrown by `f()`. <br/> <br/> Must block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))()` finishes execution. |
 
 ##### Requirements on execution functions of asynchronous two-way directionality
 
