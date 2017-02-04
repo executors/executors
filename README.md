@@ -400,20 +400,6 @@ namespace execution {
 
   // Executor customization points:
 
-  template<class NonBlockingTwoWayExecutor, class Function>
-    executor_future_t<NonBlockingTwoWayExecutor, result_of_t<decay_t<Function>()>>
-      async_post(const NonBlockingTwoWayExecutor& exec, Function&& f);
-  template<class NonBlockingOneWayExecutor, class Function>
-    std::future<decay_t<result_of_t<decay_t<Function>()>>>
-      async_post(const NonBlockingOneWayExecutor& exec, Function&& f);
-
-  template<class NonBlockingTwoWayExecutor, class Function>
-    executor_future_t<NonBlockingTwoWayExecutor, result_of_t<decay_t<Function>()>>
-      async_defer(const NonBlockingTwoWayExecutor& exec, Function&& f);
-  template<class NonBlockingOneWayExecutor, class Function>
-    std::future<decay_t<result_of_t<decay_t<Function>()>>>
-      async_defer(const NonBlockingOneWayExecutor& exec, Function&& f);
-
   template<class TwoWayExecutor, class Function, class Future>
     executor_future_t<TwoWayExecutor, see-below>
       then_execute(const TwoWayExecutor& exec, Function&& f, Future& predecessor);
@@ -895,11 +881,39 @@ The name `async_execute` denotes a customization point. The effect of the expres
 
 ### `async_post`
 
-*TODO*
+    namespace {
+      constexpr unspecified async_post = unspecified;
+    }
+
+The name `async_post` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::async_post(E, F)` for some expressions `E` and `F` is equivalent to:
+
+* `(E).async_post(F)` if `has_async_post_member_v<decay_t<decltype(E)>>` is true.
+
+* Otherwise, `async_post(E, F)` if that expression satisfies the syntactic requirements for an asynchronous two-way, non-blocking execution function of single cardinality, with overload resolution performed in a context that includes the declaration `void async_post(auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::async_post`.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::async_execute(E, F)` if `is_same_v<execution_execute_blocking_category_t<E>, non_blocking_execution_tag>` is true.
+
+* Otherwise, if `can_post_v<decay_t<decltype(E)>>` is true, creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `std::experimental::concurrency_v2::execution::execute(E, g)` where `g` is a function object of unspecified type that performs `DECAY_COPY(F)()`, with the call to `DECAY_COPY` being performed in the thread that called `async_post`. On successful completion of `DECAY_COPY(F)()`, the return value of `DECAY_COPY(F)()` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(F)()` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready. The result of the expression `std::experimental::concurrency_v2::execution::async_post(E, F)` is an object of type `std::future<result_of_t<decay_t<decltype(F)>>()>` that refers to the shared state.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::async_post(E, F)` is ill-formed.
 
 ### `async_defer`
 
-*TODO*
+    namespace {
+      constexpr unspecified async_defer = unspecified;
+    }
+
+The name `async_defer` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::async_defer(E, F)` for some expressions `E` and `F` is equivalent to:
+
+* `(E).async_defer(F)` if `has_async_defer_member_v<decay_t<decltype(E)>>` is true.
+
+* Otherwise, `async_defer(E, F)` if that expression satisfies the syntactic requirements for an asynchronous two-way, non-blocking execution function of single cardinality, with overload resolution performed in a context that includes the declaration `void async_defer(auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::async_defer`.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::async_execute(E, F)` if `is_same_v<execution_execute_blocking_category_t<E>, non_blocking_execution_tag>` is true.
+
+* Otherwise, if `can_defer_v<decay_t<decltype(E)>>` is true, creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `std::experimental::concurrency_v2::execution::execute(E, g)` where `g` is a function object of unspecified type that performs `DECAY_COPY(F)()`, with the call to `DECAY_COPY` being performed in the thread that called `async_defer`. On successful completion of `DECAY_COPY(F)()`, the return value of `DECAY_COPY(F)()` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(F)()` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready. The result of the expression `std::experimental::concurrency_v2::execution::async_defer(E, F)` is an object of type `std::future<result_of_t<decay_t<decltype(F)>>()>` that refers to the shared state.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::async_defer(E, F)` is ill-formed.
 
 ### `then_execute`
 
@@ -1170,68 +1184,6 @@ p4, respectively.*
 
 The functions described in this clause are *executor customization points*.
 Executor customization points provide a uniform interface to all executor types.
-
-### Function template `execution::async_post()`
-
-```
-template<class NonBlockingTwoWayExecutor, class Function>
-  executor_future_t<NonBlockingTwoWayExecutor, result_of_t<decay_t<Function>()>>
-    async_post(const NonBlockingTwoWayExecutor& exec, Function&& f);
-```
-
-*Returns:* `exec.async_post(std::forward<Function>(f))`.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_non_blocking_two_way_executor_v< NonBlockingTwoWayExecutor>` is `true`.
-
-```
-template<class NonBlockingOneWayExecutor, class Function>
-  std::future<decay_t<result_of_t<decay_t<Function>()>>>
-    async_post(const NonBlockingOneWayExecutor& exec, Function&& f);
-```
-
-*Returns:* `exec.post(std::forward<Function>(f))`.
-
-*Effects:* Creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `exec.post(g)` where `g` is a function object of unspecified type that performs `DECAY_COPY(std::forward<Function>(f))`, with the call to `DECAY_COPY` being performed in the thread that called `async_post`. On successful completion of `DECAY_COPY(std::forward<Function>(f))`, the return value of `DECAY_COPY(std::forward<Function>(f))` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(std::forward<Function>(f))` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready.
-
-*Returns:* An object of type `std::future<result_of_t<decay_t<Function>>()>` that refers to the shared state created by `async_post`.
-
-*Synchronization:*
-
-* the invocation of `async_post` synchronizes with (1.10) the invocation of `f`.
-* the completion of the invocation of `f` is sequenced before (1.10) the shared state is made ready.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_non_blocking_two_way_executor_v< NonBlockingTwoWayExecutor>` is `false` and `is_non_blocking_one_way_executor_v< NonBlockingOneWayExecutor>` is `true`.
-
-### Function template `execution::async_defer()`
-
-```
-template<class NonBlockingTwoWayExecutor, class Function>
-  executor_future_t<NonBlockingTwoWayExecutor, result_of_t<decay_t<Function>()>>
-    async_defer(const NonBlockingTwoWayExecutor& exec, Function&& f);
-```
-
-*Returns:* `exec.async_defer(std::forward<Function>(f))`.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_non_blocking_two_way_executor_v< NonBlockingTwoWayExecutor>` is `true`.
-
-```
-template<class NonBlockingOneWayExecutor, class Function>
-  std::future<decay_t<result_of_t<decay_t<Function>()>>>
-    async_defer(const NonBlockingOneWayExecutor& exec, Function&& f);
-```
-
-*Returns:* `exec.defer(std::forward<Function>(f))`.
-
-*Effects:* Creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `exec.defer(g)` where `g` is a function object of unspecified type that performs `DECAY_COPY(std::forward<Function>(f))`, with the call to `DECAY_COPY` being performed in the thread that called `async_defer`. On successful completion of `DECAY_COPY(std::forward<Function>(f))`, the return value of `DECAY_COPY(std::forward<Function>(f))` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(std::forward<Function>(f))` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready.
-
-*Returns:* An object of type `std::future<result_of_t<decay_t<Function>>()>` that refers to the shared state created by `async_defer`.
-
-*Synchronization:*
-
-* the invocation of `async_defer` synchronizes with (1.10) the invocation of `f`.
-* the completion of the invocation of `f` is sequenced before (1.10) the shared state is made ready.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_non_blocking_two_way_executor_v< NonBlockingTwoWayExecutor>` is `false` and `is_non_blocking_one_way_executor_v< NonBlockingOneWayExecutor>` is `true`.
 
 ### Function template `execution::then_execute()`
 
