@@ -481,15 +481,6 @@ namespace execution {
   template<class Executor>
     using executor_index_t = typename executor_index<Executor>::type;
 
-  // Executor customization points:
-
-  template<class TwoWayExecutor, class Function, class Future>
-    executor_future_t<TwoWayExecutor, see-below>
-      then_execute(const TwoWayExecutor& exec, Function&& f, Future& predecessor);
-  template<class OneWayExecutor, class Function, class Future>
-    executor_future_t<OneWayExecutor, see-below>
-      then_execute(const OneWayExecutor& exec, Function&& f, Future& predecessor);
-
   // Executor work guard:
 
   template <class Executor>
@@ -1391,42 +1382,6 @@ p4, respectively.*
         // exposition only
         static_assert(std::is_integral_v<type>, "index type must be an integral type");
     };
-
-## Executor Customization Points
-
-### In general
-
-The functions described in this clause are *executor customization points*.
-Executor customization points provide a uniform interface to all executor types.
-
-### Function template `execution::then_execute()`
-
-```
-template<class TwoWayExecutor, class Function, class Future>
-  executor_future_t<TwoWayExecutor, see-below>
-    then_execute(const TwoWayExecutor& exec, Function&& f, Future& predecessor);
-```
-
-*Returns:* `exec.then_execute(std::forward<Function>(f), predecessor)`. The return type is `executor_future_t<Executor, result_of_t<decay_t<Function>()>` when `predecessor` is a `void` future. Otherwise, the return type is `executor_future_t<Executor, result_of_t<decay_t<Function>(T&)>>` where `T` is the result type of the `predecessor` future.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_two_way_executor_v< TwoWayExecutor>` is `true`.
-
-```
-template<class OneWayExecutor, class Function, class Future>
-  executor_future_t<OneWayExecutor, see-below>
-    then_execute(const OneWayExecutor& exec, Function&& f, Future& predecessor);
-```
-
-*Returns:* `predecessor.then(std::forward<Function>(f))`. The return type is `executor_future_t<Executor, result_of_t<decay_t<Function>()>` when `predecessor` is a `void` future. Otherwise, the return type is `executor_future_t<Executor, result_of_t<decay_t<Function>(T&)>>` where `T` is the result type of the `predecessor` future.
-
-*Synchronization:*
-
-* the invocation of `then_execute` synchronizes with (1.10) the invocation of `f`.
-* the completion of the invocation of `f` is sequenced before (1.10) the shared state is made ready.
-
-*Postconditions:* If the `predecessor` future is not a shared future, then `predecessor.valid() == false`.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_two_way_executor_v< TwoWayExecutor>` is `false` and `is_one_way_executor_v< OneWayExecutor>` is `true`.
 
 ## Executor work guard
 
