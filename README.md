@@ -923,7 +923,7 @@ The name `bulk_then_execute` denotes a customization point. The effect of the ex
 
 * Otherwise, `bulk_then_execute(E, F, S, P, RF, SF)` if that expression satisfies the syntactic requirements for a potentially-blocking continuation function of bulk cardinality, with overload resolution performed in a context which includes the declaration `void bulk_then_execute(auto&, auto&, auto&, auto&, auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::bulk_then_execute`.
 
-* Otherwise, if `can_then_execute_v<decay_t<decltype(E)>> && can_bulk_sync_execute_v<decay_t<decltype(E)>>` is true, equivalent to the following:
+* Otherwise, let `DE` be `decay_t<decltype(E)>`. If `can_then_execute_v<DE> && (has_bulk_sync_execute_member_v<DE> || has_bulk_sync_execute_free_function_v<DE> || has_bulk_async_execute_member_v<DE> || has_bulk_async_execute_free_function_v<DE>)` is true, equivalent to the following:
 
         auto __f = F;
 
@@ -952,6 +952,8 @@ The name `bulk_then_execute` denotes a customization point. The effect of the ex
         };
 
         return std::experimental::concurrency_v2::execution::then_execute(E, __g, P);
+
+    [*Note:* The explicit use of execution function detectors for `bulk_sync_execute` and `bulk_async_execute` above is intentional to avoid cycles in this code. *--end note*]
 
 * Otherwise, `std::experimental::concurrency_v2::execution::bulk_then_execute(E, F, S, P, RF, SF)` is ill-formed.
 
