@@ -1005,9 +1005,9 @@ The name `bulk_post` denotes a customization point. The effect of the expression
 
 * `(E).bulk_post(F, S, SF)` if `has_bulk_post_member_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `bulk_post(E, F, S, SF)` if that expression satisfies the syntactic requirements for a one-way, non-blocking execution function of bulk cardinality, with overload resolution performed in a context that includes the declaration `void bulk_execute(auto&, auto&, auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::bulk_post`.
+* Otherwise, `bulk_post(E, F, S, SF)` if that expression satisfies the syntactic requirements for a one-way, non-blocking execution function of bulk cardinality, with overload resolution performed in a context that includes the declaration `void bulk_post(auto&, auto&, auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::bulk_post`.
 
-* Otherwise, `std::experimental::concurrency_v2::execution::execute(E, F)` if `is_same_v<execution_execute_blocking_category_t<E>, non_blocking_execution_tag>` is true.
+* Otherwise, `std::experimental::concurrency_v2::execution::bulk_execute(E, F, S, SF)` if `is_same_v<execution_execute_blocking_category_t<E>, non_blocking_execution_tag>` is true.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::bulk_post(E, F, S, SF)` is ill-formed.
 
@@ -1015,7 +1015,21 @@ The name `bulk_post` denotes a customization point. The effect of the expression
 
 ### `bulk_defer`
 
-*TODO*
+    namespace {
+      constexpr unspecified bulk_defer = unspecified;
+    }
+
+The name `bulk_defer` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::bulk_defer(E, F, S, SF)` for some expressions `E`, `F`, `S`, and `SF` is equivalent to:
+
+* `(E).bulk_defer(F, S, SF)` if `has_bulk_defer_member_v<decay_t<decltype(E)>>` is true.
+
+* Otherwise, `bulk_defer(E, F, S, SF)` if that expression satisfies the syntactic requirements for a one-way, non-blocking execution function of bulk cardinality, with overload resolution performed in a context that includes the declaration `void bulk_defer(auto&, auto&, auto&, auto&) = delete;` and does not include a declaration of `std::experimental::concurrency_v2::execution::bulk_defer`.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::bulk_execute(E, F, S, SF)` if `is_same_v<execution_execute_blocking_category_t<E>, non_blocking_execution_tag>` is true.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::bulk_defer(E, F, S, SF)` is ill-formed.
+
+*Remarks:* Whenever `std::experimental::concurrency_v2::execution::bulk_defer(E, F, S, SF)` is a valid expression, that expression satisfies the syntactic requirements for a one-way, non-blocking execution function of bulk cardinality.
 
 ### `bulk_sync_execute`
 
