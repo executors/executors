@@ -682,7 +682,7 @@ In the Table below, `x` denotes a (possibly const) executor object of type `X`, 
 In the Table below,
 
   * `x` denotes a (possibly const) executor object of type `X`,
-  * `'e'` denotes an expression from the requrirements on directionality,
+  * `'e'` denotes an expression from the requirements on directionality,
   * `'ret'` denotes the return type of the execution function from previous properties,
   * `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))(i, r, s)` and where `decay_t<F>` satisfies the `MoveConstructible` requirements where
     * `i` denotes an object whose type is `executor_index_t<X>`,
