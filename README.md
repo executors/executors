@@ -647,7 +647,7 @@ The directionality property of an execution function may be one of the following
 
 ##### Requirements on execution functions of one-way directionality
 
-In the Table below, `x` denotes a (possibly const) executor object of type `X`, `'e'` denotes an expression from the requrirements on blocking semantics and `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
+In the Table below, `x` denotes a (possibly const) executor object of type `X`, `'e'` denotes an expression from the requirements on blocking semantics and `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
@@ -655,7 +655,7 @@ In the Table below, `x` denotes a (possibly const) executor object of type `X`, 
 
 ##### Requirements on execution functions of synchronous two-way directionality
 
-In the Table below, `x` denotes a (possibly const) executor object of type `X`, `'e'` denotes an expression from the requrirements on blocking semantics and `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
+In the Table below, `x` denotes a (possibly const) executor object of type `X`, `'e'` denotes an expression from the requirements on blocking semantics and `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
@@ -663,7 +663,7 @@ In the Table below, `x` denotes a (possibly const) executor object of type `X`, 
 
 ##### Requirements on execution functions of asynchronous two-way directionality
 
-In the Table below, `x` denotes a (possibly const) executor object of type `X`, `'e'` denotes an expression from the requrirements on blocking semantics, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements and `pred` denotes a `Future` object whose result is `pr`.
+In the Table below, `x` denotes a (possibly const) executor object of type `X`, `'e'` denotes an expression from the requirements on blocking semantics, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements and `pred` denotes a `Future` object whose result is `pr`.
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
@@ -679,7 +679,7 @@ The cardinality property of an execution function may be one of the following:
 
 ##### Requirements on execution functions of single cardinality
 
-In the Table below, `x` denotes a (possibly const) executor object of type `X`, `'e'` denotes an expression from the requrirements on directionality, `'ret'` denotes the return type of the execution function from previous properties, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements, and `a` denotes a (possibly const) value of type `A` satisfying the `ProtoAllocator` requirements.
+In the Table below, `x` denotes a (possibly const) executor object of type `X`, `'e'` denotes an expression from the requirements on directionality, `'ret'` denotes the return type of the execution function from previous properties, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements, and `a` denotes a (possibly const) value of type `A` satisfying the `ProtoAllocator` requirements.
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
