@@ -651,7 +651,7 @@ In the Table below, `x` denotes a (possibly const) executor object of type `X`, 
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.'e'(...)` <br/> `'e'(x, ...)` | void | Throws any exception thrown by `f()`. |
+| `x.'e'(...)` <br/> `'e'(x, ...)` | void | |
 
 ##### Requirements on execution functions of synchronous two-way directionality
 
