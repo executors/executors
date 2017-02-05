@@ -632,7 +632,7 @@ The directionality property of an execution function may be one of the following
 
 * *One-way:* The execution function creates execution agents without a channel for awaiting the completion of a submitted function object or for obtaining its result. *Note:* That is, the executor provides fire-and-forget semantics. *--end note*] The names of execution functions having one-way directionality do not have an associated prefix.
 * *Synchronous two-way:* The execution function blocks until execution of the submitted function is complete, and returns the result. The names of execution functions having synchronous two-way directionality have the prefix `sync_`.
-* *Asynchronous two-way:* The execution function provides a *TODO* future-like channel for awaiting the completion of a submitted function object and obtaining its result. The names of execution functions having asynchronous two-way directionality have the prefix `async_` or `then_`.
+* *Asynchronous two-way:* The execution function returns a `Future` for awaiting the completion of a submitted function object and obtaining its result. The names of execution functions having asynchronous two-way directionality have the prefix `async_` or `then_`.
 
 ##### Requirements on execution functions of one-way directionality
 
@@ -2261,11 +2261,10 @@ async(const Executor& exec, Function&& f, Args&&... args);
 
 *Returns:* Equivalent to:
 
-`return execution::async_post(exec, [=]{ return INVOKE(f, args...); });`
+    auto __g = bind(std::forward<Function>(f), std::forward<Args>(args)...);
+    return execution::async_post(exec, [__g = move(__g)]{ return INVOKE(__g); });
 
-XXX This forwarding doesn't look correct to me
-
-#### `std::future::then()`
+#### `std::experimental::future::then()`
 
 The member function template `then` provides a mechanism for attaching a *continuation* to a `std::future` object,
 which will be executed on a new execution agent created by an executor.
@@ -2289,7 +2288,7 @@ specify that `.then()` submits the continuation using `exec.post()` if the
 future is already ready at the time when `.then()` is called, and to submit
 using `exec.execute()` otherwise.
 
-#### `std::shared_future::then()`
+#### `std::experimental::shared_future::then()`
 
 The member function template `then` provides a mechanism for attaching a *continuation* to a `std::shared_future` object,
 which will be executed on a new execution agent created by an executor.
