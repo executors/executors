@@ -667,8 +667,8 @@ In the Table below, `x` denotes a (possibly const) executor object of type `X`, 
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.async_'e'(...)` <br/> `async_'e'(x, ...)` | A type that satisfies the `Future` requirements for the value type `R`. |  Throws any exception thrown by `f()`. |
-| `x.then_'e'(..., pred, ...)` <br/> `then_'e'(x, ..., pred, ...)` | A type that satisfies the `Future` requirements for the value type `R`. | Throws any exception thrown by `f()`. |
+| `x.async_'e'(...)` <br/> `async_'e'(x, ...)` | A type that satisfies the `Future` requirements for the value type `R`. |  Asynchronously returns the result of `f()` or any exception thrown by `f()` via the resulting `Future`. |
+| `x.then_'e'(..., pred, ...)` <br/> `then_'e'(x, ..., pred, ...)` | A type that satisfies the `Future` requirements for the value type `R`. | Asynchronously returns the result of `f(pr)` or any exception thrown by `f(pr)` via the resulting `Future`. |
 
 #### Cardinality
 
