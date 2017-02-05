@@ -155,7 +155,7 @@ points.
 In order to help programmers define their own ad hoc requirements for executor
 types, our design provides a set of executor type traits for introspecting the
 properties of executors at compile time. These fine-grained type traits detect
-characteristics such as native support for executor operations as well as
+characteristics such as native support for execution functions as well as
 compatibility between an executor type and an executor customization point.
 
 For example, for an execution function such as `execute`, the executor supports
