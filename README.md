@@ -199,7 +199,7 @@ executor category include basic requirements on executor types as well as
 requirements based on their compatibility with customization points. For
 example, the executor category `TwoWayExecutor` includes all executors
 compatible with the two-way, single-agent executor customization points such as
-`async_execute()`. Executor categories are not necessarily mutually exclusive,
+`execution::async_execute()`. Executor categories are not necessarily mutually exclusive,
   and one executor type may be a member of multiple categories if the
   requirements for those categories admit mutual membership.
 
