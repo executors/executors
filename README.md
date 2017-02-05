@@ -740,7 +740,7 @@ Table: (Base executor requirements) \label{base_executor_requirements}
 
 ### `OneWayExecutor` requirements
 
-The `OneWayExecutor` requirements form the basis of the one-way executor concept taxonomy. This set of requirements specifies operations for creating execution agents without a channel for awaiting the completion of a submitted function object and obtaining its result. [*Note:* That is, the executor provides fire-and-forget semantics. *--end note*]
+The `OneWayExecutor` requirements specify requirements for executors which create execution agents without a channel for awaiting the completion of a submitted function object and obtaining its result. [*Note:* That is, the executor provides fire-and-forget semantics. *--end note*]
 
 A type `X` satisfies the `OneWayExecutor` requirements if it satisfies the `BaseExecutor` requirements, and `can_execute_v<X>` is true.
 
@@ -752,18 +752,18 @@ A type `X` satisfies the `NonBlockingOneWayExecutor` requirements if it satisfie
 
 ### `TwoWayExecutor` requirements
 
-The `TwoWayExecutor` requirements form the basis of the two-way executor concept taxonomy;
-every two-way executor satisfies the `TwoWayExecutor` requirements. This set of requirements
-specifies operations for creating execution agents with a channel for awaiting the completion
-of a submitted function object and obtaining its result.
+The `TwoWayExecutor` requirements specify requirements for executors which
+creating execution agents with a channel for awaiting the completion of a
+submitted function object and obtaining its result.
 
 A type `X` satisfies the `TwoWayExecutor` requirements if it satisfies the `BaseExecutor` requirements, `can_sync_execute_v<X>` is true, and `can_async_execute_v<X>` is true.
 
 ### `BulkTwoWayExecutor` requirements
 
-The `BulkTwoWayExecutor` requirements form the basis of the bulk two-way executor concept.
-This set of requirements specifies operations for creating groups of execution agents in bulk from a single operation
-with the ability to synchronize these groups of agents with another thread.
+The `BulkTwoWayExecutor` requirements specify requirements for executors which
+create groups of execution agents in bulk from a single execution function with
+a channel for awaiting the completion of a submitted function object invoked by
+those execution agents and obtaining its result.
 
 A type `X` satisfies the `BulkTwoWayExecutor` requirements if it satisfies the `BaseExecutor` requirements, `can_bulk_sync_execute_v<X>` is true, `can_bulk_async_execute_v<X>` is true, and `can_bulk_then_execute_v<X>` is true.
 
