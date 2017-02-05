@@ -2262,11 +2262,10 @@ async(const Executor& exec, Function&& f, Args&&... args);
 
 *Returns:* Equivalent to:
 
-`return execution::async_post(exec, [=]{ return INVOKE(f, args...); });`
+    auto __g = bind(std::forward<Function>(f), std::forward<Args>(args)...);
+    return execution::async_post(exec, [__g = move(__g)]{ return INVOKE(__g); });
 
-XXX This forwarding doesn't look correct to me
-
-#### `std::future::then()`
+#### `std::experimental::future::then()`
 
 The member function template `then` provides a mechanism for attaching a *continuation* to a `std::future` object,
 which will be executed on a new execution agent created by an executor.
@@ -2290,7 +2289,7 @@ specify that `.then()` submits the continuation using `exec.post()` if the
 future is already ready at the time when `.then()` is called, and to submit
 using `exec.execute()` otherwise.
 
-#### `std::shared_future::then()`
+#### `std::experimental::shared_future::then()`
 
 The member function template `then` provides a mechanism for attaching a *continuation* to a `std::shared_future` object,
 which will be executed on a new execution agent created by an executor.
