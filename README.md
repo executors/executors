@@ -1307,9 +1307,10 @@ The type of `executor_future<Executor, T>::type` is determined as follows:
         >;
     };
 
-Executors may use *execution mapping categories* to communicate the mapping of
-execution agents onto threads of execution. Execution mapping categories
-encode the characterisitics of that mapping, if it exists.
+Components which create execution agents may use *execution mapping categories*
+to communicate the mapping of execution agents onto threads of execution.
+Execution mapping categories encode the characterisitics of that mapping, if it
+exists.
 
 `other_execution_mapping_tag` indicates that execution agents created by a
 component may be mapped onto execution resources other than threads of
