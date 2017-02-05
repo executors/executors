@@ -746,7 +746,7 @@ A type `X` satisfies the `OneWayExecutor` requirements if it satisfies the `Base
 
 ### `NonBlockingOneWayExecutor` requirements
 
-The `NonBlockingOneWayExecutor` requirements add one-way operations that are guaranteed not to block the caller pending completion of submitted function objects.
+The `NonBlockingOneWayExecutor` requirements refine the `OneWayExecutor` requirements by adding one-way operations that are guaranteed not to block the caller pending completion of submitted function objects.
 
 A type `X` satisfies the `NonBlockingOneWayExecutor` requirements if it satisfies the `OneWayExecutor` requirements, `can_post_v<X>` is true, and `can_defer_v<X>` is true.
 
