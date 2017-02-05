@@ -51,7 +51,7 @@ we believe is the functionality necessary to compose executors with existing
 standard control structures such as `std::async()` and parallel algorithms, as
 well as near-standards such as the functionality found in various technical
 specifications, including the Concurrency, Networking, and Parallelism TSes. We
-intend this proposal to be an extensible basis for all future development of
+intend this proposal to be an extensible basis for future development of
 execution in C++ which necessarily entails functionality beyond the scope of
 this basic proposal.
 
