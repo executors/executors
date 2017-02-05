@@ -854,13 +854,13 @@ Whenever `std::experimental::concurrency_v2::execution::`*NAME*`(`*ARGS*`)` is a
       constexpr unspecified execute = unspecified;
     }
 
-The name `execute` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::execute(E, F)` for some expressions `E` and `F` is equivalent to:
+The name `execute` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::execute(E, F, A...)` for some expressions `E` and `F`, and where `A...` represents 0 or 1 expressions, is equivalent to:
 
-* `(E).execute(F)` if `has_execute_member_v<decay_t<decltype(E)>>` is true.
+* `(E).execute(F, A...)` if `has_execute_member_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `execute(E, F)` if `has_execute_free_function_v<decay_t<decltype(E)>>` is true.
+* Otherwise, `execute(E, F, A...)` if `has_execute_free_function_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `std::experimental::concurrency_v2::execution::execute(E, F)` is ill-formed.
+* Otherwise, `std::experimental::concurrency_v2::execution::execute(E, F, A...)` is ill-formed.
 
 ### `post`
 
