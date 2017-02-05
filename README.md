@@ -622,7 +622,7 @@ In the Table below, `x` denotes a (possibly const) executor object of type `X` a
 
 ##### Requirements on execution functions having non-blocking semantics
 
-In the Table below, `x` denotes a (possibly const) executor object of type `X` and`f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
+In the Table below, `x` denotes a (possibly const) executor object of type `X` and `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
