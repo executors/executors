@@ -1,4 +1,4 @@
-% A Unified Executors Proposal for C++ | D0443R1
+% A Unified Executors Proposal for C++ | P0443R1
 
 ----------------    -------------------------------------
 Authors:            Jared Hoberock, jhoberock@nvidia.com
@@ -37,6 +37,8 @@ Document Number:    P0443R1
 
 Date:               2017-01-06
 
+Audience:           SG1 (Concurrency)
+
 Reply-to:           jhoberock@nvidia.com
 
 ------------------------------------------------------
@@ -44,15 +46,16 @@ Reply-to:           jhoberock@nvidia.com
 # Introduction
 
 This paper describes a programming model for executors, which are modular
-components for creating execution. Executors decouple software from the details
-of execution resources and present a uniform interface for work creation. The
-model proposed by this paper represents what we believe is the functionality
-necessary to compose executors with existing standard control structures such
-as `std::async()` and parallel algorithms, as well as near-standards such as
-the functionality found in various technical specifications, including the
-Concurrency, Networking, and Parallelism TSes. We intend this proposal to be
-an extensible basis for all future development of execution in C++ which
-necessarily entails functionality beyond the scope of this basic proposal.
+components for creating execution. Executors decouple software from the
+disparate, non-uniform interfaces of execution resources and present a uniform
+interface for work creation. The model proposed by this paper represents what
+we believe is the functionality necessary to compose executors with existing
+standard control structures such as `std::async()` and parallel algorithms, as
+well as near-standards such as the functionality found in various technical
+specifications, including the Concurrency, Networking, and Parallelism TSes. We
+intend this proposal to be an extensible basis for future development of
+execution in C++ which necessarily entails functionality beyond the scope of
+this basic proposal.
 
 In our programming model, executors introduce a uniform interface for creating
 execution that may not be common to the underlying execution resources actually
@@ -199,23 +202,18 @@ compatible with the two-way, single-agent executor customization points such as
 
 This proposal defines four named categories: `OneWayExecutor`,
      `TwoWayExecutor`, `BulkTwoWayExecutor`, and `NonblockingOneWayExecutor`.
-     `OneWayExecutor` defines requirements for executors which create
-     single-agent execution and do not natively provide a channel for
-     synchronizing with the completion of execution. This category is useful
-     for summarizing the requirements of executors composing with
-     `future.then()` of the Concurrency TS. `TwoWayExecutor` defines
-     requirements for executors which create single-agent execution and *do*
-     natively provide a channel for synchronizing with the completion of
-     execution. This category is useful for summarizing the requirements of
-     executors composing with `std::async()`. `BulkTwoWayExecutor` summarizes
-     requirements for executors which create bulk-agent execution and also
-     provide a channel for synchronization. This category summarizes the
-     requirements for executors which can compose with parallel algorithms.
-     Finally, `NonblockingOneWayExecutor` extends `OneWayExecutor`'s
-     requirements by demanding that an executor's work creation operations do
-     not block the calling thread of those operations. This additional
-     requirement on blocking behavior is critical to the needs of the
-     Networking TS.
+     `OneWayExecutor` and `TwoWayExecutor` summarize the requirements for basic
+     executors which create single-agent execution with minimal guarantees.
+     `OneWayExecutor`s do not provide a channel for synchronizing with the
+     completion of execution, while `TwoWayExecutor`s do provide such a
+     channel. `BulkTwoWayExecutor` summarizes requirements for executors which
+     create bulk-agent execution and also provide a channel for
+     synchronization. This category summarizes the requirements for executors
+     which can compose with parallel algorithms.  Finally,
+     `NonblockingOneWayExecutor` extends `OneWayExecutor`'s requirements by
+     demanding that an executor's work creation operations do not block the
+     calling thread of those operations. This additional requirement on
+     blocking behavior is critical to the needs of the Networking TS.
 
 We have not attempted to completely capture every kind of interesting
 collection of executors in our categorization. By design, our categorization of
@@ -267,7 +265,7 @@ represents a single design in this space which is not intended as definitive.
 This proposal is intended to provide a foundation for future enhancements to
 executors and execution in general in C++. Naturally, it is incomplete and we
 anticipate extension. Here, we discuss briefly our vision for how the major
-components of our overall design can be extended in the future.
+components of our overall design can be extended by future follow-on proposals.
 
 **`Future` concept.** One immediate concern is the conceptualization of
 `std::future`-like types. We anticipate that some types of executors will
@@ -277,33 +275,34 @@ elaboration of the requirements of a hypothetical `Future` concept is needed.
 
 **Execution resources.** Our proposal is silent about how a program might
 enumerate and represent the available execution resources present in the
-system. A means of representing system resources with standard execution
-contexts and obtaining executors from them would provide programmers concerned
-with performance the tools to reason about locality.
+system. A future proposal describing a means of representing system resources
+with standard execution contexts and obtaining executors from them would
+provide programmers concerned with performance the tools to reason about
+locality.
 
 **Execution contexts.** This paper proposes a single concrete execution
 context, `static_thread_pool`, which embodies one approach for representing a
 thread pool. There are other approaches to thread pools with different features
-and limitations. For example, a hypothetical `dynamic_thread_pool` type could
-automatically change its thread count to adapt to the state of the system, with
-the goal of guaranteeing concurrent execution. Another possible execution
-context could emulate the existing behavior of `std::async()` to aid in
-migration from the standard library's existing features for concurrency and
-parallelism to this new model of executors. Such a context would allow
-programmers to introduce executors without breaking any assumed semantics of
-`std::async()`, such as concurrent execution agents, thread-per-request, and
-future blocking behavior.
+and limitations which others could propose. For example, a hypothetical
+`dynamic_thread_pool` type could automatically change its thread count to adapt
+to the state of the system, with the goal of guaranteeing concurrent execution.
+Another possible execution context could emulate the existing behavior of
+`std::async()` to aid in migration from the standard library's existing
+features for concurrency and parallelism to this new model of executors. Such a
+context would allow programmers to introduce executors without breaking any
+assumed semantics of `std::async()`, such as concurrent execution agents,
+thread-per-request, and future blocking behavior.
 
-Besides introducing concrete execution context types, a future proposal could
+Besides introducing concrete execution context types, future proposals could
 refine our `ExecutionContext` concept by introducing concepts with additional
 requirements. As an example, a parallel execution framework might define
 requirements for a hypothetical `IntrospectableExecutionContext` which would
 require contexts to provide functionality for resource introspection. Generic
 code could depend on such functionality to query the number of hardware threads
 associated with execution context. These and other extensions to our basic
-model of execution contexts may be explored as future work.
+model of execution contexts may be explored as future proposals.
 
-**Executor categories.** Future extensions might expand our executor
+**Executor categories.** Future proposals might expand our executor
 categorization to additional application domains if the categorizations
 proposed here are insufficient for representing their requirements. For
 example, our proposal does not directly address issues related to heterogeneous
@@ -2046,7 +2045,7 @@ class static_thread_pool::executor_type
   public:
     // types:
 
-    typedef parallel_execution_category execution_category;
+    typedef parallel_execution_tag execution_category;
     typedef possibly_blocking_execution_tag blocking_category;
     typedef std::size_t shape_type;
     typedef std::size_t index_type;
@@ -2442,9 +2441,25 @@ In this example, the executor parameter composes with `par` to create a new exec
 
 ### Use of an executor in a generic context
 
-Functions may receive executors as generic template parameters. A programmer
-may work at a lower-level yet retain generality by manipulating the executor
-through customization points. For example, consider this hypothetical
+Functions may receive executors as generic template parameters. Our proposal
+provides tools for working in generic contexts while retaining the ability to
+manipulate executors uniformly. For example, consider this implementation of a
+hypothetical math library's parallel `dot()` product function:
+
+    template<class BulkTwoWayExecutor>
+    float dot(const BulkTwoWayExecutor& exec, const float* data1, const float* data2, size_t n)
+    {
+      auto zipped = zip_with(std::multiplies<>(), data1, data2);
+      return std::reduce(std::execution::par.on(exec), zipped, zipped + n, 0.f, std::plus<>());
+    }
+
+Because it is a template, the `dot()` function has no concrete information
+about `exec`, besides the fact that the executor satisfies the requirements of
+our `BulkTwoWayExecutor` concept. However, this is all the information
+necessary to compose `exec` correctly with `par` and `std::reduce`.
+
+Programmers may work at a lower level yet retain generality by manipulating an
+executor through customization points. For example, consider this hypothetical
 implementation of `async()`:
 
     template<class Executor, class Function, class... Args>
@@ -2467,9 +2482,12 @@ operations do exist to create the desired operation.
  
 ### Defining executors
 
-A programmer may create an executor by defining a type with one or more executor customization points defined as members.
+A programmer creates an executor by defining a type with one or more execution
+functions defined as members or free functions as well as other members related
+to executor identity.
 
-For example, an executor which creates a new thread for each execution agent may define the `execute()` customization point:
+For example, an executor which creates a new thread for each execution agent
+may define the `execute()` method:
 
     struct per_thread_executor
     {
@@ -2481,7 +2499,7 @@ For example, an executor which creates a new thread for each execution agent may
         new_thread.detach();
       }
 
-      const per_thread_executor& context() const
+      const per_thread_executor& context() const noexcept
       {
         return *this;
       }
@@ -2497,7 +2515,7 @@ For example, an executor which creates a new thread for each execution agent may
       }
     };
 
-An executor which executes work immediately within the calling thread may define the `sync_execute()` customization point:
+An executor which executes work immediately within the calling thread may define the `sync_execute()` method:
 
     struct inline_executor
     {
@@ -2507,7 +2525,7 @@ An executor which executes work immediately within the calling thread may define
         return std::forward<Function>(f)();
       }
 
-      const inline_executor& context() const
+      const inline_executor& context() const noexcept
       {
         return *this;
       }
@@ -2519,6 +2537,43 @@ An executor which executes work immediately within the calling thread may define
 
       bool operator!=(const inline_executor&) const noexcept
       {
+        return false;
+      }
+    };
+
+An executor which executes parallel work in bulk using OpenMP may define the `bulk_sync_execute()` method:
+
+    struct openmp_executor
+    {
+      using execution_category = parallel_execution_tag;
+
+      template<class Function, class ResultFactory, class SharedFactory>
+      auto bulk_sync_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory) const
+      {
+        auto result = result_factory();
+        auto shared = shared_factory();
+
+        #pragma omp parallel for
+        for(size_t i = 0; i < n; ++i)
+        {
+          f(i, result, shared);
+        }
+
+        return result;
+      }
+
+      const openmp_executor& context() const noexcept
+      {
+        return *this;
+      }
+
+      bool operator==(const openmp_executor&) const noexcept
+      {
+        return true;
+      }
+
+      bool operator!=(const openmp_executor&) const noexcept
+      { 
         return false;
       }
     };
