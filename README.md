@@ -2048,7 +2048,7 @@ class static_thread_pool::executor_type
   public:
     // types:
 
-    typedef parallel_execution_category execution_category;
+    typedef parallel_execution_tag execution_category;
     typedef possibly_blocking_execution_tag blocking_category;
     typedef std::size_t shape_type;
     typedef std::size_t index_type;
@@ -2444,9 +2444,25 @@ In this example, the executor parameter composes with `par` to create a new exec
 
 ### Use of an executor in a generic context
 
-Functions may receive executors as generic template parameters. A programmer
-may work at a lower-level yet retain generality by manipulating the executor
-through customization points. For example, consider this hypothetical
+Functions may receive executors as generic template parameters. Our proposal
+provides tools for working in generic contexts while retaining the ability to
+manipulate executors uniformly. For example, consider this implementation of a
+hypothetical math library's parallel `dot()` product function:
+
+    template<class BulkTwoWayExecutor>
+    float dot(const BulkTwoWayExecutor& exec, const float* data1, const float* data2, size_t n)
+    {
+      auto zipped = zip_with(std::multiplies<>(), data1, data2);
+      return std::reduce(std::execution::par.on(exec), zipped, zipped + n, 0.f, std::plus<>());
+    }
+
+Because it is a template, the `dot()` function has no concrete information
+about `exec`, besides the fact that the executor satisfies the requirements of
+our `BulkTwoWayExecutor` concept. However, this is all the information
+necessary to compose `exec` correctly with `par` and `std::reduce`.
+
+Programmers may work at a lower level yet retain generality by manipulating an
+executor through customization points. For example, consider this hypothetical
 implementation of `async()`:
 
     template<class Executor, class Function, class... Args>
@@ -2469,9 +2485,12 @@ operations do exist to create the desired operation.
  
 ### Defining executors
 
-A programmer may create an executor by defining a type with one or more executor customization points defined as members.
+A programmer creates an executor by defining a type with one or more execution
+functions defined as members or free functions as well as other members related
+to executor identity.
 
-For example, an executor which creates a new thread for each execution agent may define the `execute()` customization point:
+For example, an executor which creates a new thread for each execution agent
+may define the `execute()` method:
 
     struct per_thread_executor
     {
@@ -2483,7 +2502,7 @@ For example, an executor which creates a new thread for each execution agent may
         new_thread.detach();
       }
 
-      const per_thread_executor& context() const
+      const per_thread_executor& context() const noexcept
       {
         return *this;
       }
@@ -2499,7 +2518,7 @@ For example, an executor which creates a new thread for each execution agent may
       }
     };
 
-An executor which executes work immediately within the calling thread may define the `sync_execute()` customization point:
+An executor which executes work immediately within the calling thread may define the `sync_execute()` method:
 
     struct inline_executor
     {
@@ -2509,7 +2528,7 @@ An executor which executes work immediately within the calling thread may define
         return std::forward<Function>(f)();
       }
 
-      const inline_executor& context() const
+      const inline_executor& context() const noexcept
       {
         return *this;
       }
@@ -2521,6 +2540,43 @@ An executor which executes work immediately within the calling thread may define
 
       bool operator!=(const inline_executor&) const noexcept
       {
+        return false;
+      }
+    };
+
+An executor which executes parallel work in bulk using OpenMP may define the `bulk_sync_execute()` method:
+
+    struct openmp_executor
+    {
+      using execution_category = parallel_execution_tag;
+
+      template<class Function, class ResultFactory, class SharedFactory>
+      auto bulk_sync_execute(Function f, size_t n, ResultFactory result_factory, SharedFactory shared_factory) const
+      {
+        auto result = result_factory();
+        auto shared = shared_factory();
+
+        #pragma omp parallel for
+        for(size_t i = 0; i < n; ++i)
+        {
+          f(i, result, shared);
+        }
+
+        return result;
+      }
+
+      const openmp_executor& context() const noexcept
+      {
+        return *this;
+      }
+
+      bool operator==(const openmp_executor&) const noexcept
+      {
+        return true;
+      }
+
+      bool operator!=(const openmp_executor&) const noexcept
+      { 
         return false;
       }
     };
