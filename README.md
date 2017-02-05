@@ -553,7 +553,7 @@ or a free function of the form:
 
     e(x, ...)
 
-where `x` denotes an executor object, `e` denotes the function name and `...` demotes the parameters.
+where `x` denotes an executor object, `e` denotes the function name and `...` denotes the parameters.
 
 Each execution function is made up from a combination of three properties: it's **blocking semantics**, **directionality** and **carinality**. The combination of these properties determines the execution function's name,  parameters and semantics.
 
