@@ -44,15 +44,16 @@ Reply-to:           jhoberock@nvidia.com
 # Introduction
 
 This paper describes a programming model for executors, which are modular
-components for creating execution. Executors decouple software from the details
-of execution resources and present a uniform interface for work creation. The
-model proposed by this paper represents what we believe is the functionality
-necessary to compose executors with existing standard control structures such
-as `std::async()` and parallel algorithms, as well as near-standards such as
-the functionality found in various technical specifications, including the
-Concurrency, Networking, and Parallelism TSes. We intend this proposal to be
-an extensible basis for all future development of execution in C++ which
-necessarily entails functionality beyond the scope of this basic proposal.
+components for creating execution. Executors decouple software from the
+disparate, non-uniform interfaces of execution resources and present a uniform
+interface for work creation. The model proposed by this paper represents what
+we believe is the functionality necessary to compose executors with existing
+standard control structures such as `std::async()` and parallel algorithms, as
+well as near-standards such as the functionality found in various technical
+specifications, including the Concurrency, Networking, and Parallelism TSes. We
+intend this proposal to be an extensible basis for all future development of
+execution in C++ which necessarily entails functionality beyond the scope of
+this basic proposal.
 
 In our programming model, executors introduce a uniform interface for creating
 execution that may not be common to the underlying execution resources actually
