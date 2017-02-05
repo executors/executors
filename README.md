@@ -1890,14 +1890,11 @@ Let `e` be the target object of `*this`. Let `a1` be the allocator that was spec
 
 *Returns:* A future with an associated shared state that will contain the result of `fd()`. [*Note:* `e.async_execute(g)` may return any future type that satisfies the Future requirements, and not necessarily `std::future`. One possible implementation approach is for the polymorphic wrapper to attach a continuation to the inner future via that object's `then()` member function. When invoked, this continuation stores the result in the outer future's associated shared and makes that shared state ready. *--end note*]
 
-## Thread pool type
+## Thread pools
 
-The thread pool class is meant to represent a common approach to introducing
-concurrency or parallelism to code without the siginificant overhead of creating
-and destroying threads whenever concurrency is needed. There are a significant
-number of possible thread pool approaches, the statically sized thread pool is
-one of the simplest that still provides the ability for code to introduce low
-cost concurrency.
+Thread pools create concurrent or parallel execution agents without incurring
+the overhead of thread creation and destruction whenever such agents are
+needed.
 
 ### Header `<thread_pool>` synopsis
 
