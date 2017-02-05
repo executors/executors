@@ -1308,7 +1308,12 @@ component are mapped onto threads of execution.
 `unique_thread_execution_mapping_tag` indicates that each execution agent
 created by a component is mapped onto a new thread of execution.
 
-[*Note:* A mapping of an execution agent onto a thread of execution implies the agent executes as-if on a `std::thread`. *--end note*]
+[*Note:* A mapping of an execution agent onto a thread of execution implies the
+agent executes as-if on a `std::thread`. Therefore, the facilities provided by
+`std::thread`, such as thread-local storage, are available.
+`unique_thread_execution_mapping_tag` provides stronger guarantees, in
+particular that thread-local storage will not be shared between execution
+agents. *--end note*]
 
 ### Classifying the blocking behavior of potentially blocking operations
 
