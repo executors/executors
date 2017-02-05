@@ -1203,7 +1203,6 @@ This sub-clause contains templates that may be used to query the properties of a
 In the Table below,
 
 * `t` denotes a (possibly const) executor object of type `T`,
-* `e` denotes the name of the execution function,
 * `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()`, where `decay_t<F>` satisfies the `MoveConstructible` requirements.
 * `bf` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))(i, s)`,
     * where `i` denotes an object whose type is `executor_index_t<X>`,
