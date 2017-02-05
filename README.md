@@ -147,6 +147,14 @@ of these use cases by implementing the appropriate customization point, and may
 opt in to new customization points as they are standardized. Due to their
 adaptability, an executor will be future-proof to new customization points.
 
+The following diagram shows the automatic adaptations performed by the
+customization points, assuming a corresponding native implementation (member or
+free function) is unavailable. A dotted line shows an adaptation that will
+be used only if `executor_execute_blocking_category_t<Executor>` is
+`non_blocking_execution_tag`.
+
+*TODO insert image here*
+
 ## Executor type traits
 
 In order to help programmers define their own ad hoc requirements for executor
