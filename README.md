@@ -1912,15 +1912,15 @@ inline namespace concurrency_v2 {
 
 ### Class `static_thread_pool`
 
-This class represents a statically sized thread pool as a common/basic resource
-type. This pool is capable of being grown by attaching threads to the pool but
-it will not change size in any automatic way. This pool provides an
-effectively unbounded input queue and as such calls to add tasks to a
-static_thread_pool's associated executors will not block on the input queue.
+`static_thread_pool` represents a statically-sized thread pool which may be
+explicitly grown via thread attachment. However, `static_thread_pool` does not
+automatically change size. 
 
-The `static_thread_pool` provides parallel execution agents and therefore
-situations which assume concurrent execution properties will not guarantee
-correctness.
+`static_thread_pool` presents an effectively unbounded input queue and the execution functions of `static_thread_pool`'s associated executors do not block on this input queue.
+
+[*Note:* Because `static_thread_pool` provides parallel execution agents,
+situations which require concurrent execution properties are not guaranteed
+correctness. *--end note.*]
 
 ```
 class static_thread_pool
