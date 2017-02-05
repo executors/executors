@@ -1395,7 +1395,7 @@ Components which create groups of execution agents may use *execution
 categories* to communicate the forward progress and ordering guarantees of
 these execution agents with respect to other agents within the same group.
   
-*The meanings and relative "strength" of these categores are to be defined.
+TODO: *The meanings and relative "strength" of these categores are to be defined.
 Most of the wording for `sequenced_execution_tag`, `parallel_execution_tag`,
 and `unsequenced_execution_tag` can be migrated from S 25.2.3 p2, p3, and
 p4, respectively.*
