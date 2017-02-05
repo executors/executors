@@ -584,7 +584,7 @@ In the Table below, `x` denotes a (possibly const) executor object of type `X` a
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.execute(f, ...)` <br/> eecute(x, f, ...)` | void | Creates an execution agent with forward progress guarantees of `executor_execution_mapping_category_t<X>` which invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `execute`. <br/> <br/> *Forward progress of caller:* May block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))()` finishes execution. <br/> <br/> The invocation of `execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. |
+| `x.execute(f, ...)` <br/> `execute(x, f, ...)` | void | Creates an execution agent with forward progress guarantees of `executor_execution_mapping_category_t<X>` which invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `execute`. <br/> <br/> *Forward progress of caller:* May block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))()` finishes execution. <br/> <br/> The invocation of `execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. |
 
 ##### Requirements on execution functions having non-blocking semantics
 
@@ -626,7 +626,7 @@ In the Table below, `x` denotes a (possibly const) executor object of type `X`, 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
 | `x.async_'e'(...)` <br/> `async_'e'(x, ...)` | A type that satisfies the `Future` requirements for the value type `R`. <br/> <br/>  Throws any exception thrown by `f()`. |
-| `x.then_'e'(..., pred, ...)` <br/> `then_'e'(x, ..., pred, ...)` | A type that satisfies the `Future` requirements for the value type `R`. <br/> <br/> Throws any exception thrown by `f()`. |
+| `x.then_'e'(..., pred)` <br/> `then_'e'(x, ..., pred)` | A type that satisfies the `Future` requirements for the value type `R`. <br/> <br/> Throws any exception thrown by `f()`. |
 
 #### Cardinality
 
@@ -647,7 +647,7 @@ In the Table below, `x` denotes a (possibly const) executor object of type `X`, 
 
 ##### Requirements on execution functions of bulk cardinality
 
-In the Table \ref{bulk_executor_requirements} below,
+In the Table below,
 
   * `x` denotes a (possibly const) executor object of type `X`,
   * `'e'` denotes the name of the execution function from previous properties,
@@ -676,12 +676,12 @@ The table below describes the execution member functions and non-member function
 | Single | Two-way synchronous | Non-blocking | NA | NA |
 | Single | Two-way asynchronous | Potentially blocking | `x.async_execute(f)` <br/> `x.async_execute(f, a)`  <br/> `x.then_execute(f, pred)` <br/> `x.then_execute(f, pred, a)` | `async_execute(x, f)` <br/> `async_execute(x, f, a)`  <br/> `then_execute(x, f, pred)` <br/> `then_execute(x, f, pred, a)` |
 | Single | Two-way asynchronous | Non-blocking | `x.async_post(f)` <br/> `x.async_post(f, a)` | `async_post(x, f)` <br/> `x.async_post(x, f, a)` |
-| Bulk | One-way | Potentially blocking | `x.bulk_execute(f, s, sf)` | `bulk_execute(x, f, s, sf)` |
-| Bulk | One-way | Non-blocking | `x.bulk_post(f, s, sf)` <br/> `x.bulk_defer(f, s, sf)` | `bulk_post(x, f, s, sf)` <br/> `bulk_defer(x, f, s, sf)` |
-| Bulk | Two-way synchronous | Potentially blocking | `x.bulk_sync_execute(f, s, rf, sf)` | `bulk_sync_execute(x, f, s, rf, sf)` |
+| Bulk | One-way | Potentially blocking | `x.bulk_execute(f, n, sf)` | `bulk_execute(x, f, n, sf)` |
+| Bulk | One-way | Non-blocking | `x.bulk_post(f, n, sf)` <br/> `x.bulk_defer(f, n, sf)` | `bulk_post(x, f, n, sf)` <br/> `bulk_defer(x, f, n, sf)` |
+| Bulk | Two-way synchronous | Potentially blocking | `x.bulk_sync_execute(f, n, rf, sf)` | `bulk_sync_execute(x, f, n, rf, sf)` |
 | Bulk | Two-way synchronous | Non-blocking | NA | NA |
-| Bulk | Two-way asynchronous | Potentially blocking | `x.bulk_async_execute(f, s, rf, sf)` <br/> `x.bulk_then_execute(f, s, pred, rf, sf)` | `bulk_async_execute(x, f, s, rf, sf)` <br/> `bulk_then_execute(x, f, s, pred, rf, sf)` |
-| Bulk | Two-way asynchronous | Non-blocking |  `x.bulk_async_post(f, s, rf, sf)` <br/> `x.bulk_async_defer(f, s, rf, sf)` | `bulk_async_post(x, f, s, rf, sf)` <br/> `bulk_async_defer(x, f, s, rf, sf)` |
+| Bulk | Two-way asynchronous | Potentially blocking | `x.bulk_async_execute(f, n, rf, sf)` <br/> `x.bulk_then_execute(f, n, pred, rf, sf)` | `bulk_async_execute(x, f, n, rf, sf)` <br/> `bulk_then_execute(x, f, n, pred, rf, sf)` |
+| Bulk | Two-way asynchronous | Non-blocking |  `x.bulk_async_post(f, n, rf, sf)` <br/> `x.bulk_async_defer(f, n, rf, sf)` | `bulk_async_post(x, f, n, rf, sf)` <br/> `bulk_async_defer(x, f, n, rf, sf)` |
 
 ### `BaseExecutor` requirements
 
