@@ -128,26 +128,27 @@ Because we envision executors to be the workhorses of execution in generic
 code, it is critical that they be adaptable to a variety of use cases. For
 example, a generic function like `std::invoke()` should be interoperable with
 as many types of executor as possible, not just that set of executors which
-natively provide the synchronous, single-agent operation `sync_execute()`. To
+natively provide the synchronous, single-agent execution function `sync_execute()`. To
 generalize across use cases, we have designed executor customization points to
 adapt the behavior of an executor when its native behavior is not a precise
 match for the use case of interest. For example, `std::invoke()` may
-interoperate with an executor which natively provides the operation
+interoperate with an executor which natively provides the execution function
 `async_execute()` by calling the customization point `execute::sync_execute()`.
 This customization point will adapt the executor by calling its natively
-provided `async_execute()` operation, and wait on the resulting future. In this
+provided `async_execute()` execution function, and wait on the resulting future. In this
 way, generic code may uniformly compose with executors with minimal
 restriction.
 
-Our design focuses on defining a set of optional customization points instead
-of imposing a set of strict executor requirements to maximize the latitude of
+Our design focuses on defining a set of optional execution functions instead of
+imposing a set of strict executor requirements to maximize the latitude of
 executor authors. Rather than prematurely attempt to circumscribe the universe
 of all possible executors with a set of universal requirements, we believe it
 is more flexible to identify a set of use cases for work creation which can
 grow in the future. Executor authors may choose to natively support one or more
-of these use cases by implementing the appropriate customization point, and may
-opt in to new customization points as they are standardized. Due to their
-adaptability, an executor will be future-proof to new customization points.
+of these use cases by implementing the appropriate execution function, and may
+opt in to natively supporting new use cases as they are introduced. Due to
+their adaptability, an executor will be future-proof to new customization
+points.
 
 ## Executor type traits
 
