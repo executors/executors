@@ -268,7 +268,7 @@ represents a single design in this space which is not intended as definitive.
 This proposal is intended to provide a foundation for future enhancements to
 executors and execution in general in C++. Naturally, it is incomplete and we
 anticipate extension. Here, we discuss briefly our vision for how the major
-components of our overall design can be extended in the future.
+components of our overall design can be extended by future follow-on proposals.
 
 **`Future` concept.** One immediate concern is the conceptualization of
 `std::future`-like types. We anticipate that some types of executors will
@@ -278,22 +278,23 @@ elaboration of the requirements of a hypothetical `Future` concept is needed.
 
 **Execution resources.** Our proposal is silent about how a program might
 enumerate and represent the available execution resources present in the
-system. A means of representing system resources with standard execution
-contexts and obtaining executors from them would provide programmers concerned
-with performance the tools to reason about locality.
+system. A future proposal describing a means of representing system resources
+with standard execution contexts and obtaining executors from them would
+provide programmers concerned with performance the tools to reason about
+locality.
 
 **Execution contexts.** This paper proposes a single concrete execution
 context, `static_thread_pool`, which embodies one approach for representing a
 thread pool. There are other approaches to thread pools with different features
-and limitations. For example, a hypothetical `dynamic_thread_pool` type could
-automatically change its thread count to adapt to the state of the system, with
-the goal of guaranteeing concurrent execution. Another possible execution
-context could emulate the existing behavior of `std::async()` to aid in
-migration from the standard library's existing features for concurrency and
-parallelism to this new model of executors. Such a context would allow
-programmers to introduce executors without breaking any assumed semantics of
-`std::async()`, such as concurrent execution agents, thread-per-request, and
-future blocking behavior.
+and limitations which others could propose. For example, a hypothetical
+`dynamic_thread_pool` type could automatically change its thread count to adapt
+to the state of the system, with the goal of guaranteeing concurrent execution.
+Another possible execution context could emulate the existing behavior of
+`std::async()` to aid in migration from the standard library's existing
+features for concurrency and parallelism to this new model of executors. Such a
+context would allow programmers to introduce executors without breaking any
+assumed semantics of `std::async()`, such as concurrent execution agents,
+thread-per-request, and future blocking behavior.
 
 Besides introducing concrete execution context types, a future proposal could
 refine our `ExecutionContext` concept by introducing concepts with additional
@@ -302,9 +303,9 @@ requirements for a hypothetical `IntrospectableExecutionContext` which would
 require contexts to provide functionality for resource introspection. Generic
 code could depend on such functionality to query the number of hardware threads
 associated with execution context. These and other extensions to our basic
-model of execution contexts may be explored as future work.
+model of execution contexts may be explored as future proposals.
 
-**Executor categories.** Future extensions might expand our executor
+**Executor categories.** Future proposals might expand our executor
 categorization to additional application domains if the categorizations
 proposed here are insufficient for representing their requirements. For
 example, our proposal does not directly address issues related to heterogeneous
