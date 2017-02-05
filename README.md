@@ -655,7 +655,7 @@ In the Table below, `x` denotes a (possibly const) executor object of type `X`, 
 
 ##### Requirements on execution functions of asynchronous two-way directionality
 
-In the Table below, `x` denotes a (possibly const) executor object of type `X`, `'e'` denotes an expression from the requrirements on blocking semantics, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements and `pred` denotes a future object whose result is `pr`.
+In the Table below, `x` denotes a (possibly const) executor object of type `X`, `'e'` denotes an expression from the requrirements on blocking semantics, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements and `pred` denotes a `Future` object whose result is `pr`.
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
@@ -691,7 +691,7 @@ In the Table below,
   * `n` denotes a shape object whose type is `executor_shape_t<X>`,
   * `rf` denotes a `CopyConstructible` function object with zero arguments whose result type is `R`,
   * `sf` denotes a `CopyConstructible` function object with zero arguments whose result type is `S`,
-  * `pred` denotes a future object whose result is `pr`.
+  * `pred` denotes a `Future` object whose result is `pr`.
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
@@ -1201,16 +1201,17 @@ The name `bulk_then_execute` denotes a customization point. The effect of the ex
 This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
 
 In the Table below,
+
 * `t` denotes a (possibly const) executor object of type `T`,
 * `e` denotes the name of the execution function,
 * `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()`, where `decay_t<F>` satisfies the `MoveConstructible` requirements.
 * `bf` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))(i, s)`,
- * where `i` denotes an object whose type is `executor_index_t<X>`,
- * where `s` denotes an object whose type is `S` and
- * where `decay_t<F>` satisfies the `MoveConstructible` requirements,
-* `rf` denotes a `CopyConstructible` function object with one argument whose result type is `R`,
-* `sf` denotes a `CopyConstructible` function object with one argument whose result type is `S`,
-* `pred` denotes a future object whose result is `pr` and
+    * where `i` denotes an object whose type is `executor_index_t<X>`,
+    * where `s` denotes an object whose type is `S` and
+    * where `decay_t<F>` satisfies the `MoveConstructible` requirements,
+* `rf` denotes a `CopyConstructible` function object with zero arguments whose result type is `R`,
+* `sf` denotes a `CopyConstructible` function object with zero arguments whose result type is `S`,
+* `pred` denotes a `Future` object whose result is `pr` and
 * `a` denotes a (possibly const) value of type `A` satisfying the `ProtoAllocator` requirements.
 
 | Template                   | Conditions           | Preconditions  |
