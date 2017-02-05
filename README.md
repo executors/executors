@@ -1892,9 +1892,8 @@ Let `e` be the target object of `*this`. Let `a1` be the allocator that was spec
 
 ## Thread pools
 
-Thread pools create concurrent or parallel execution agents without incurring
-the overhead of thread creation and destruction whenever such agents are
-needed.
+Thread pools create execution agents which execute on threads without incurring the
+overhead of thread creation and destruction whenever such agents are needed.
 
 ### Header `<thread_pool>` synopsis
 
