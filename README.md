@@ -214,7 +214,7 @@ This proposal defines four named categories: `OneWayExecutor`,
      synchronization. This category summarizes the requirements for executors
      which can compose with parallel algorithms.  Finally,
      `NonblockingOneWayExecutor` extends `OneWayExecutor`'s requirements by
-     demanding that an executor's work creation operations do not block the
+     demanding that an executor's execution functions do not block the
      calling thread of those operations. This additional requirement on
      blocking behavior is critical to the needs of the Networking TS.
 
