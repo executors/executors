@@ -1204,13 +1204,23 @@ In the Table below,
 
 * `t` denotes a (possibly const) executor object of type `T`,
 * `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()`, where `decay_t<F>` satisfies the `MoveConstructible` requirements.
-* `bf` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))(i, s)`,
+* `bof` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(bof))(i, s)`,
     * where `i` denotes an object whose type is `executor_index_t<X>`,
+    * where `s` denotes an object whose type is `S` and
+    * where `decay_t<F>` satisfies the `CopyConstructible` requirements,
+* `btf` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(btf))(i, r, s)`,
+    * where `i` denotes an object whose type is `executor_index_t<X>`,
+    * where `r` denotes an object whose type is `R`,
+    * where `s` denotes an object whose type is `S` and
+    * where `decay_t<F>` satisfies the `CopyConstructible` requirements,
+* `bcf` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(bcf))(i, p, r, s)`,
+    * where `i` denotes an object whose type is `executor_index_t<X>`,
+    * where `p` denotes an object whose type is `P`,
     * where `s` denotes an object whose type is `S` and
     * where `decay_t<F>` satisfies the `CopyConstructible` requirements,
 * `rf` denotes a `CopyConstructible` function object with zero arguments whose result type is `R`,
 * `sf` denotes a `CopyConstructible` function object with zero arguments whose result type is `S`,
-* `pred` denotes a `Future` object whose result is `pr` and
+* `pred` denotes a `Future` object whose result type is `P` and
 * `a` denotes a (possibly const) value of type `A` satisfying the `ProtoAllocator` requirements.
 
 | Template                   | Conditions           | Preconditions  |
@@ -1223,14 +1233,14 @@ In the Table below,
 | `template<class T>` <br/>`struct can_async_post` | The expressions `std::experimental::concurrency_v2::execution::async_post(t, f)` and `std::experimental::concurrency_v2::execution::async_post(t, f, a)` are well-formed. | `T` is a complete type. |
 | `template<class T>` <br/>`struct can_async_defer` | The expressions `std::experimental::concurrency_v2::execution::async_defer(t, f)` and `std::experimental::concurrency_v2::execution::async_defer(t, f, a)` is well-formed. | `T` is a complete type. |
 | `template<class T>` <br/>`struct can_then_execute` | The expressions `std::experimental::concurrency_v2::execution::then_execute(t, f, pred)` and `std::experimental::concurrency_v2::execution::then_execute(t, f, pred)` are well-formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_bulk_execute` | The expression `std::experimental::concurrency_v2::execution::bulk_execute(t, bf, s, sf)` is well-formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_bulk_post` | The expression `std::experimental::concurrency_v2::execution::bulk_post(t, bf, s, sf)` is well-formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_bulk_defer` | The expression `std::experimental::concurrency_v2::execution::bulk_defer(t, bf, s, sf)` is well-formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_bulk_sync_execute` | The expression `std::experimental::concurrency_v2::execution::bulk_sync_execute(t, bf, s, rf, sf)` is well-formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_bulk_async_execute` | The expression `std::experimental::concurrency_v2::execution::bulk_async_execute(t, bf, s, rf, sf)` is well-formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_bulk_async_post` | The expression `std::experimental::concurrency_v2::execution::bulk_async_post(t, bf, s, rf, sf)` is well-formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_bulk_async_defer` | The expression `std::experimental::concurrency_v2::execution::bulk_async_defer(t, bf, s, rf, sf)` is well-formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_bulk_then_execute` | The expression `std::experimental::concurrency_v2::execution::bulk_then_execute(t, bf, s, pred, rf, sf)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_bulk_execute` | The expression `std::experimental::concurrency_v2::execution::bulk_execute(t, of, s, sf)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_bulk_post` | The expression `std::experimental::concurrency_v2::execution::bulk_post(t, bof, s, sf)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_bulk_defer` | The expression `std::experimental::concurrency_v2::execution::bulk_defer(t, bof, s, sf)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_bulk_sync_execute` | The expression `std::experimental::concurrency_v2::execution::bulk_sync_execute(t, btf, s, rf, sf)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_bulk_async_execute` | The expression `std::experimental::concurrency_v2::execution::bulk_async_execute(t, btf, s, rf, sf)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_bulk_async_post` | The expression `std::experimental::concurrency_v2::execution::bulk_async_post(t, btf, s, rf, sf)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_bulk_async_defer` | The expression `std::experimental::concurrency_v2::execution::bulk_async_defer(t, btf, s, rf, sf)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_bulk_then_execute` | The expression `std::experimental::concurrency_v2::execution::bulk_then_execute(t, bcf, s, pred, rf, sf)` is well-formed. | `T` is a complete type. |
 
 ## Executor type traits
 
