@@ -200,23 +200,18 @@ compatible with the two-way, single-agent executor customization points such as
 
 This proposal defines four named categories: `OneWayExecutor`,
      `TwoWayExecutor`, `BulkTwoWayExecutor`, and `NonblockingOneWayExecutor`.
-     `OneWayExecutor` defines requirements for executors which create
-     single-agent execution and do not natively provide a channel for
-     synchronizing with the completion of execution. This category is useful
-     for summarizing the requirements of executors composing with
-     `future.then()` of the Concurrency TS. `TwoWayExecutor` defines
-     requirements for executors which create single-agent execution and *do*
-     natively provide a channel for synchronizing with the completion of
-     execution. This category is useful for summarizing the requirements of
-     executors composing with `std::async()`. `BulkTwoWayExecutor` summarizes
-     requirements for executors which create bulk-agent execution and also
-     provide a channel for synchronization. This category summarizes the
-     requirements for executors which can compose with parallel algorithms.
-     Finally, `NonblockingOneWayExecutor` extends `OneWayExecutor`'s
-     requirements by demanding that an executor's work creation operations do
-     not block the calling thread of those operations. This additional
-     requirement on blocking behavior is critical to the needs of the
-     Networking TS.
+     `OneWayExecutor` and `TwoWayExecutor` summarize the requirements for basic
+     executors which create single-agent execution with minimal guarantees.
+     `OneWayExecutor`s do not provide a channel for synchronizing with the
+     completion of execution, while `TwoWayExecutor`s do provide such a
+     channel. `BulkTwoWayExecutor` summarizes requirements for executors which
+     create bulk-agent execution and also provide a channel for
+     synchronization. This category summarizes the requirements for executors
+     which can compose with parallel algorithms.  Finally,
+     `NonblockingOneWayExecutor` extends `OneWayExecutor`'s requirements by
+     demanding that an executor's work creation operations do not block the
+     calling thread of those operations. This additional requirement on
+     blocking behavior is critical to the needs of the Networking TS.
 
 We have not attempted to completely capture every kind of interesting
 collection of executors in our categorization. By design, our categorization of
