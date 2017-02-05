@@ -39,7 +39,7 @@ Document Number:    P0443R1
 
 Date:               2017-01-06
 
-Audience:           SG1 (Concurrency)
+Audience:           SG1 - Concurrency and Parallelism
 
 Reply-to:           jhoberock@nvidia.com
 
