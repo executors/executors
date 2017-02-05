@@ -144,6 +144,44 @@ of these use cases by implementing the appropriate customization point, and may
 opt in to new customization points as they are standardized. Due to their
 adaptability, an executor will be future-proof to new customization points.
 
+## Executor type traits
+
+In order to help programmers define their own ad hoc requirements for executor
+types, our design provides a set of executor type traits for introspecting the
+properties of executors at compile time. These fine-grained type traits detect
+characteristics such as native support for executor operations as well as
+compatibility between an executor type and an executor customization point.
+
+For example, for an execution function such as `execute`, the executor supports
+the following traits:
+
+* `has_execute_member<X>` and `has_execute_member_v<X>`, to detect the presence
+of a member named `execute` that satisfies the corresponding syntactic
+requirements.
+* `has_execute_free_function<X>` and `has_execute_free_function_v<X>`, to
+detect the presence of a free function named `execute`, accepting the
+executor as the initial parameter, and that satisfies the corresponding
+syntactic requirements.
+* `can_execute<X>` and `can_execute_v<X>`, to determine whether the
+corresponding customization point is well-formed for the executor.
+
+Programmers may employ these type traits at software boundaries to define
+requirements for executor composition as well as reject types of executors
+which are known to be incompatible.
+
+These traits may also be used to determine which implementation strategy will
+be used by a customization point. That is, whether the customization support
+can use native support (via member or free function) or an adaptation. If a
+particular customization point's adaptation is inefficient when implementing
+some higher level algorithm, the trait may be used to select an alternative
+algorithm implementation not based on that customization point.
+
+While these traits are not strictly required by this proposal -- we may employ
+SFINAE to detect the presence of members or free functions -- correctly
+detecting adherence to the syntactic requirements is complex. Therefore these
+traits are included to simplify feature detection for programmers, as well as
+reducing the verbosity of this proposal's wording.
+
 ## Executor Categories
 
 Our design organizes executors into *executor
@@ -189,15 +227,9 @@ a hypothetical executor category named
 `NonblockingHostBasedBulkTwoWayExecutor`. Such a category would correspond to
 executor types which create bulk, two-way execution hosted on a thread, and
 would create execution in a way that is guaranteed not to block the calling
-thread. However, our proposal does not define such a category. In order to help
-programmers define their own ad hoc requirements for executor types, our design
-provides a set of executor type traits for introspecting the properties of
-executors at compile time. These fine-grained type traits detect
-characteristics such as native support for executor operations as well as
-compatibility between an executor type and an executor customization point.
-Programmers may employ these type traits at software boundaries to define
-requirements for executor composition as well as reject types of executors
-which are known to be incompatible.
+thread. However, our proposal does not define such a category. Instead, this
+category could be created by composing the executor type traits described above.
+
 
 ## Execution Contexts
 
