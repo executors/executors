@@ -563,7 +563,7 @@ The name of an execution function is determined by the combination of its proper
 
 | Cardinality | Directionality | Blocking semantics |
 |-------------|----------------|--------------------|
-| "" or "bulk_" | "" or "sync_" or "async_" or "then_"| "execute" or "post" or "defer" |
+| `""` or `"bulk_"` | `""` or `"sync_"` or `"async_"` or `"then_"` | `"execute"` or `"post"` or `"defer"` |
 
 #### Semantics of execution functions
 
@@ -584,7 +584,7 @@ In the Table below, `x` denotes a (possibly const) executor object of type `X` a
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.execute(f, ...)` <br/> `execute(x, f, ...)` | void | Creates an execution agent with forward progress guarantees of `executor_execution_mapping_category_t<X>` which invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `execute`. <br/> <br/> *Forward progress of caller:* May block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))()` finishes execution. <br/> <br/> The invocation of `execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. |
+| `x.execute(f, ...)` <br/> `execute(x, f, ...)` | void | Creates an execution agent with forward progress guarantees of `executor_execution_mapping_category_t<X>` which invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `execute`. <br/> <br/> May block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))()` finishes execution. <br/> <br/> The invocation of `execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. |
 
 ##### Requirements on execution functions having non-blocking semantics
 
@@ -605,7 +605,7 @@ The directionality property of an execution function may be one of the following
 
 ##### Requirements on execution functions of one-way directionality
 
-In the Table below, `x` denotes a (possibly const) executor object of type `X`, `'e'` denotes the name of the execution function from previous properties and `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
+In the Table below, `x` denotes a (possibly const) executor object of type `X`, `'e'` denotes an expression from the requrirements on blocking semantics and `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
@@ -613,7 +613,7 @@ In the Table below, `x` denotes a (possibly const) executor object of type `X`, 
 
 ##### Requirements on execution functions of synchronous two-way directionality
 
-In the Table below, `x` denotes a (possibly const) executor object of type `X`, `'e'` denotes the name of the execution function from previous properties and `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
+In the Table below, `x` denotes a (possibly const) executor object of type `X`, `'e'` denotes an expression from the requrirements on blocking semantics and `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
@@ -621,12 +621,12 @@ In the Table below, `x` denotes a (possibly const) executor object of type `X`, 
 
 ##### Requirements on execution functions of asynchronous two-way directionality
 
-In the Table below, `x` denotes a (possibly const) executor object of type `X`, `'e'` denotes the name of the execution function from previous properties, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements and `pred` denotes a future object whose result is `pr`.
+In the Table below, `x` denotes a (possibly const) executor object of type `X`, `'e'` denotes an expression from the requrirements on blocking semantics, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements and `pred` denotes a future object whose result is `pr`.
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.async_'e'(...)` <br/> `async_'e'(x, ...)` | A type that satisfies the `Future` requirements for the value type `R`. <br/> <br/>  Throws any exception thrown by `f()`. |
-| `x.then_'e'(..., pred)` <br/> `then_'e'(x, ..., pred)` | A type that satisfies the `Future` requirements for the value type `R`. <br/> <br/> Throws any exception thrown by `f()`. |
+| `x.async_'e'(...)` <br/> `async_'e'(x, ...)` | A type that satisfies the `Future` requirements for the value type `R`. |  Throws any exception thrown by `f()`. |
+| `x.then_'e'(..., pred, ...)` <br/> `then_'e'(x, ..., pred, ...)` | A type that satisfies the `Future` requirements for the value type `R`. | Throws any exception thrown by `f()`. |
 
 #### Cardinality
 
@@ -637,20 +637,19 @@ The cardinality property of an execution function may be one of the following:
 
 ##### Requirements on execution functions of single cardinality
 
-In the Table below, `x` denotes a (possibly const) executor object of type `X`, `'e'` denotes the name of the execution function from previous properties, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements, and `a` denotes a (possibly const) value of type `A` satisfying the `ProtoAllocator` requirements.
+In the Table below, `x` denotes a (possibly const) executor object of type `X`, `'e'` denotes an expression from the requrirements on directionality, `'ret'` denotes the return type of the execution function from previous properties, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements, and `a` denotes a (possibly const) value of type `A` satisfying the `ProtoAllocator` requirements.
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.'e'(..., a)` | ... | Equivalent to `x.'e'(..., executor_default_allocator_v<X>(x))`. |
-| `'e'(x, ..., a)` | ... | Equivalent to `'e'(x, ..., executor_default_allocator_v<X>(x))`. |
-| `x.'e'(..., a)` <br/>`'e'(x, ..., a)` | ... | Executor implementations should use the supplied allocator (if any) to allocate any memory required to store the function object. Prior to invoking the function object, the executor shall deallocate any memory allocated. [*Note:* Executors defined in this Technical Specification always use the supplied allocator unless otherwise specified. *--end note*] |
+| `x.'e'(...)` <br/>`'e'(x, ...)` <br/> `x.'e'(..., a)` <br/>`'e'(x, ..., a)` | `'ret'` | Executor implementations should use the supplied allocator (if any) to allocate any memory required to store the function object. Prior to invoking the function object, the executor shall deallocate any memory allocated. [*Note:* Executors defined in this Technical Specification always use the supplied allocator unless otherwise specified. *--end note*] |
 
 ##### Requirements on execution functions of bulk cardinality
 
 In the Table below,
 
   * `x` denotes a (possibly const) executor object of type `X`,
-  * `'e'` denotes the name of the execution function from previous properties,
+  * `'e'` denotes an expression from the requrirements on directionality,
+  * `'ret'` denotes the return type of the execution function from previous properties,
   * `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))(i, r, s)` and where `decay_t<F>` satisfies the `MoveConstructible` requirements where
     * `i` denotes an object whose type is `executor_index_t<X>`,
     * `r` denotes an object whose type is `R`,
@@ -662,7 +661,7 @@ In the Table below,
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.bulk_'e'(..., n, rf, sf)` <br/> `bulk_'e'(x, ..., n, rf, sf)` | ... | Creates a group of execution agents of shape `n` with forward progress guarantees of `executor_execution_mapping_category_t<X>` which invokes `DECAY_COPY( std::forward<F>(f))(i, r, s)`, with the call to `DECAY_COPY` being evaluated in the thread that called `bulk_'e'`. <br/> <br/> Value of type `R` returned is the result of `rf(n)`. <br/> <br/> Invokes `rf(n)` on an unspecified execution agent. <br/><br/> Invokes `sf(n)` on an unspecified execution agent. |
+| `x.bulk_'e'(..., n, ...,[ rf,] sf)` <br/> `bulk_'e'(x, ..., n, ...,[ rf,] sf)` | `'ret'` | Creates a group of execution agents of shape `n` with forward progress guarantees of `executor_execution_mapping_category_t<X>` which invokes `DECAY_COPY( std::forward<F>(f))(i, r, s)` if `'ret'` is non void otherwise invokes `DECAY_COPY( std::forward<F>(f))(i, s)` , with the call to `DECAY_COPY` being evaluated in the thread that called `bulk_'e'`. <br/> <br/> Parameter `rf` is only included in the execution function if `'ret'` is non void. <br/> <br/> The value of type `R` returned is the result of `rf(n)` if `'ret'` is non void. <br/> <br/> Invokes `rf(n)` on an unspecified execution agent. <br/><br/> Invokes `sf(n)` on an unspecified execution agent. |
 
 #### Execution function combinations
 
@@ -675,7 +674,7 @@ The table below describes the execution member functions and non-member function
 | Single | Two-way synchronous | Potentially blocking | `x.sync_execute(f)` <br/> `x.sync_execute(f, a)` | `sync_execute(x, f)` <br/> `sync_execute(x, f, a)` |
 | Single | Two-way synchronous | Non-blocking | NA | NA |
 | Single | Two-way asynchronous | Potentially blocking | `x.async_execute(f)` <br/> `x.async_execute(f, a)`  <br/> `x.then_execute(f, pred)` <br/> `x.then_execute(f, pred, a)` | `async_execute(x, f)` <br/> `async_execute(x, f, a)`  <br/> `then_execute(x, f, pred)` <br/> `then_execute(x, f, pred, a)` |
-| Single | Two-way asynchronous | Non-blocking | `x.async_post(f)` <br/> `x.async_post(f, a)` | `async_post(x, f)` <br/> `x.async_post(x, f, a)` |
+| Single | Two-way asynchronous | Non-blocking | `x.async_post(f)` <br/> `x.async_post(f, a)` <br/> `x.async_defer(f)` <br/> `x.async_defer(f, a)` | `async_post(x, f)` <br/> `x.async_post(x, f, a)` <br/> `async_defer(x, f)` <br/> `x.async_defer(x, f, a)` |
 | Bulk | One-way | Potentially blocking | `x.bulk_execute(f, n, sf)` | `bulk_execute(x, f, n, sf)` |
 | Bulk | One-way | Non-blocking | `x.bulk_post(f, n, sf)` <br/> `x.bulk_defer(f, n, sf)` | `bulk_post(x, f, n, sf)` <br/> `bulk_defer(x, f, n, sf)` |
 | Bulk | Two-way synchronous | Potentially blocking | `x.bulk_sync_execute(f, n, rf, sf)` | `bulk_sync_execute(x, f, n, rf, sf)` |
