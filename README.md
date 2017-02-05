@@ -567,7 +567,7 @@ The library defines several named customization point objects. In every translat
 
 ### `Future` requirements
 
-A type `F` meets the `Future` requirements for some value type `T` if `F` is `std::experimental::future<T>` (defined in the C++ Concurrency TS, ISO/IEC TS 19571:2016).  [*Note:* This concept is included as a placeholder to be elaborate, with the expectation that the elaborated requirements for `Future` will expand the applicability of some executor customization points. *--end note*]
+A type `F` meets the `Future` requirements for some value type `T` if `F` is `std::experimental::future<T>` (defined in the C++ Concurrency TS, ISO/IEC TS 19571:2016).  [*Note:* This concept is included as a placeholder to be elaborated, with the expectation that the elaborated requirements for `Future` will expand the applicability of some executor customization points. *--end note*]
 
 ### `ProtoAllocator` requirements
 
