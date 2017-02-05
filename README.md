@@ -1778,21 +1778,21 @@ class one_way_executor
 {
 public:
   // execution agent creation
-  template<class Function>
-    void execute(Function&& f) const;
+  template<class Function, class ProtoAllocator = std::allocator<void>>
+    void execute(Function&& f, const ProtoAllocator& a = ProtoAllocator()) const;
 };
 ```
 
 Class `one_way_executor` satisfies the `OneWayExecutor` requirements. The target object shall satisfy the `OneWayExecutor` requirements.
 
 ```
-template<class Function>
-  void execute(Function&& f) const;
+template<class Function, class ProtoAllocator>
+  void execute(Function&& f, const ProtoAllocator& a) const;
 ```
 
-Let `e` be the target object of `*this`. Let `fd` be the result of `DECAY_COPY(std::forward<Function>(f))`.
+Let `e` be the target object of `*this`. Let `a1` be the allocator that was specified when the target was set. Let `fd` be the result of `DECAY_COPY(std::forward<Function>(f))`.
 
-*Effects:* Performs `e.execute(g)`, where `g` is a function object of unspecified type that, when called as `g()`, performs `fd()`.
+*Effects:* Performs `e.execute(g, a1)`, where `g` is a function object of unspecified type that, when called as `g()`, performs `fd()`. The allocator `a` is used to allocate any memory required to implement `g`.
 
 ### Class `non_blocking_one_way_executor`
 
@@ -1850,38 +1850,38 @@ class two_way_executor
 {
 public:
   // execution agent creation
-  template<class Function>
+  template<class Function, class ProtoAllocator = std::allocator<void>>
     result_of_t<decay_t<Function>()>
-      sync_execute(Function&& f) const;
-  template<class Function>
+      sync_execute(Function&& f, const ProtoAllocator& a = ProtoAllocator()) const;
+  template<class Function, class ProtoAllocator = std::allocator<void>>
     std::future<result_of_t<decay_t<Function>()>>
-      async_execute(Function&& f) const;
+      async_execute(Function&& f, const ProtoAllocator& a = ProtoAllocator()) const;
 };
 ```
 
 Class `two_way_executor` satisfies the `TwoWayExecutor` requirements. The target object shall satisfy the `TwoWayExecutor` requirements.
 
 ```
-template<class Executor, class Function>
+template<class Function, class ProtoAllocator>
   result_of_t<decay_t<Function>()>
-    sync_execute(Function&& f);
+    sync_execute(Function&& f, const ProtoAllocator& a);
 ```
 
-Let `e` be the target object of `*this`. Let `fd` be the result of `DECAY_COPY(std::forward<Function>(f))`.
+Let `e` be the target object of `*this`. Let `a1` be the allocator that was specified when the target was set. Let `fd` be the result of `DECAY_COPY(std::forward<Function>(f))`.
 
-*Effects:* Performs `e.execute(g)`, where `g` is a function object of unspecified type that, when called as `g()`, performs `fd()`.
+*Effects:* Performs `e.sync_execute(g, a1)`, where `g` is a function object of unspecified type that, when called as `g()`, performs `fd()`. The allocator `a` is used to allocate any memory required to implement `g`.
 
 *Returns:* The return value of `fd()`.
 
 ```
-template<class Function>
+template<class Function, class ProtoAllocator>
   std::future<result_of_t<decay_t<Function>()>>
-    async_execute(Function&& f) const;
+    async_execute(Function&& f, const ProtoAllocator& a) const;
 ```
 
-Let `e` be the target object of `*this`. Let `fd` be the result of `DECAY_COPY(std::forward<Function>(f))`.
+Let `e` be the target object of `*this`. Let `a1` be the allocator that was specified when the target was set. Let `fd` be the result of `DECAY_COPY(std::forward<Function>(f))`.
 
-*Effects:* Performs `e.async_execute(g)`, where `g` is a function object of unspecified type that, when called as `g()`, performs `fd()`.
+*Effects:* Performs `e.async_execute(g, a1)`, where `g` is a function object of unspecified type that, when called as `g()`, performs `fd()`. The allocator `a` is used to allocate any memory required to implement `g`.
 
 *Returns:* A future with an associated shared state that will contain the result of `fd()`. [*Note:* `e.async_execute(g)` may return any future type that satisfies the Future requirements, and not necessarily `std::future`. One possible implementation approach is for the polymorphic wrapper to attach a continuation to the inner future via that object's `then()` member function. When invoked, this continuation stores the result in the outer future's associated shared and makes that shared state ready. *--end note*]
 
