@@ -880,13 +880,13 @@ Whenever `std::experimental::concurrency_v2::execution::`*NAME*`(`*ARGS*`)` is a
       constexpr unspecified execute = unspecified;
     }
 
-The name `execute` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::execute(E, F)` for some expressions `E` and `F` is equivalent to:
+The name `execute` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::execute(E, F, A...)` for some expressions `E` and `F`, and where `A...` represents 0 or 1 expressions, is equivalent to:
 
-* `(E).execute(F)` if `has_execute_member_v<decay_t<decltype(E)>>` is true.
+* `(E).execute(F, A...)` if `has_execute_member_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `execute(E, F)` if `has_execute_free_function_v<decay_t<decltype(E)>>` is true.
+* Otherwise, `execute(E, F, A...)` if `has_execute_free_function_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `std::experimental::concurrency_v2::execution::execute(E, F)` is ill-formed.
+* Otherwise, `std::experimental::concurrency_v2::execution::execute(E, F, A...)` is ill-formed.
 
 ### `post`
 
@@ -894,15 +894,15 @@ The name `execute` denotes a customization point. The effect of the expression `
       constexpr unspecified post = unspecified;
     }
 
-The name `post` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::post(E, F)` for some expressions `E` and `F` is equivalent to:
+The name `post` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::post(E, F, A...)` for some expressions `E` and `F`, and where `A...` represents 0 or 1 expressions, is equivalent to:
 
-* `(E).post(F)` if `has_post_member_v<decay_t<decltype(E)>>` is true.
+* `(E).post(F, A...)` if `has_post_member_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `post(E, F)` if `has_post_free_function_v<decay_t<decltype(E)>>` is true.
+* Otherwise, `post(E, F, A...)` if `has_post_free_function_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `std::experimental::concurrency_v2::execution::execute(E, F)` if `can_execute_v<decay_t<decltype(E)>> && is_same_v<execution_execute_blocking_category_t<decay_t<decltype(E)>>, non_blocking_execution_tag>` is true.
+* Otherwise, `std::experimental::concurrency_v2::execution::execute(E, F, A...)` if `can_execute_v<decay_t<decltype(E)>> && is_same_v<execution_execute_blocking_category_t<decay_t<decltype(E)>>, non_blocking_execution_tag>` is true.
 
-* Otherwise, `std::experimental::concurrency_v2::execution::post(E, F)` is ill-formed.
+* Otherwise, `std::experimental::concurrency_v2::execution::post(E, F, A...)` is ill-formed.
 
 ### `defer`
 
@@ -910,15 +910,15 @@ The name `post` denotes a customization point. The effect of the expression `std
       constexpr unspecified defer = unspecified;
     }
 
-The name `defer` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::defer(E, F)` for some expressions `E` and `F` is equivalent to:
+The name `defer` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::defer(E, F, A...)` for some expressions `E` and `F`, and where `A...` represents 0 or 1 expressions, is equivalent to:
 
-* `(E).defer(F)` if `has_defer_member_v<decay_t<decltype(E)>>` is true.
+* `(E).defer(F, A...)` if `has_defer_member_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `defer(E, F)` if `has_defer_free_function_v<decay_t<decltype(E)>>` is true.
+* Otherwise, `defer(E, F, A...)` if `has_defer_free_function_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `std::experimental::concurrency_v2::execution::execute(E, F)` if `can_execute_v<decay_t<decltype(E)>> && is_same_v<execution_execute_blocking_category_t<decay_t<decltype(E)>>, non_blocking_execution_tag>` is true.
+* Otherwise, `std::experimental::concurrency_v2::execution::execute(E, F, A...)` if `can_execute_v<decay_t<decltype(E)>> && is_same_v<execution_execute_blocking_category_t<decay_t<decltype(E)>>, non_blocking_execution_tag>` is true.
 
-* Otherwise, `std::experimental::concurrency_v2::execution::defer(E, F)` is ill-formed.
+* Otherwise, `std::experimental::concurrency_v2::execution::defer(E, F, A...)` is ill-formed.
 
 ### `sync_execute`
 
@@ -926,15 +926,15 @@ The name `defer` denotes a customization point. The effect of the expression `st
       constexpr unspecified sync_execute = unspecified;
     }
 
-The name `sync_execute` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::sync_execute(E, F)` for some expressions `E` and `F` is equivalent to:
+The name `sync_execute` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::sync_execute(E, F, A...)` for some expressions `E` and `F`, and where `A...` represents 0 or 1 expressions, is equivalent to:
 
-* `(E).sync_execute(F)` if `has_sync_execute_member_v<decay_t<decltype(E)>>` is true.
+* `(E).sync_execute(F, A...)` if `has_sync_execute_member_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `sync_execute(E, F)` if `has_sync_execute_free_function_v<decay_t<decltype(E)>>` is true.
+* Otherwise, `sync_execute(E, F, A...)` if `has_sync_execute_free_function_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `std::experimental::concurrency_v2::execution::async_execute(E, F).get()` if `can_async_execute_v<decay_t<decltype(E)>>` is true.
+* Otherwise, `std::experimental::concurrency_v2::execution::async_execute(E, F, A...).get()` if `can_async_execute_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `std::experimental::concurrency_v2::execution::sync_execute(E, F)` is ill-formed.
+* Otherwise, `std::experimental::concurrency_v2::execution::sync_execute(E, F, A...)` is ill-formed.
 
 ### `async_execute`
 
@@ -942,15 +942,15 @@ The name `sync_execute` denotes a customization point. The effect of the express
       constexpr unspecified async_execute = unspecified;
     }
 
-The name `async_execute` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::async_execute(E, F)` for some expressions `E` and `F` is equivalent to:
+The name `async_execute` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::async_execute(E, F, A...)` for some expressions `E` and `F`, and where `A...` represents 0 or 1 expressions, is equivalent to:
 
-* `(E).async_execute(F)` if `has_async_execute_member_v<decay_t<decltype(E)>>` is true.
+* `(E).async_execute(F, A...)` if `has_async_execute_member_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `async_execute(E, F)` if `has_async_execute_free_function_v<decay_t<decltype(E)>>` is true.
+* Otherwise, `async_execute(E, F, A...)` if `has_async_execute_free_function_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, if `can_execute_v<decay_t<decltype(E)>>` is true, creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `std::experimental::concurrency_v2::execution::execute(E, g)` where `g` is a function object of unspecified type that performs `DECAY_COPY(F)()`, with the call to `DECAY_COPY` being performed in the thread that called `async_execute`. On successful completion of `DECAY_COPY(F)()`, the return value of `DECAY_COPY(F)()` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(F)()` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready. The result of the expression `std::experimental::concurrency_v2::execution::async_execute(E, F)` is an object of type `std::future<result_of_t<decay_t<decltype(F)>>()>` that refers to the shared state.
+* Otherwise, if `can_execute_v<decay_t<decltype(E)>>` is true, creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `std::experimental::concurrency_v2::execution::execute(E, g, A...)` where `g` is a function object of unspecified type that performs `DECAY_COPY(F)()`, with the call to `DECAY_COPY` being performed in the thread that called `async_execute`. On successful completion of `DECAY_COPY(F)()`, the return value of `DECAY_COPY(F)()` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(F)()` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready. The result of the expression `std::experimental::concurrency_v2::execution::async_execute(E, F, A...)` is an object of type `std::future<result_of_t<decay_t<decltype(F)>>()>` that refers to the shared state.
 
-* Otherwise, `std::experimental::concurrency_v2::execution::async_execute(E, F)` is ill-formed.
+* Otherwise, `std::experimental::concurrency_v2::execution::async_execute(E, F, A...)` is ill-formed.
 
 ### `async_post`
 
@@ -958,17 +958,17 @@ The name `async_execute` denotes a customization point. The effect of the expres
       constexpr unspecified async_post = unspecified;
     }
 
-The name `async_post` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::async_post(E, F)` for some expressions `E` and `F` is equivalent to:
+The name `async_post` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::async_post(E, F, A...)` for some expressions `E` and `F`, and where `A...` represents 0 or 1 expressions, is equivalent to:
 
-* `(E).async_post(F)` if `has_async_post_member_v<decay_t<decltype(E)>>` is true.
+* `(E).async_post(F, A...)` if `has_async_post_member_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `async_post(E, F)` if `has_async_post_free_function_v<decay_t<decltype(E)>>` is true.
+* Otherwise, `async_post(E, F, A...)` if `has_async_post_free_function_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `std::experimental::concurrency_v2::execution::async_execute(E, F)` if `can_async_execute_v<decay_t<decltype(E)>> && is_same_v<execution_execute_blocking_category_t<decay_t<decltype(E)>>, non_blocking_execution_tag>` is true.
+* Otherwise, `std::experimental::concurrency_v2::execution::async_execute(E, F, A...)` if `can_async_execute_v<decay_t<decltype(E)>> && is_same_v<execution_execute_blocking_category_t<decay_t<decltype(E)>>, non_blocking_execution_tag>` is true.
 
-* Otherwise, if `can_post_v<decay_t<decltype(E)>>` is true, creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `std::experimental::concurrency_v2::execution::execute(E, g)` where `g` is a function object of unspecified type that performs `DECAY_COPY(F)()`, with the call to `DECAY_COPY` being performed in the thread that called `async_post`. On successful completion of `DECAY_COPY(F)()`, the return value of `DECAY_COPY(F)()` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(F)()` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready. The result of the expression `std::experimental::concurrency_v2::execution::async_post(E, F)` is an object of type `std::future<result_of_t<decay_t<decltype(F)>>()>` that refers to the shared state.
+* Otherwise, if `can_post_v<decay_t<decltype(E)>>` is true, creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `std::experimental::concurrency_v2::execution::execute(E, g, A...)` where `g` is a function object of unspecified type that performs `DECAY_COPY(F)()`, with the call to `DECAY_COPY` being performed in the thread that called `async_post`. On successful completion of `DECAY_COPY(F)()`, the return value of `DECAY_COPY(F)()` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(F)()` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready. The result of the expression `std::experimental::concurrency_v2::execution::async_post(E, F, A...)` is an object of type `std::future<result_of_t<decay_t<decltype(F)>>()>` that refers to the shared state.
 
-* Otherwise, `std::experimental::concurrency_v2::execution::async_post(E, F)` is ill-formed.
+* Otherwise, `std::experimental::concurrency_v2::execution::async_post(E, F, A...)` is ill-formed.
 
 ### `async_defer`
 
@@ -976,17 +976,17 @@ The name `async_post` denotes a customization point. The effect of the expressio
       constexpr unspecified async_defer = unspecified;
     }
 
-The name `async_defer` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::async_defer(E, F)` for some expressions `E` and `F` is equivalent to:
+The name `async_defer` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::async_defer(E, F, A...)` for some expressions `E` and `F`, and where `A...` represents 0 or 1 expressions, is equivalent to:
 
-* `(E).async_defer(F)` if `has_async_defer_member_v<decay_t<decltype(E)>>` is true.
+* `(E).async_defer(F, A...)` if `has_async_defer_member_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `async_defer(E, F)` if `has_async_defer_free_function_v<decay_t<decltype(E)>>` is true.
+* Otherwise, `async_defer(E, F, A...)` if `has_async_defer_free_function_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `std::experimental::concurrency_v2::execution::async_execute(E, F)` if `can_async_execute_v<decay_t<decltype(E)>> && is_same_v<execution_execute_blocking_category_t<decay_t<decltype(E)>>, non_blocking_execution_tag>` is true.
+* Otherwise, `std::experimental::concurrency_v2::execution::async_execute(E, F, A...)` if `can_async_execute_v<decay_t<decltype(E)>> && is_same_v<execution_execute_blocking_category_t<decay_t<decltype(E)>>, non_blocking_execution_tag>` is true.
 
-* Otherwise, if `can_defer_v<decay_t<decltype(E)>>` is true, creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `std::experimental::concurrency_v2::execution::execute(E, g)` where `g` is a function object of unspecified type that performs `DECAY_COPY(F)()`, with the call to `DECAY_COPY` being performed in the thread that called `async_defer`. On successful completion of `DECAY_COPY(F)()`, the return value of `DECAY_COPY(F)()` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(F)()` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready. The result of the expression `std::experimental::concurrency_v2::execution::async_defer(E, F)` is an object of type `std::future<result_of_t<decay_t<decltype(F)>>()>` that refers to the shared state.
+* Otherwise, if `can_defer_v<decay_t<decltype(E)>>` is true, creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `std::experimental::concurrency_v2::execution::execute(E, g, A...)` where `g` is a function object of unspecified type that performs `DECAY_COPY(F)()`, with the call to `DECAY_COPY` being performed in the thread that called `async_defer`. On successful completion of `DECAY_COPY(F)()`, the return value of `DECAY_COPY(F)()` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(F)()` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready. The result of the expression `std::experimental::concurrency_v2::execution::async_defer(E, F, A...)` is an object of type `std::future<result_of_t<decay_t<decltype(F)>>()>` that refers to the shared state.
 
-* Otherwise, `std::experimental::concurrency_v2::execution::async_defer(E, F)` is ill-formed.
+* Otherwise, `std::experimental::concurrency_v2::execution::async_defer(E, F, A...)` is ill-formed.
 
 ### `then_execute`
 
@@ -994,11 +994,11 @@ The name `async_defer` denotes a customization point. The effect of the expressi
       constexpr unspecified then_execute = unspecified;
     }
 
-The name `then_execute` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::then_execute(E, F, P)` for some expressions `E`, `F`, and `P` is equivalent to:
+The name `then_execute` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::then_execute(E, F, P, A...)` for some expressions `E`, `F`, and `P`, and where `A...` represents 0 or 1 expressions, is equivalent to:
 
-* `(E).then_execute(F, P)` if `has_then_execute_member_v<decay_t<decltype(E)>>` is true.
+* `(E).then_execute(F, P, A...)` if `has_then_execute_member_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `then_execute(E, F, P)` if `has_then_execute_free_function_v<decay_t<decltype(E)>>` is true.
+* Otherwise, `then_execute(E, F, P, A...)` if `has_then_execute_free_function_v<decay_t<decltype(E)>>` is true.
 
 * Otherwise, equivalent to
 
@@ -1019,7 +1019,7 @@ The name `then_execute` denotes a customization point. The effect of the express
 
         return (P).then(E, std::move(__g));
 
-* Otherwise, `std::experimental::concurrency_v2::execution::then_execute(E, F, P)` is ill-formed
+* Otherwise, `std::experimental::concurrency_v2::execution::then_execute(E, F, P, A...)` is ill-formed
 
 ### `bulk_execute`
 
