@@ -1207,7 +1207,7 @@ In the Table below,
 * `bf` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))(i, s)`,
     * where `i` denotes an object whose type is `executor_index_t<X>`,
     * where `s` denotes an object whose type is `S` and
-    * where `decay_t<F>` satisfies the `MoveConstructible` requirements,
+    * where `decay_t<F>` satisfies the `CopyConstructible` requirements,
 * `rf` denotes a `CopyConstructible` function object with zero arguments whose result type is `R`,
 * `sf` denotes a `CopyConstructible` function object with zero arguments whose result type is `S`,
 * `pred` denotes a `Future` object whose result is `pr` and
