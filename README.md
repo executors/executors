@@ -2221,7 +2221,7 @@ When an execution policy is used as a parameter to a parallel algorithm, the
 execution agents that invoke element access functions are created by the
 execution policy's associated executor.
 
-The type of an execution policy's associated executor is the same as the member type `executor_type`.
+The type of an execution policy's associated executor is the member type `executor_type`.
 
 #### Execution category
 
