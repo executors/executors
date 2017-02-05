@@ -689,13 +689,13 @@ In the Table below,
     * `r` denotes an object whose type is `R`,
     * `s` denotes an object whose type is `S`,
   * `n` denotes a shape object whose type is `executor_shape_t<X>`,
-  * `rf` denotes a `CopyConstructible` function object with one argument whose result type is `R`,
-  * `sf` denotes a `CopyConstructible` function object with one argument whose result type is `S`,
+  * `rf` denotes a `CopyConstructible` function object with zero arguments whose result type is `R`,
+  * `sf` denotes a `CopyConstructible` function object with zero arguments whose result type is `S`,
   * `pred` denotes a future object whose result is `pr`.
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.bulk_'e'(..., n, ...,[ rf,] sf)` <br/> `bulk_'e'(x, ..., n, ...,[ rf,] sf)` | `'ret'` | Creates a group of execution agents of shape `n` with forward progress guarantees of `executor_execution_mapping_category_t<X>` which invokes `DECAY_COPY( std::forward<F>(f))(i, r, s)` if `'ret'` is non void otherwise invokes `DECAY_COPY( std::forward<F>(f))(i, s)` , with the call to `DECAY_COPY` being evaluated in the thread that called `bulk_'e'`. <br/> <br/> Parameter `rf` is only included in the execution function if `'ret'` is non void. <br/> <br/> The value of type `R` returned is the result of `rf(n)` if `'ret'` is non void. <br/> <br/> Invokes `rf(n)` on an unspecified execution agent. <br/><br/> Invokes `sf(n)` on an unspecified execution agent. |
+| `x.bulk_'e'(..., n, ...,[ rf,] sf)` <br/> `bulk_'e'(x, ..., n, ...,[ rf,] sf)` | `'ret'` | Creates a group of execution agents of shape `n` with forward progress guarantees of `executor_execution_mapping_category_t<X>` which invokes `DECAY_COPY( std::forward<F>(f))(i, r, s)` if `'ret'` is non void otherwise invokes `DECAY_COPY( std::forward<F>(f))(i, s)` , with the call to `DECAY_COPY` being evaluated in the thread that called `bulk_'e'`. <br/> <br/> Parameter `rf` is only included in the execution function if `'ret'` is non void. <br/> <br/> The value of type `R` returned is the result of `rf()` if `'ret'` is non void. <br/> <br/> Invokes `rf()` on an unspecified execution agent. <br/><br/> Invokes `sf()` on an unspecified execution agent. |
 
 #### Execution function combinations
 
