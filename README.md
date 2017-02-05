@@ -589,7 +589,7 @@ or a free function of the form:
 
 where `x` denotes an executor object, `e` denotes the function name and `...` denotes the parameters.
 
-Each execution function is made up from a combination of three properties: it's **blocking semantics**, **directionality** and **carinality**. The combination of these properties determines the execution function's name,  parameters and semantics.
+Each execution function is made up from a combination of three properties: its **blocking semantics**, **directionality**, and **cardinality**. The combination of these properties determines the execution function's name, parameters, and semantics.
 
 #### Naming of execution functions
 
