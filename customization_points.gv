@@ -7,22 +7,33 @@ digraph G {
     labeljust = "l";
   ];
 
-  execute [];
-  post [];
-  defer [];
-  sync_execute [];
-  async_execute [];
-  async_post [];
-  async_defer [];
-  /*then_execute [];*/
-  bulk_execute [];
-  bulk_post [];
-  bulk_defer [];
-  bulk_sync_execute [];
-  bulk_async_execute [];
-  bulk_async_post [];
-  bulk_async_defer [];
-  /*bulk_then_execute [];*/
+
+  subgraph T {
+    rank = "same";
+    execute [];
+    bulk_execute [];
+    then_execute [];
+  }
+
+  subgraph U {
+    post [];
+    defer [];
+    sync_execute [];
+    bulk_post [];
+    bulk_defer [];
+    async_execute [];
+    bulk_async_execute [];
+  }
+
+  subgraph V {
+    async_post [];
+    async_defer [];
+    bulk_sync_execute [];
+    bulk_async_post [];
+    bulk_async_defer [];
+  }
+
+  bulk_then_execute [];
 
   /* These adaptations are always possible */
   {
@@ -35,6 +46,8 @@ digraph G {
     bulk_sync_execute -> bulk_async_execute;
     bulk_async_post -> bulk_post;
     bulk_async_defer -> bulk_defer;
+    bulk_then_execute -> then_execute;
+    bulk_then_execute -> bulk_sync_execute;
   }
 
   /* These adaptations are conditionally possible */
