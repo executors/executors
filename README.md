@@ -1,6 +1,8 @@
 % A Unified Executors Proposal for C++ | P0443R1
 
 ----------------    -------------------------------------
+Title:              A Unified Executors Proposal for C++
+
 Authors:            Jared Hoberock, jhoberock@nvidia.com
 
                     Michael Garland, mgarland@nvidia.com
@@ -37,7 +39,7 @@ Document Number:    P0443R1
 
 Date:               2017-01-06
 
-Audience:           SG1 (Concurrency)
+Audience:           SG1 - Concurrency and Parallelism
 
 Reply-to:           jhoberock@nvidia.com
 
@@ -91,7 +93,7 @@ in C++. Executors should be *composable*, *adaptable*, and *customizable*,
 which we believe reflects the needs of users, library implementors, and
 executor authors, respectively. Short code examples demonstrating how our
 design accomodates the needs of these different audiences may be found in
-the appendix.
+the [Appendix](#code-examples).
    
 By *composable*, we mean that executors should cross software boundaries
 allowing disparate software components to interoperate using a
@@ -126,26 +128,27 @@ Because we envision executors to be the workhorses of execution in generic
 code, it is critical that they be adaptable to a variety of use cases. For
 example, a generic function like `std::invoke()` should be interoperable with
 as many types of executor as possible, not just that set of executors which
-natively provide the synchronous, single-agent operation `sync_execute()`. To
+natively provide the synchronous, single-agent execution function `sync_execute()`. To
 generalize across use cases, we have designed executor customization points to
 adapt the behavior of an executor when its native behavior is not a precise
 match for the use case of interest. For example, `std::invoke()` may
-interoperate with an executor which natively provides the operation
+interoperate with an executor which natively provides the execution function
 `async_execute()` by calling the customization point `execute::sync_execute()`.
 This customization point will adapt the executor by calling its natively
-provided `async_execute()` operation, and wait on the resulting future. In this
+provided `async_execute()` execution function, and wait on the resulting future. In this
 way, generic code may uniformly compose with executors with minimal
 restriction.
 
-Our design focuses on defining a set of optional customization points instead
-of imposing a set of strict executor requirements to maximize the latitude of
+Our design focuses on defining a set of optional execution functions instead of
+imposing a set of strict executor requirements to maximize the latitude of
 executor authors. Rather than prematurely attempt to circumscribe the universe
 of all possible executors with a set of universal requirements, we believe it
 is more flexible to identify a set of use cases for work creation which can
 grow in the future. Executor authors may choose to natively support one or more
-of these use cases by implementing the appropriate customization point, and may
-opt in to new customization points as they are standardized. Due to their
-adaptability, an executor will be future-proof to new customization points.
+of these use cases by implementing the appropriate execution function, and may
+opt in to natively supporting new use cases as they are introduced. Due to
+their adaptability, an executor will be future-proof to new customization
+points.
 
 The following diagram shows the automatic adaptations performed by the
 customization points, assuming a corresponding native implementation (member or
@@ -160,7 +163,7 @@ be used only if `executor_execute_blocking_category_t<Executor>` is
 In order to help programmers define their own ad hoc requirements for executor
 types, our design provides a set of executor type traits for introspecting the
 properties of executors at compile time. These fine-grained type traits detect
-characteristics such as native support for executor operations as well as
+characteristics such as native support for execution functions as well as
 compatibility between an executor type and an executor customization point.
 
 For example, for an execution function such as `execute`, the executor supports
@@ -204,7 +207,7 @@ executor category include basic requirements on executor types as well as
 requirements based on their compatibility with customization points. For
 example, the executor category `TwoWayExecutor` includes all executors
 compatible with the two-way, single-agent executor customization points such as
-`async_execute()`. Executor categories are not necessarily mutually exclusive,
+`execution::async_execute()`. Executor categories are not necessarily mutually exclusive,
   and one executor type may be a member of multiple categories if the
   requirements for those categories admit mutual membership.
 
@@ -219,7 +222,7 @@ This proposal defines four named categories: `OneWayExecutor`,
      synchronization. This category summarizes the requirements for executors
      which can compose with parallel algorithms.  Finally,
      `NonblockingOneWayExecutor` extends `OneWayExecutor`'s requirements by
-     demanding that an executor's work creation operations do not block the
+     demanding that an executor's execution functions do not block the
      calling thread of those operations. This additional requirement on
      blocking behavior is critical to the needs of the Networking TS.
 
@@ -572,7 +575,7 @@ The library defines several named customization point objects. In every translat
 
 ### `Future` requirements
 
-A type `F` meets the `Future` requirements for some value type `T` if `F` is `std::experimental::future<T>` (defined in the C++ Concurrency TS, ISO/IEC TS 19571:2016).  [*Note:* This concept is included as a placeholder to be elaborate, with the expectation that the elaborated requirements for `Future` will expand the applicability of some executor customization points. *--end note*]
+A type `F` meets the `Future` requirements for some value type `T` if `F` is `std::experimental::future<T>` (defined in the C++ Concurrency TS, ISO/IEC TS 19571:2016).  [*Note:* This concept is included as a placeholder to be elaborated, with the expectation that the elaborated requirements for `Future` will expand the applicability of some executor customization points. *--end note*]
 
 ### `ProtoAllocator` requirements
 
@@ -594,7 +597,7 @@ or a free function of the form:
 
 where `x` denotes an executor object, `e` denotes the function name and `...` denotes the parameters.
 
-Each execution function is made up from a combination of three properties: it's **blocking semantics**, **directionality** and **carinality**. The combination of these properties determines the execution function's name,  parameters and semantics.
+Each execution function is made up from a combination of three properties: its **blocking semantics**, **directionality**, and **cardinality**. The combination of these properties determines the execution function's name, parameters, and semantics.
 
 #### Naming of execution functions
 
@@ -627,7 +630,7 @@ In the Table below, `x` denotes a (possibly const) executor object of type `X` a
 
 ##### Requirements on execution functions having non-blocking semantics
 
-In the Table below, `x` denotes a (possibly const) executor object of type `X` and`f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
+In the Table below, `x` denotes a (possibly const) executor object of type `X` and `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
@@ -660,7 +663,7 @@ In the Table below, `x` denotes a (possibly const) executor object of type `X`, 
 
 ##### Requirements on execution functions of asynchronous two-way directionality
 
-In the Table below, `x` denotes a (possibly const) executor object of type `X`, `'e'` denotes an expression from the requrirements on blocking semantics, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements and `pred` denotes a future object whose result is `pr`.
+In the Table below, `x` denotes a (possibly const) executor object of type `X`, `'e'` denotes an expression from the requrirements on blocking semantics, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements and `pred` denotes a `Future` object whose result is `pr`.
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
@@ -687,20 +690,20 @@ In the Table below, `x` denotes a (possibly const) executor object of type `X`, 
 In the Table below,
 
   * `x` denotes a (possibly const) executor object of type `X`,
-  * `'e'` denotes an expression from the requrirements on directionality,
+  * `'e'` denotes an expression from the requirements on directionality,
   * `'ret'` denotes the return type of the execution function from previous properties,
   * `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))(i, r, s)` and where `decay_t<F>` satisfies the `MoveConstructible` requirements where
     * `i` denotes an object whose type is `executor_index_t<X>`,
     * `r` denotes an object whose type is `R`,
     * `s` denotes an object whose type is `S`,
   * `n` denotes a shape object whose type is `executor_shape_t<X>`,
-  * `rf` denotes a `CopyConstructible` function object with one argument whose result type is `R`,
-  * `sf` denotes a `CopyConstructible` function object with one argument whose result type is `S`,
-  * `pred` denotes a future object whose result is `pr`.
+  * `rf` denotes a `CopyConstructible` function object with zero arguments whose result type is `R`,
+  * `sf` denotes a `CopyConstructible` function object with zero arguments whose result type is `S`,
+  * `pred` denotes a `Future` object whose result is `pr`.
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.bulk_'e'(..., n, ...,[ rf,] sf)` <br/> `bulk_'e'(x, ..., n, ...,[ rf,] sf)` | `'ret'` | Creates a group of execution agents of shape `n` with forward progress guarantees of `executor_execution_mapping_category_t<X>` which invokes `DECAY_COPY( std::forward<F>(f))(i, r, s)` if `'ret'` is non void otherwise invokes `DECAY_COPY( std::forward<F>(f))(i, s)` , with the call to `DECAY_COPY` being evaluated in the thread that called `bulk_'e'`. <br/> <br/> Parameter `rf` is only included in the execution function if `'ret'` is non void. <br/> <br/> The value of type `R` returned is the result of `rf(n)` if `'ret'` is non void. <br/> <br/> Invokes `rf(n)` on an unspecified execution agent. <br/><br/> Invokes `sf(n)` on an unspecified execution agent. |
+| `x.bulk_'e'(..., n, ...,[ rf,] sf)` <br/> `bulk_'e'(x, ..., n, ...,[ rf,] sf)` | `'ret'` | Creates a group of execution agents of shape `n` with forward progress guarantees of `executor_execution_mapping_category_t<X>` which invokes `DECAY_COPY( std::forward<F>(f))(i, r, s)` if `'ret'` is non void otherwise invokes `DECAY_COPY( std::forward<F>(f))(i, s)` , with the call to `DECAY_COPY` being evaluated in the thread that called `bulk_'e'`. <br/> <br/> Parameter `rf` is only included in the execution function if `'ret'` is non void. <br/> <br/> The value of type `R` returned is the result of `rf()` if `'ret'` is non void. <br/> <br/> Invokes `rf()` on an unspecified execution agent. <br/><br/> Invokes `sf()` on an unspecified execution agent. |
 
 #### Execution function combinations
 
@@ -745,30 +748,30 @@ Table: (Base executor requirements) \label{base_executor_requirements}
 
 ### `OneWayExecutor` requirements
 
-The `OneWayExecutor` requirements form the basis of the one-way executor concept taxonomy. This set of requirements specifies operations for creating execution agents without a channel for awaiting the completion of a submitted function object and obtaining its result. [*Note:* That is, the executor provides fire-and-forget semantics. *--end note*]
+The `OneWayExecutor` requirements specify requirements for executors which create execution agents without a channel for awaiting the completion of a submitted function object and obtaining its result. [*Note:* That is, the executor provides fire-and-forget semantics. *--end note*]
 
 A type `X` satisfies the `OneWayExecutor` requirements if it satisfies the `BaseExecutor` requirements, and `can_execute_v<X>` is true.
 
 ### `NonBlockingOneWayExecutor` requirements
 
-The `NonBlockingOneWayExecutor` requirements add one-way operations that are guaranteed not to block the caller pending completion of submitted function objects.
+The `NonBlockingOneWayExecutor` requirements refine the `OneWayExecutor` requirements by adding one-way operations that are guaranteed not to block the caller pending completion of submitted function objects.
 
 A type `X` satisfies the `NonBlockingOneWayExecutor` requirements if it satisfies the `OneWayExecutor` requirements, `can_post_v<X>` is true, and `can_defer_v<X>` is true.
 
 ### `TwoWayExecutor` requirements
 
-The `TwoWayExecutor` requirements form the basis of the two-way executor concept taxonomy;
-every two-way executor satisfies the `TwoWayExecutor` requirements. This set of requirements
-specifies operations for creating execution agents with a channel for awaiting the completion
-of a submitted function object and obtaining its result.
+The `TwoWayExecutor` requirements specify requirements for executors which
+creating execution agents with a channel for awaiting the completion of a
+submitted function object and obtaining its result.
 
 A type `X` satisfies the `TwoWayExecutor` requirements if it satisfies the `BaseExecutor` requirements, `can_sync_execute_v<X>` is true, and `can_async_execute_v<X>` is true.
 
 ### `BulkTwoWayExecutor` requirements
 
-The `BulkTwoWayExecutor` requirements form the basis of the bulk two-way executor concept.
-This set of requirements specifies operations for creating groups of execution agents in bulk from a single operation
-with the ability to synchronize these groups of agents with another thread.
+The `BulkTwoWayExecutor` requirements specify requirements for executors which
+create groups of execution agents in bulk from a single execution function with
+a channel for awaiting the completion of a submitted function object invoked by
+those execution agents and obtaining its result.
 
 A type `X` satisfies the `BulkTwoWayExecutor` requirements if it satisfies the `BaseExecutor` requirements, `can_bulk_sync_execute_v<X>` is true, `can_bulk_async_execute_v<X>` is true, and `can_bulk_then_execute_v<X>` is true.
 
@@ -1206,16 +1209,27 @@ The name `bulk_then_execute` denotes a customization point. The effect of the ex
 This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
 
 In the Table below,
+
 * `t` denotes a (possibly const) executor object of type `T`,
-* `e` denotes the name of the execution function,
 * `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()`, where `decay_t<F>` satisfies the `MoveConstructible` requirements.
-* `bf` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))(i, s)`,
- * where `i` denotes an object whose type is `executor_index_t<X>`,
- * where `s` denotes an object whose type is `S` and
- * where `decay_t<F>` satisfies the `MoveConstructible` requirements,
-* `rf` denotes a `CopyConstructible` function object with one argument whose result type is `R`,
-* `sf` denotes a `CopyConstructible` function object with one argument whose result type is `S`,
-* `pred` denotes a future object whose result is `pr` and
+* `bof` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(bof))(i, s)`,
+    * where `i` denotes an object whose type is `executor_index_t<X>`,
+    * where `s` denotes an object whose type is `S` and
+    * where `decay_t<F>` satisfies the `CopyConstructible` requirements,
+* `btf` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(btf))(i, r, s)`,
+    * where `i` denotes an object whose type is `executor_index_t<X>`,
+    * where `r` denotes an object whose type is `R`,
+    * where `s` denotes an object whose type is `S` and
+    * where `decay_t<F>` satisfies the `CopyConstructible` requirements,
+* `bcf` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(bcf))(i, p, r, s)`,
+    * where `i` denotes an object whose type is `executor_index_t<X>`,
+    * where `p` denotes an object whose type is `P`,
+    * where `r` denotes an object whose type is `R`,
+    * where `s` denotes an object whose type is `S` and
+    * where `decay_t<F>` satisfies the `CopyConstructible` requirements,
+* `rf` denotes a `CopyConstructible` function object with zero arguments whose result type is `R`,
+* `sf` denotes a `CopyConstructible` function object with zero arguments whose result type is `S`,
+* `pred` denotes a `Future` object whose result type is `P` and
 * `a` denotes a (possibly const) value of type `A` satisfying the `ProtoAllocator` requirements.
 
 | Template                   | Conditions           | Preconditions  |
@@ -1228,18 +1242,18 @@ In the Table below,
 | `template<class T>` <br/>`struct can_async_post` | The expressions `std::experimental::concurrency_v2::execution::async_post(t, f)` and `std::experimental::concurrency_v2::execution::async_post(t, f, a)` are well-formed. | `T` is a complete type. |
 | `template<class T>` <br/>`struct can_async_defer` | The expressions `std::experimental::concurrency_v2::execution::async_defer(t, f)` and `std::experimental::concurrency_v2::execution::async_defer(t, f, a)` is well-formed. | `T` is a complete type. |
 | `template<class T>` <br/>`struct can_then_execute` | The expressions `std::experimental::concurrency_v2::execution::then_execute(t, f, pred)` and `std::experimental::concurrency_v2::execution::then_execute(t, f, pred)` are well-formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_bulk_execute` | The expression `std::experimental::concurrency_v2::execution::bulk_execute(t, bf, s, rf, sf)` is well-formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_bulk_post` | The expression `std::experimental::concurrency_v2::execution::bulk_post(t, bf, s, rf, sf)` is well-formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_bulk_defer` | The expression `std::experimental::concurrency_v2::execution::bulk_defer(t, bf, s, rf, sf)` is well-formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_bulk_sync_execute` | The expression `std::experimental::concurrency_v2::execution::bulk_sync_execute(t, bf, s, rf, sf)` is well-formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_bulk_async_execute` | The expression `std::experimental::concurrency_v2::execution::bulk_async_execute(t, bf, s, rf, sf)` is well-formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_bulk_async_post` | The expression `std::experimental::concurrency_v2::execution::bulk_async_post(t, bf, s, rf, sf)` is well-formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_bulk_async_defer` | The expression `std::experimental::concurrency_v2::execution::bulk_async_defer(t, bf, s, rf, sf)` is well-formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_bulk_then_execute` | The expression `std::experimental::concurrency_v2::execution::bulk_then_execute(t, bf, s, pred, rf, sf)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_bulk_execute` | The expression `std::experimental::concurrency_v2::execution::bulk_execute(t, bof, s, sf)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_bulk_post` | The expression `std::experimental::concurrency_v2::execution::bulk_post(t, bof, s, sf)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_bulk_defer` | The expression `std::experimental::concurrency_v2::execution::bulk_defer(t, bof, s, sf)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_bulk_sync_execute` | The expression `std::experimental::concurrency_v2::execution::bulk_sync_execute(t, btf, s, rf, sf)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_bulk_async_execute` | The expression `std::experimental::concurrency_v2::execution::bulk_async_execute(t, btf, s, rf, sf)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_bulk_async_post` | The expression `std::experimental::concurrency_v2::execution::bulk_async_post(t, btf, s, rf, sf)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_bulk_async_defer` | The expression `std::experimental::concurrency_v2::execution::bulk_async_defer(t, btf, s, rf, sf)` is well-formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_bulk_then_execute` | The expression `std::experimental::concurrency_v2::execution::bulk_then_execute(t, bcf, s, pred, rf, sf)` is well-formed. | `T` is a complete type. |
 
 ## Executor type traits
 
-### Determining that an executor satisfies the executor requirements
+### Determining that a type satisfies executor category requirements
 
     template<class T> struct is_one_way_executor;
     template<class T> struct is_non_blocking_one_way_executor;
@@ -1389,7 +1403,7 @@ Components which create groups of execution agents may use *execution
 categories* to communicate the forward progress and ordering guarantees of
 these execution agents with respect to other agents within the same group.
   
-*The meanings and relative "strength" of these categores are to be defined.
+TODO: *The meanings and relative "strength" of these categores are to be defined.
 Most of the wording for `sequenced_execution_tag`, `parallel_execution_tag`,
 and `unsequenced_execution_tag` can be migrated from S 25.2.3 p2, p3, and
 p4, respectively.*
@@ -1884,14 +1898,10 @@ Let `e` be the target object of `*this`. Let `a1` be the allocator that was spec
 
 *Returns:* A future with an associated shared state that will contain the result of `fd()`. [*Note:* `e.async_execute(g)` may return any future type that satisfies the Future requirements, and not necessarily `std::future`. One possible implementation approach is for the polymorphic wrapper to attach a continuation to the inner future via that object's `then()` member function. When invoked, this continuation stores the result in the outer future's associated shared and makes that shared state ready. *--end note*]
 
-## Thread pool type
+## Thread pools
 
-The thread pool class is meant to represent a common approach to introducing
-concurrency or parallelism to code without the siginificant overhead of creating
-and destroying threads whenever concurrency is needed. There are a significant
-number of possible thread pool approaches, the statically sized thread pool is
-one of the simplest that still provides the ability for code to introduce low
-cost concurrency.
+Thread pools create execution agents which execute on threads without incurring the
+overhead of thread creation and destruction whenever such agents are needed.
 
 ### Header `<thread_pool>` synopsis
 
@@ -1909,15 +1919,15 @@ inline namespace concurrency_v2 {
 
 ### Class `static_thread_pool`
 
-This class represents a statically sized thread pool as a common/basic resource
-type. This pool is capable of being grown by attaching threads to the pool but
-it will not change size in any automatic way. This pool provides an
-effectively unbounded input queue and as such calls to add tasks to a
-static_thread_pool's associated executors will not block on the input queue.
+`static_thread_pool` is a statically-sized thread pool which may be explicitly
+grown via thread attachment. However, `static_thread_pool` does not
+automatically change size. 
 
-The `static_thread_pool` provides parallel execution agents and therefore
-situations which assume concurrent execution properties will not guarantee
-correctness.
+`static_thread_pool` presents an effectively unbounded input queue and the execution functions of `static_thread_pool`'s associated executors do not block on this input queue.
+
+[*Note:* Because `static_thread_pool` provides parallel execution agents,
+situations which require concurrent execution properties are not guaranteed
+correctness. *--end note.*]
 
 ```
 class static_thread_pool
@@ -2102,8 +2112,8 @@ For the customization points `execute`, `sync_execute`, `async_execute`,
 `bulk_execute`, `bulk_sync_execute`, and `bulk_async_execute`, if
 `running_in_this_thread()` is `true`, calls at least one of the submitted
 function objects in the current thread prior to returning from the
-customization point. *[Note:* If this function object exits via an exception,
-the exception propagates to the caller. *--end note]*
+customization point. [*Note:* If this function object exits via an exception,
+the exception propagates to the caller. *--end note*]
 
 #### Constructors
 
@@ -2219,7 +2229,7 @@ When an execution policy is used as a parameter to a parallel algorithm, the
 execution agents that invoke element access functions are created by the
 execution policy's associated executor.
 
-The type of an execution policy's associated executor is the same as the member type `executor_type`.
+The type of an execution policy's associated executor is the member type `executor_type`.
 
 #### Execution category
 
@@ -2411,7 +2421,7 @@ Table: (NetworkingExecutionContext requirements) \label{net_execution_context_re
 
 # Appendix
 
-## Code Examples
+## Code Examples {#code-examples}
 
 These short code examples demonstrate how we expect programmers to use executors to create execution in different use cases.
 
