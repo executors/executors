@@ -93,7 +93,7 @@ in C++. Executors should be *composable*, *adaptable*, and *customizable*,
 which we believe reflects the needs of users, library implementors, and
 executor authors, respectively. Short code examples demonstrating how our
 design accomodates the needs of these different audiences may be found in
-the appendix.
+the [Appendix](#code-examples).
    
 By *composable*, we mean that executors should cross software boundaries
 allowing disparate software components to interoperate using a
@@ -2413,7 +2413,7 @@ Table: (NetworkingExecutionContext requirements) \label{net_execution_context_re
 
 # Appendix
 
-## Code Examples
+## Code Examples {#code-examples}
 
 These short code examples demonstrate how we expect programmers to use executors to create execution in different use cases.
 
