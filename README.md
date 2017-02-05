@@ -2104,8 +2104,8 @@ For the customization points `execute`, `sync_execute`, `async_execute`,
 `bulk_execute`, `bulk_sync_execute`, and `bulk_async_execute`, if
 `running_in_this_thread()` is `true`, calls at least one of the submitted
 function objects in the current thread prior to returning from the
-customization point. *[Note:* If this function object exits via an exception,
-the exception propagates to the caller. *--end note]*
+customization point. [*Note:* If this function object exits via an exception,
+the exception propagates to the caller. *--end note*]
 
 #### Constructors
 
