@@ -293,7 +293,7 @@ context would allow programmers to introduce executors without breaking any
 assumed semantics of `std::async()`, such as concurrent execution agents,
 thread-per-request, and future blocking behavior.
 
-Besides introducing concrete execution context types, a future proposal could
+Besides introducing concrete execution context types, future proposals could
 refine our `ExecutionContext` concept by introducing concepts with additional
 requirements. As an example, a parallel execution framework might define
 requirements for a hypothetical `IntrospectableExecutionContext` which would
