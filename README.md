@@ -633,7 +633,7 @@ The directionality property of an execution function may be one of the following
 
 * *One-way:* The execution function creates execution agents without a channel for awaiting the completion of a submitted function object or for obtaining its result. *Note:* That is, the executor provides fire-and-forget semantics. *--end note*] The names of execution functions having one-way directionality do not have an associated prefix.
 * *Synchronous two-way:* The execution function blocks until execution of the submitted function is complete, and returns the result. The names of execution functions having synchronous two-way directionality have the prefix `sync_`.
-* *Asynchronous two-way:* The execution function provides a *TODO* future-like channel for awaiting the completion of a submitted function object and obtaining its result. The names of execution functions having asynchronous two-way directionality have the prefix `async_` or `then_`.
+* *Asynchronous two-way:* The execution function returns a `Future` for awaiting the completion of a submitted function object and obtaining its result. The names of execution functions having asynchronous two-way directionality have the prefix `async_` or `then_`.
 
 ##### Requirements on execution functions of one-way directionality
 
