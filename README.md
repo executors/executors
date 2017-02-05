@@ -1245,7 +1245,7 @@ In the Table below,
 
 ## Executor type traits
 
-### Determining that an executor satisfies the executor requirements
+### Determining that a type satisfies executor category requirements
 
     template<class T> struct is_one_way_executor;
     template<class T> struct is_non_blocking_one_way_executor;
