@@ -1,9 +1,9 @@
 pdf: README.md
-	pandoc README.md -o README.pdf -H header.tex --number-sections -o executors.issaquah_2016.pdf
+	pandoc README.md -o README.pdf -H header.tex --number-sections -o P0443R1_A_Unified_Executors_Proposal.pdf
 
 html: README.md
-	pandoc README.md -o README.html --number-sections -o executors.issaquah_2016.html
+	pandoc README.md -o README.html --number-sections -o P0443R1_A_Unified_Executors_Proposal.html
 
 clean:
-	rm executors.issaquah_2016.pdf
+	rm P0443R1*
 
