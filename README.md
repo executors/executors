@@ -674,8 +674,8 @@ In the Table below, `x` denotes a (possibly const) executor object of type `X`, 
 
 The cardinality property of an execution function may be one of the following:
 
-* *Single:* The execution function permits submission of a single function object to the executor. The names of execution functions having single cardinality do not have an associated prefix.
-* *Bulk:* The execution function allows submission of multiple function objects in a single invocation, with the number determined at runtime. The names of execution functions having bulk cardinality have the prefix `bulk_`.
+* *Single:* The execution function creates a single execution agent. The names of execution functions having single cardinality do not have an associated prefix.
+* *Bulk:* The execution function creates multiple execution agents from a single invocation, with the number determined at runtime. The names of execution functions having bulk cardinality have the prefix `bulk_`.
 
 ##### Requirements on execution functions of single cardinality
 
