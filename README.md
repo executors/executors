@@ -131,15 +131,21 @@ as many types of executor as possible, not just that set of executors which
 natively provide the synchronous, single-agent execution function
 `sync_execute()`. To generalize across use cases, we have designed executor
 customization points to adapt the behavior of an executor when its native
-behavior is not a precise match for the use case of interest. These adaptations
-performed by executor customization points are always performed in such a way
-as to ensure that various semantic guarantees provided by executors are never
-weakened. For example, `std::invoke()` may interoperate with an executor which
-natively provides the execution function `async_execute()` by calling the
-customization point `execute::sync_execute()`. This customization point will
-adapt the executor by calling its natively provided `async_execute()` execution
-function, and wait on the resulting future. In this way, generic code may
-uniformly compose with executors with minimal restriction.
+behavior is not a precise match for the use case of interest. For example,
+`std::invoke()` may interoperate with an executor which natively
+provides the execution function `async_execute()` by calling the
+customization point `execution::sync_execute()`. This customization
+point will adapt the executor by calling its natively provided
+`async_execute()` execution function, and wait on the resulting
+future. In this way, generic code may uniformly compose with executors
+with minimal restriction.
+
+These adaptations performed by executor customization points are always
+performed in such a way as to ensure that various semantic guarantees provided
+by executors are never weakened. For example, if an executor guarantees that
+its possibly-blocking execution functions are always non-blocking, then an
+adapted implementation of `execution::async_execute` will always be
+non-blocking when that executor is composed with this customization point.
 
 Our design focuses on defining a set of optional execution functions instead of
 imposing a set of strict executor requirements to maximize the latitude of
