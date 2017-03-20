@@ -49,7 +49,7 @@ Executors themselves are the primary concern of our design.
 * Demonstrate application-level library interface parameterized by executors.  Focus on
   something like a numerical solver, not on standard algorithms like `for_each`.
   Highlight compositional properties.
-# Obtaining executors from a context like `{static,dynamic}_thread_pool`
+* Obtaining executors from a context like `{static,dynamic}_thread_pool`
 
 # Building Control Structures
 * Define what we mean by “control structure”.  Highlight examples from the Standard Library,
