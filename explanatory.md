@@ -11,7 +11,33 @@ Paper should be no longer than 10 pages in a reasonable (10pt) font.
   informed by this paper as well.
 
 # Terminology
-* Define terms like “executor”, “execution resource”, and so on
+
+Our proposed programming model introduces executors as a uniform interface for
+creating execution that may not be common to the underlying execution resources
+actually responsible for the mechanics of implementing that execution. There
+are three major concepts involved in this interplay: execution resources,
+execution contexts, and executors.
+
+An **execution resource** is an instance of a hardware and/or software facility
+capable of executing a callable function object. Different resources may offer
+a broad array of functionality and semantics, and may range from SIMD vector
+units accessible in a single thread to an entire runtime managing a large
+collection of threads. In practice, different resources may also exhibit
+different performance characteristics of interest to the performance-conscious
+programmer. For example, an implementation might expose different processor
+cores, with potentially non-uniform access to memory, as separate resources to
+enable programmers to reason about locality.
+
+An **execution context** is a program object that represents a specific
+collection of execution resources.
+
+An **executor** is an object associated with a specific execution context. It
+provides a mechanism for creating execution agents from a callable function
+object. The agents created are bound to the executor's context, and hence to
+one or more of the resources that context represents.
+
+Executors themselves are the primary concern of our design.
+
 * If needed, expand into a more general Background section
 
 # Using Executors
@@ -62,3 +88,18 @@ Paper should be no longer than 10 pages in a reasonable (10pt) font.
 * Should include:  dynamic thread pool, Future concept
 
 # References
+
+1.  [N3378 - A preliminary proposal for work executors](https://wg21.link/N3378), M. Austern et al., 2012-02-24.
+2.  [N3562 - Executors and schedulers, revision 1](https://wg21.link/N3562), M. Austern et al., 2013-03-15.
+3.  [N3731 - Executors and schedulers, revision 2](https://wg21.link/N3731), Chris Mysen and Niklas Gustafsson, 2013-08-25.
+4.  [N3785 - Executors and schedulers, revision 3](https://wg21.link/N3785), C. Mysen et al., 2013-10-08.
+5.  [N4046 - Executors and Asynchronous Operations](https://wg21.link/N4046), Christopher Kohlhoff, 2014-05-26.
+6.  [N4406 - Parallel Algorithms Need Executors](https://wg21.link/N4406), J. Hoberock et al., 2015-04-10.
+7.  [N4414 - Executors and schedulers, revision 5](https://wg21.link/N4414), Chris Mysen, 2015-04-10.
+8.  [P0008R0 - C++ Executors](https://wg21.link/P0008R0), Chris Mysen, 2015-09-27.
+9.  [P0058R0 - An Interface for Abstracting Execution](https://wg21.link/P0058R0), J. Hoberock et al., 2015-09-25.
+10. [P0058R1 - An Interface for Abstracting Execution](https://wg21.link/P0058R1), J. Hoberock et al., 2016-02-12.
+11. [P0285R0 - Using customization points to unify executors](https://wg21.link/P0285R0), Christopher Kohlhoff, 2016-02-14.
+12. [P0443R0 - A Unified Executors Proposal for C++](https://wg21.link/P0443R0), J. Hoberock et al., 2016-10-17.
+13. [P0443R1 - A Unified Executors Proposal for C++](https://wg21.link/P0443R1), J. Hoberock et al., 2017-01-06.
+
