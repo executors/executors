@@ -856,6 +856,10 @@ especially if it requires any sort of graph analysis performed by a dynamic
 runtime. Providing executors the opportunity to specialize for cases where
 it is known at compile time that no dependency exists avoids both hazards.
 
+Moreover, common types of executor may not naturally create execution in terms
+of continutions on futures. `bulk_async_execute` is a better match for these
+cases because it does not require a predecessor dependency.
+
 ### `bulk_async_post`
 
     template<class Executor, class Function, class Factory1, class Factory2>
