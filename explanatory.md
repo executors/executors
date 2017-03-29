@@ -41,21 +41,16 @@ function like `parallel_for` might be manageable, consider the maintainance
 complexity of the cross product of a set of parallel algorithms with a set of
 facilities.
 
-**Synchronization.** Execution created through different facilities likewise
-have different synchronization properties. For example, an OpenMP parallel for
-loop is synchronous because the execution the thread which spawns it does not
-proceed past the loop until after each iteration of the parallel for loop is
-complete. In contrast, the execution of GPU kernels is typically asynchronous;
-kernel launches return immediately and the launching thread continues its
-execution without waiting for the kernel's execution to complete. Depending on
-its implementation, work submitted to a thread pool may or may not block the
-submitting thread.
-
-Correct code must account for these synchronization differences or suffer a
-data race. To minimize the possibility of races, these differences should be
-clearly communicated by library interfaces in a way that can be validated by
-tools. Is our `parallel_for` library itself synchronous or asynchronous?
-Vaguely, it depends on which facility is used.
+**Synchronization.** Execution created through different facilities has
+different synchronization properties. For example, an OpenMP parallel for loop
+is synchronous because the spawning thread blocks until the loop is complete.
+In contrast, the execution of GPU kernels is typically asynchronous; kernel
+launches return immediately and the launching thread continues its execution
+without waiting for the kernel's execution to complete. Work submitted to a
+thread pool may or may not block the submitting thread. Correct code must
+account for these synchronization differences or suffer data races. To minimize
+the possibility of races, these differences should be exposed by library
+interfaces.
 
 **Non-Expressivity.** Our `parallel_for` example restricts its client to a few
 simple modes of execution through the use of a single integer choosing which
@@ -205,9 +200,7 @@ may initially choose to execute `solve` sequentially:
 
     solve(std::execution::seq, A, x, b);
 
-Later, the client may notice that `solve` is important to the overall
-performance of their application and that parallelization would be worthwhile,
-so they substitute `par` for `seq`:
+Later, the client may introduce parallelism as an optimization:
 
     solve(std::execution::par, A, x, b);
 
@@ -716,6 +709,8 @@ execution agent creation.
 
 ## Introspection
 
+### Functions
+
 **Executor identity.** All executors are required to be `EqualityComparable` in
 order for clients to reason about their identity. \textcolor{red}{Need a good
   explanation for the rationale for executor identity here, also what
@@ -763,26 +758,75 @@ where to create execution agents. \textcolor{red}{The rationale for context
 In this example, an executor which creates execution agents by submitting to a
 thread pool returns a reference to that thread pool from `.context`.
 
-\textcolor{red}{TODO:} this would be a good place to describe the various member types
+### Member Types
+
+\textcolor{red}{TODO:} describe the various executor member types used for introspecting guarantees
 
 ## Execution Agent Creation via Execution Functions
 
 Executors expose their native support for execution agent creation through
-**execution functions**. These may either be member or free functions whose
-first parameter is an executor. Member functions are preferred, but free
-functions allow programmers to retrofit non-modifiable legacy types into
-executors. When both a member and free function with the same name exist,
-  customization points will use the member function. This scheme is consistent
-  with the Ranges TS, and ensures that a third party cannot "hijack" an
-  executor's native behavior by introducing a rogue free function.
+**execution functions** which are either member or free functions whose first
+parameter is an executor. Member functions are preferred, but free functions
+allow programmers to retrofit non-modifiable legacy types into executors. When
+it exists, an executor customization point simply calls the execution function
+sharing its same name without adaptation. When both a member and free function
+with the same name exist, customization points prefer the member function. This
+scheme is consistent with the precedent set by the Ranges TS
+[@Niebler17:RangesTS] which ensures that a third party cannot "hijack" an
+executor's native behavior by introducing a rogue free function.
 
-\textcolor{red}{TODO:} Mention that these groupings of execution functions are discussed in the order of the support they had in Kona
+In this section, we describe the suite of execution functions we have
+identified as key to the needs of the Standard Library and TSes we have chosen
+to target. Without loss of generality, we discuss the free function form of
+each execution function in order of decreasing support each had within SG1 at
+the 2017 Kona standardization committee meeting.
 
 ## Bulk Functions
 
+We begin by discussing the execution functions which create groups of execution
+agents in bulk, because the corresponding single-agent functions are each a
+functionally special case.
+
 ### `bulk_then_execute`
 
-\textcolor{red}{TODO:} mention that it seems possible to implement any other execution function with `bulk_then_execute` without having to go out-of-band, i.e., use channels outside of the execution function. this is important because it gives the executor visibility into the entire operation
+    template<class Executor, class Function, class class Factory1, class Factory2>
+    executor_future_t<Executor, std::invoke_result_t<Factory1>>
+    bulk_then_execute(const Executor& exec, Function f, executor_shape_t<Executor> shape,
+                      Future& predecessor_future,
+                      Factory1 result_factory, Factory2 shared_factory);
+
+`bulk_then_execute` creates an asynchronous bulk continuation. Given some
+future object referring to some predecessor task, `bulk_then_execute` creates a
+group of agents whose execution is contingent on the completion of that
+predecessor task. Because it is asynchronous, `bulk_then_execute` returns a
+future which corresponds to the result of the bulk continuation.
+
+`bulk_then_execute` is the most general execution function we have identified
+because it may be used to implement any other execution function without having
+to go out-of-band through channels not made explicit through the execution
+function's interface. Explicitly elaborating this information through the
+interface is critical because it enables the executor author to participate in
+optimizations which would not be possible had that information been discarded
+through backchannels.
+
+For example, suppose the only available execution function was
+`bulk_sync_execute`. It would be possible to implement `bulk_then_execute`'s
+functionality by making a call to `bulk_sync_execute` inside a continuation
+created by `predecessor_future.then`:
+
+    predecessor_future.then([=] {
+      return exec.bulk_sync_execute(exec, f, shape, result_factory, shared_factory);
+    });
+
+Note that this implementation creates `1 + shape` execution agents: one agent
+created by `.then` along with `shape` agents created by `.bulk_sync_execute`.
+Depending on the relative cost of agents created by `.then` and
+`.bulk_sync_execute`, the overhead of introducing that extra agent may be
+significant. Moreover, because the `.then` operation occurs separately from
+`.bulk_sync_execute`, the continuation is invisible to `exec` and this
+precludes `exec`'s participation in scheduling. Because we wish to allow
+executors to abstract sophisticated task-scheduling runtimes, this shortcoming
+is unacceptable.
 
 \textcolor{red}{TODO:} perhaps describe other bulk functions by analogy to `bulk_then_execute`
 
@@ -790,6 +834,10 @@ executors. When both a member and free function with the same name exist,
 \textcolor{red}{TODO:} Show how the semantics of the corresponding customization point can be implemented by calling one of the previously defined methods
 
 \textcolor{red}{TODO:} Provide an argument, preferably with empirical evidence, why doing so is insufficient and demonstrating how providing the more specialized method is a superior choice
+
+cost of the future itself may be significant, e.g. if there is any sort of dynamically-allocated asynchronous state associated with that future
+
+or the cost of realizing that the future is complete may be important, e.g. if it requires any sort of dependency graph analysis common to dynamic scheduling runtimes
 
 ### `bulk_async_post`
 \textcolor{red}{TODO:} Show how the semantics of the corresponding customization point can be implemented by calling one of the previously defined methods
