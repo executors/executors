@@ -436,6 +436,8 @@ possibly-blocking `execute` as well as the unconditionally non-blocking
 customization points `post` and `defer`. In such a situation, all three of
 these customization points have different semantics.
 
+\textcolor{red}{TODO:} Perhaps speculate about alternative approaches to blocking guarantees which would not suffer from the above problems
+
 ### The Customization Points Provided by Our Design
 
 Combining these properties results in customization points with names like
@@ -789,7 +791,7 @@ functionally special case.
 
 ### `bulk_then_execute`
 
-    template<class Executor, class Function, class class Factory1, class Factory2>
+    template<class Executor, class Function, class Future, class Factory1, class Factory2>
     executor_future_t<Executor, std::invoke_result_t<Factory1>>
     bulk_then_execute(const Executor& exec, Function f, executor_shape_t<Executor> shape,
                       Future& predecessor_future,
@@ -819,44 +821,118 @@ created by `predecessor_future.then`:
     });
 
 Note that this implementation creates `1 + shape` execution agents: one agent
-created by `.then` along with `shape` agents created by `.bulk_sync_execute`.
-Depending on the relative cost of agents created by `.then` and
-`.bulk_sync_execute`, the overhead of introducing that extra agent may be
-significant. Moreover, because the `.then` operation occurs separately from
-`.bulk_sync_execute`, the continuation is invisible to `exec` and this
-precludes `exec`'s participation in scheduling. Because we wish to allow
-executors to abstract sophisticated task-scheduling runtimes, this shortcoming
-is unacceptable.
-
-\textcolor{red}{TODO:} perhaps describe other bulk functions by analogy to `bulk_then_execute`
+created by `then` along with `shape` agents created by `bulk_sync_execute`.
+Depending on the relative cost of agents created by `then` and
+`bulk_sync_execute`, the overhead of introducing that extra agent may be
+significant. Moreover, because the `then` operation occurs separately from
+`bulk_sync_execute`, the continuation is invisible to `exec` and this precludes
+`exec`'s participation in scheduling. Because we wish to allow executors to
+abstract sophisticated task-scheduling runtimes, this shortcoming is
+unacceptable.
 
 ### `bulk_async_execute`
-\textcolor{red}{TODO:} Show how the semantics of the corresponding customization point can be implemented by calling one of the previously defined methods
 
-\textcolor{red}{TODO:} Provide an argument, preferably with empirical evidence, why doing so is insufficient and demonstrating how providing the more specialized method is a superior choice
+    template<class Executor, class Function, class Factory1, class Factory2>
+    executor_future_t<Executor, std::invoke_result_t<Factory1>>
+    bulk_async_execute(const Executor& exec, Function f, executor_shape_t<Executor> shape,
+                       Factory1 result_factory, Factory2 shared_factory);
 
-cost of the future itself may be significant, e.g. if there is any sort of dynamically-allocated asynchronous state associated with that future
+`bulk_async_execute` asynchonously creates a group of execution agents whose
+execution may begin immediately. Like `bulk_then_execute`, `bulk_async_execute`
+returns a future corresponding to the result of the asynchronous group of
+execution agents it creates. Due to these similarities, `bulk_async_execute` is
+functionally equivalent to calling `bulk_then_execute` with a ready `void`
+future:
 
-or the cost of realizing that the future is complete may be important, e.g. if it requires any sort of dependency graph analysis common to dynamic scheduling runtimes
+    future<void> no_predecessor = make_ready_future();
+    exec.bulk_then_execute(f, shape, no_predecessor, result_factory, shared_factory);
+
+We include `bulk_async_execute` because the equivalent path through
+`bulk_then_execute` via a ready future may incur overhead. The cost of the
+future itself may be significant, especially if any sort of
+dynamically-allocated asynchronous state is associated with that future.
+Alternatively, the act of scheduling itself may be a source of overhead,
+especially if it requires any sort of graph analysis performed by a dynamic
+runtime. Providing executors the opportunity to specialize for cases where
+it is known at compile time that no dependency exists avoids both hazards.
 
 ### `bulk_async_post`
-\textcolor{red}{TODO:} Show how the semantics of the corresponding customization point can be implemented by calling one of the previously defined methods
 
-\textcolor{red}{TODO:} Provide an argument, preferably with empirical evidence, why doing so is insufficient and demonstrating how providing the more specialized method is a superior choice
+    template<class Executor, class Function, class Factory1, class Factory2>
+    executor_future_t<Executor, std::invoke_result_t<Factory1>>
+    bulk_async_post(const Executor& exec, Function f, executor_shape_t<Executor> shape,
+                    Factory1 result_factory, Factory2 shared_factory);
+
+`bulk_async_post` is equivalent to `bulk_async_execute` except that it makes an
+additional guarantee not to block the client's execution. Some executors will
+not be able to provide such a guarantee and could not be adapted to this
+functionality when `bulk_async_post` is absent. For example, an implementation
+of `bulk_async_post` which simply forwards its arguments directly to
+`bulk_async_execute` is possible only if
+`executor_execute_blocking_category_t<Executor>` is
+`nonblocking_execution_tag`.
 
 ### `bulk_sync_execute`
-\textcolor{red}{TODO:} Show how the semantics of the corresponding customization point can be implemented by calling one of the previously defined methods
 
-\textcolor{red}{TODO:} Provide an argument, preferably with empirical evidence, why doing so is insufficient and demonstrating how providing the more specialized method is a superior choice
+    template<class Executor, class Function, class Factory1, class Factory2>
+    std::invoke_result_t<Factory1>
+    bulk_sync_execute(const Executor& exec, Function f, executor_shape_t<Executor> shape,
+                      Factory1 result_factory, Factory2 shared_factory);
+
+`bulk_sync_execute` is equivalent to `bulk_async_execute` except that it blocks
+its client until the result of execution is complete. It returns this result
+directly as a value, rather than indirectly via a future object.
+Correspondingly, it may be implemented by calling `bulk_async_execute` and
+getting the future's result:
+
+    auto future = exec.bulk_async_execute(f, shape, result_factory, shared_factory);
+    return future.get();
+
+Like `bulk_async_execute`, we include `bulk_sync_execute` to avoid overhead
+incurred by introducing a temporary future object. This overhead is likely to
+be significant for executors whose cost of execution agent creation is very
+small. A hypothetical `simd_executor` or `inline_executor` are examples.
 
 ## Single-Agent Functions
 
+Single-agent execution functions are special cases of their bulk counterparts.
+Because we expect single-agent creation to be an important special case, we
+include these to allow for specialization.
+
 ### `then_execute`
-\textcolor{red}{TODO:} Show how the semantics of the corresponding customization point can be implemented by calling one of the previously defined methods
 
-\textcolor{red}{TODO:} Provide an argument, preferably with empirical evidence, why doing so is insufficient and demonstrating how providing the more specialized method is a superior choice
+    template<class Executor, class Function, class Future>
+    executor_future_t<Executor, std::invoke_result_t<Function>>
+    then_execute(const Executor& exec, Function&& f, Future& predecessor_future);
 
-\textcolor{red}{TODO:} mention that it seems possible to implement any other single-agent execution function with `then_execute` without going out-of-band
+`then_execute` creates an asynchronous execution agent. It may be implemented
+by using `bulk_then_execute` to create a group with a single agent:
+
+    using result_t = std::invoke_result_t<Function>;
+
+    // create a factory to return an object of the appropriate type
+    // XXX this really needs to return some sort of storage for an unintialized result
+    //     and then the lambda below would placement new it
+    auto result_factory = []{ return result_t(); };
+
+    // pass f as a shared parameter to account for move-only functions
+    auto shared_factory = [f = std::forward<Function>(f)]{ return f; };
+
+    return exec.bulk_then_execute([](auto ignored_index, auto& predecessor, result_t& result, Function& f) {
+      // invoke f with the predecessor as an argument and assign the result
+      result = f(predecessor);
+    },
+    executor_shape_t<Executor>{1}, // create a single agent
+    predecessor_future,
+    result_factory,
+    shared_factory
+    );
+
+The sample implementation passes both the function to invoke and its result
+indirectly via factories. The result of these factories are shared across the
+group of agents created by `bulk_then_execute`. However, this group has only
+one agent and no sharing actually occurs. The cost of this unnecessary sharing
+may be significant and can be avoided if an executor specializes `then_execute`.
 
 ### `async_execute`
 \textcolor{red}{TODO:} Show how the semantics of the corresponding customization point can be implemented by calling one of the previously defined methods
