@@ -857,8 +857,9 @@ runtime. Providing executors the opportunity to specialize for cases where
 it is known at compile time that no dependency exists avoids both hazards.
 
 Moreover, common types of executor may not naturally create execution in terms
-of continutions on futures. `bulk_async_execute` is a better match for these
-cases because it does not require a predecessor dependency.
+of continutions on futures as expected by `bulk_then_execute`.
+`bulk_async_execute` is a better match for these cases because it does not
+require accomodating a predecessor dependency.
 
 ### `bulk_async_post`
 
