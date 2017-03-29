@@ -297,4 +297,19 @@ references:
       - 26
   title: 'Execution interfaces should be variadic'
   URL: https://github.com/executors/issaquah_2016/issues/9
+
+- type: paper-conference
+  id: Niebler17:RangesTS
+  author:
+  - family: Niebler
+    given: Eric
+  - family: Carter
+    given: Casey
+  issued:
+    date-parts:
+    - - 2017
+      - 3
+      - 15
+  title: 'Working Draft, C++ Extensions for Ranges'
+  URL: https://wg21.link/N4651
 ...

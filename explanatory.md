@@ -484,7 +484,8 @@ technical specifications we initially wish to target.
 
 ### Customization Point Interfaces
 
-Customization points are *customization point objects* as described by the Ranges TS \textcolor{red}{TODO: cite this} and are provided in the `execution` namespace.
+Customization points are customization point objects as described by the
+Ranges TS [@Niebler17:RangesTS] and are provided in the `execution` namespace.
 
 #### Single-Agent Interfaces
 
