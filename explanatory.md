@@ -688,7 +688,54 @@ behavior when adapting an executor's native functionality. During adaptation,
 * Survey low-level details that are not covered already and which the author of an executor
   type would need to know
 
+A programmer implements an executor by defining a type which exposes the
+executor interface. The simplest possible example may be an executor which
+always creates execution "inline":
+
+    struct inline_executor
+    {
+      const inline_executor& context() const {
+        return *this;
+      }
+
+      bool operator==(const inline_executor&) const {
+        return true;
+      }
+
+      bool operator!=(const inline_executor&) const {
+        return false;
+      }
+
+      template<class Function>
+      auto sync_execute(Function&& f) const {
+        return std::forward<Function>(f)();
+      }
+    };
+
+First, all executor types must be `CopyConstructible`, which our `inline_executor` trivially satisfies.
+
+## Execution Context Access
+
+**Execution context access.**
+\textcolor{red}{TODO}
+
+**Executor identity.**
+\textcolor{red}{TODO}
+
+## Execution Functions
+
+Executors expose their native support for execution agent creation through
+**execution functions**. This may either be a member function or free function
+whose first parameter is the executor.  Member functions are preferred, but
+free functions allow programmers to retrofit existing, unmodifiable to be
+executors. When both a member and free function with the same name exist,
+customization points will use the member function. This policy is consistent
+with the Ranges TS, and ensures that a third party cannot "hijack" an
+executor's native behavior by introducing a rogue free function.
+
 \textcolor{red}{TODO:} Mention that these groupings of execution functions are discussed in the order of the support they had in Kona
+
+## Execution Functions
 
 ## Bulk Functions
 
