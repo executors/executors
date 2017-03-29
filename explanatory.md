@@ -911,8 +911,9 @@ by using `bulk_then_execute` to create a group with a single agent:
     using result_t = std::invoke_result_t<Function>;
 
     // create a factory to return an object of the appropriate type
-    // XXX this really needs to return some sort of storage for an unintialized result
-    //     and then the lambda below would placement new it
+    // XXX instead of default construction, this really needs to return some sort
+    //     of storage for an unintialized result and then the lambda below would
+    //     placement new it
     auto result_factory = []{ return result_t(); };
 
     // pass f as a shared parameter to account for move-only functions
