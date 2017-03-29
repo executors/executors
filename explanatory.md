@@ -685,19 +685,12 @@ behavior when adapting an executor's native functionality. During adaptation,
 [^invariant_caveat]: Except in the case of `sync_execute`, as previously mentioned. 
 
 # Implementing Executors
-* Survey low-level details that are not covered already and which the author of an executor
-  type would need to know
 
-A programmer implements an executor by defining a type which exposes the
-executor interface. The simplest possible example may be an executor which
-always creates execution "inline":
+A programmer implements an executor by defining a type which satisfies the
+requirements of the executor interface. The simplest possible example may be an
+executor which always creates execution "inline":
 
-    struct inline_executor
-    {
-      const inline_executor& context() const {
-        return *this;
-      }
-
+    struct inline_executor {
       bool operator==(const inline_executor&) const {
         return true;
       }
@@ -706,27 +699,75 @@ always creates execution "inline":
         return false;
       }
 
+      const inline_executor& context() const {
+        return *this;
+      }
+
       template<class Function>
       auto sync_execute(Function&& f) const {
         return std::forward<Function>(f)();
       }
     };
 
-First, all executor types must be `CopyConstructible`, which our `inline_executor` trivially satisfies.
+First, all executor types must be `CopyConstructible`, which our
+`inline_executor` implicitly satisfies. Other requirements are satisfied by
+explicitly defining various member types and functions for introspection and
+execution agent creation.
 
-## Execution Context Access
+## Introspection
 
-**Execution context access.**
-\textcolor{red}{TODO}
+**Executor identity.** All executors are required to be `EqualityComparable` in
+order for clients to reason about their identity. \textcolor{red}{Need a good
+  explanation for the rationale for executor identity here, also what
+    equivalence implies.} `inline_executor` satisfies this by defining
+    `operator==` and `operator!=`. In this case, all instances of
+    `inline_executor` are considered equivalent.
 
-**Executor identity.**
-\textcolor{red}{TODO}
+**Execution context access.** Next, all executors are required to provide
+access to their associated execution context via a member function named
+`.context`. In non-generic contexts where the concrete types of executors and
+their associated contexts are known in advance, clients may use contexts to
+reason about underlying execution resources in order to make choices about
+where to create execution agents. Because `inline_executor` is such a simple
+example, serves as its own execution context and simply returns a reference to
+itself. In general, the result of `.context` must be an `EqualityComparable`
+type, and more sophisticated executors will return some other object: 
 
-## Execution Functions
+    class thread_pool_executor {
+      private:
+        mutable thread_pool& pool_;
+
+      public:
+        thread_pool_executor(thread_pool& pool) : pool_(pool) {}
+
+        bool operator==(const thread_pool& other) const {
+          return pool_ == other.pool_;
+        }
+
+        bool operator!=(const thread_pool& other) const {
+          return pool_ != other.pool_;
+        }
+
+        const thread_pool& context() const {
+          return pool_;
+        }
+
+        template<class Function>
+        void execute(Function&& f) const {
+          pool_.submit(std::forward<Function>(f));
+        }
+    };
+
+In this example, an executor which creates execution agents by submitting to a
+thread pool returns a reference to that thread pool from `.context`.
+
+\textcolor{red}{TODO:} this would be a good place to describe the various member types
+
+## Execution Agent Creation via Execution Functions
 
 Executors expose their native support for execution agent creation through
 **execution functions**. This may either be a member function or free function
-whose first parameter is the executor.  Member functions are preferred, but
+whose first parameter is the executor. Member functions are preferred, but
 free functions allow programmers to retrofit existing, unmodifiable to be
 executors. When both a member and free function with the same name exist,
 customization points will use the member function. This policy is consistent
@@ -734,8 +775,6 @@ with the Ranges TS, and ensures that a third party cannot "hijack" an
 executor's native behavior by introducing a rogue free function.
 
 \textcolor{red}{TODO:} Mention that these groupings of execution functions are discussed in the order of the support they had in Kona
-
-## Execution Functions
 
 ## Bulk Functions
 
