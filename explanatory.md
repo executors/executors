@@ -909,6 +909,7 @@ include these to allow for specialization.
 by using `bulk_then_execute` to create a group with a single agent:
 
     using result_t = std::invoke_result_t<Function>;
+    using predecessor_t = decltype(predecessor_future.get());
 
     // create a factory to return an object of the appropriate type
     // XXX instead of default construction, this really needs to return some sort
@@ -919,14 +920,20 @@ by using `bulk_then_execute` to create a group with a single agent:
     // pass f as a shared parameter to account for move-only functions
     auto shared_factory = [f = std::forward<Function>(f)]{ return f; };
 
-    return exec.bulk_then_execute([](auto ignored_index, auto& predecessor, result_t& result, Function& f) {
+    // create a lambda for the "group" of agents to invoke
+    auto g = [](executor_index_t<Executor> ignored_index,
+                predecessor_t& predecessor,
+                result_t& result,
+                Function& f) {
       // invoke f with the predecessor as an argument and assign the result
       result = f(predecessor);
-    },
-    executor_shape_t<Executor>{1}, // create a single agent
-    predecessor_future,
-    result_factory,
-    shared_factory
+    };
+
+    return exec.bulk_then_execute(g,
+      executor_shape_t<Executor>{1}, // create a single agent group
+      predecessor_future,
+      result_factory,
+      shared_factory
     );
 
 The sample implementation passes both the function to invoke and its result
