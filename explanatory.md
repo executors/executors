@@ -547,9 +547,9 @@ results of `f` could be collected into a container and returned, or a single
 individual result could be selected and returned. Our design requires the
 client to explicitly disambiguate the result via a factory. The
 `result_factory` is simply a callable object that is invoked before the group
-of execution agents is created, and the result of this factory is passed as a
-parameter to the invocations of `f`, which may arbitrarily mutate the result as
-a side effect. Any result of `f` itself is discarded.
+of execution agents begins invoking `f`, and the result of this factory is
+passed as a parameter to the invocations of `f`, which may arbitrarily mutate
+the result as a side effect. Any result of `f` itself is discarded.
 
 **Pass-by-value.** Next, note that `f` is passed by value, rather than via
 forwarding reference. In general, it is impossible to elect a single agent to
