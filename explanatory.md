@@ -558,10 +558,12 @@ concurrently with each other or with the client. Instead, each agent owns a
 copy of `f`. One consequence of this policy is that move-only callables must be
 passed by a proxy such as `std::reference_wrapper`.
 
-**Shape.** The first new parameter is `shape`, which describes the index space of the
-group of created execution agents. Currently, our proposal requires
-`executor_shape_t` to be an integral type, but we envision generalizing this to
-support higher-dimensional index spaces.
+**Shape.** The first new parameter is `shape`, which describes the index space
+of the group of created execution agents. Each agent in the group receives as a
+parameter to `f` a unique index, and the type of this index is
+`executor_index_t<Executor>`. Currently, our proposal requires
+`executor_shape_t` (and hence `executor_index_t`) to be an integral type, but
+we envision generalizing this to support higher-dimensional index spaces.
 
 **Factories.** The next two parameters are factories. The first is the
 `result_factory`, which we have already discussed. The second factory creates a
