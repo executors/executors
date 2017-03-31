@@ -363,7 +363,7 @@ execution agent to invoke a function. The agent's execution is asynchronous,
 
 [^customization_point_note]: The model for our design the one suggested by Niebler[-@Niebler15:N4381].
 
-### Properties of Customization Points
+## Properties of Customization Points
 
 The properties of execution created by fundamental executor interactions vary
 along three dimensions we have identified as critical to an interaction's
@@ -438,7 +438,7 @@ these customization points have different semantics.
 
 \textcolor{red}{TODO:} Perhaps speculate about alternative approaches to blocking guarantees which would not suffer from the above problems
 
-### The Customization Points Provided by Our Design
+## The Customization Points Provided by Our Design
 
 Combining these properties results in customization points with names like
 `execute` and `bulk_async_execute`. One goal of the naming scheme is to allow
@@ -477,12 +477,12 @@ selecting customization points, we have made a trade-off between expressivity
 and minimalism guided by their usefulness to the Standard Library and the
 technical specifications we initially wish to target.
 
-### Customization Point Interfaces
+## Customization Point Interfaces
 
 Customization points are customization point objects as described by the
 Ranges TS [@Niebler17:RangesTS] and are provided in the `execution` namespace.
 
-#### Single-Agent Interfaces
+### Single-Agent Interfaces
 
 First we describe single-agent customization points. For example, `execution::async_execute`: 
 
@@ -528,7 +528,7 @@ positioned to provide conveniences like variadic parameter packing. Otherwise,
 a client may use `std::bind` if an appropriate control structure is
 unavailable.
 
-#### Bulk Interfaces
+### Bulk Interfaces
 
 Bulk customization points are subject to ownership and lifetime issues avoided
 by single-agent customization points and they include additional parameters to
@@ -616,7 +616,7 @@ from `predecessor_future`, `result_factory`, and `shared_factory`.
 
 \textcolor{red}{TODO:} probably need to insert a discussion of allocator parameters into this
 
-### Customization Points Adapt An Executor's Native Functionality
+## Customization Points Adapt An Executor's Native Functionality
 
 Our [`std::async` implementation example](#example:async_implementation)
 illustrated that the control structure does not interact with the executor
@@ -713,6 +713,9 @@ explicitly defining various member types and functions for introspection and
 execution agent creation.
 
 ## Introspection
+
+Clients introspect executors at runtime through functions and at compile time
+through executor-specific type traits.
 
 ### Functions
 
