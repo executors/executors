@@ -733,7 +733,7 @@ their associated contexts are known in advance, clients may use contexts to
 reason about underlying execution resources in order to make choices about
 where to create execution agents. \textcolor{red}{The rationale for context
   access needs a better explanation.} Because `inline_executor` is such a
-  simple example, serves as its own execution context and simply returns a
+  simple example, it serves as its own execution context and simply returns a
   reference to itself. In general, the result of `.context` must be an
   `EqualityComparable` type, and more sophisticated executors will return some
   other object: 
