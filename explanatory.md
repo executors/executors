@@ -86,7 +86,7 @@ for implementing execution. This abstraction will introduce a uniform interface
 for creating execution which does not currently exist in C++. Before exploring
 this vision, it will be useful to define some terminology for the major
 concepts involved in our programming model: execution resources, execution
-contexts, and executors.
+contexts, execution agents, and executors.
 
 An **execution resource** is an instance of a hardware and/or software facility
 capable of executing a callable function object. Different resources may offer
@@ -98,19 +98,44 @@ programmer. For example, an implementation might expose different processor
 cores, with potentially non-uniform access to memory, as separate resources to
 enable programmers to reason about locality.
 
+A program may require creating execution on multiple different kinds of
+execution resources, and these resources may have significantly different
+capabilities. For example, callable function objects invoked on a thread of
+execution have the repertoire of a Standard C++ program, including access to
+the facilities of the operating system, file system, network, and similar. By
+contrast, GPUs do not create standard threads of execution, and the callable
+function objects they execute may have limited access to these facilities.
+Moreover, functions executed by GPUs typically require special identification
+by the programmer and the addresses of these functions are incompatible with
+those of standard functions. Because execution resources impart different
+freedoms and restrictions to the execution they create, and these differences
+are visible to the programmer, we say that they are **heterogeneous**.
+
+Our proposal does not currently specify a programming model for dealing with
+heterogeneous execution resources. Instead, the execution resources
+representable by our proposal are implicitly **homogeneous** and execute
+Standard C++ functions. We envision that an extension of our basic executors
+model will deal with heterogeneity by exposing execution resource
+**architecture**. However, the introduction of a notion of concrete
+architecture into C++ would be a departure from C++'s abstract machine. Because
+such a departure will likely prove controversial, we think a design for
+heterogeneous resources is an open question for future work.
+
 An **execution context** is a program object that represents a specific
-collection of execution resources.
+collection of execution resources and the **execution agents** that exist
+within those resources. In our model, execution agents are units of execution,
+and a 1-to-1 mapping exists between an execution agent and an 
+invocation of a callable function object. An agent is bound[^bound_footnote] to an
+execution context, and hence to one or more of the resources that context represents.
+
+[^bound_footnote]: \textcolor{red}{TODO:} What do we mean by *bound*? Does that mean that an agent's execution resource cannot change over the course of its lifetime? For example, could an agent begin on thread A and then migrate to thread B? Or would we simply say that this agent is bound to a special kind of migrating resource?
 
 An **executor** is an object associated with a specific execution context. It
 provides a mechanism for creating execution agents from a callable function
-object. The agents created are bound to the executor's context, and hence to
-one or more of the resources that context represents.
-
-Executors themselves are the primary concern of our design.
+object. The primary concern of our design is to define requirements for
+executors and specify their interactions with clients.
 
 \textcolor{red}{TODO:} This section should provide a few concrete examples of each kind of thing
-
-\textcolor{red}{TODO:} incorporate some of Carter's material from pull request #157
 
 * If needed, expand into a more general Background section
 
@@ -1007,7 +1032,27 @@ may be significant and can be avoided if an executor specializes `then_execute`.
 
 # Future Work
 * Quick survey of papers being written, or that probably ought to be written
-* Should include:  dynamic thread pool, Future concept
+
+## `Future` Concept
+
+\textcolor{red}{TODO:} Need to mention that our proposal relies on the ability of executors to return future objects whose type is allowed to differ from `std::future`. Describing the requirements for such types is out of the scope of our executors proposal. Might also want to mention the SG1 straw poll results for what shipping vehicle those requirements would show up in
+
+## Additional Thread Pool Types
+
+\textcolor{red}{TODO:} Need to mention that `dynamic_thread_pool` will be an alternate take at a thread pool which is dynamically/automatically resizable
+
+## Heterogeneity
+
+\textcolor{red}{TODO:} Need to mention that heterogeneity is a problem that impacts all of C++, not just executors. Can't really tackle the problem adequately through an executors-only approach. Relationship between executors and heterogeneity might require tools that are out of scope of a library-only solution.
+
+For example:
+  * heterogeneous compilation
+  * heterogeneous linking
+  * JIT compilation
+  * reflection
+  * serialization
+  
+The point is that an independent, separate effort should investigate heterogeneity holistically
 
 # References
 
