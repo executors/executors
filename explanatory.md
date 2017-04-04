@@ -523,11 +523,11 @@ The first parameter of each customization point is the executor object used to
 create execution, and the second parameter is a callable object encapsulating
 the task of the created execution. The executor is received by `const`
 reference because executors act as shallow-`const` "views" of execution
-contexts. Creating execution does not mutate the view. Single-agent execution
-functions receive the callable as a forwarding reference. Single-agent, two-way
-customization points return the result of the callable object either directly,
-or through a future as shown above. One-way customization points
-always return `void`.
+contexts. Creating execution does not mutate the view. Single-agent
+customization points receive the callable as a forwarding reference.
+Single-agent, two-way customization points return the result of the callable
+object either directly, or through a future as shown above. One-way
+customization points always return `void`.
 
 For `then_execute`, the third parameter is a future which is the predecessor dependency for the execution:
 
@@ -808,7 +808,11 @@ thread pool returns a reference to that thread pool from `.context`.
 
 \textcolor{red}{TODO:} mention that technically these describe the behavior of executor customization points
 
-Executor-specific type traits advertise semantics of cross-cutting guarantees and also identify associated types.
+Executor-specific type traits advertise semantics of cross-cutting guarantees
+and also identify associated types. Executor type traits are provided in the
+`execution` namespace and are prefixed with `executor_`. When an executor type
+does not define a member type with the corresponding name (sans prefix), the
+value of these traits have a default.
 
 **Execution mapping.** When executors create execution agents, they are
 *mapped* onto execution resources. The properties of this mapping may be of
@@ -835,11 +839,31 @@ thread. `unique_thread_execution_mapping_tag` does make an additional
 guarantee; each agent executes on a newly-created thread. We envision that
 this set of mapping categories may grow in the future.
 
-When an executor does not have a member type named
-`::execution_mapping_category`, the value of
-`executor_execution_mapping_category` is `thread_execution_mapping_tag`.
+The default value of `executor_execution_mapping_category` is `thread_execution_mapping_tag`.
 
-**Blocking guarantee.** \textcolor{red}{TODO:} Describe `executor_execute_blocking_category`
+**Blocking guarantee.** When a client uses an executor to create execution
+agents, the execution of that client may be blocked pending the completion of
+those execution agents. The `executor_execute_blocking_category` trait
+describes the way in which these agents are guaranteed to block their client.
+
+When executors create execution agents, those agents
+possibly block the client's execution pending the completion of those agents.
+This guarantee is given by `executor_execute_blocking_category`, which
+returns one of three values:
+
+  1. `blocking_execution_tag`: The agents' execution blocks the client.
+  2. `possibly_blocking_execution_tag`: The agent's execution possibly block the client.
+  3. `non_blocking_execution_tag`: The agent's execution does not block the client.
+
+The guarantee provided by `executor_execute_blocking_category` only applies to
+those customization points including the name `execute`. Exceptions are the
+`sync_` customization points, which must always block their client by
+definition. When the agents created by an executor possibly block its client,
+it's conceivable that the executor could provide dynamic runtime facilities
+for querying its actual blocking behavior. However, our design prescribes no
+interface for doing so.
+
+The default value of `executor_execute_blocking_category` is `possibly_blocking_execution_tag`.
 
 **Bulk ordering guarantee.** \textcolor{red}{TODO:} Describe `executor_execution_category`
 
