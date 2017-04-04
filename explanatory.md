@@ -802,9 +802,58 @@ where to create execution agents. \textcolor{red}{The rationale for context
 In this example, an executor which creates execution agents by submitting to a
 thread pool returns a reference to that thread pool from `.context`.
 
-### Member Types
+### Type Traits
 
 \textcolor{red}{TODO:} describe the various executor member types used for introspecting guarantees
+
+\textcolor{red}{TODO:} mention that technically these describe the behavior of executor customization points
+
+Executor-specific type traits advertise semantics of cross-cutting guarantees and also identify associated types.
+
+**Execution mapping.** When executors create execution agents, they are
+*mapped* onto execution resources. The properties of this mapping may be of
+interest to some clients. For example, the relationship between an execution
+agent and the lifetime of `thread_local` variables may be inferred by
+inspecting the mapping of the agent onto its thread of execution (if any). In
+our model, such mappings are represented as empty tag types and they are
+introspected through the `executor_execution_mapping_category` type trait.
+Currently, this trait returns one of three values:
+
+  1. `other_execution_mapping_tag`: The executor maps agents onto non-standard execution resources.
+  2. `thread_execution_mapping_tag`: The executor maps agents onto threads of execution.
+  3. `unique_thread_execution_mapping_tag`: The executor maps each agent onto a new thread of execution, and that thread of execution does not change over the agent's lifetime.[^unique_thread_footnote]
+
+[^unique_thread_footnote]: `new_thread_execution_mapping_tag` might be a better name for this. `unique_thread_execution_mapping_tag` wouldn't necessarily suggest each agent gets a newly-created thread, just its *own* thread.
+
+The first mapping category is intended to represent mappings onto resources
+which are not standard threads of execution. The abilities of such agents may
+be subject to executor-defined limitations. The next two categories indicate
+that agents execute on standard threads of execution as normal.
+`thread_execution_mapping_tag` guarantees that agents execute on threads, but
+makes no additional guarantee about the identification between agent and
+thread. `unique_thread_execution_mapping_tag` does make an additional
+guarantee; each agent executes on a newly-created thread. We envision that
+this set of mapping categories may grow in the future.
+
+When an executor does not have a member type named
+`::execution_mapping_category`, the value of
+`executor_execution_mapping_category` is `thread_execution_mapping_tag`.
+
+**Blocking guarantee.** \textcolor{red}{TODO:} Describe `executor_execute_blocking_category`
+
+**Bulk ordering guarantee.** \textcolor{red}{TODO:} Describe `executor_execution_category`
+
+These describe the types of parameters involved in bulk customization points
+
+**Executor shape type.** \textcolor{red}{TODO:} `executor_shape`
+
+**Executor index type.** \textcolor{red}{TODO:} `executor_index`
+
+These last two are simply name the type of the result of various functions, and so may be inferred
+
+**Execution context type.** \textcolor{red}{TODO:} `executor_context`
+
+**Associated `Future` type.** \textcolor{red}{TODO:} `executor_future`
 
 ## Execution Agent Creation via Execution Functions
 
