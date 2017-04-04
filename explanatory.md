@@ -804,16 +804,13 @@ thread pool returns a reference to that thread pool from `.context`.
 
 ### Type Traits
 
-\textcolor{red}{TODO:} describe the various executor member types used for introspecting guarantees
-
-\textcolor{red}{TODO:} mention that technically these describe the behavior of executor customization points
-
 Executor-specific type traits advertise semantics of cross-cutting guarantees
 and also identify associated types. Executor type traits are provided in the
-`execution` namespace and are prefixed with `executor_`. When an executor type
-does not proactively define a member type with the corresponding name (sans
-    prefix), the value of these traits have a default, this default conveys
-semantics that make the fewest assumptions about the executor's behavior.
+`execution` namespace and are prefixed with `executor_`. Unless otherwise
+indicated, when an executor type does not proactively define a member type with
+the corresponding name (sans prefix), the value of these traits have a default.
+This default conveys semantics that make the fewest assumptions about the
+executor's behavior.
 
 **Execution mapping.** When executors create execution agents, they are
 *mapped* onto execution resources. The properties of this mapping may be of
@@ -892,19 +889,42 @@ additions.
 
 The default value of `executor_execution_category` is `unsequenced_execution_tag`.
 
-[^seq_footnote]: We might want to introduce something like `this_thread_execution_mapping_tag` to capture the needs of `std::execution::seq`.
+[^seq_footnote]: We might want to introduce something like `this_thread_execution_mapping_tag` to capture the needs of `std::execution::seq`, which requires algorithms to execute on the current thread.
 
 These describe the types of parameters involved in bulk customization points
 
-**Executor shape type.** \textcolor{red}{TODO:} `executor_shape`
+**Executor shape type.** When an executor creates a group of execution agents
+in bulk, the index space of those agents is described by a *shape*. Our current
+proposal is limited to one-dimensional shapes representable by an integral
+type, but we envision generalization to multiple dimensions. The type of an
+executor's shape is given by `executor_shape`, and its default value is
+`std::size_t`.
 
-**Executor index type.** \textcolor{red}{TODO:} `executor_index`
+**Executor index type.** Execution agents within a group are uniquely
+identified within their group's index space by an *index*. In addition to
+sharing the dimensionality of the shape, these indices have a lexicographic
+ordering. Like `executor_shape`, the type of an executor's index is given by
+`executor_index`, and its default value is `std::size_t`.
 
-These last two are simply name the type of the result of various functions, and so may be inferred
+**Execution context type.** `executor_context` simply names the type of an
+executor's execution context by decaying the result of its member function
+`.context`. This default cannot be overriden by a member type because
+`.context`'s result is authoritative.
 
-**Execution context type.** \textcolor{red}{TODO:} `executor_context`
+**Associated `Future` type.** `executor_future` names the type of an executor's
+associated future type, which is the type of object returned by asynchronous,
+           two-way customization points. The type is determined by the result
+           of `execution::async_execute`, which must satisfy the requirements
+           of the `Future` concept[^future_footnote]. Otherwise, the type is
+           `std::future`. All of an executor's two-way asynchronous
+           customization points must return the same type of future.
+           \textcolor{red}{Do we allow users to specialize this type?  The
+             paper suggests yes, but if so, why do we allow this for the future
+               type but not for the context type?}
 
-**Associated `Future` type.** \textcolor{red}{TODO:} `executor_future`
+[^future_footnote]: For now, the only type which satisfies `Future` is
+`std::experimental::future`, specified by the Concurrency TS. We expect the
+requirements of `Future` to be elaborated by a separate proposal.
 
 ## Execution Agent Creation via Execution Functions
 
