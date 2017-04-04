@@ -555,16 +555,19 @@ unavailable.
 
 ### Bulk Interfaces
 
-Bulk customization points are subject to ownership and lifetime issues avoided
-by single-agent customization points and they include additional parameters to
-address these issues. For example, `execution::bulk_async_execute`:
+Bulk customization points create a group of execution agents as a unit, and
+each of these execution agents calls an individual invocation of the given
+callable function object. The ordering guarantees of these invocations are
+given by `std::execution::executor_execution_category_t`. Because they create
+multiple agents, bulk customization points introduce ownership and lifetime
+issues avoided by single-agent customization points and they include additional
+parameters to address these issues. For example, consider
+`execution::bulk_async_execute`:
 
     template<class Executor, class Function, class Factory1, class Factory2>
     executor_future_t<Executor,std::invoke_result_t<Factory1>>
     bulk_async_execute(const Executor& exec, Function f, executor_shape_t<Executor> shape,
                        Factory1 result_factory, Factory2 shared_parameter_factory);
-
-\textcolor{red}{TODO:} Need to discuss how an executor guarantees the ordering of execution agents in a group. Should talk here about how an entire group of agents create separate invocations of `f`
 
 **Bulk results.** The first difference is that `bulk_async_execute` returns the
 result of a **factory** rather than the result of `f`. Because bulk
