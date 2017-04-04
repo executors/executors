@@ -811,8 +811,9 @@ thread pool returns a reference to that thread pool from `.context`.
 Executor-specific type traits advertise semantics of cross-cutting guarantees
 and also identify associated types. Executor type traits are provided in the
 `execution` namespace and are prefixed with `executor_`. When an executor type
-does not define a member type with the corresponding name (sans prefix), the
-value of these traits have a default.
+does not proactively define a member type with the corresponding name (sans
+    prefix), the value of these traits have a default, this default conveys
+semantics that make the fewest assumptions about the executor's behavior.
 
 **Execution mapping.** When executors create execution agents, they are
 *mapped* onto execution resources. The properties of this mapping may be of
@@ -856,12 +857,12 @@ returns one of three values:
   3. `non_blocking_execution_tag`: The agent's execution does not block the client.
 
 The guarantee provided by `executor_execute_blocking_category` only applies to
-those customization points including the name `execute`. Exceptions are the
-`sync_` customization points, which must always block their client by
+those customization points whose name is suffixed with `execute`. Exceptions
+are the `sync_` customization points, which must always block their client by
 definition. When the agents created by an executor possibly block its client,
-it's conceivable that the executor could provide dynamic runtime facilities
-for querying its actual blocking behavior. However, our design prescribes no
-interface for doing so.
+  it's conceivable that the executor could provide dynamic runtime facilities
+  for querying its actual blocking behavior. However, our design prescribes no
+  interface for doing so.
 
 The default value of `executor_execute_blocking_category` is `possibly_blocking_execution_tag`.
 
@@ -874,18 +875,22 @@ three values:
 
   1. `sequenced_execution_tag`: The invocations of the user-provided callable function object are sequenced in lexicographical order of their indices.
   2. `parallel_execution_tag`: The invocations of the user-provided callable function object are unsequenced when invoked on separate threads, and indeterminately sequenced when invoked on the same thread.
-  3. `unsequenced_execution_tag`: The invocations of the user-provided callable function object are unsequenced.
+  3. `unsequenced_execution_tag`: The invocations of the user-provided callable function object are unsequenced. \textcolor{red}{Is this the same as saying the invocations are not guaranteed to be sequenced? We want to allow unsequenced executors the lattitude to execute in sequenced order, if they need to for some reason.}
 
 These guarantees agree with those made by the corresponding standard execution
 policies, and indeed these guarantees are intended to be used by execution
 policies to describe the invocations of element access functions during
 parallel algorithm execution. One difference between these guarantees and the
 standard execution policies is that, unlike `std::execution::sequenced_policy`,
-         `sequenced_execution_tag` does not imply that execution happen on the
+         `sequenced_execution_tag` does not imply that execution happens on the
          client's thread[^seq_footnote]. Instead, `executor_execution_mapping`
          captures such guarantees.
 
-We expect this list to grow in the future. For example, a guarantee of concurrent execution among a group of agents would be an obvious addition.
+We expect this list to grow in the future. For example, guarantees of
+concurrent or vectorized execution among a group of agents would be obvious
+additions.
+
+The default value of `executor_execution_category` is `unsequenced_execution_tag`.
 
 [^seq_footnote]: We might want to introduce something like `this_thread_execution_mapping_tag` to capture the needs of `std::execution::seq`.
 
