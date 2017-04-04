@@ -865,7 +865,29 @@ interface for doing so.
 
 The default value of `executor_execute_blocking_category` is `possibly_blocking_execution_tag`.
 
-**Bulk ordering guarantee.** \textcolor{red}{TODO:} Describe `executor_execution_category`
+**Bulk ordering guarantee.** When an executor creates a group of execution
+agents, their bulk execution obeys certain semantics. For example, a group of
+agents may invoke the user-provided function sequentially, or they may be
+invoked in parallel. Any guarantee the executor makes of these semantics is
+conveyed by the `executor_execution_category` trait, which takes one one of
+three values:
+
+  1. `sequenced_execution_tag`: The invocations of the user-provided callable function object are sequenced in lexicographical order of their indices.
+  2. `parallel_execution_tag`: The invocations of the user-provided callable function object are unsequenced when invoked on separate threads, and indeterminately sequenced when invoked on the same thread.
+  3. `unsequenced_execution_tag`: The invocations of the user-provided callable function object are unsequenced.
+
+These guarantees agree with those made by the corresponding standard execution
+policies, and indeed these guarantees are intended to be used by execution
+policies to describe the invocations of element access functions during
+parallel algorithm execution. One difference between these guarantees and the
+standard execution policies is that, unlike `std::execution::sequenced_policy`,
+         `sequenced_execution_tag` does not imply that execution happen on the
+         client's thread[^seq_footnote]. Instead, `executor_execution_mapping`
+         captures such guarantees.
+
+We expect this list to grow in the future. For example, a guarantee of concurrent execution among a group of agents would be an obvious addition.
+
+[^seq_footnote]: We might want to introduce something like `this_thread_execution_mapping_tag` to capture the needs of `std::execution::seq`.
 
 These describe the types of parameters involved in bulk customization points
 
