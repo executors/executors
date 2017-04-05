@@ -1070,7 +1070,7 @@ include these to allow for specialization.
 ### `then_execute`
 
     template<class Executor, class Function, class Future>
-    executor_future_t<Executor, std::invoke_result_t<Function, decltype(std::declval<Future>().get())&>>
+    executor_future_t<Executor, std::invoke_result_t<std::decay_t<Function>, decltype(std::declval<Future>().get())&>>
     then_execute(const Executor& exec, Function&& f, Future& predecessor_future);
 
 `then_execute` creates an asynchronous execution agent. It may be implemented
@@ -1113,7 +1113,7 @@ may be significant and can be avoided if an executor specializes `then_execute`.
 ### `async_execute`
 
     template<class Executor, class Function>
-    executor_future_t<Executor, std::invoke_result_t<Function>>
+    executor_future_t<Executor, std::invoke_result_t<std::decay_t<Function>>>
     async_execute(const Executor& exec, Function&& f);
 
 `async_execute` creates an asynchronous execution agent. It may be implemented
@@ -1133,27 +1133,82 @@ need to be used because the future is ready-made.
 
 On the other hand, once a suitable `Future` concept allows for user-definable
 futures, the initial future need not be `std::experimental::future`. Instead, a
-hypothetical `always_ready_future` could be an efficient substitute:
+hypothetical `always_ready_future` could be an efficient substitute as it would
+not require addressing the problem of synchronization:
 
     always_ready_future<void> ready_future;
     return exec.then_execute(std::forward<Function>(f), ready_future);
 
-However, to fully exploit such efficiency, `then_execute` would need to
-recognize this case.
+However, to fully exploit such efficiency, `then_execute` may need to
+recognize this case and take special action for `always_ready_future`.
 
 Because of the opportunity for efficient specialization of a common use case, and to avoid
 requiring executors to explicitly support continuations with `then_execute`, including
 `async_execute` as an execution function is worthwhile.
 
 ### `async_post`
-\textcolor{red}{TODO:} Show how the semantics of the corresponding customization point can be implemented by calling one of the previously defined methods
 
-\textcolor{red}{TODO:} Provide an argument, preferably with empirical evidence, why doing so is insufficient and demonstrating how providing the more specialized method is a superior choice
+    template<class Executor, class Function>
+    executor_future_t<Executor, std::invoke_result_t<std::decay_t<Function>>>
+    async_post(const Executor& exec, Function&& f);
+
+`async_post` is equivalent to `async_execute` except that it makes an
+additional guarantee not to block the client's execution. Some executors will
+not be able to provide such a guarantee and could not be adapted to this
+functionality when `async_post` is absent. For example, an implementation of
+`async_post` which simply forwards its arguments directly to `async_post` is
+possible only if `executor_execute_blocking_category_t<Executor>` is
+`nonblocking_execution_tag`.
 
 ### `sync_execute`
-\textcolor{red}{TODO:} Show how the semantics of the corresponding customization point can be implemented by calling one of the previously defined methods
 
-\textcolor{red}{TODO:} Provide an argument, preferably with empirical evidence, why doing so is insufficient and demonstrating how providing the more specialized method is a superior choice
+    template<class Executor, class Function>
+    std::invoke_result_t<std::decay_t<Function>>
+    sync_execute(const Executor& exec, Function&& f);
+
+`sync_execute` is equivalent to `async_execute` except that it blocks its
+client until the result of execution is complete. It returns this result
+directly as a value, rather than indirectly via a future object.
+Correspondingly, it may be implemented by calling `async_execute` and getting the future's result:
+
+    auto future = exec.async_execute(std::forward<Function>(f));
+    return future.get();
+
+Like `async_execute`, we include `sync_execute` to avoid overhead incurred by
+introducing a temporary future object. This overhead is likely to be
+significant for executors whose cost of execution agent creation is very small.
+A hypothetical `simd_executor` or `inline_executor` are examples.
+
+We believe it is possible to make the cost of the future arbitrarily small in
+very special cases. For example, if the executor's associated future is a
+hypothetical `always_ready_future`, then a path through `async_execute` is
+unlikely to incur any penalty:
+
+    template<class T>
+    class always_ready_future {
+      private:
+        T value_;
+
+      public:
+        T get() { return value_; }
+
+      ...
+    };
+
+    ...
+
+    using result_type = std::invoke_result_t<std::decay_t<Function>>;
+    always_ready_future<result_type> future = exec.async_execute(std::forward<Function>(f));
+
+However, this efficient implementation depends on `always_ready_future` being
+the executor's associated future type. Moreover, it requires the executor to
+treat `async_execute` as `sync_execute`'s moral equivalent by returning an
+immediately ready result which always blocks the client.
+
+Because most executors will not return ready future objects from their two-way
+asynchronous execution functions, they will incur the overhead of this
+`async_execute`-based implementation. Therefore, `sync_execute` is worth
+including.
 
 ## One-Way Functions
 
