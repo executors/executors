@@ -497,7 +497,7 @@ Combining these three sets of properties yields the following table of customiza
 | `bulk_async_defer`   | bulk   | two-way        | no       |
 
 Note that the entire cross product of the three sets of properties is not
-represented in this table. For example, `bulk_then_post` does not exist. When
+represented in this table. For example, `then_post` does not exist. When
 selecting customization points, we have made a trade-off between expressivity
 and minimalism guided by their usefulness to the Standard Library and the
 technical specifications we initially wish to target.
