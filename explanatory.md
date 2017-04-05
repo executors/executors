@@ -1111,9 +1111,39 @@ one agent and no sharing actually occurs. The cost of this unnecessary sharing
 may be significant and can be avoided if an executor specializes `then_execute`.
 
 ### `async_execute`
-\textcolor{red}{TODO:} Show how the semantics of the corresponding customization point can be implemented by calling one of the previously defined methods
 
-\textcolor{red}{TODO:} Provide an argument, preferably with empirical evidence, why doing so is insufficient and demonstrating how providing the more specialized method is a superior choice
+    template<class Executor, class Function>
+    executor_future_t<Executor, std::invoke_result_t<Function>>
+    async_execute(const Executor& exec, Function&& f);
+
+`async_execute` creates an asynchronous execution agent. It may be implemented
+by using `then_execute` with a ready `void` future:
+
+    std::experimental::future<void> ready_future = std::experimental::make_ready_future();
+    return exec.then_execute(std::forward<Function>(f), ready_future);
+
+Alternatively, `bulk_async_execute` could be used, analogously to the use of
+`bulk_then_execute` in `then_execute`'s implementation.
+
+The cost of a superfluous immediately-ready future object could be significant
+compared to the cost of agent creation. For example, the future object's
+implementation could contain data structures required for inter-thread
+synchronization. In this case, these data structures are wasteful and never
+need to be used because the future is ready-made.
+
+On the other hand, once a suitable `Future` concept allows for user-definable
+futures, the initial future need not be `std::experimental::future`. Instead, a
+hypothetical `always_ready_future` could be an efficient substitute:
+
+    always_ready_future<void> ready_future;
+    return exec.then_execute(std::forward<Function>(f), ready_future);
+
+However, to fully exploit such efficiency, `then_execute` would need to
+recognize this case.
+
+Because of the opportunity for efficient specialization of a common use case, and to avoid
+requiring executors to explicitly support continuations with `then_execute`, including
+`async_execute` as an execution function is worthwhile.
 
 ### `async_post`
 \textcolor{red}{TODO:} Show how the semantics of the corresponding customization point can be implemented by calling one of the previously defined methods
