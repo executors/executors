@@ -532,16 +532,17 @@ customization points always return `void`.
 For `then_execute`, the third parameter is a future which is the predecessor dependency for the execution:
 
     template<class Executor, class Function, class Future>
-    executor_future_t<Executor,std::invoke_result_t<std::decay_t<Future>,U&>>
+    executor_future_t<Executor,std::invoke_result_t<std::decay_t<Function>,U&>>
     then_execute(const Executor& exec, Function&& f, Future& predecessor_future);
 
-The callable object is invoked with a reference to the result object of the
-predecessor future (or without a parameter if a `void` future). By design, this
-is inconsistent with the interface of the Concurrency TS's `future::then` which
-invokes its continuation with a copy of the predecessor future. Our design
-avoids the composability issues of `future::then` [@Executors16:Issue96] and is
-consistent with `bulk_then_execute`, discussed below. Note that the type of
-`Future` is allowed to differ from `executor_future_t<Executor,U>`, enabling
+Let `U` by the type of `Future`'s result object. The callable object `f` is
+invoked with a reference to the result object of the predecessor future (or
+    without a parameter if a `void` future). By design, this is inconsistent
+with the interface of the Concurrency TS's `future::then` which invokes its
+continuation with a copy of the predecessor future. Our design avoids the
+composability issues of `future::then` [@Executors16:Issue96] and is consistent
+with `bulk_then_execute`, discussed below. Note that the type of `Future` is
+allowed to differ from `executor_future_t<Executor,U>`, enabling
 interoperability between executors and foreign future types.
 
 Note that customization points do not receive a parameter pack of arguments for
@@ -1069,7 +1070,7 @@ include these to allow for specialization.
 ### `then_execute`
 
     template<class Executor, class Function, class Future>
-    executor_future_t<Executor, std::invoke_result_t<Function>>
+    executor_future_t<Executor, std::invoke_result_t<Function, decltype(std::declval<Future>().get())&>>
     then_execute(const Executor& exec, Function&& f, Future& predecessor_future);
 
 `then_execute` creates an asynchronous execution agent. It may be implemented
