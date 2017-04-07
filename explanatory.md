@@ -86,29 +86,46 @@ for implementing execution. This abstraction will introduce a uniform interface
 for creating execution which does not currently exist in C++. Before exploring
 this vision, it will be useful to define some terminology for the major
 concepts involved in our programming model: execution resources, execution
-contexts, and executors.
+contexts, execution functions, execution agents and executors.
 
 An **execution resource** is an instance of a hardware and/or software facility
 capable of executing a callable function object. Different resources may offer
-a broad array of functionality and semantics, and may range from SIMD vector
-units accessible in a single thread to an entire runtime managing a large
-collection of threads. In practice, different resources may also exhibit
-different performance characteristics of interest to the performance-conscious
-programmer. For example, an implementation might expose different processor
-cores, with potentially non-uniform access to memory, as separate resources to
-enable programmers to reason about locality.
+a broad array of functionality and semantics and exhibit different performance
+characteristics of interest to the performance-conscious programmer. For example,
+an implementation might expose different processor cores, with potentially
+non-uniform access to memory, as separate resources to enable programmers to
+reason about locality.
+
+Typical examples of an execution resource can range from SIMD vector units
+accessible in a single thread to an entire runtime managing a large collection
+of threads.
 
 An **execution context** is a program object that represents a specific
 collection of execution resources.
 
+Typical examples of an execution context are a thread pool or a distributed or
+heteroegeneous runtime.
+
+An **execution agent** is a unit of execution of a specific execution context
+that is mapped to a single execution of a callable function on an execution
+resource. An execution agent can too have different semantics which are derived
+from the execution context.
+
+Typical examples of an execution agent are a CPU thread or GPU execution unit.
+
+An **execution function** is a member function or free function which executes
+a callable function with a particular set of semantics derived from it's
+properties.
+
+Examples of execution functions will be described in further detail later in
+the paper.
+
 An **executor** is an object associated with a specific execution context. It
 provides a mechanism for creating execution agents from a callable function
-object. The agents created are bound to the executor's context, and hence to
+object. The execution agents created are bound to the executor's context, and hence to
 one or more of the resources that context represents.
 
 Executors themselves are the primary concern of our design.
-
-\textcolor{red}{TODO:} This section should provide a few concrete examples of each kind of thing
 
 \textcolor{red}{TODO:} incorporate some of Carter's material from pull request #157
 
@@ -237,7 +254,7 @@ returns a future object corresponding to its completion:
       return subtask3(exec, future1, future2);
     }
 
-\textcolor{red}{TODO:} should we use an executor category (e.g. `TwoWayExecutor`) instead of `Executor` here, or should we defer introduction of executor categories until a later section?
+\textcolor{red}{TODO:} should we use an executor category (e.g. `TwoWayExecutor`) instead of `Executor` here, or should we defer introduction of executor categories until a later section? - I think introducing this concept at this point may be confusing, it's better to just use Executor (Gordon).
 
 Consider `long_running_task`'s interface. Because the ordering requirements
 imposed by an execution policy are irrelevant to `long_running_task`'s
@@ -290,6 +307,9 @@ overload `std::async(func)` were made available, programmers porting their
 existing codes to our proposed new overload `std::async(exec, func)` could
 target executors in a way that preserved the original program's behavior.
 
+\textcolor{red}{TODO:} I think we need an example here of how you would obtain
+these executors, would these siply be the default for the control structures.
+
 **Executor adaptors.** Still other executors may be "fancy" and adapt some
 other type of base executor. For example, consider a hypothetical logging
 executor which prints output to a log when the base executor is used to create
@@ -308,7 +328,7 @@ We do not believe this is an exhaustive list of executor sources. Like other
 adaptable, user-defined types ubiquitous to C++, sources of executors will be
 diverse.
 
-# Building Control Structures
+# Building Control Structures via Customization Points
 
 The previous section's examples illustrate that for the vast majority of
 programmers, executors will be opaque objects that merely act as abstract
@@ -409,34 +429,8 @@ their client as a value, there is no way for `sync_` customization points to
 execute without blocking their client. Customization points which will never
 block its client are suffixed with `post` or `defer`. `defer` indicates a
 preference to treat the created execution as a continuation of the client while
-`post` indicates no such preference.
-
-**Understanding blocking guarantees.** \textcolor{red}{Maybe find a different
-  place in the paper for this lengthy explanation.} The blocking property is not
-  applied uniformly. It is both a holistic property of the executor type and
-  also a property of individual customization points in a few exceptional
-  cases. This design is currently controversial. The reason that we chose for
-  blocking to be a property of the executor type was to avoid the combinatorial
-  explosion of three versions of each customization point: blocking,
-  non-blocking, and possibly blocking. An alternative design could avoid
-  explosively versioning customization points but would also require a way to
-  introspect the blocking guarantee of individual customization points. A
-  design which discarded the ability to introspect blocking guarantees is
-  undesirable. It seemed simpler to the designers to understand and introspect
-  a blocking guarantee as a holistic property of the executor type, rather than
-  at the granularity of individual customization points.
-  
-There are exceptions to this rule where blocking guarantees are provided at the
-granularity of individual customization points. The two-way `sync_` functions
-are exceptions because it is impossible to return the result of execution in a
-way that does not block the client which created that execution. The `post` and
-`defer` functions are exceptions to the executor's blocking trait because we
-desire the ability for a single executor to provide a blocking or
-possibly-blocking `execute` as well as the unconditionally non-blocking
-customization points `post` and `defer`. In such a situation, all three of
-these customization points have different semantics.
-
-\textcolor{red}{TODO:} Perhaps speculate about alternative approaches to blocking guarantees which would not suffer from the above problems
+`post` indicates no such preference. A futher discussion of blocking guarantees
+can be found in the ongoing discussions section later in the paper.
 
 ## The Customization Points Provided by Our Design
 
@@ -459,7 +453,7 @@ Combining these three sets of properties yields the following table of customiza
 | `defer`        | single      | one-way        | no       |
 | `async_execute`| single      | two-way        | possibly |
 | `then_execute` | single      | two-way        | possibly |
-| `sync_execute` | single      | one-way        | yes      |
+| `sync_execute` | single      | two-way        | yes      |
 | `async_post`   | single      | two-way        | no       |
 | `async_defer`  | single      | two-way        | no       |
 | `bulk_execute` | bulk        | one-way        | possibly |
@@ -583,7 +577,7 @@ efficient scheme to pass parameters to newly-created groups of execution agents
 allow non-movable types to be parameters, including concurrency primitives like
 `std::barrier` and `std::atomic`. Next, some important types are not efficient
 to copy, especially containers used as scratchpads. Finally, the location of
-results and shared parameters will important to a parallel algorithm's
+results and shared parameters will be important to a parallel algorithm's
 efficiency. We envision associating allocators with individual factories to
 provide control[^factory_footnote].
 
@@ -664,6 +658,11 @@ proposal specifies these adaptations in detail and provides compile-time tools
 to allow clients who wish to do so the ability to predict what adaptations will
 be applied, if any, to an executor when used with a specific customization
 point.
+
+For example in order to predict whether the above adaptation is possible the type
+trait to query the executor:
+
+    template<class T> struct can_sync_execute;
 
 **Invariant preservation.** There are limits to the kinds of adaptations that
 customization points may apply, and these limits preserve executor invariants.
@@ -883,6 +882,10 @@ of `bulk_async_post` which simply forwards its arguments directly to
 `executor_execute_blocking_category_t<Executor>` is
 `nonblocking_execution_tag`.
 
+### `bulk_async_defer`
+
+// TODO
+
 ### `bulk_sync_execute`
 
     template<class Executor, class Function, class Factory1, class Factory2>
@@ -1004,6 +1007,57 @@ may be significant and can be avoided if an executor specializes `then_execute`.
   * Discuss how the adaptations performed by customization points are chosen and in what order
     they are preferred
   * Discuss how blocking behavior interacts with customization points
+
+# Ongoing Discussions
+
+Much of the design of the executors interface is well established, however there are aspects of the
+design that have been subject of debate and still an ongoing discussion.
+
+// TODO Add any other questions that were raised during the SG1 meetings
+
+## A Standard Thread Pool
+
+// TODO
+
+## Relationship with Thread Local Storage
+
+// TODO
+
+## Forward Progress Guarantees and Boost Blocking
+
+// TODO
+
+## Blocking Guarantees
+
+The blocking property is not
+  applied uniformly. It is both a holistic property of the executor type and
+  also a property of individual customization points in a few exceptional
+  cases. This design is currently controversial. The reason that we chose for
+  blocking to be a property of the executor type was to avoid the combinatorial
+  explosion of three versions of each customization point: blocking,
+  non-blocking, and possibly blocking. An alternative design could avoid
+  explosively versioning customization points but would also require a way to
+  introspect the blocking guarantee of individual customization points. A
+  design which discarded the ability to introspect blocking guarantees is
+  undesirable. It seemed simpler to the designers to understand and introspect
+  a blocking guarantee as a holistic property of the executor type, rather than
+  at the granularity of individual customization points.
+  
+There are exceptions to this rule where blocking guarantees are provided at the
+granularity of individual customization points. The two-way `sync_` functions
+are exceptions because it is impossible to return the result of execution in a
+way that does not block the client which created that execution. The `post` and
+`defer` functions are exceptions to the executor's blocking trait because we
+desire the ability for a single executor to provide a blocking or
+possibly-blocking `execute` as well as the unconditionally non-blocking
+customization points `post` and `defer`. In such a situation, all three of
+these customization points have different semantics.
+
+\textcolor{red}{TODO:} Perhaps speculate about alternative approaches to blocking guarantees which would not suffer from the above problems
+
+## Querying Information about a Context's Execution Resources
+
+// TODO
 
 # Future Work
 * Quick survey of papers being written, or that probably ought to be written
