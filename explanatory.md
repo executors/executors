@@ -1271,5 +1271,33 @@ For example:
   
 The point is that an independent, separate effort should investigate heterogeneity holistically
 
+## Bulk Execution Extensions
+
+Our current proposal's model of bulk execution is flat and one-dimensional.
+Each bulk execution function creates a single group of execution agents, and
+the indices of those agents are integers. We envision extending this simple
+model to allow executors to organize agents into hierarchical groups and assign
+then multidimensional indices. Because multidimensional indices are relevant to
+many high-performance computing domains, some types of execution resources
+natively generate them. Moreover, hierarchical organizations of agents
+naturally model the kinds of execution created by multicore CPUs, GPUs, and
+collections of these.
+
+The organization of such a hierarchy would induce groups of groups of execution
+agents and would introduce a different piece of shared state for each of these
+groups. The interface to such an execution function would look like:
+
+    template<class Executor, class Function, class ResultFactory, class... SharedFactories>
+    std::invoke_result_t<ResultFactory()>
+    bulk_sync_execute(const Executor& exec, Function f, executor_shape_t<Executor> shape,
+                      ResultFactory result_factory, SharedFactories... shared_factories);
+
+In this interface, the `shape` parameter simultaneously describes the hierarchy
+of groups created by this execution function as well as the multidimensional
+shape of each of these groups. Instead of receiving a single factory to create
+the shared state for a single group, the interface receives a different factory
+for each level of the hierarchy. Each group's shared parameter originates from
+the corresponding factory in this variadic list.
+
 # References
 
