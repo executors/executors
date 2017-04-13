@@ -1279,16 +1279,24 @@ separate effort which will propose an additional thread pool type,
 
 ## Heterogeneity
 
-\textcolor{red}{TODO:} Need to mention that heterogeneity is a problem that impacts all of C++, not just executors. Can't really tackle the problem adequately through an executors-only approach. Relationship between executors and heterogeneity might require tools that are out of scope of a library-only solution.
+Contemporary execution resources are heterogeneous. CPU cores, lightweight CPU
+cores, SIMD units, GPU cores, operating system runtimes, embedded runtimes, and
+database runtimes are examples. Heterogeneity of resources often manifests in
+non-standard C++ programming models as programmer-visible versioned functions
+and disjoint memory spaces. Therefore, the ability for standard executors to
+target heterogeneous execution resources depends on a standard treatment of
+heterogeneity in general.
 
-For example:
-  * heterogeneous compilation
-  * heterogeneous linking
-  * JIT compilation
-  * reflection
-  * serialization
-  
-The point is that an independent, separate effort should investigate heterogeneity holistically
+The issues raised by heterogeneity impact the entire scope of a heterogeneous
+C++ program, not just the space spanned by executors. Therefore, a
+comprehensive solution to these issues requires a holistic approach. Moreover,
+the relationship between heterogeneous execution and executors
+may require technology that is out of scope of a library-only
+solution such as our executors model. This technology might
+include heterogeneous compilation and linking, just-in-time
+compilation, reflection, serialization, and others. A separate
+effort should characterize the programming problems posed by
+heterogeneity and suggest solutions.
 
 ## Bulk Execution Extensions
 
