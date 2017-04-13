@@ -1248,7 +1248,10 @@ including.
   * Discuss how blocking behavior interacts with customization points
 
 # Future Work
-* Quick survey of papers being written, or that probably ought to be written
+
+We conclude with a brief survey of future work extending our proposal. Some of
+this work has already begun and there are others which we believe ought to be
+investigated.
 
 ## `Future` Concept
 
