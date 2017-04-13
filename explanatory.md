@@ -484,7 +484,7 @@ Combining these three sets of properties yields the following table of customiza
 | `defer`        | single      | one-way        | no       |
 | `async_execute`| single      | two-way        | possibly |
 | `then_execute` | single      | two-way        | possibly |
-| `sync_execute` | single      | one-way        | yes      |
+| `sync_execute` | single      | two-way        | yes      |
 | `async_post`   | single      | two-way        | no       |
 | `async_defer`  | single      | two-way        | no       |
 | `bulk_execute` | bulk        | one-way        | possibly |
