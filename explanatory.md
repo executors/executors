@@ -1070,7 +1070,10 @@ include these to allow for specialization.
 ### `then_execute`
 
     template<class Executor, class Function, class Future>
-    executor_future_t<Executor, std::invoke_result_t<std::decay_t<Function>, decltype(std::declval<Future>().get())&>>
+    executor_future_t<
+      Executor,
+      std::invoke_result_t<std::decay_t<Function>, decltype(std::declval<Future>().get())&>
+    >
     then_execute(const Executor& exec, Function&& f, Future& predecessor_future);
 
 `then_execute` creates an asynchronous execution agent. It may be implemented
