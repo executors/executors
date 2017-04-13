@@ -1252,11 +1252,30 @@ including.
 
 ## `Future` Concept
 
-\textcolor{red}{TODO:} Need to mention that our proposal relies on the ability of executors to return future objects whose type is allowed to differ from `std::future`. Describing the requirements for such types is out of the scope of our executors proposal. Might also want to mention the SG1 straw poll results for what shipping vehicle those requirements would show up in
+Our proposal depends upon the ability of executors to create future objects
+whose types differ from `std::future`. Such user-defined `std::future`-like
+objects will allow interoperation with resources whose asynchronous execution
+is undesirable or impossible to track through standard means. For example,
+scheduling runtimes maintain internal data structures to track the
+dependency relationships between different tasks. The reification of these
+data structures can achieved much more efficiently than by pairing a
+`std::promise` with a `std::future`. As another example, some "inline"
+executors will create execution immediately in their calling thread. Because
+no interthread communication is necessary, inline executors' asynchronous
+results do not require expensive dynamic allocation or synchronization
+primitives of full-fledged `std::future` objects. We envision that a
+separate effort will propose a `Future` concept which would introduce
+requirements for these user-defined `std::future`-like types.
 
 ## Additional Thread Pool Types
 
-\textcolor{red}{TODO:} Need to mention that `dynamic_thread_pool` will be an alternate take at a thread pool which is dynamically/automatically resizable
+Our proposal specifies a single thread pool type, `static_thread_pool`, which
+represents a simple thread pool which does not automatically resize itself. We
+recognize that alternative approaches serving other use cases exist and
+anticipate additional thread pool proposals. In particular, we are aware of a
+separate effort which will propose an additional thread pool type,
+         `dynamic_thread_pool`, and we expect this type of thread pool to be
+         both dynamically and automatically resizable.
 
 ## Heterogeneity
 
@@ -1283,9 +1302,9 @@ natively generate them. Moreover, hierarchical organizations of agents
 naturally model the kinds of execution created by multicore CPUs, GPUs, and
 collections of these.
 
-The organization of such a hierarchy would induce groups of groups of execution
-agents and would introduce a different piece of shared state for each of these
-groups. The interface to such an execution function would look like:
+The organization of such a hierarchy would induce groups of groups (of groups..., etc.) of
+execution agents and would introduce a different piece of shared state for each non-terminal node of this
+hierarchy. The interface to such an execution function would look like:
 
     template<class Executor, class Function, class ResultFactory, class... SharedFactories>
     std::invoke_result_t<ResultFactory()>
