@@ -113,9 +113,8 @@ from the execution context.
 
 Typical examples of an execution agent are a CPU thread or GPU execution unit.
 
-An **execution function** is a member function or free function which executes
-a callable function with a particular set of semantics derived from it's
-properties.
+An **execution function** is function which executes a callable function with a
+particular set of semantics derived from it's properties.
 
 Examples of execution functions will be described in further detail later in
 the paper.
@@ -1014,10 +1013,6 @@ Much of the design of the executors interface is well established, however there
 design that have been subject of debate and still an ongoing discussion.
 
 // TODO Add any other questions that were raised during the SG1 meetings
-
-## A Standard Thread Pool
-
-// TODO
 
 ## Relationship with Thread Local Storage
 
