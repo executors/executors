@@ -100,8 +100,37 @@ Typical examples of an execution resource can range from SIMD vector units
 accessible in a single thread to an entire runtime managing a large collection
 of threads.
 
+A program may require creating execution on multiple different kinds of
+execution resources, and these resources may have significantly different
+capabilities. For example, callable function objects invoked on a thread of
+execution have the repertoire of a Standard C++ program, including access to
+the facilities of the operating system, file system, network, and similar. By
+contrast, GPUs do not create standard threads of execution, and the callable
+function objects they execute may have limited access to these facilities.
+Moreover, functions executed by GPUs typically require special identification
+by the programmer and the addresses of these functions are incompatible with
+those of standard functions. Because execution resources impart different
+freedoms and restrictions to the execution they create, and these differences
+are visible to the programmer, we say that they are **heterogeneous**.
+
+Our proposal does not currently specify a programming model for dealing with
+heterogeneous execution resources. Instead, the execution resources
+representable by our proposal are implicitly **homogeneous** and execute
+Standard C++ functions. We envision that an extension of our basic executors
+model will deal with heterogeneity by exposing execution resource
+**architecture**. However, the introduction of a notion of concrete
+architecture into C++ would be a departure from C++'s abstract machine. Because
+such a departure will likely prove controversial, we think a design for
+heterogeneous resources is an open question for future work.
+
 An **execution context** is a program object that represents a specific
-collection of execution resources.
+collection of execution resources and the **execution agents** that exist
+within those resources. In our model, execution agents are units of execution,
+and a 1-to-1 mapping exists between an execution agent and an 
+invocation of a callable function object. An agent is bound[^bound_footnote] to an
+execution context, and hence to one or more of the resources that context represents.
+
+[^bound_footnote]: \textcolor{red}{TODO:} What do we mean by *bound*? Does that mean that an agent's execution resource cannot change over the course of its lifetime? For example, could an agent begin on thread A and then migrate to thread B? Or would we simply say that this agent is bound to a special kind of migrating resource?
 
 Typical examples of an execution context are a thread pool or a distributed or
 heteroegeneous runtime.
@@ -465,7 +494,7 @@ Combining these three sets of properties yields the following table of customiza
 | `bulk_async_defer`   | bulk   | two-way        | no       |
 
 Note that the entire cross product of the three sets of properties is not
-represented in this table. For example, `bulk_then_post` does not exist. When
+represented in this table. For example, `then_post` does not exist. When
 selecting customization points, we have made a trade-off between expressivity
 and minimalism guided by their usefulness to the Standard Library and the
 technical specifications we initially wish to target.
@@ -491,25 +520,26 @@ The first parameter of each customization point is the executor object used to
 create execution, and the second parameter is a callable object encapsulating
 the task of the created execution. The executor is received by `const`
 reference because executors act as shallow-`const` "views" of execution
-contexts. Creating execution does not mutate the view. Single-agent execution
-functions receive the callable as a forwarding reference. Single-agent, two-way
-customization points return the result of the callable object either directly,
-or through a future as shown above. One-way customization points
-always return `void`.
+contexts. Creating execution does not mutate the view. Single-agent
+customization points receive the callable as a forwarding reference.
+Single-agent, two-way customization points return the result of the callable
+object either directly, or through a future as shown above. One-way
+customization points always return `void`.
 
 For `then_execute`, the third parameter is a future which is the predecessor dependency for the execution:
 
     template<class Executor, class Function, class Future>
-    executor_future_t<Executor,std::invoke_result_t<std::decay_t<Future>,U&>>
+    executor_future_t<Executor,std::invoke_result_t<std::decay_t<Function>,U&>>
     then_execute(const Executor& exec, Function&& f, Future& predecessor_future);
 
-The callable object is invoked with a reference to the result object of the
-predecessor future (or without a parameter if a `void` future). By design, this
-is inconsistent with the interface of the Concurrency TS's `future::then` which
-invokes its continuation with a copy of the predecessor future. Our design
-avoids the composability issues of `future::then` [@Executors16:Issue96] and is
-consistent with `bulk_then_execute`, discussed below. Note that the type of
-`Future` is allowed to differ from `executor_future_t<Executor,U>`, enabling
+Let `U` by the type of `Future`'s result object. The callable object `f` is
+invoked with a reference to the result object of the predecessor future (or
+    without a parameter if a `void` future). By design, this is inconsistent
+with the interface of the Concurrency TS's `future::then` which invokes its
+continuation with a copy of the predecessor future. Our design avoids the
+composability issues of `future::then` [@Executors16:Issue96] and is consistent
+with `bulk_then_execute`, discussed below. Note that the type of `Future` is
+allowed to differ from `executor_future_t<Executor,U>`, enabling
 interoperability between executors and foreign future types.
 
 Note that customization points do not receive a parameter pack of arguments for
@@ -523,9 +553,14 @@ unavailable.
 
 ### Bulk Interfaces
 
-Bulk customization points are subject to ownership and lifetime issues avoided
-by single-agent customization points and they include additional parameters to
-address these issues. For example, `execution::bulk_async_execute`:
+Bulk customization points create a group of execution agents as a unit, and
+each of these execution agents calls an individual invocation of the given
+callable function object. The ordering guarantees of these invocations are
+given by `std::execution::executor_execution_category_t`. Because they create
+multiple agents, bulk customization points introduce ownership and lifetime
+issues avoided by single-agent customization points and they include additional
+parameters to address these issues. For example, consider
+`execution::bulk_async_execute`:
 
     template<class Executor, class Function, class Factory1, class Factory2>
     executor_future_t<Executor,std::invoke_result_t<Factory1>>
@@ -731,7 +766,7 @@ their associated contexts are known in advance, clients may use contexts to
 reason about underlying execution resources in order to make choices about
 where to create execution agents. \textcolor{red}{The rationale for context
   access needs a better explanation.} Because `inline_executor` is such a
-  simple example, serves as its own execution context and simply returns a
+  simple example, it serves as its own execution context and simply returns a
   reference to itself. In general, the result of `.context` must be an
   `EqualityComparable` type, and more sophisticated executors will return some
   other object: 
@@ -764,9 +799,129 @@ where to create execution agents. \textcolor{red}{The rationale for context
 In this example, an executor which creates execution agents by submitting to a
 thread pool returns a reference to that thread pool from `.context`.
 
-### Member Types
+### Type Traits
 
-\textcolor{red}{TODO:} describe the various executor member types used for introspecting guarantees
+Executor-specific type traits advertise semantics of cross-cutting guarantees
+and also identify associated types. Executor type traits are provided in the
+`execution` namespace and are prefixed with `executor_`. Unless otherwise
+indicated, when an executor type does not proactively define a member type with
+the corresponding name (sans prefix), the value of these traits have a default.
+This default conveys semantics that make the fewest assumptions about the
+executor's behavior.
+
+**Execution mapping.** When executors create execution agents, they are
+*mapped* onto execution resources. The properties of this mapping may be of
+interest to some clients. For example, the relationship between an execution
+agent and the lifetime of `thread_local` variables may be inferred by
+inspecting the mapping of the agent onto its thread of execution (if any). In
+our model, such mappings are represented as empty tag types and they are
+introspected through the `executor_execution_mapping_category` type trait.
+Currently, this trait returns one of three values:
+
+  1. `other_execution_mapping_tag`: The executor maps agents onto non-standard execution resources.
+  2. `thread_execution_mapping_tag`: The executor maps agents onto threads of execution.
+  3. `unique_thread_execution_mapping_tag`: The executor maps each agent onto a new thread of execution, and that thread of execution does not change over the agent's lifetime.[^unique_thread_footnote]
+
+[^unique_thread_footnote]: `new_thread_execution_mapping_tag` might be a better name for this. `unique_thread_execution_mapping_tag` wouldn't necessarily suggest each agent gets a newly-created thread, just its *own* thread.
+
+The first mapping category is intended to represent mappings onto resources
+which are not standard threads of execution. The abilities of such agents may
+be subject to executor-defined limitations. The next two categories indicate
+that agents execute on standard threads of execution as normal.
+`thread_execution_mapping_tag` guarantees that agents execute on threads, but
+makes no additional guarantee about the identification between agent and
+thread. `unique_thread_execution_mapping_tag` does make an additional
+guarantee; each agent executes on a newly-created thread. We envision that
+this set of mapping categories may grow in the future.
+
+The default value of `executor_execution_mapping_category` is `thread_execution_mapping_tag`.
+
+**Blocking guarantee.** When a client uses an executor to create execution
+agents, the execution of that client may be blocked pending the completion of
+those execution agents. The `executor_execute_blocking_category` trait
+describes the way in which these agents are guaranteed to block their client.
+
+When executors create execution agents, those agents
+possibly block the client's execution pending the completion of those agents.
+This guarantee is given by `executor_execute_blocking_category`, which
+returns one of three values:
+
+  1. `blocking_execution_tag`: The agents' execution blocks the client.
+  2. `possibly_blocking_execution_tag`: The agent's execution possibly block the client.
+  3. `non_blocking_execution_tag`: The agent's execution does not block the client.
+
+The guarantee provided by `executor_execute_blocking_category` only applies to
+those customization points whose name is suffixed with `execute`. Exceptions
+are the `sync_` customization points, which must always block their client by
+definition. When the agents created by an executor possibly block its client,
+  it's conceivable that the executor could provide dynamic runtime facilities
+  for querying its actual blocking behavior. However, our design prescribes no
+  interface for doing so.
+
+The default value of `executor_execute_blocking_category` is `possibly_blocking_execution_tag`.
+
+**Bulk ordering guarantee.** When an executor creates a group of execution
+agents, their bulk execution obeys certain semantics. For example, a group of
+agents may invoke the user-provided function sequentially, or they may be
+invoked in parallel. Any guarantee the executor makes of these semantics is
+conveyed by the `executor_execution_category` trait, which takes one one of
+three values:
+
+  1. `sequenced_execution_tag`: The invocations of the user-provided callable function object are sequenced in lexicographical order of their indices.
+  2. `parallel_execution_tag`: The invocations of the user-provided callable function object are unsequenced when invoked on separate threads, and indeterminately sequenced when invoked on the same thread.
+  3. `unsequenced_execution_tag`: The invocations of the user-provided callable function object are unsequenced. \textcolor{red}{Is this the same as saying the invocations are not guaranteed to be sequenced? We want to allow unsequenced executors the lattitude to execute in sequenced order, if they need to for some reason.}
+
+These guarantees agree with those made by the corresponding standard execution
+policies, and indeed these guarantees are intended to be used by execution
+policies to describe the invocations of element access functions during
+parallel algorithm execution. One difference between these guarantees and the
+standard execution policies is that, unlike `std::execution::sequenced_policy`,
+         `sequenced_execution_tag` does not imply that execution happens on the
+         client's thread[^seq_footnote]. Instead, `executor_execution_mapping`
+         captures such guarantees.
+
+We expect this list to grow in the future. For example, guarantees of
+concurrent or vectorized execution among a group of agents would be obvious
+additions.
+
+The default value of `executor_execution_category` is `unsequenced_execution_tag`.
+
+[^seq_footnote]: We might want to introduce something like `this_thread_execution_mapping_tag` to capture the needs of `std::execution::seq`, which requires algorithms to execute on the current thread.
+
+These describe the types of parameters involved in bulk customization points
+
+**Executor shape type.** When an executor creates a group of execution agents
+in bulk, the index space of those agents is described by a *shape*. Our current
+proposal is limited to one-dimensional shapes representable by an integral
+type, but we envision generalization to multiple dimensions. The type of an
+executor's shape is given by `executor_shape`, and its default value is
+`std::size_t`.
+
+**Executor index type.** Execution agents within a group are uniquely
+identified within their group's index space by an *index*. In addition to
+sharing the dimensionality of the shape, these indices have a lexicographic
+ordering. Like `executor_shape`, the type of an executor's index is given by
+`executor_index`, and its default value is `std::size_t`.
+
+**Execution context type.** `executor_context` simply names the type of an
+executor's execution context by decaying the result of its member function
+`.context`. This default cannot be overriden by a member type because
+`.context`'s result is authoritative.
+
+**Associated `Future` type.** `executor_future` names the type of an executor's
+associated future type, which is the type of object returned by asynchronous,
+           two-way customization points. The type is determined by the result
+           of `execution::async_execute`, which must satisfy the requirements
+           of the `Future` concept[^future_footnote]. Otherwise, the type is
+           `std::future`. All of an executor's two-way asynchronous
+           customization points must return the same type of future.
+           \textcolor{red}{Do we allow users to specialize this type?  The
+             paper suggests yes, but if so, why do we allow this for the future
+               type but not for the context type?}
+
+[^future_footnote]: For now, the only type which satisfies `Future` is
+`std::experimental::future`, specified by the Concurrency TS. We expect the
+requirements of `Future` to be elaborated by a separate proposal.
 
 ## Execution Agent Creation via Execution Functions
 
@@ -915,7 +1070,7 @@ include these to allow for specialization.
 ### `then_execute`
 
     template<class Executor, class Function, class Future>
-    executor_future_t<Executor, std::invoke_result_t<Function>>
+    executor_future_t<Executor, std::invoke_result_t<std::decay_t<Function>, decltype(std::declval<Future>().get())&>>
     then_execute(const Executor& exec, Function&& f, Future& predecessor_future);
 
 `then_execute` creates an asynchronous execution agent. It may be implemented
@@ -956,19 +1111,104 @@ one agent and no sharing actually occurs. The cost of this unnecessary sharing
 may be significant and can be avoided if an executor specializes `then_execute`.
 
 ### `async_execute`
-\textcolor{red}{TODO:} Show how the semantics of the corresponding customization point can be implemented by calling one of the previously defined methods
 
-\textcolor{red}{TODO:} Provide an argument, preferably with empirical evidence, why doing so is insufficient and demonstrating how providing the more specialized method is a superior choice
+    template<class Executor, class Function>
+    executor_future_t<Executor, std::invoke_result_t<std::decay_t<Function>>>
+    async_execute(const Executor& exec, Function&& f);
+
+`async_execute` creates an asynchronous execution agent. It may be implemented
+by using `then_execute` with a ready `void` future:
+
+    std::experimental::future<void> ready_future = std::experimental::make_ready_future();
+    return exec.then_execute(std::forward<Function>(f), ready_future);
+
+Alternatively, `bulk_async_execute` could be used, analogously to the use of
+`bulk_then_execute` in `then_execute`'s implementation.
+
+The cost of a superfluous immediately-ready future object could be significant
+compared to the cost of agent creation. For example, the future object's
+implementation could contain data structures required for inter-thread
+synchronization. In this case, these data structures are wasteful and never
+need to be used because the future is ready-made.
+
+On the other hand, once a suitable `Future` concept allows for user-definable
+futures, the initial future need not be `std::experimental::future`. Instead, a
+hypothetical `always_ready_future` could be an efficient substitute as it would
+not require addressing the problem of synchronization:
+
+    always_ready_future<void> ready_future;
+    return exec.then_execute(std::forward<Function>(f), ready_future);
+
+However, to fully exploit such efficiency, `then_execute` may need to
+recognize this case and take special action for `always_ready_future`.
+
+Because of the opportunity for efficient specialization of a common use case, and to avoid
+requiring executors to explicitly support continuations with `then_execute`, including
+`async_execute` as an execution function is worthwhile.
 
 ### `async_post`
-\textcolor{red}{TODO:} Show how the semantics of the corresponding customization point can be implemented by calling one of the previously defined methods
 
-\textcolor{red}{TODO:} Provide an argument, preferably with empirical evidence, why doing so is insufficient and demonstrating how providing the more specialized method is a superior choice
+    template<class Executor, class Function>
+    executor_future_t<Executor, std::invoke_result_t<std::decay_t<Function>>>
+    async_post(const Executor& exec, Function&& f);
+
+`async_post` is equivalent to `async_execute` except that it makes an
+additional guarantee not to block the client's execution. Some executors will
+not be able to provide such a guarantee and could not be adapted to this
+functionality when `async_post` is absent. For example, an implementation of
+`async_post` which simply forwards its arguments directly to `async_post` is
+possible only if `executor_execute_blocking_category_t<Executor>` is
+`nonblocking_execution_tag`.
 
 ### `sync_execute`
-\textcolor{red}{TODO:} Show how the semantics of the corresponding customization point can be implemented by calling one of the previously defined methods
 
-\textcolor{red}{TODO:} Provide an argument, preferably with empirical evidence, why doing so is insufficient and demonstrating how providing the more specialized method is a superior choice
+    template<class Executor, class Function>
+    std::invoke_result_t<std::decay_t<Function>>
+    sync_execute(const Executor& exec, Function&& f);
+
+`sync_execute` is equivalent to `async_execute` except that it blocks its
+client until the result of execution is complete. It returns this result
+directly as a value, rather than indirectly via a future object.
+Correspondingly, it may be implemented by calling `async_execute` and getting the future's result:
+
+    auto future = exec.async_execute(std::forward<Function>(f));
+    return future.get();
+
+Like `async_execute`, we include `sync_execute` to avoid overhead incurred by
+introducing a temporary future object. This overhead is likely to be
+significant for executors whose cost of execution agent creation is very small.
+A hypothetical `simd_executor` or `inline_executor` are examples.
+
+We believe it is possible to make the cost of the future arbitrarily small in
+very special cases. For example, if the executor's associated future is a
+hypothetical `always_ready_future`, then a path through `async_execute` is
+unlikely to incur any penalty:
+
+    template<class T>
+    class always_ready_future {
+      private:
+        T value_;
+
+      public:
+        T get() { return value_; }
+
+      ...
+    };
+
+    ...
+
+    using result_type = std::invoke_result_t<std::decay_t<Function>>;
+    always_ready_future<result_type> future = exec.async_execute(std::forward<Function>(f));
+
+However, this efficient implementation depends on `always_ready_future` being
+the executor's associated future type. Moreover, it requires the executor to
+treat `async_execute` as `sync_execute`'s moral equivalent by returning an
+immediately ready result which always blocks the client.
+
+Because most executors will not return ready future objects from their two-way
+asynchronous execution functions, they will incur the overhead of this
+`async_execute`-based implementation. Therefore, `sync_execute` is worth
+including.
 
 ## One-Way Functions
 
@@ -1056,7 +1296,27 @@ these customization points have different semantics.
 
 # Future Work
 * Quick survey of papers being written, or that probably ought to be written
-* Should include:  dynamic thread pool, Future concept
+
+## `Future` Concept
+
+\textcolor{red}{TODO:} Need to mention that our proposal relies on the ability of executors to return future objects whose type is allowed to differ from `std::future`. Describing the requirements for such types is out of the scope of our executors proposal. Might also want to mention the SG1 straw poll results for what shipping vehicle those requirements would show up in
+
+## Additional Thread Pool Types
+
+\textcolor{red}{TODO:} Need to mention that `dynamic_thread_pool` will be an alternate take at a thread pool which is dynamically/automatically resizable
+
+## Heterogeneity
+
+\textcolor{red}{TODO:} Need to mention that heterogeneity is a problem that impacts all of C++, not just executors. Can't really tackle the problem adequately through an executors-only approach. Relationship between executors and heterogeneity might require tools that are out of scope of a library-only solution.
+
+For example:
+  * heterogeneous compilation
+  * heterogeneous linking
+  * JIT compilation
+  * reflection
+  * serialization
+  
+The point is that an independent, separate effort should investigate heterogeneity holistically
 
 # References
 

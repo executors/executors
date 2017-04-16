@@ -10,6 +10,8 @@ author:
 
 abstract: |
   \noindent This paper is a companion to [P0443](http://wg21.link/P0443) and describes the executors programming model it specifies.
+  \noindent This paper is directed towards readers who want to understand in detail the mechanics of P0443's programming model, and the rationale underpinning the choices of that model's design.
+  \noindent Readers who want a quick overview of the basics of using executors in typical use cases should refer to [DXXXX](http://wg21.link/DXXXX).
   Note: This paper is an early draft. It's known to be incomplete and incorrect, and it has lots of bad formatting.
 
 references:
