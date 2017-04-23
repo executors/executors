@@ -942,6 +942,168 @@ to target. Without loss of generality, we discuss the free function form of
 each execution function in order of decreasing support each had within SG1 at
 the 2017 Kona standardization committee meeting.
 
+## Execution Functions
+
+There is a range of execution functions which an executor can natively support, each with different behvior derived from their respective properties. In this section we describe the various execution functions and their behaviour.
+
+### `execute`
+
+'execute' is single cardinality, one-way, possibly blocking execution function.
+
+    template<class Executor, class Function, class Allocator = std::allocator<void>>
+    void execute(const Executor& exec, Function&& func, Allocator& alloc = Allocator());
+
+`execute` asynchonously creates a single execution agent bound to the executor `exec` whose execution may begin immediately and does not return a value. The created execution agent calls `std::forward<Function>(func)()`. `execute` may or may not the caller until execution completes, depending on the value of `executor_execute_blocking_category_t<Executor>`. The allocator `alloc` can be used to allocate memory for `func`.
+
+### `post`
+
+'defer' is single cardinality, one-way, non-blocking execution function.
+
+    template<class Executor, class Function, class Allocator = std::allocator<void>>
+    void post(const Executor& exec, Function&& func, Allocator& alloc = Allocator());
+
+`post` asynchonously creates a single execution agent bound to the executor `exec` whose execution may begin immediately and does not return a value. The created execution agent calls `std::forward<Function>(func)()`. `post` does not block the caller until execution completes. The allocator `alloc` can be used to allocate memory for `func`.
+
+\textcolor{red}{TODO:} Describe `post` semantics as differing from `differ`.
+
+### `defer`
+
+'defer' is single cardinality, one-way, non-blocking execution function.
+
+    template<class Executor, class Function, class Allocator = std::allocator<void>>
+    void defer(const Executor& exec, Function&& func, Allocator& alloc = Allocator());
+
+`defer` asynchonously creates a single execution agent bound to the executor `exec` whose execution may begin immediately and does not return a value. The created execution agent calls `std::forward<Function>(func)()`. `defer` does not block the caller until execution completes. The allocator `alloc` can be used to allocate memory for `func`.
+
+\textcolor{red}{TODO:} Describe `defer` semantics as differing from `post`.
+
+### `sync_execute`
+
+`sync_execute` is single cardinality, two-way, always blocking execution function.
+
+    template<class Executor, class Function, class Allocator = std::allocator<void>>
+    std::invoke_result_t<std::decay_t<Function>> sync_execute(const Executor& exec, Function&& func, Allocator& alloc = Allocator());
+
+`sync_execute` asynchonously creates a single execution agent bound to the executor `exec` whose execution may begin immediately and returns the result of `func`. The created execution agent calls `std::forward<Function>(func)()`. `sync_execute` blocks the caller until execution completes. The allocator `alloc` can be used to allocate memory for `func`.
+
+### `async_execute`
+
+`async_execute` is single cardinality, two-way, possibly blocking execution function.
+
+    template<class Executor, class Function, class Allocator = std::allocator<void>>
+    executor_future_t<std::invoke_result_t<std::decay_t<Function>>> async_execute(const Executor& exec, Function&& func, Allocator& alloc = Allocator());
+
+`async_execute` asynchonously creates a single execution agent bound to the executor `exec` whose execution may begin immediately and returns a future that can be used to wait for execution to complete containing the result of `func`. The created execution agent calls `std::forward<Function>(func)()`. `async_execute` may or may not the caller until execution completes, depending on the value of `executor_execute_blocking_category_t<Executor>`. The allocator `alloc` can be used to allocate memory for `func`.
+
+### `async_post`
+
+`async_post` is single cardinality, two-way, non-blocking execution function.
+
+    template<class Executor, class Function, class Allocator = std::allocator<void>>
+    executor_future_t<std::invoke_result_t<std::decay_t<Function>>> execute(const Executor& exec, Function&& func, Allocator& alloc = Allocator());
+
+`async_post` asynchonously creates a single execution agent bound to the executor `exec` whose execution may begin immediately and returns a future that can be used to wait for execution to complete containing the result of `func`. The created execution agent calls `std::forward<Function>(func)()`. `async_post` does not block the caller until execution completes. The allocator `alloc` can be used to allocate memory for `func`.
+
+\textcolor{red}{TODO:} Describe `async_post` semantics as differing from `async_defer`.
+
+### `async_defer`
+
+`async_defer` is single cardinality, two-way, non-blocking execution function.
+
+    template<class Executor, class Function, class Allocator = std::allocator<void>>
+    executor_future_t<std::invoke_result_t<std::decay_t<Function>>> execute(const Executor& exec, Function&& func, Allocator& alloc = Allocator());
+
+`async_defer` asynchonously creates a single execution agent bound to the executor `exec` whose execution may begin immediately and returns a future that can be used to wait for execution to complete containing the result of `func`. The created execution agent calls `std::forward<Function>(func)()`. `async_defer` does not block the caller until execution completes. The allocator `alloc` can be used to allocate memory for `func`.
+
+\textcolor{red}{TODO:} Describe `async_defer` semantics as differing from `async_post`.
+
+### `then_execute`
+
+`then_execute` is single cardinality, two-way, possibly blocking execution function.
+
+    template<class Executor, class Function, class Future, class Allocator = std::allocator<void>>
+    executor_future_t<Executor, std::invoke_result_t<std::decay_t<Function>, decltype(std::declval<Future>().get())&>> then_execute(const Executor& exec, Function&& func, Future& pred, Allocator& alloc = Allocator());
+
+`then_execute` asynchonously creates a single execution agent bound to the executor `exec` whose execution begins after the completion of `pred` and returns a future that can be used to wait for execution to complete containing the result of `func`. The created execution agent calls `std::forward<Function>(func)()`. `then_execute` may or may not the caller until execution completes, depending on the value of `executor_execute_blocking_category_t<Executor>`. The allocator `alloc` can be used to allocate memory for `func`.
+
+### `bulk_execute`
+
+'bulk_execute' is bulk cardinality, one-way, possibly blocking execution function.
+
+    template<class Executor, class Function, class SharedFactory>
+    void bulk_execute(const Executor& exec, Function&& func, executor_shape_t<Executor> shape, SharedFactory shared_factory);
+
+`bulk_execute` asynchonously creates a group of execution agents of shape `shape` with forward progress guarantees of `executor_execution_mapping_category_t<Executor>`, bound to the executor `exec` whose execution may begin immediately and does not return a value. Each created execution agent calls `std::forward<Function>(func)(i, s)`, where `i` is of type `executor_index_t<X>` and `s` is a shared object returned from `shared_factory`. `bulk_execute` may or may not the caller until execution completes, depending on the value of `executor_execute_blocking_category_t<Executor>`.
+
+### `bulk_post`
+
+'bulk_post' is bulk cardinality, one-way, non-blocking execution function.
+
+    template<class Executor, class Function, class SharedFactory>
+    void bulk_post(const Executor& exec, Function&& func, executor_shape_t<Executor> shape, SharedFactory shared_factory);
+
+`bulk_post` asynchonously creates a group of execution agents of shape `shape` with forward progress guarantees of `executor_execution_mapping_category_t<Executor>`, bound to the executor `exec` whose execution may begin immediately and does not return a value. Each created execution agent calls `std::forward<Function>(func)(i, s)`, where `i` is of type `executor_index_t<X>` and `s` is a shared object returned from `shared_factory`. `bulk_post` does not block the caller until execution completes.
+
+\textcolor{red}{TODO:} Describe `bulk_post` semantics as differing from `bulk_defer`.
+
+### `bulk_defer`
+
+'bulk_defer' is bulk cardinality, one-way, non-blocking execution function.
+
+    template<class Executor, class Function, class SharedFactory>
+    void bulk_defer(const Executor& exec, Function&& func, executor_shape_t<Executor> shape, SharedFactory shared_factory);
+
+`bulk_defer` asynchonously creates a group of execution agents of shape `shape` with forward progress guarantees of `executor_execution_mapping_category_t<Executor>`, bound to the executor `exec` whose execution may begin immediately and does not return a value. Each created execution agent calls `std::forward<Function>(func)(i, s)`, where `i` is of type `executor_index_t<X>` and `s` is a shared object returned from `shared_factory`. `bulk_defer` does not block the caller until execution completes.
+
+\textcolor{red}{TODO:} Describe `bulk_defer` semantics as differing from `bulk_post`.
+
+### `bulk_sync_execute`
+
+'bulk_sync_execute' is bulk cardinality, two-way, possibly blocking execution function.
+
+    template<class Executor, class Function, class ResultFactory, class SharedFactory>
+    std::invoke_result_t<std::decay_t<Function>> bulk_sync_execute(const Executor& exec, Function&& func, executor_shape_t<Executor> shape, ResultFactory result_factory, SharedFactory shared_factory);
+
+`bulk_sync_execute` asynchonously creates a group of execution agents of shape `shape` with forward progress guarantees of `executor_execution_mapping_category_t<Executor>`, bound to the executor `exec` whose execution may begin immediately and returns the result of `result_factory`. Each created execution agent calls `std::forward<Function>(func)(i, r, s)`, where `i` is of type `executor_index_t<X>`, `r` is a function object retured from `return_factory` and `s` is a shared object returned from `shared_factory`. `bulk_sync_execute` may or may not the caller until execution completes, depending on the value of `executor_execute_blocking_category_t<Executor>`.
+
+### `bulk_async_execute`
+
+'bulk_async_execute' is bulk cardinality, two-way, possibly blocking execution function.
+
+    template<class Executor, class Function, class ResultFactory, class SharedFactory>
+    executor_future_t<std::invoke_result_t<std::decay_t<ResultFactory>>> bulk_async_execute(const Executor& exec, Function&& func, executor_shape_t<Executor> shape, ResultFactory result_factory, SharedFactory shared_factory);
+
+`bulk_async_execute` asynchonously creates a group of execution agents of shape `shape` with forward progress guarantees of `executor_execution_mapping_category_t<Executor>`, bound to the executor `exec` whose execution may begin immediately and returns a future that can be used to wait for execution to complete containing the result of `result_factory`. Each created execution agent calls `std::forward<Function>(func)(i, r, s)`, where `i` is of type `executor_index_t<X>`, `r` is a function object retured from `return_factory` and `s` is a shared object returned from `shared_factory`. `bulk_async_execute` may or may not the caller until execution completes, depending on the value of `executor_execute_blocking_category_t<Executor>`.
+
+### `bulk_async_post`
+
+'bulk_async_post' is bulk cardinality, two-way, non-blocking execution function.
+
+    template<class Executor, class Function, class ResultFactory, class SharedFactory>
+    executor_future_t<std::invoke_result_t<std::decay_t<ResultFactory>>> bulk_async_post(const Executor& exec, Function&& func, executor_shape_t<Executor> shape, ResultFactory result_factory, SharedFactory shared_factory);
+
+`bulk_async_post` asynchonously creates a group of execution agents of shape `shape` with forward progress guarantees of `executor_execution_mapping_category_t<Executor>`, bound to the executor `exec` whose execution may begin immediately and returns a future that can be used to wait for execution to complete containing the result of `result_factory`. Each created execution agent calls `std::forward<Function>(func)(i, r, s)`, where `i` is of type `executor_index_t<X>`, `r` is a function object retured from `return_factory` and `s` is a shared object returned from `shared_factory`. `bulk_async_post` may or may not the caller until execution completes, depending on the value of `executor_execute_blocking_category_t<Executor>`.
+
+### `bulk_async_defer`
+
+'bulk_async_defer' is bulk cardinality, two-way, non-blocking execution function.
+
+    template<class Executor, class Function, class ResultFactory, class SharedFactory>
+    executor_future_t<std::invoke_result_t<std::decay_t<ResultFactory>>> bulk_async_defer(const Executor& exec, Function&& func, executor_shape_t<Executor> shape, ResultFactory result_factory, SharedFactory shared_factory);
+
+`bulk_async_defer` asynchonously creates a group of execution agents of shape `shape` with forward progress guarantees of `executor_execution_mapping_category_t<Executor>`, bound to the executor `exec` whose execution may begin immediately and returns a future that can be used to wait for execution to complete containing the result of `result_factory`. Each created execution agent calls `std::forward<Function>(func)(i, r, s)`, where `i` is of type `executor_index_t<X>`, `r` is a function object retured from `return_factory` and `s` is a shared object returned from `shared_factory`. `bulk_async_defer` may or may not the caller until execution completes, depending on the value of `executor_execute_blocking_category_t<Executor>`.
+
+### `bulk_then_execute`
+
+'bulk_then_execute' is bulk cardinality, two-way, possibly blocking execution function.
+
+    template<class Executor, class Future, class Function, class ResultFactory, class SharedFactory>
+    executor_future_t<Executor, std::invoke_result_t<std::decay_t<Function>, decltype(std::declval<Future>().get())&>> bulk_then_execute(const Executor& exec, Function&& func, Future& pred, executor_shape_t<Executor> shape, ResultFactory result_factory, SharedFactory shared_factory);
+
+`bulk_then_execute` asynchonously creates a group of execution agents of shape `shape` with forward progress guarantees of `executor_execution_mapping_category_t<Executor>`, bound to the executor `exec` whose execution begins after the completion of `pred` and returns a future that can be used to wait for execution to complete containing the result of `result_factory`. Each created execution agent calls `std::forward<Function>(func)(i, r, s)`, where `i` is of type `executor_index_t<X>`, `r` is a function object retured from `return_factory` and `s` is a shared object returned from `shared_factory`. `bulk_then_execute` may or may not the caller until execution completes, depending on the value of `executor_execute_blocking_category_t<Executor>`.
+
+## Common Adaptations
+
 ## Bulk Functions
 
 We begin by discussing the execution functions which create groups of execution
