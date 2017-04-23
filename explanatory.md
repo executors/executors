@@ -1102,15 +1102,17 @@ There is a range of execution functions which an executor can natively support, 
 
 `bulk_then_execute` asynchonously creates a group of execution agents of shape `shape` with forward progress guarantees of `executor_execution_mapping_category_t<Executor>`, bound to the executor `exec` whose execution begins after the completion of `pred` and returns a future that can be used to wait for execution to complete containing the result of `result_factory`. Each created execution agent calls `std::forward<Function>(func)(i, r, s)`, where `i` is of type `executor_index_t<X>`, `r` is a function object retured from `return_factory` and `s` is a shared object returned from `shared_factory`. `bulk_then_execute` may or may not the caller until execution completes, depending on the value of `executor_execute_blocking_category_t<Executor>`.
 
-## Common Adaptations
+# Adapting Executors
 
-## Bulk Functions
+As not all executions will natively support all execution functions it will be common for an execution to emulate the bahvior of one execution function by adapting annother. In this section we will describe common adaptations to provide emulated support for execution functions.
+
+## Common Adaptations of Bulk-Agent Functions
 
 We begin by discussing the execution functions which create groups of execution
 agents in bulk, because the corresponding single-agent functions are each a
 functionally special case.
 
-### `bulk_then_execute`
+### `bulk_then_execute` from `bulk_sync_execute`
 
     template<class Executor, class Function, class Future, class Factory1, class Factory2>
     executor_future_t<Executor, std::invoke_result_t<Factory1>>
@@ -1151,7 +1153,7 @@ significant. Moreover, because the `then` operation occurs separately from
 abstract sophisticated task-scheduling runtimes, this shortcoming is
 unacceptable.
 
-### `bulk_async_execute`
+### `bulk_async_execute` from `bulk_then_execute`
 
     template<class Executor, class Function, class Factory1, class Factory2>
     executor_future_t<Executor, std::invoke_result_t<Factory1>>
@@ -1182,7 +1184,7 @@ of continutions on futures as expected by `bulk_then_execute`.
 `bulk_async_execute` is a better match for these cases because it does not
 require accomodating a predecessor dependency.
 
-### `bulk_async_post`
+### `bulk_async_post` from `bulk_async_execute`
 
     template<class Executor, class Function, class Factory1, class Factory2>
     executor_future_t<Executor, std::invoke_result_t<Factory1>>
@@ -1198,11 +1200,11 @@ of `bulk_async_post` which simply forwards its arguments directly to
 `executor_execute_blocking_category_t<Executor>` is
 `nonblocking_execution_tag`.
 
-### `bulk_async_defer`
+### `bulk_async_defer` from `bulk_async_execute`
 
 // TODO
 
-### `bulk_sync_execute`
+### `bulk_sync_execute` from `bulk_async_execute`
 
     template<class Executor, class Function, class Factory1, class Factory2>
     std::invoke_result_t<Factory1>
@@ -1223,13 +1225,13 @@ incurred by introducing a temporary future object. This overhead is likely to
 be significant for executors whose cost of execution agent creation is very
 small. A hypothetical `simd_executor` or `inline_executor` are examples.
 
-## Single-Agent Functions
+## Common Adaptations of Single-Agent Functions
 
 Single-agent execution functions are special cases of their bulk counterparts.
 Because we expect single-agent creation to be an important special case, we
 include these to allow for specialization.
 
-### `then_execute`
+### `then_execute` form `bulk_then_execute`
 
     template<class Executor, class Function, class Future>
     executor_future_t<Executor, std::invoke_result_t<std::decay_t<Function>, decltype(std::declval<Future>().get())&>>
@@ -1272,7 +1274,7 @@ group of agents created by `bulk_then_execute`. However, this group has only
 one agent and no sharing actually occurs. The cost of this unnecessary sharing
 may be significant and can be avoided if an executor specializes `then_execute`.
 
-### `async_execute`
+### `async_execute` from `then_execute`
 
     template<class Executor, class Function>
     executor_future_t<Executor, std::invoke_result_t<std::decay_t<Function>>>
@@ -1308,7 +1310,7 @@ Because of the opportunity for efficient specialization of a common use case, an
 requiring executors to explicitly support continuations with `then_execute`, including
 `async_execute` as an execution function is worthwhile.
 
-### `async_post`
+### `async_post` from `async_execute`
 
     template<class Executor, class Function>
     executor_future_t<Executor, std::invoke_result_t<std::decay_t<Function>>>
@@ -1322,7 +1324,7 @@ functionality when `async_post` is absent. For example, an implementation of
 possible only if `executor_execute_blocking_category_t<Executor>` is
 `nonblocking_execution_tag`.
 
-### `sync_execute`
+### `sync_execute` from `async_execute`
 
     template<class Executor, class Function>
     std::invoke_result_t<std::decay_t<Function>>
