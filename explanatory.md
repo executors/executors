@@ -1033,7 +1033,7 @@ There is a range of execution functions which an executor can natively support, 
     template<class Executor, class Function, class SharedFactory>
     void bulk_execute(const Executor& exec, Function&& func, executor_shape_t<Executor> shape, SharedFactory shared_factory);
 
-`bulk_execute` asynchonously creates a group of execution agents of shape `shape` with forward progress guarantees of `executor_execution_mapping_category_t<Executor>`, bound to the executor `exec` whose execution may begin immediately and does not return a value. Each created execution agent calls `std::forward<Function>(func)(i, s)`, where `i` is of type `executor_index_t<X>` and `s` is a shared object returned from `shared_factory`. `bulk_execute` may or may not the caller until execution completes, depending on the value of `executor_execute_blocking_category_t<Executor>`.
+`bulk_execute` asynchonously creates a group of execution agents of shape `shape` with forward progress guarantees of `executor_execution_mapping_category_t<Executor>`, bound to the executor `exec` whose execution may begin immediately and does not return a value. Each created execution agent calls `std::forward<Function>(func)(i, s)`, where `i` is of type `executor_index_t<Executor>` and `s` is a shared object returned from `shared_factory`. `bulk_execute` may or may not the caller until execution completes, depending on the value of `executor_execute_blocking_category_t<Executor>`.
 
 ### `bulk_post`
 
@@ -1042,7 +1042,7 @@ There is a range of execution functions which an executor can natively support, 
     template<class Executor, class Function, class SharedFactory>
     void bulk_post(const Executor& exec, Function&& func, executor_shape_t<Executor> shape, SharedFactory shared_factory);
 
-`bulk_post` asynchonously creates a group of execution agents of shape `shape` with forward progress guarantees of `executor_execution_mapping_category_t<Executor>`, bound to the executor `exec` whose execution may begin immediately and does not return a value. Each created execution agent calls `std::forward<Function>(func)(i, s)`, where `i` is of type `executor_index_t<X>` and `s` is a shared object returned from `shared_factory`. `bulk_post` does not block the caller until execution completes.
+`bulk_post` asynchonously creates a group of execution agents of shape `shape` with forward progress guarantees of `executor_execution_mapping_category_t<Executor>`, bound to the executor `exec` whose execution may begin immediately and does not return a value. Each created execution agent calls `std::forward<Function>(func)(i, s)`, where `i` is of type `executor_index_t<Executor>` and `s` is a shared object returned from `shared_factory`. `bulk_post` does not block the caller until execution completes.
 
 \textcolor{red}{TODO:} Describe `bulk_post` semantics as differing from `bulk_defer`.
 
@@ -1053,7 +1053,7 @@ There is a range of execution functions which an executor can natively support, 
     template<class Executor, class Function, class SharedFactory>
     void bulk_defer(const Executor& exec, Function&& func, executor_shape_t<Executor> shape, SharedFactory shared_factory);
 
-`bulk_defer` asynchonously creates a group of execution agents of shape `shape` with forward progress guarantees of `executor_execution_mapping_category_t<Executor>`, bound to the executor `exec` whose execution may begin immediately and does not return a value. Each created execution agent calls `std::forward<Function>(func)(i, s)`, where `i` is of type `executor_index_t<X>` and `s` is a shared object returned from `shared_factory`. `bulk_defer` does not block the caller until execution completes.
+`bulk_defer` asynchonously creates a group of execution agents of shape `shape` with forward progress guarantees of `executor_execution_mapping_category_t<Executor>`, bound to the executor `exec` whose execution may begin immediately and does not return a value. Each created execution agent calls `std::forward<Function>(func)(i, s)`, where `i` is of type `executor_index_t<Executor>` and `s` is a shared object returned from `shared_factory`. `bulk_defer` does not block the caller until execution completes.
 
 \textcolor{red}{TODO:} Describe `bulk_defer` semantics as differing from `bulk_post`.
 
@@ -1064,7 +1064,7 @@ There is a range of execution functions which an executor can natively support, 
     template<class Executor, class Function, class ResultFactory, class SharedFactory>
     std::invoke_result_t<std::decay_t<Function>> bulk_sync_execute(const Executor& exec, Function&& func, executor_shape_t<Executor> shape, ResultFactory result_factory, SharedFactory shared_factory);
 
-`bulk_sync_execute` asynchonously creates a group of execution agents of shape `shape` with forward progress guarantees of `executor_execution_mapping_category_t<Executor>`, bound to the executor `exec` whose execution may begin immediately and returns the result of `result_factory`. Each created execution agent calls `std::forward<Function>(func)(i, r, s)`, where `i` is of type `executor_index_t<X>`, `r` is a function object retured from `return_factory` and `s` is a shared object returned from `shared_factory`. `bulk_sync_execute` may or may not the caller until execution completes, depending on the value of `executor_execute_blocking_category_t<Executor>`.
+`bulk_sync_execute` asynchonously creates a group of execution agents of shape `shape` with forward progress guarantees of `executor_execution_mapping_category_t<Executor>`, bound to the executor `exec` whose execution may begin immediately and returns the result of `result_factory`. Each created execution agent calls `std::forward<Function>(func)(i, r, s)`, where `i` is of type `executor_index_t<Executor>`, `r` is a function object retured from `return_factory` and `s` is a shared object returned from `shared_factory`. `bulk_sync_execute` may or may not the caller until execution completes, depending on the value of `executor_execute_blocking_category_t<Executor>`.
 
 ### `bulk_async_execute`
 
@@ -1073,7 +1073,7 @@ There is a range of execution functions which an executor can natively support, 
     template<class Executor, class Function, class ResultFactory, class SharedFactory>
     executor_future_t<std::invoke_result_t<std::decay_t<ResultFactory>>> bulk_async_execute(const Executor& exec, Function&& func, executor_shape_t<Executor> shape, ResultFactory result_factory, SharedFactory shared_factory);
 
-`bulk_async_execute` asynchonously creates a group of execution agents of shape `shape` with forward progress guarantees of `executor_execution_mapping_category_t<Executor>`, bound to the executor `exec` whose execution may begin immediately and returns a future that can be used to wait for execution to complete containing the result of `result_factory`. Each created execution agent calls `std::forward<Function>(func)(i, r, s)`, where `i` is of type `executor_index_t<X>`, `r` is a function object retured from `return_factory` and `s` is a shared object returned from `shared_factory`. `bulk_async_execute` may or may not the caller until execution completes, depending on the value of `executor_execute_blocking_category_t<Executor>`.
+`bulk_async_execute` asynchonously creates a group of execution agents of shape `shape` with forward progress guarantees of `executor_execution_mapping_category_t<Executor>`, bound to the executor `exec` whose execution may begin immediately and returns a future that can be used to wait for execution to complete containing the result of `result_factory`. Each created execution agent calls `std::forward<Function>(func)(i, r, s)`, where `i` is of type `executor_index_t<Executor>`, `r` is a function object retured from `return_factory` and `s` is a shared object returned from `shared_factory`. `bulk_async_execute` may or may not the caller until execution completes, depending on the value of `executor_execute_blocking_category_t<Executor>`.
 
 ### `bulk_async_post`
 
@@ -1082,7 +1082,7 @@ There is a range of execution functions which an executor can natively support, 
     template<class Executor, class Function, class ResultFactory, class SharedFactory>
     executor_future_t<std::invoke_result_t<std::decay_t<ResultFactory>>> bulk_async_post(const Executor& exec, Function&& func, executor_shape_t<Executor> shape, ResultFactory result_factory, SharedFactory shared_factory);
 
-`bulk_async_post` asynchonously creates a group of execution agents of shape `shape` with forward progress guarantees of `executor_execution_mapping_category_t<Executor>`, bound to the executor `exec` whose execution may begin immediately and returns a future that can be used to wait for execution to complete containing the result of `result_factory`. Each created execution agent calls `std::forward<Function>(func)(i, r, s)`, where `i` is of type `executor_index_t<X>`, `r` is a function object retured from `return_factory` and `s` is a shared object returned from `shared_factory`. `bulk_async_post` may or may not the caller until execution completes, depending on the value of `executor_execute_blocking_category_t<Executor>`.
+`bulk_async_post` asynchonously creates a group of execution agents of shape `shape` with forward progress guarantees of `executor_execution_mapping_category_t<Executor>`, bound to the executor `exec` whose execution may begin immediately and returns a future that can be used to wait for execution to complete containing the result of `result_factory`. Each created execution agent calls `std::forward<Function>(func)(i, r, s)`, where `i` is of type `executor_index_t<Executor>`, `r` is a function object retured from `return_factory` and `s` is a shared object returned from `shared_factory`. `bulk_async_post` may or may not the caller until execution completes, depending on the value of `executor_execute_blocking_category_t<Executor>`.
 
 ### `bulk_async_defer`
 
@@ -1091,7 +1091,7 @@ There is a range of execution functions which an executor can natively support, 
     template<class Executor, class Function, class ResultFactory, class SharedFactory>
     executor_future_t<std::invoke_result_t<std::decay_t<ResultFactory>>> bulk_async_defer(const Executor& exec, Function&& func, executor_shape_t<Executor> shape, ResultFactory result_factory, SharedFactory shared_factory);
 
-`bulk_async_defer` asynchonously creates a group of execution agents of shape `shape` with forward progress guarantees of `executor_execution_mapping_category_t<Executor>`, bound to the executor `exec` whose execution may begin immediately and returns a future that can be used to wait for execution to complete containing the result of `result_factory`. Each created execution agent calls `std::forward<Function>(func)(i, r, s)`, where `i` is of type `executor_index_t<X>`, `r` is a function object retured from `return_factory` and `s` is a shared object returned from `shared_factory`. `bulk_async_defer` may or may not the caller until execution completes, depending on the value of `executor_execute_blocking_category_t<Executor>`.
+`bulk_async_defer` asynchonously creates a group of execution agents of shape `shape` with forward progress guarantees of `executor_execution_mapping_category_t<Executor>`, bound to the executor `exec` whose execution may begin immediately and returns a future that can be used to wait for execution to complete containing the result of `result_factory`. Each created execution agent calls `std::forward<Function>(func)(i, r, s)`, where `i` is of type `executor_index_t<Executor>`, `r` is a function object retured from `return_factory` and `s` is a shared object returned from `shared_factory`. `bulk_async_defer` may or may not the caller until execution completes, depending on the value of `executor_execute_blocking_category_t<Executor>`.
 
 ### `bulk_then_execute`
 
@@ -1100,7 +1100,7 @@ There is a range of execution functions which an executor can natively support, 
     template<class Executor, class Future, class Function, class ResultFactory, class SharedFactory>
     executor_future_t<Executor, std::invoke_result_t<std::decay_t<Function>, decltype(std::declval<Future>().get())&>> bulk_then_execute(const Executor& exec, Function&& func, Future& pred, executor_shape_t<Executor> shape, ResultFactory result_factory, SharedFactory shared_factory);
 
-`bulk_then_execute` asynchonously creates a group of execution agents of shape `shape` with forward progress guarantees of `executor_execution_mapping_category_t<Executor>`, bound to the executor `exec` whose execution begins after the completion of `pred` and returns a future that can be used to wait for execution to complete containing the result of `result_factory`. Each created execution agent calls `std::forward<Function>(func)(i, r, s)`, where `i` is of type `executor_index_t<X>`, `r` is a function object retured from `return_factory` and `s` is a shared object returned from `shared_factory`. `bulk_then_execute` may or may not the caller until execution completes, depending on the value of `executor_execute_blocking_category_t<Executor>`.
+`bulk_then_execute` asynchonously creates a group of execution agents of shape `shape` with forward progress guarantees of `executor_execution_mapping_category_t<Executor>`, bound to the executor `exec` whose execution begins after the completion of `pred` and returns a future that can be used to wait for execution to complete containing the result of `result_factory`. Each created execution agent calls `std::forward<Function>(func)(i, r, s)`, where `i` is of type `executor_index_t<Executor>`, `r` is a function object retured from `return_factory` and `s` is a shared object returned from `shared_factory`. `bulk_then_execute` may or may not the caller until execution completes, depending on the value of `executor_execute_blocking_category_t<Executor>`.
 
 # Adapting Executors
 
