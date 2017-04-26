@@ -865,8 +865,8 @@ definition. When the agents created by an executor possibly block its client,
 
 The default value of `executor_execute_blocking_category` is `possibly_blocking_execution_tag`.
 
-**Bulk ordering guarantee.** When an executor creates a group of execution
-agents, their bulk execution obeys certain semantics. For example, a group of
+**Bulk forward progress guarantee.** When an executor creates a group of execution
+agents, their forward progress obeys certain semantics. For example, a group of
 agents may invoke the user-provided function sequentially, or they may be
 invoked in parallel. Any guarantee the executor makes of these semantics is
 conveyed by the `executor_execution_category` trait, which takes one one of
@@ -874,7 +874,7 @@ three values:
 
   1. `sequenced_execution_tag`: The invocations of the user-provided callable function object are sequenced in lexicographical order of their indices.
   2. `parallel_execution_tag`: The invocations of the user-provided callable function object are unsequenced when invoked on separate threads, and indeterminately sequenced when invoked on the same thread.
-  3. `unsequenced_execution_tag`: The invocations of the user-provided callable function object are unsequenced. \textcolor{red}{Is this the same as saying the invocations are not guaranteed to be sequenced? We want to allow unsequenced executors the lattitude to execute in sequenced order, if they need to for some reason.}
+  3. `unsequenced_execution_tag`: The invocations of the user-provided callable function object are not guaranteed to be sequenced, even when those invocations are executed within the same thread.
 
 These guarantees agree with those made by the corresponding standard execution
 policies, and indeed these guarantees are intended to be used by execution
