@@ -920,9 +920,9 @@ associated future type, which is the type of object returned by asynchronous,
            of the `Future` concept[^future_footnote]. Otherwise, the type is
            `std::future`. All of an executor's two-way asynchronous
            customization points must return the same type of future.
-           \textcolor{red}{Do we allow users to specialize this type?  The
-             paper suggests yes, but if so, why do we allow this for the future
-               type but not for the context type?}
+           \textcolor{red}{Do we allow users to specialize this type trait? P0443R1
+             suggests yes, but if so, why do we allow this for the future
+               type trait but not for the context type trait?}
 
 [^future_footnote]: For now, the only type which satisfies `Future` is
 `std::experimental::future`, specified by the Concurrency TS. We expect the
