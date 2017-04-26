@@ -183,8 +183,6 @@ to create multiple execution agents to invoke `func` in parallel.
 
 \textcolor{red}{TODO:} Demonstrate use cases central to the Networking TS
 
-\textcolor{red}{TODO:} Demonstrate a use case where concurrency is required and show how to deal with failure
-
 ## Using Executors with Application-Level Libraries
 
 When composing executors with functions which use them to create execution
@@ -1272,6 +1270,20 @@ results do not require expensive dynamic allocation or synchronization
 primitives of full-fledged `std::future` objects. We envision that a
 separate effort will propose a `Future` concept which would introduce
 requirements for these user-defined `std::future`-like types.
+
+## Error Handling
+
+Our proposal prescribes no mechanism for execution functions to communicate
+exceptional behavior back to their clients. For our purposes, exceptional
+behavior includes exceptions thrown by the callable functions invoked by
+execution agents and failures to create those execution agents due to resource
+exhaustion. In most cases, resource exhaustion can be reported immediately
+similar to `std::async`'s behavior. Reporting exceptions encountered by
+execution agents can also be generalized from `std::async`. We envision that
+asynchronous two-way functions will report errors through an exceptional future
+object, and synchronous two-way functions will simply throw any exceptions they
+encounter as normal. However, it is not clear what mechanism, if any, one-way
+execution functions should use for error reporting.
 
 ## Additional Thread Pool Types
 
