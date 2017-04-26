@@ -147,7 +147,7 @@ a client.
 
 ## Using Executors with the Standard Library
 
-For example, some functions, like `std::async`, will receive executors as parameters directly:
+Some functions, like `std::async`, will receive executors as parameters directly:
 
     // get an executor through some means
     my_executor_type my_executor = ...
@@ -755,11 +755,13 @@ through executor-specific type traits.
 ### Functions
 
 **Executor identity.** All executors are required to be `EqualityComparable` in
-order for clients to reason about their identity. \textcolor{red}{Need a good
-  explanation for the rationale for executor identity here, also what
-    equivalence implies.} `inline_executor` satisfies this by defining
-    `operator==` and `operator!=`. In this case, all instances of
-    `inline_executor` are considered equivalent.
+order for clients to reason about their identity. Equivalence between two
+executors implies that the same execution function invoked on either executors
+produces the same side effects. \textcolor{red}{Is there a more precise way to
+  say this?} `inline_executor` satisfies `EqualityComparable` by defining
+  `operator==` and `operator!=`. Because `inline_executor::sync_execute` simply
+  invokes its function inline, all instances of `inline_executor` produce the
+  same side effects and are therefore equivalent.
 
 **Execution context access.** Next, all executors are required to provide
 access to their associated execution context via a member function named
