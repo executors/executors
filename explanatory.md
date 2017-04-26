@@ -769,11 +769,12 @@ access to their associated execution context via a member function named
 their associated contexts are known in advance, clients may use contexts to
 reason about underlying execution resources in order to make choices about
 where to create execution agents. \textcolor{red}{The rationale for context
-  access needs a better explanation.} Because `inline_executor` is such a
-  simple example, it serves as its own execution context and simply returns a
-  reference to itself. In general, the result of `.context` must be an
-  `EqualityComparable` type, and more sophisticated executors will return some
-  other object: 
+  access needs a better explanation, especially about how generic functions
+    could make use of context introspection.} Because `inline_executor` is such
+    a simple example, it serves as its own execution context and simply returns
+    a reference to itself. In general, the result of `.context` must be an
+    `EqualityComparable` type, and more sophisticated executors will return
+    some other object: 
 
     class thread_pool_executor {
       private:
