@@ -128,7 +128,7 @@ and a 1-to-1 mapping exists between an execution agent and an
 invocation of a callable function object. An agent is bound[^bound_footnote] to an
 execution context, and hence to one or more of the resources that context represents.
 
-[^bound_footnote]: \textcolor{red}{TODO:} What do we mean by *bound*? Does that mean that an agent's execution resource cannot change over the course of its lifetime? For example, could an agent begin on thread A and then migrate to thread B? Or would we simply say that this agent is bound to a special kind of migrating resource?
+[^bound_footnote]: An execution agent is bound to an execution context and thus is restricted to execute only on the associated specific collection of execution resources.  For example, if a context includes multiple threads then the agent may execute on any of those threads, or migrate among those threads.
 
 An **executor** is an object associated with a specific execution context. It
 provides a mechanism for creating execution agents from a callable function
