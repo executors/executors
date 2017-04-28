@@ -346,11 +346,13 @@ client's executor to create execution agents. In particular, our proposal adds
 executor support to the following control structures from the Standard Library
 and technical specifications.
 
-| Standard Library    | Concurrency TS        | Parallelism TS                     | Networking TS |
-|---------------------|-----------------------|------------------------------------|---------------|
-| `invoke`            | `future::then`        | `define_task_block`                | \textcolor{red}{TODO} |
-| `async`             | `shared_future::then` | `define_task_block_restore_thread` |               |
-| parallel algorithms |                       | `task_block::run`                  |               |
+| Standard Library    | Concurrency TS        | Parallelism TS                     | Networking TS           |
+|---------------------|-----------------------|------------------------------------|-------------------------|
+| `invoke`            | `future::then`        | `define_task_block`                | `post`                  |
+| `async`             | `shared_future::then` | `define_task_block_restore_thread` | `dispatch`              |
+| parallel algorithms |                       | `task_block::run`                  | `defer`                 |
+|                     |                       |                                    | asynchronous operations |
+|                     |                       |                                    | `strand<>` (N.B. although an executor itself, a `strand` acts as a control structure over other executors in order to guarantee non-concurrent execution) |
 
 Table: The control structures we propose to introduce.
 
