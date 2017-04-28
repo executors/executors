@@ -167,7 +167,7 @@ a client.
 
 ## Using Executors with the Standard Library
 
-For example, some functions, like `std::async`, will receive executors as parameters directly:
+Some functions, like `std::async`, will receive executors as parameters directly:
 
     // get an executor through some means
     my_executor_type my_executor = ...
@@ -202,8 +202,6 @@ creates execution it will use the executor associated with this execution policy
 to create multiple execution agents to invoke `func` in parallel.
 
 \textcolor{red}{TODO:} Demonstrate use cases central to the Networking TS
-
-\textcolor{red}{TODO:} Demonstrate a use case where concurrency is required and show how to deal with failure
 
 ## Using Executors with Application-Level Libraries
 
@@ -753,11 +751,13 @@ through executor-specific type traits.
 ### Functions
 
 **Executor identity.** All executors are required to be `EqualityComparable` in
-order for clients to reason about their identity. \textcolor{red}{Need a good
-  explanation for the rationale for executor identity here, also what
-    equivalence implies.} `inline_executor` satisfies this by defining
-    `operator==` and `operator!=`. In this case, all instances of
-    `inline_executor` are considered equivalent.
+order for clients to reason about their identity. Equivalence between two
+executors implies that the same execution function invoked on either executors
+produces the same side effects. \textcolor{red}{Is there a more precise way to
+  say this?} `inline_executor` satisfies `EqualityComparable` by defining
+  `operator==` and `operator!=`. Because `inline_executor::sync_execute` simply
+  invokes its function inline, all instances of `inline_executor` produce the
+  same side effects and are therefore equivalent.
 
 **Execution context access.** Next, all executors are required to provide
 access to their associated execution context via a member function named
@@ -765,11 +765,12 @@ access to their associated execution context via a member function named
 their associated contexts are known in advance, clients may use contexts to
 reason about underlying execution resources in order to make choices about
 where to create execution agents. \textcolor{red}{The rationale for context
-  access needs a better explanation.} Because `inline_executor` is such a
-  simple example, it serves as its own execution context and simply returns a
-  reference to itself. In general, the result of `.context` must be an
-  `EqualityComparable` type, and more sophisticated executors will return some
-  other object: 
+  access needs a better explanation, especially about how generic functions
+    could make use of context introspection.} Because `inline_executor` is such
+    a simple example, it serves as its own execution context and simply returns
+    a reference to itself. In general, the result of `.context` must be an
+    `EqualityComparable` type, and more sophisticated executors will return
+    some other object: 
 
     class thread_pool_executor {
       private:
@@ -860,8 +861,8 @@ definition. When the agents created by an executor possibly block its client,
 
 The default value of `executor_execute_blocking_category` is `possibly_blocking_execution_tag`.
 
-**Bulk ordering guarantee.** When an executor creates a group of execution
-agents, their bulk execution obeys certain semantics. For example, a group of
+**Bulk forward progress guarantee.** When an executor creates a group of execution
+agents, their forward progress obeys certain semantics. For example, a group of
 agents may invoke the user-provided function sequentially, or they may be
 invoked in parallel. Any guarantee the executor makes of these semantics is
 conveyed by the `executor_execution_category` trait, which takes one one of
@@ -869,7 +870,7 @@ three values:
 
   1. `sequenced_execution_tag`: The invocations of the user-provided callable function object are sequenced in lexicographical order of their indices.
   2. `parallel_execution_tag`: The invocations of the user-provided callable function object are unsequenced when invoked on separate threads, and indeterminately sequenced when invoked on the same thread.
-  3. `unsequenced_execution_tag`: The invocations of the user-provided callable function object are unsequenced. \textcolor{red}{Is this the same as saying the invocations are not guaranteed to be sequenced? We want to allow unsequenced executors the lattitude to execute in sequenced order, if they need to for some reason.}
+  3. `unsequenced_execution_tag`: The invocations of the user-provided callable function object are not guaranteed to be sequenced, even when those invocations are executed within the same thread.
 
 These guarantees agree with those made by the corresponding standard execution
 policies, and indeed these guarantees are intended to be used by execution
@@ -915,9 +916,9 @@ associated future type, which is the type of object returned by asynchronous,
            of the `Future` concept[^future_footnote]. Otherwise, the type is
            `std::future`. All of an executor's two-way asynchronous
            customization points must return the same type of future.
-           \textcolor{red}{Do we allow users to specialize this type?  The
-             paper suggests yes, but if so, why do we allow this for the future
-               type but not for the context type?}
+           \textcolor{red}{Do we allow users to specialize this type trait? P0443R1
+             suggests yes, but if so, why do we allow this for the future
+               type trait but not for the context type trait?}
 
 [^future_footnote]: For now, the only type which satisfies `Future` is
 `std::experimental::future`, specified by the Concurrency TS. We expect the
@@ -1234,7 +1235,10 @@ include these to allow for specialization.
 ### `then_execute` form `bulk_then_execute`
 
     template<class Executor, class Function, class Future>
-    executor_future_t<Executor, std::invoke_result_t<std::decay_t<Function>, decltype(std::declval<Future>().get())&>>
+    executor_future_t<
+      Executor,
+      std::invoke_result_t<std::decay_t<Function>, decltype(std::declval<Future>().get())&>
+    >
     then_execute(const Executor& exec, Function&& f, Future& predecessor_future);
 
 `then_execute` creates an asynchronous execution agent. It may be implemented
@@ -1459,28 +1463,100 @@ these customization points have different semantics.
 // TODO
 
 # Future Work
-* Quick survey of papers being written, or that probably ought to be written
+
+We conclude with a brief survey of future work extending our proposal. Some of
+this work has already begun and there are others which we believe ought to be
+investigated.
 
 ## `Future` Concept
 
-\textcolor{red}{TODO:} Need to mention that our proposal relies on the ability of executors to return future objects whose type is allowed to differ from `std::future`. Describing the requirements for such types is out of the scope of our executors proposal. Might also want to mention the SG1 straw poll results for what shipping vehicle those requirements would show up in
+Our proposal depends upon the ability of executors to create future objects
+whose types differ from `std::future`. Such user-defined `std::future`-like
+objects will allow interoperation with resources whose asynchronous execution
+is undesirable or impossible to track through standard means. For example,
+scheduling runtimes maintain internal data structures to track the
+dependency relationships between different tasks. The reification of these
+data structures can achieved much more efficiently than by pairing a
+`std::promise` with a `std::future`. As another example, some "inline"
+executors will create execution immediately in their calling thread. Because
+no interthread communication is necessary, inline executors' asynchronous
+results do not require expensive dynamic allocation or synchronization
+primitives of full-fledged `std::future` objects. We envision that a
+separate effort will propose a `Future` concept which would introduce
+requirements for these user-defined `std::future`-like types.
+
+## Error Handling
+
+Our proposal prescribes no mechanism for execution functions to communicate
+exceptional behavior back to their clients. For our purposes, exceptional
+behavior includes exceptions thrown by the callable functions invoked by
+execution agents and failures to create those execution agents due to resource
+exhaustion. In most cases, resource exhaustion can be reported immediately
+similar to `std::async`'s behavior. Reporting exceptions encountered by
+execution agents can also be generalized from `std::async`. We envision that
+asynchronous two-way functions will report errors through an exceptional future
+object, and synchronous two-way functions will simply throw any exceptions they
+encounter as normal. However, it is not clear what mechanism, if any, one-way
+execution functions should use for error reporting.
 
 ## Additional Thread Pool Types
 
-\textcolor{red}{TODO:} Need to mention that `dynamic_thread_pool` will be an alternate take at a thread pool which is dynamically/automatically resizable
+Our proposal specifies a single thread pool type, `static_thread_pool`, which
+represents a simple thread pool which does not automatically resize itself. We
+recognize that alternative approaches serving other use cases exist and
+anticipate additional thread pool proposals. In particular, we are aware of a
+separate effort which will propose an additional thread pool type,
+         `dynamic_thread_pool`, and we expect this type of thread pool to be
+         both dynamically and automatically resizable.
 
 ## Heterogeneity
 
-\textcolor{red}{TODO:} Need to mention that heterogeneity is a problem that impacts all of C++, not just executors. Can't really tackle the problem adequately through an executors-only approach. Relationship between executors and heterogeneity might require tools that are out of scope of a library-only solution.
+Contemporary execution resources are heterogeneous. CPU cores, lightweight CPU
+cores, SIMD units, GPU cores, operating system runtimes, embedded runtimes, and
+database runtimes are examples. Heterogeneity of resources often manifests in
+non-standard C++ programming models as programmer-visible versioned functions
+and disjoint memory spaces. Therefore, the ability for standard executors to
+target heterogeneous execution resources depends on a standard treatment of
+heterogeneity in general.
 
-For example:
-  * heterogeneous compilation
-  * heterogeneous linking
-  * JIT compilation
-  * reflection
-  * serialization
-  
-The point is that an independent, separate effort should investigate heterogeneity holistically
+The issues raised by heterogeneity impact the entire scope of a heterogeneous
+C++ program, not just the space spanned by executors. Therefore, a
+comprehensive solution to these issues requires a holistic approach. Moreover,
+the relationship between heterogeneous execution and executors
+may require technology that is out of scope of a library-only
+solution such as our executors model. This technology might
+include heterogeneous compilation and linking, just-in-time
+compilation, reflection, serialization, and others. A separate
+effort should characterize the programming problems posed by
+heterogeneity and suggest solutions.
+
+## Bulk Execution Extensions
+
+Our current proposal's model of bulk execution is flat and one-dimensional.
+Each bulk execution function creates a single group of execution agents, and
+the indices of those agents are integers. We envision extending this simple
+model to allow executors to organize agents into hierarchical groups and assign
+then multidimensional indices. Because multidimensional indices are relevant to
+many high-performance computing domains, some types of execution resources
+natively generate them. Moreover, hierarchical organizations of agents
+naturally model the kinds of execution created by multicore CPUs, GPUs, and
+collections of these.
+
+The organization of such a hierarchy would induce groups of groups (of groups..., etc.) of
+execution agents and would introduce a different piece of shared state for each non-terminal node of this
+hierarchy. The interface to such an execution function would look like:
+
+    template<class Executor, class Function, class ResultFactory, class... SharedFactories>
+    std::invoke_result_t<ResultFactory()>
+    bulk_sync_execute(const Executor& exec, Function f, executor_shape_t<Executor> shape,
+                      ResultFactory result_factory, SharedFactories... shared_factories);
+
+In this interface, the `shape` parameter simultaneously describes the hierarchy
+of groups created by this execution function as well as the multidimensional
+shape of each of these groups. Instead of receiving a single factory to create
+the shared state for a single group, the interface receives a different factory
+for each level of the hierarchy. Each group's shared parameter originates from
+the corresponding factory in this variadic list.
 
 # References
 
