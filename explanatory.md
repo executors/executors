@@ -130,7 +130,7 @@ and a 1-to-1 mapping exists between an execution agent and an
 invocation of a callable function object. An agent is bound[^bound_footnote] to an
 execution context, and hence to one or more of the resources that context represents.
 
-[^bound_footnote]: \textcolor{red}{TODO:} What do we mean by *bound*? Does that mean that an agent's execution resource cannot change over the course of its lifetime? For example, could an agent begin on thread A and then migrate to thread B? Or would we simply say that this agent is bound to a special kind of migrating resource?
+[^bound_footnote]: An execution agent is bound to an execution context and thus is restricted to execute only on the associated specific collection of execution resources.  For example, if a context includes multiple threads then the agent may execute on any of those threads, or migrate among those threads.
 
 Typical examples of an execution context are a thread pool or a distributed or
 heteroegeneous runtime.
@@ -369,11 +369,13 @@ client's executor to create execution agents. In particular, our proposal adds
 executor support to the following control structures from the Standard Library
 and technical specifications.
 
-| Standard Library    | Concurrency TS        | Parallelism TS                     | Networking TS |
-|---------------------|-----------------------|------------------------------------|---------------|
-| `invoke`            | `future::then`        | `define_task_block`                | \textcolor{red}{TODO} |
-| `async`             | `shared_future::then` | `define_task_block_restore_thread` |               |
-| parallel algorithms |                       | `task_block::run`                  |               |
+| Standard Library    | Concurrency TS        | Parallelism TS                     | Networking TS           |
+|---------------------|-----------------------|------------------------------------|-------------------------|
+| `invoke`            | `future::then`        | `define_task_block`                | `post`                  |
+| `async`             | `shared_future::then` | `define_task_block_restore_thread` | `dispatch`              |
+| parallel algorithms |                       | `task_block::run`                  | `defer`                 |
+|                     |                       |                                    | asynchronous operations |
+|                     |                       |                                    | `strand<>` (N.B. although an executor itself, a `strand` acts as a control structure over other executors in order to guarantee non-concurrent execution) |
 
 Table: The control structures we propose to introduce.
 
