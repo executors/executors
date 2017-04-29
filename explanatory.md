@@ -640,7 +640,10 @@ the same order as the corresponding parameters of the customization point. The
 agent index is always the first parameter, followed by the parameters emanating
 from `predecessor_future`, `result_factory`, and `shared_factory`.
 
-\textcolor{red}{TODO:} probably need to insert a discussion of allocator parameters into this
+**Allocator parameters** can be optionally passed to all single cardinality
+execution functions. If an allocator is not provided the execution function will
+default to `std::allocator<void>`. The allocator parameter can be used by an
+executor to allocate the memory required to store the function object.
 
 ## Customization Points Adapt An Executor's Native Functionality
 
