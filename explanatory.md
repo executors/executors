@@ -1082,8 +1082,7 @@ not be able to provide such a guarantee and could not be adapted to this
 functionality when `bulk_async_post` is absent. For example, an implementation
 of `bulk_async_post` which simply forwards its arguments directly to
 `bulk_async_execute` is possible only if
-`executor_execute_blocking_category_t<Executor>` is
-`nonblocking_execution_tag`.
+`executor_execute_blocking_category_t<Executor>` is `nonblocking_execution_tag`.
 
 ### `bulk_async_defer`
 
@@ -1106,7 +1105,13 @@ is of type `executor_index_t<Executor>`, `r` is a function object retured from
 `bulk_async_defer` may or may not the caller until execution completes,
 depending on the value of `executor_execute_blocking_category_t<Executor>`.
 
-// TODO
+`bulk_async_defer` is equivalent to `bulk_async_execute` except that it makes an
+additional guarantee not to block the client's execution. Some executors will
+not be able to provide such a guarantee and could not be adapted to this
+functionality when `bulk_async_defer` is absent. For example, an implementation
+of `bulk_async_defer` which simply forwards its arguments directly to
+`bulk_async_execute` is possible only if
+`executor_execute_blocking_category_t<Executor>` is `nonblocking_execution_tag`.
 
 ### `bulk_sync_execute`
 
@@ -1377,16 +1382,11 @@ completes.
 
 \textcolor{red}{TODO:} Describe `bulk_post` semantics as differing from `bulk_defer`.
 
-`bulk_post` is equivalent semantically to `bulk_execute` except that it makes an
-additional guarantee not to block the caller until execution completes. This
-means that an excecutor that provides `bulk_execute` could be adapted to make
-the semantic guarantees of `bulk_post` if it were absent, providing
-`executor_execute_blocking_category_t<Executor>` is `nonblocking_execution_tag`.
-
-    exec.bulk_execute(f);
-
-\textcolor{red}{TODO:} Show how the semantics of the corresponding customization point can be implemented by calling one of the previously defined methods
-\textcolor{red}{TODO:} Provide an argument, preferably with empirical evidence, why doing so is insufficient and demonstrating how providing the more specialized method is a superior choice
+`bulk_post` is equivalent to `bulk_execute` except that it makes an additional
+guarantee not to block the client's execution. Some executors will not be able
+to provide such a guarantee and could not be adapted to this functionality when
+`bulk_post` is absent. For example, an implementation of `bulk_post` which
+simply forwards its arguments directly to `bulk_execute` is possible only if `executor_execute_blocking_category_t<Executor>` is `nonblocking_execution_tag`.
 
 ### `bulk_defer`
 
@@ -1406,16 +1406,11 @@ completes.
 
 \textcolor{red}{TODO:} Describe `bulk_defer` semantics as differing from `bulk_post`.
 
-`bulk_defer` is equivalent semantically to `bulk_execute` except that it makes
-an additional guarantee not to block the caller until execution completes. This
-means that an excecutor that provides `bulk_execute` could be adapted to make
-the semantic guarantees of `bulk_defer` if it were absent, providing
-`executor_execute_blocking_category_t<Executor>` is `nonblocking_execution_tag`.
-
-    exec.bulk_execute(f);
-
-\textcolor{red}{TODO:} Show how the semantics of the corresponding customization point can be implemented by calling one of the previously defined methods
-\textcolor{red}{TODO:} Provide an argument, preferably with empirical evidence, why doing so is insufficient and demonstrating how providing the more specialized method is a superior choice
+`bulk_defer` is equivalent to `bulk_execute` except that it makes an additional
+guarantee not to block the client's execution. Some executors will not be able
+to provide such a guarantee and could not be adapted to this functionality when
+`bulk_defer` is absent. For example, an implementation of `bulk_defer` which
+simply forwards its arguments directly to `bulk_execute` is possible only if `executor_execute_blocking_category_t<Executor>` is `nonblocking_execution_tag`.
 
 ### `bulk_execute`
 
@@ -1434,8 +1429,30 @@ execution agent calls `std::forward<Function>(func)(i, s)`, where `i` is of type
 completes, depending on the value of
 `executor_execute_blocking_category_t<Executor>`.
 
-\textcolor{red}{TODO:} Show how the semantics of the corresponding customization point can be implemented by calling one of the previously defined methods
-\textcolor{red}{TODO:} Provide an argument, preferably with empirical evidence, why doing so is insufficient and demonstrating how providing the more specialized method is a superior choice
+`bulk_execute` is equivalent to `execute` except that it creates a single
+execution agent rather than a group of execution agents.
+
+    // create shared object
+    auto shared = shared_factory;
+
+    // Iterate over the shape
+    for (int i = 0; i < shape; i++) {
+
+        // construct index
+        executor_shape_t<Executor> index{i};
+
+        // create a lambda for the function for `execute`
+        auto g = [=, &shared](Function& func) {
+          func(index, shared);
+        };
+
+        exec.execute(g);
+    }
+
+We include `bulk_execute` because the equivalent path through `execute` via a
+for loop at the point of submission would incur overhead and would not be able
+to guarantee correct forwrd progress gurantees between each execution agent
+created by `execute`.
 
 ## One-Way Single-Agent Functions
 
@@ -1452,18 +1469,12 @@ allocate memory for `func`.
 
 \textcolor{red}{TODO:} Describe `post` semantics as differing from `differ`.
 
-`post` is equivalent semantically to `execute` except that it makes an
-additional guarantee not to block the caller until execution completes. This
-means that an excecutor that provides `execute` could be adapted to make the
-semantic guarantees of `post` if it were absent, providing
+`post` is equivalent to `execute` except that it makes an additional guarantee
+not to block the client's execution. Some executors will not be able to provide
+such a guarantee and could not be adapted to this functionality when `post` is
+absent. For example, an implementation of `post` which simply forwards its
+arguments directly to `execute` is possible only if
 `executor_execute_blocking_category_t<Executor>` is `nonblocking_execution_tag`.
-
-    exec.execute(f);
-
-\textcolor{red}{TODO:} What other adapatations would be required to ensure `post` semantics?
-\textcolor{red}{TODO:} Show how the semantics of the corresponding customization point can be implemented by calling one of the previously defined methods
-\textcolor{red}{TODO:} Provide an argument, preferably with empirical evidence, why doing so is insufficient and demonstrating how providing the more specialized method is a superior choice
-\textcolor{red}{TODO:} mention that it seems possible to implement any single-agent one-way function with `post`
 
 ### `defer`
 
@@ -1478,17 +1489,12 @@ allocate memory for `func`.
 
 \textcolor{red}{TODO:} Describe `defer` semantics as differing from `post`.
 
-`post` is equivalent semantically to `execute` except that it makes an
-additional guarantee not to block the caller until execution completes. This
-means that an excecutor that provides `execute` could be adapted to make the
-semantic guarantees of `post` if it were absent, providing
+`defer` is equivalent to `execute` except that it makes an additional guarantee
+not to block the client's execution. Some executors will not be able to provide
+such a guarantee and could not be adapted to this functionality when `defer` is
+absent. For example, an implementation of `defer` which simply forwards its
+arguments directly to `execute` is possible only if
 `executor_execute_blocking_category_t<Executor>` is `nonblocking_execution_tag`.
-
-    exec.execute(f);
-
-\textcolor{red}{TODO:} What other adapatations would be required to ensure `defer` semantics?
-\textcolor{red}{TODO:} Show how the semantics of the corresponding customization point can be implemented by calling one of the previously defined methods
-\textcolor{red}{TODO:} Provide an argument, preferably with empirical evidence, why doing so is insufficient and demonstrating how providing the more specialized method is a superior choice
 
 ### `execute`
 
@@ -1502,21 +1508,18 @@ may not the caller until execution completes, depending on the value of
 `executor_execute_blocking_category_t<Executor>`. The allocator `alloc` can be
 used to allocate memory for `func`.
 
-`execute` is equivalent semantically to `bulk_execute` except that it creates a
-group of execution agents rather than a single execution agent. This means that
-an executor that provides `bulk_execute` could be adapted to make the semantic
+`execute` is equivalent to `bulk_execute` except that it creates a group of
+execution agents rather than a single execution agent. This means that an
+executor that provides `bulk_execute` could be adapted to make the semantic
 guarantees of `execute` if it were absent, by creating a group with a single
 execution agent.
 
-\textcolor{red}{TODO:} Do we need to make a note here of any potential overhead
-of adapting a bulk function to a single function?
-
-    // pass f as a shared parameter to account for move-only functions
-    auto shared_factory = [f = std::forward<Function>(f)]{ return f; };
+    // pass func as a shared parameter to account for move-only functions
+    auto shared_factory = [func = std::forward<Function>(f)]{ return func; };
 
     // create a lambda for the "group" of agents to invoke
-    auto g = [](executor_index_t<Executor> ignored_index, Function& f) {
-      result = f();
+    auto g = [](executor_index_t<Executor> ignored_index, Function& func) {
+      result = func();
     };
 
     exec.bulk_then_execute(g,
@@ -1524,9 +1527,9 @@ of adapting a bulk function to a single function?
       shared_factory
     );
 
-\textcolor{red}{TODO:} Show how the semantics of the corresponding customization point can be implemented by calling one of the previously defined methods
-\textcolor{red}{TODO:} Provide an argument, preferably with empirical evidence, why doing so is insufficient and demonstrating how providing the more specialized method is a superior choice
-
+As with the adaptation of `then_execute` described earlier this group has only
+one agent and no sharing actually occurs. The cost of this unnecessary sharing
+may be significant and can be avoided if an executor specializes `then_execute`.
 
 * Describe the adaptations performed by executor customization points
   * Highlight the costs implied by specific adaptations, e.g. temporary intermediate future
@@ -1565,7 +1568,7 @@ The blocking property is not
   undesirable. It seemed simpler to the designers to understand and introspect
   a blocking guarantee as a holistic property of the executor type, rather than
   at the granularity of individual customization points.
-  
+
 There are exceptions to this rule where blocking guarantees are provided at the
 granularity of individual customization points. The two-way `sync_` functions
 are exceptions because it is impossible to return the result of execution in a
