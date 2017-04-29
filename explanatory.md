@@ -605,17 +605,23 @@ during the execution of `f`.
 The result and shared parameter are passed indirectly via factories instead of
 directly as objects because we believe this is the most general-purpose and
 efficient scheme to pass parameters to newly-created groups of execution agents
-[@Executors16:Issue9]. This is based on a few observations. First, factories
-allow non-movable types to be parameters, including concurrency primitives like
-`std::barrier` and `std::atomic`. Next, some important types are not efficient
-to copy, especially containers used as scratchpads. Finally, the location of
-results and shared parameters will be important to a parallel algorithm's
-efficiency. We envision associating allocators with individual factories to
-provide control[^factory_footnote].
+@Executors16:Issue9]. First, factories allow non-movable types to be
+parameters, including concurrency primitives like `std::barrier` and
+`std::atomic`. Next, some important types are not efficient to copy, especially
+containers used as scratchpads. Finally, the location of results and shared
+parameters will important to a parallel algorithm's efficiency. We envision
+associating allocators with individual factories to provide
+control[^factory_footnote].
 
-\textcolor{red}{TODO:} Should probably explain why a `shared_ptr` would be insufficient to our requirements for structured sharing in any location
-
-\textcolor{red}{TODO:} Need to discuss how an executor guarantees the ordering of execution agents in a group
+The user function receives the shared state objects via bare references rather
+than an alternative channel such as `std::shared_ptr` because the lifetime of these shared objects is
+bound to the entire group of agents which share them. Because the sharing
+relationship is structured and identified beforehand, this enables
+optimizations that would be impossible for `shared_ptr`. For example, the way
+`shared_ptr` allows sharers to join and leave its group of sharers in an
+unstructured fashion necessitates dynamic storage and reference counting. By
+contrast, the structure enforced by bulk customization permits more efficient
+storage and sharing schemes.
 
 [^factory_footnote]: This envisioned allocator support is why we refer to these callable objects as "factories" rather than simply "functions" or "callable objects".
 
