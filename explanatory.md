@@ -605,7 +605,7 @@ during the execution of `f`.
 The result and shared parameter are passed indirectly via factories instead of
 directly as objects because we believe this is the most general-purpose and
 efficient scheme to pass parameters to newly-created groups of execution agents
-@Executors16:Issue9]. First, factories allow non-movable types to be
+[@Executors16:Issue9]. First, factories allow non-movable types to be
 parameters, including concurrency primitives like `std::barrier` and
 `std::atomic`. Next, some important types are not efficient to copy, especially
 containers used as scratchpads. Finally, the location of results and shared
