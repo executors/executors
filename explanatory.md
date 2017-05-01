@@ -43,7 +43,8 @@ facilities.
 
 **Synchronization.** Execution created through different facilities has
 different synchronization properties. For example, an OpenMP parallel for loop
-is synchronous because the spawning thread blocks until the loop is complete.
+is synchronous because the spawning thread blocks until the loop is complete 
+due to an implicit barrier at the end of the parallel region by default.
 In contrast, the execution of GPU kernels is typically asynchronous; kernel
 launches return immediately and the launching thread continues its execution
 without waiting for the kernel's execution to complete. Work submitted to a
@@ -155,10 +156,6 @@ one or more of the resources that context represents.
 
 Executors themselves are the primary concern of our design.
 
-\textcolor{red}{TODO:} incorporate some of Carter's material from pull request #157
-
-* If needed, expand into a more general Background section
-
 # Using Executors
 
 We expect that the vast majority of programmers will interact with executors
@@ -201,7 +198,123 @@ execution policy whose associated executor is `my_executor`. When `std::for_each
 creates execution it will use the executor associated with this execution policy
 to create multiple execution agents to invoke `func` in parallel.
 
-\textcolor{red}{TODO:} Demonstrate use cases central to the Networking TS
+## Using Executors with the Networking TS
+
+The Networking TS provides numerous asynchronous operations, which are
+operations that allow callers to perform network-related activities without
+blocking the initiating thread. Whenever an asynchronous operation is
+initiated, the caller supplies a completion handler -- a function object to be
+invoked when the operation completes and passed the results of the operation.
+The Networking TS uses executors to determine when, where and how a completion
+handler should be invoked. Every completion handler has an associated executor,
+and a conforming asynchronous operation queries the completion handler to
+obtain this executor object.
+
+By default, a completion handler is associated to the system executor. This
+means that when the user writes:
+
+    // obtain an acceptor (a listening socket) through some means
+    tcp::acceptor my_acceptor = ...
+
+    // perform an asynchronous operation to accept a new connection
+    acceptor.async_accept(
+        [](std::error_code ec, tcp::socket new_connection)
+        {
+          ...
+        }
+      );
+
+the user places no constraints on when and where the completion handler (a
+lambda in this example) will be invoked. (In practice, other things will
+constrain the invocation to specific threads. For example, if the user is only
+running the `std::experimental::net::io_context` object from a single thread
+then invocation will occur only on that thread.)
+
+Instead, if the user wants the completion handler to be invoked using a
+particular set of rules, they may specify an associated executor using the
+`std::experimental::net::bind_executor` function:
+
+    // obtain an acceptor (a listening socket) through some means
+    tcp::acceptor my_acceptor = ...
+
+    // obtain an executor for a specific thread pool
+    auto my_thread_pool_executor = ...
+
+    // perform an asynchronous operation to accept a new connection
+    acceptor.async_accept(
+        std::experimental::net::bind_executor(my_thread_pool_executor,
+          [](std::error_code ec, tcp::socket new_connection)
+          {
+            ...
+          }
+        )
+      );
+
+The example above runs the completion handler on a specific thread pool. Other
+common reasons for an associated executor include guaranteeing non-concurrency
+for a group of completion handlers (by using a `std::experimental::net::strand`
+executor), or to embellish invocation with logging or tracing.
+
+The `std::experimental::net::bind_executor` function is a convenience function
+for specifying the associated executor. For user-defined completion handler
+types, the association may also be established by providing a nested
+`executor_type` typedef and `get_executor` member function, or by specializing
+the `std::experimental::net::associated_executor` trait.
+
+The vast majority of Networking TS users are expected to be pure consumers of
+asynchronous operations, as illustrated above. However, more advanced uses may
+require the development of custom asynchronous operations. In this case the
+library user will write code to interact with the associated executor directly.
+This interaction will adhere to the following pattern.
+
+To begin, an asynchronous operation will obtain the associated executor from
+the completion handler by calling the `get_associated_executor` function:
+
+    auto ex = std::experimental::net::get_associated_executor(completion_handler)
+
+To inform the executor that there is a pending operation, the asynchronous
+operation creates an `executor_work_guard` object and keeps a copy of it until
+the operation is complete. This object automatically calls the executor's
+`on_work_started` and `on_work_finished` member functions.
+
+    auto work = std::experimental::net::make_work_guard(ex);
+
+If an asynchronous operation completes immediately (that is, within the
+asynchronous operation's initiating function), the completion handler is
+scheduled for invocation using the executor's `post` customization point:
+
+    std::execution::post(ex,
+        [h = std::move(completion_handler), my_result]() mutable
+        {
+          h(my_result);
+        }
+      );
+
+A non-blocking execution function is used above to ensure that operations that
+always complete immediately do not lead to deadlock or stack exhaustion. On the
+other hand, if the operation completes later then the asynchronous operation
+invokes the completion handler using the potentially-blocking execution
+function:
+
+    std::execution::execute(ex,
+        [h = std::move(completion_handler), my_result]() mutable
+        {
+          h(my_result);
+        }
+      );
+
+This allows the result to be delivered to the application code with minimal
+latency.
+
+Finally, if an asynchronous operation consists of multiple intermediate steps,
+these steps may be scheduled using the defer execution function:
+
+    // asynchronous operation consists of multiple steps
+    std::execution::defer(my_intermediate_complete_handler)
+
+This informs the executor of the relationship between the intermediate
+completion handlers, and allows it to optimize the scheduling and invocation
+accordingly.
 
 ## Using Executors with Application-Level Libraries
 
@@ -265,7 +378,7 @@ activities to proceed independently.
 
 A similar argument holds for application library interfaces that consume
 executors directly in order to create execution agents one by one. For example,
-consider an library function that executes some long-running task. To
+consider a library function that executes some long-running task. To
 avoid requiring clients to wait for its completion, this function immediately
 returns a future object corresponding to its completion:
 
@@ -279,8 +392,6 @@ returns a future object corresponding to its completion:
       // finally, start subtask3 when the first two are complete
       return subtask3(exec, future1, future2);
     }
-
-\textcolor{red}{TODO:} should we use an executor category (e.g. `TwoWayExecutor`) instead of `Executor` here, or should we defer introduction of executor categories until a later section? - I think introducing this concept at this point may be confusing, it's better to just use Executor (Gordon).
 
 Consider `long_running_task`'s interface. Because the ordering requirements
 imposed by an execution policy are irrelevant to `long_running_task`'s
@@ -378,6 +489,10 @@ and technical specifications.
 |                     |                       |                                    | `strand<>` (N.B. although an executor itself, a `strand` acts as a control structure over other executors in order to guarantee non-concurrent execution) |
 
 Table: The control structures we propose to introduce.
+
+Addionally, note that SG5 Transactional Memory is also studying how proposed TM constructs in the Transactional Memory TS can be
+integrated with executors. As TM constructs are compound statements of the form `atomic_noexcept  | atomic_commit | atomic_cancel  {<compound-statement> }` and `synchronized  {<compound-statement> }`, it seems they can also apply with executors.
+
 
 ## Fundamental Interactions with Executors via Customization Points
 
@@ -532,7 +647,7 @@ For `then_execute`, the third parameter is a future which is the predecessor dep
     executor_future_t<Executor,std::invoke_result_t<std::decay_t<Function>,U&>>
     then_execute(const Executor& exec, Function&& f, Future& predecessor_future);
 
-Let `U` by the type of `Future`'s result object. The callable object `f` is
+Let `U` be the type of `Future`'s result object. The callable object `f` is
 invoked with a reference to the result object of the predecessor future (or
     without a parameter if a `void` future). By design, this is inconsistent
 with the interface of the Concurrency TS's `future::then` which invokes its
@@ -540,7 +655,7 @@ continuation with a copy of the predecessor future. Our design avoids the
 composability issues of `future::then` [@Executors16:Issue96] and is consistent
 with `bulk_then_execute`, discussed below. Note that the type of `Future` is
 allowed to differ from `executor_future_t<Executor,U>`, enabling
-interoperability between executors and foreign future types.
+interoperability between executors and foreign or new future types.
 
 Note that customization points do not receive a parameter pack of arguments for
 `f`. This is a deliberate design to embue all customization point parameters
@@ -600,7 +715,7 @@ shared parameter for `f`. Like the result, the shared parameter is constructed
 before the group of agents begins execution and it is passed as a parameter to
 `f`. Unlike the result, the shared parameter is discarded. Its purpose is to
 act as a temporary data structure shared by all execution agents during the
-computation. Examples are `std::barrier` or atomic objects. If the client
+computation. Examples are `std::barrier` or `std::atomic` objects. If the client
 desires to retain the shared parameter, it may be incorporated into the result
 during the execution of `f`.
 
@@ -611,7 +726,7 @@ efficient scheme to pass parameters to newly-created groups of execution agents
 parameters, including concurrency primitives like `std::barrier` and
 `std::atomic`. Next, some important types are not efficient to copy, especially
 containers used as scratchpads. Finally, the location of results and shared
-parameters will important to a parallel algorithm's efficiency. We envision
+parameters will be important to a parallel algorithm's efficiency. We envision
 associating allocators with individual factories to provide
 control[^factory_footnote].
 
@@ -762,26 +877,49 @@ through executor-specific type traits.
 ### Functions
 
 **Executor identity.** All executors are required to be `EqualityComparable` in
-order for clients to reason about their identity. Equivalence between two
-executors implies that the same execution function invoked on either executors
-produces the same side effects. \textcolor{red}{Is there a more precise way to
-  say this?} `inline_executor` satisfies `EqualityComparable` by defining
-  `operator==` and `operator!=`. Because `inline_executor::sync_execute` simply
-  invokes its function inline, all instances of `inline_executor` produce the
-  same side effects and are therefore equivalent.
+order for clients to reason about their identity. If two executors are
+equivalent, then they may be used interchangably to produce the same side
+effects. For example, because `inline_executor::sync_execute` simply invokes
+its function inline, all instances of `inline_executor` produce the same side
+effects and are therefore equivalent.
+
+As another example, consider an executor type which creates execution agents by
+submitting to a thread pool. Suppose two executors of this type submit to the
+same underlying thread pool. These executors are equivalent because they both
+produce the same side effect of submitting to a common thread pool. However, if
+one of these executors were to change its underlying thread pool, they would
+become nonequivalent.
+
+As a final example, consider a prioritizing executor type which submits work
+with an associated priority to a queue. The queue executes work in order of
+priority, and when two tasks have equivalent priority they are executed in
+non-deterministic order. Suppose two executors of this type submit to the same
+underlying queue, but with different priorities. These two executors are
+nonequivalent, because even though they both submit to a common underlying
+queue, they do so with different priority. Therefore, these executors produce
+different side effects and cannot be used interchangeably.
 
 **Execution context access.** Next, all executors are required to provide
 access to their associated execution context via a member function named
-`.context`. In non-generic contexts where the concrete types of executors and
-their associated contexts are known in advance, clients may use contexts to
-reason about underlying execution resources in order to make choices about
-where to create execution agents. \textcolor{red}{The rationale for context
-  access needs a better explanation, especially about how generic functions
-    could make use of context introspection.} Because `inline_executor` is such
-    a simple example, it serves as its own execution context and simply returns
-    a reference to itself. In general, the result of `.context` must be an
-    `EqualityComparable` type, and more sophisticated executors will return
-    some other object: 
+`.context`. The single type requirement for execution context types is
+`EqualityComparable`. However, we envision that these requirements will be
+refined in specializations as future proposals introduce additional
+requirements for their specific use cases. The `NetworkingExecutionContext`
+concept to be specified by the Networking TS already provides one example of
+refinement.
+
+In non-generic programming contexts where the concrete types of executors and
+their associated contexts are known in advance, clients may use execution
+context identity to reason about underlying execution resources in order to
+make choices about where to create execution agents. In generic programming
+contexts such as templates the concrete type of execution context will not be
+known. However, the programmer may still manipulate execution contexts
+semi-generically through specializations which apply to concrete contexts.
+    
+Recall `inline_executor`. Because it is such a simple executor, it serves as
+its own execution context. Its `.context()` function simply returns a reference
+to itself. In general, more sophisticated executors will return some other
+object. Consider a `thread_pool_executor`:
 
     class thread_pool_executor {
       private:
@@ -811,6 +949,15 @@ where to create execution agents. \textcolor{red}{The rationale for context
 In this example, an executor which creates execution agents by submitting to a
 thread pool returns a reference to that thread pool from `.context`.
 
+Our design allows programmers to reason about the identities of executors and
+execution contexts separately because the side effects they create
+may be distinct. For example, perfoming comparisons on `thread_pool_executor`
+objects yields no additional information than could be gained by comparing
+their execution contexts directly. The same is true for `inline_executor`.
+However, consider our prioritizing executor example whose execution context is a queue.
+When two prioritizing executors have different priorities, they are nonequivalent even if
+they both have equivalent execution contexts.
+
 ### Type Traits
 
 Executor-specific type traits advertise semantics of cross-cutting guarantees
@@ -834,7 +981,7 @@ Currently, this trait returns one of three values:
   2. `thread_execution_mapping_tag`: The executor maps agents onto threads of execution.
   3. `unique_thread_execution_mapping_tag`: The executor maps each agent onto a new thread of execution, and that thread of execution does not change over the agent's lifetime.[^unique_thread_footnote]
 
-[^unique_thread_footnote]: `new_thread_execution_mapping_tag` might be a better name for this. `unique_thread_execution_mapping_tag` wouldn't necessarily suggest each agent gets a newly-created thread, just its *own* thread.
+[^unique_thread_footnote]: `new_thread_execution_mapping_tag` might be a better name for this. `unique_thread_execution_mapping_tag` wouldn't necessarily suggest each agent gets a newly-created thread, just its *own* thread. MW: I too prefer `new_thread_execution_mapping_tag`as unique does not imply new.
 
 The first mapping category is intended to represent mappings onto resources
 which are not standard threads of execution. The abilities of such agents may
@@ -861,6 +1008,8 @@ returns one of three values:
   1. `blocking_execution_tag`: The agents' execution blocks the client.
   2. `possibly_blocking_execution_tag`: The agent's execution possibly block the client.
   3. `non_blocking_execution_tag`: The agent's execution does not block the client.
+
+[^possibly_blocking_execution_footnote]:I (MW) like to suggest we change this to match std::atomic lock-free properties: always_blocking_executor_tag, maybe_blocking_executor_tag, and never_blocking_executor_tag. Not only is this consistent with the atomic lock-free proiperties, it makes searching easier as in all cases the first word needs to be changed, whereas block_execution_tag now finds all three tags. This is likely not for this paper until we change the specification paper.
 
 The guarantee provided by `executor_execute_blocking_category` only applies to
 those customization points whose name is suffixed with `execute`. Exceptions
@@ -1600,7 +1749,7 @@ objects will allow interoperation with resources whose asynchronous execution
 is undesirable or impossible to track through standard means. For example,
 scheduling runtimes maintain internal data structures to track the
 dependency relationships between different tasks. The reification of these
-data structures can achieved much more efficiently than by pairing a
+data structures can be achieved much more efficiently than by pairing a
 `std::promise` with a `std::future`. As another example, some "inline"
 executors will create execution immediately in their calling thread. Because
 no interthread communication is necessary, inline executors' asynchronous
@@ -1660,7 +1809,7 @@ Our current proposal's model of bulk execution is flat and one-dimensional.
 Each bulk execution function creates a single group of execution agents, and
 the indices of those agents are integers. We envision extending this simple
 model to allow executors to organize agents into hierarchical groups and assign
-then multidimensional indices. Because multidimensional indices are relevant to
+them multidimensional indices. Because multidimensional indices are relevant to
 many high-performance computing domains, some types of execution resources
 natively generate them. Moreover, hierarchical organizations of agents
 naturally model the kinds of execution created by multicore CPUs, GPUs, and
