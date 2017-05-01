@@ -177,7 +177,123 @@ execution policy whose associated executor is `my_executor`. When `std::for_each
 creates execution it will use the executor associated with this execution policy
 to create multiple execution agents to invoke `func` in parallel.
 
-\textcolor{red}{TODO:} Demonstrate use cases central to the Networking TS
+## Using Executors with the Networking TS
+
+The Networking TS provides numerous asynchronous operations, which are
+operations that allow callers to perform network-related activities without
+blocking the initiating thread. Whenever an asynchronous operation is
+initiated, the caller supplies a completion handler -- a function object to be
+invoked when the operation completes and passed the results of the operation.
+The Networking TS uses executors to determine when, where and how a completion
+handler should be invoked. Every completion handler has an associated executor,
+and a conforming asynchronous operation queries the completion handler to
+obtain this executor object.
+
+By default, a completion handler is associated to the system executor. This
+means that when the user writes:
+
+    // obtain an acceptor (a listening socket) through some means
+    tcp::acceptor my_acceptor = ...
+
+    // perform an asynchronous operation to accept a new connection
+    acceptor.async_accept(
+        [](std::error_code ec, tcp::socket new_connection)
+        {
+          ...
+        }
+      );
+
+the user places no constraints on when and where the completion handler (a
+lambda in this example) will be invoked. (In practice, other things will
+constrain the invocation to specific threads. For example, if the user is only
+running the `std::experimental::net::io_context` object from a single thread
+then invocation will occur only on that thread.)
+
+Instead, if the user wants the completion handler to be invoked using a
+particular set of rules, they may specify an associated executor using the
+`std::experimental::net::bind_executor` function:
+
+    // obtain an acceptor (a listening socket) through some means
+    tcp::acceptor my_acceptor = ...
+
+    // obtain an executor for a specific thread pool
+    auto my_thread_pool_executor = ...
+
+    // perform an asynchronous operation to accept a new connection
+    acceptor.async_accept(
+        std::experimental::net::bind_executor(my_thread_pool_executor,
+          [](std::error_code ec, tcp::socket new_connection)
+          {
+            ...
+          }
+        )
+      );
+
+The example above runs the completion handler on a specific thread pool. Other
+common reasons for an associated executor include guaranteeing non-concurrency
+for a group of completion handlers (by using a `std::experimental::net::strand`
+executor), or to embellish invocation with logging or tracing.
+
+The `std::experimental::net::bind_executor` function is a convenience function
+for specifying the associated executor. For user-defined completion handler
+types, the association may also be established by providing a nested
+`executor_type` typedef and `get_executor` member function, or by specializing
+the `std::experimental::net::associated_executor` trait.
+
+The vast majority of Networking TS users are expected to be pure consumers of
+asynchronous operations, as illustrated above. However, more advanced uses may
+require the development of custom asynchronous operations. In this case the
+library user will write code to interact with the associated executor directly.
+This interaction will adhere to the following pattern.
+
+To begin, an asynchronous operation will obtain the associated executor from
+the completion handler by calling the `get_associated_executor` function:
+
+    auto ex = std::experimental::net::get_associated_executor(completion_handler)
+
+To inform the executor that there is a pending operation, the asynchronous
+operation creates an `executor_work_guard` object and keeps a copy of it until
+the operation is complete. This object automatically calls the executor's
+`on_work_started` and `on_work_finished` member functions.
+
+    auto work = std::experimental::net::make_work_guard(ex);
+
+If an asynchronous operation completes immediately (that is, within the
+asynchronous operation's initiating function), the completion handler is
+scheduled for invocation using the executor's `post` customization point:
+
+    std::execution::post(ex,
+        [h = std::move(completion_handler), my_result]() mutable
+        {
+          h(my_result);
+        }
+      );
+
+A non-blocking execution function is used above to ensure that operations that
+always complete immediately do not lead to deadlock or stack exhaustion. On the
+other hand, if the operation completes later then the asynchronous operation
+invokes the completion handler using the potentially-blocking execution
+function:
+
+    std::execution::execute(ex,
+        [h = std::move(completion_handler), my_result]() mutable
+        {
+          h(my_result);
+        }
+      );
+
+This allows the result to be delivered to the application code with minimal
+latency.
+
+Finally, if an asynchronous operation consists of multiple intermediate steps,
+these steps may be scheduled using the defer execution function:
+
+    // asynchronous operation consists of multiple steps
+    std::execution::defer(my_intermediate_complete_handler)
+
+This informs the executor of the relationship between the intermediate
+completion handlers, and allows it to optimize the scheduling and invocation
+accordingly.
 
 ## Using Executors with Application-Level Libraries
 
