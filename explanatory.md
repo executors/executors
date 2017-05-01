@@ -1851,6 +1851,16 @@ separate effort which will propose an additional thread pool type,
          `dynamic_thread_pool`, and we expect this type of thread pool to be
          both dynamically and automatically resizable.
 
+### Execution Resources
+
+Our executors model describes execution agents as bound to *execution
+resources*, which we imagine as the physical hardware and software facilities
+upon which execution happens. However, our design does not incorporate a
+programming model for execution resources. We expect that future proposals will
+extend our work by describing a programming model for programming tasks such as
+enumerating the resources of a system and querying the underlying resources of
+a particular execution context.
+
 ### Heterogeneity
 
 Contemporary execution resources are heterogeneous. CPU cores, lightweight CPU
@@ -1871,10 +1881,6 @@ include heterogeneous compilation and linking, just-in-time
 compilation, reflection, serialization, and others. A separate
 effort should characterize the programming problems posed by
 heterogeneity and suggest solutions.
-
-### Querying Information about a Context's Execution Resources
-
-// TODO
 
 ### Bulk Execution Extensions
 
