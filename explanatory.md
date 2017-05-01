@@ -135,10 +135,6 @@ provides a mechanism for creating execution agents from a callable function
 object. The primary concern of our design is to define requirements for
 executors and specify their interactions with clients.
 
-\textcolor{red}{TODO:} This section should provide a few concrete examples of each kind of thing
-
-* If needed, expand into a more general Background section
-
 # Using Executors
 
 We expect that the vast majority of programmers will interact with executors
@@ -259,8 +255,6 @@ returns a future object corresponding to its completion:
       // finally, start subtask3 when the first two are complete
       return subtask3(exec, future1, future2);
     }
-
-\textcolor{red}{TODO:} should we use an executor category (e.g. `TwoWayExecutor`) instead of `Executor` here, or should we defer introduction of executor categories until a later section?
 
 Consider `long_running_task`'s interface. Because the ordering requirements
 imposed by an execution policy are irrelevant to `long_running_task`'s
@@ -757,26 +751,49 @@ through executor-specific type traits.
 ### Functions
 
 **Executor identity.** All executors are required to be `EqualityComparable` in
-order for clients to reason about their identity. Equivalence between two
-executors implies that the same execution function invoked on either executors
-produces the same side effects. \textcolor{red}{Is there a more precise way to
-  say this?} `inline_executor` satisfies `EqualityComparable` by defining
-  `operator==` and `operator!=`. Because `inline_executor::sync_execute` simply
-  invokes its function inline, all instances of `inline_executor` produce the
-  same side effects and are therefore equivalent.
+order for clients to reason about their identity. If two executors are
+equivalent, then they may be used interchangably to produce the same side
+effects. For example, because `inline_executor::sync_execute` simply invokes
+its function inline, all instances of `inline_executor` produce the same side
+effects and are therefore equivalent.
+
+As another example, consider an executor type which creates execution agents by
+submitting to a thread pool. Suppose two executors of this type submit to the
+same underlying thread pool. These executors are equivalent because they both
+produce the same side effect of submitting to a common thread pool. However, if
+one of these executors were to change its underlying thread pool, they would
+become nonequivalent.
+
+As a final example, consider a prioritizing executor type which submits work
+with an associated priority to a queue. The queue executes work in order of
+priority, and when two tasks have equivalent priority they are executed in
+non-deterministic order. Suppose two executors of this type submit to the same
+underlying queue, but with different priorities. These two executors are
+nonequivalent, because even though they both submit to a common underlying
+queue, they do so with different priority. Therefore, these executors produce
+different side effects and cannot be used interchangably.
 
 **Execution context access.** Next, all executors are required to provide
 access to their associated execution context via a member function named
-`.context`. In non-generic contexts where the concrete types of executors and
-their associated contexts are known in advance, clients may use contexts to
-reason about underlying execution resources in order to make choices about
-where to create execution agents. \textcolor{red}{The rationale for context
-  access needs a better explanation, especially about how generic functions
-    could make use of context introspection.} Because `inline_executor` is such
-    a simple example, it serves as its own execution context and simply returns
-    a reference to itself. In general, the result of `.context` must be an
-    `EqualityComparable` type, and more sophisticated executors will return
-    some other object: 
+`.context`. The single type requirement for execution context types is
+`EqualityComparable`. However, we envision that these requirements will be
+refined in specializations as future proposals introduce additional
+requirements for their specific use cases. The `NetworkingExecutionContext`
+concept to be specified by the Networking TS already provides one example of
+refinement.
+
+In non-generic programming contexts where the concrete types of executors and
+their associated contexts are known in advance, clients may use execution
+context identity to reason about underlying execution resources in order to
+make choices about where to create execution agents. In generic programming
+contexts such as templates the concrete type of execution context will not be
+known. However, the programmer may still manipulate execution contexts
+semi-generically through specializations which apply to concrete contexts.
+    
+Recall `inline_executor`. Because it is such a simple executor, it serves as
+its own execution context. Its `.context()` function simply returns a reference
+to itself. In general, more sophisticated executors will return some other
+object. Consider a `thread_pool_executor`:
 
     class thread_pool_executor {
       private:
@@ -805,6 +822,15 @@ where to create execution agents. \textcolor{red}{The rationale for context
 
 In this example, an executor which creates execution agents by submitting to a
 thread pool returns a reference to that thread pool from `.context`.
+
+Our design allows programmers to reason about the identities of executors and
+execution contexts separately because the side effects they create
+may be distinct. For example, perfoming comparisons on `thread_pool_executor`
+objects yields no additional information than could be gained by comparing
+their execution contexts directly. The same is true for `inline_executor`.
+However, consider our prioritizing executor example whose execution context is a queue.
+When two prioritizing executors have different priorities, they are nonequivalent even if
+they both have equivalent execution contexts.
 
 ### Type Traits
 
