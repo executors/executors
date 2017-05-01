@@ -43,7 +43,8 @@ facilities.
 
 **Synchronization.** Execution created through different facilities has
 different synchronization properties. For example, an OpenMP parallel for loop
-is synchronous because the spawning thread blocks until the loop is complete.
+is synchronous because the spawning thread blocks until the loop is complete 
+due to an implicit barrier at the end of the parallel region by default.
 In contrast, the execution of GPU kernels is typically asynchronous; kernel
 launches return immediately and the launching thread continues its execution
 without waiting for the kernel's execution to complete. Work submitted to a
@@ -357,7 +358,7 @@ activities to proceed independently.
 
 A similar argument holds for application library interfaces that consume
 executors directly in order to create execution agents one by one. For example,
-consider an library function that executes some long-running task. To
+consider a library function that executes some long-running task. To
 avoid requiring clients to wait for its completion, this function immediately
 returns a future object corresponding to its completion:
 
@@ -645,7 +646,7 @@ For `then_execute`, the third parameter is a future which is the predecessor dep
     executor_future_t<Executor,std::invoke_result_t<std::decay_t<Function>,U&>>
     then_execute(const Executor& exec, Function&& f, Future& predecessor_future);
 
-Let `U` by the type of `Future`'s result object. The callable object `f` is
+Let `U` be the type of `Future`'s result object. The callable object `f` is
 invoked with a reference to the result object of the predecessor future (or
     without a parameter if a `void` future). By design, this is inconsistent
 with the interface of the Concurrency TS's `future::then` which invokes its
@@ -653,7 +654,7 @@ continuation with a copy of the predecessor future. Our design avoids the
 composability issues of `future::then` [@Executors16:Issue96] and is consistent
 with `bulk_then_execute`, discussed below. Note that the type of `Future` is
 allowed to differ from `executor_future_t<Executor,U>`, enabling
-interoperability between executors and foreign future types.
+interoperability between executors and foreign or new future types.
 
 Note that customization points do not receive a parameter pack of arguments for
 `f`. This is a deliberate design to embue all customization point parameters
@@ -713,7 +714,7 @@ shared parameter for `f`. Like the result, the shared parameter is constructed
 before the group of agents begins execution and it is passed as a parameter to
 `f`. Unlike the result, the shared parameter is discarded. Its purpose is to
 act as a temporary data structure shared by all execution agents during the
-computation. Examples are `std::barrier` or atomic objects. If the client
+computation. Examples are `std::barrier` or `std::atomic` objects. If the client
 desires to retain the shared parameter, it may be incorporated into the result
 during the execution of `f`.
 
@@ -724,7 +725,7 @@ efficient scheme to pass parameters to newly-created groups of execution agents
 parameters, including concurrency primitives like `std::barrier` and
 `std::atomic`. Next, some important types are not efficient to copy, especially
 containers used as scratchpads. Finally, the location of results and shared
-parameters will important to a parallel algorithm's efficiency. We envision
+parameters will be important to a parallel algorithm's efficiency. We envision
 associating allocators with individual factories to provide
 control[^factory_footnote].
 
@@ -887,7 +888,7 @@ non-deterministic order. Suppose two executors of this type submit to the same
 underlying queue, but with different priorities. These two executors are
 nonequivalent, because even though they both submit to a common underlying
 queue, they do so with different priority. Therefore, these executors produce
-different side effects and cannot be used interchangably.
+different side effects and cannot be used interchangeably.
 
 **Execution context access.** Next, all executors are required to provide
 access to their associated execution context via a member function named
@@ -971,7 +972,7 @@ Currently, this trait returns one of three values:
   2. `thread_execution_mapping_tag`: The executor maps agents onto threads of execution.
   3. `unique_thread_execution_mapping_tag`: The executor maps each agent onto a new thread of execution, and that thread of execution does not change over the agent's lifetime.[^unique_thread_footnote]
 
-[^unique_thread_footnote]: `new_thread_execution_mapping_tag` might be a better name for this. `unique_thread_execution_mapping_tag` wouldn't necessarily suggest each agent gets a newly-created thread, just its *own* thread.
+[^unique_thread_footnote]: `new_thread_execution_mapping_tag` might be a better name for this. `unique_thread_execution_mapping_tag` wouldn't necessarily suggest each agent gets a newly-created thread, just its *own* thread. MW: I too prefer `new_thread_execution_mapping_tag`as unique does not imply new.
 
 The first mapping category is intended to represent mappings onto resources
 which are not standard threads of execution. The abilities of such agents may
@@ -998,6 +999,8 @@ returns one of three values:
   1. `blocking_execution_tag`: The agents' execution blocks the client.
   2. `possibly_blocking_execution_tag`: The agent's execution possibly block the client.
   3. `non_blocking_execution_tag`: The agent's execution does not block the client.
+
+[^possibly_blocking_execution_footnote]:I (MW) like to suggest we change this to match std::atomic lock-free properties: always_blocking_executor_tag, maybe_blocking_executor_tag, and never_blocking_executor_tag. Not only is this consistent with the atomic lock-free proiperties, it makes searching easier as in all cases the first word needs to be changed, whereas block_execution_tag now finds all three tags. This is likely not for this paper until we change the specification paper.
 
 The guarantee provided by `executor_execute_blocking_category` only applies to
 those customization points whose name is suffixed with `execute`. Exceptions
@@ -1409,7 +1412,7 @@ objects will allow interoperation with resources whose asynchronous execution
 is undesirable or impossible to track through standard means. For example,
 scheduling runtimes maintain internal data structures to track the
 dependency relationships between different tasks. The reification of these
-data structures can achieved much more efficiently than by pairing a
+data structures can be achieved much more efficiently than by pairing a
 `std::promise` with a `std::future`. As another example, some "inline"
 executors will create execution immediately in their calling thread. Because
 no interthread communication is necessary, inline executors' asynchronous
@@ -1469,7 +1472,7 @@ Our current proposal's model of bulk execution is flat and one-dimensional.
 Each bulk execution function creates a single group of execution agents, and
 the indices of those agents are integers. We envision extending this simple
 model to allow executors to organize agents into hierarchical groups and assign
-then multidimensional indices. Because multidimensional indices are relevant to
+them multidimensional indices. Because multidimensional indices are relevant to
 many high-performance computing domains, some types of execution resources
 natively generate them. Moreover, hierarchical organizations of agents
 naturally model the kinds of execution created by multicore CPUs, GPUs, and
