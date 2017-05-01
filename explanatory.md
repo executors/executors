@@ -1299,9 +1299,36 @@ small. A hypothetical `simd_executor` or `inline_executor` are examples.
 
 ## Two-Way Single-Agent Functions
 
-Single-agent execution functions are special cases of their bulk counterparts.
-Because we expect single-agent creation to be an important special case, we
-include these to allow for specialization.
+### Single vs Bulk Execution Functions
+
+Conceptually, single-agent execution functions are special cases of their bulk
+counterparts. However, we expect single-agent creation to be an important
+special case; in fact, many existing applications employ executors solely for
+single-agent execution. Explicit support for single-agent submission allows
+executor implementations to optimize for this important use case at compile
+time.
+
+In particular, an important use for single-agent execution functions is the
+ability to submit move-only function objects. Move-only function objects allow
+us to submit tasks that contain relatively heavyweight, move-only resources,
+such as files, sockets or `std::promise` objects. It is true that bulk
+execution functions can support move-only function objects, but only if
+additional care is taken to ensure the function object remains valid until all
+execution agents complete. This would probably be achieved by placing the
+function object in reference counted storage, and represents a significant
+overhead that is not required in the single-agent case.
+
+Alternatively, a bulk execution function could optimise for the single agent
+case by performing a runtime test for a `shape` of `1`: when this condition is
+detected, a non-reference-counted implementation would be selected. However,
+for the many applications that desire efficient single-agent execution, a
+bulk-only interface results in additional complexity and code (bloat).
+Furthermore, if custom executors are developed for these applications, a
+bulk-only approach means that development effort must be expended on the
+multi-agent case even if that runtime branch is never used. And, finally, we
+lose the ability to perform a compile time test to determine whether an
+executor "natively" supports single-agent execution (e.g. the
+`has_executor_member` trait included in this proposal).
 
 ### `then_execute`
 
