@@ -3,10 +3,13 @@ title: 'Executors Explained'
 numbersections: true
 
 author:
-- Author One
-- Author Two
-- Author Three
-- Author Four
+- Jared Hoberock
+- Michael Garland
+- Chris Kohlhoff
+- Chris Mysen
+- Carter Edwards
+- Gordon Brown
+- Michael Wong
 
 abstract: |
   \noindent This paper is a companion to [P0443](http://wg21.link/P0443) and describes the executors programming model it specifies.

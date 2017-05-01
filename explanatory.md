@@ -444,9 +444,6 @@ overload `std::async(func)` were made available, programmers porting their
 existing codes to our proposed new overload `std::async(exec, func)` could
 target executors in a way that preserved the original program's behavior.
 
-\textcolor{red}{TODO:} I think we need an example here of how you would obtain
-these executors, would these siply be the default for the control structures.
-
 **Executor adaptors.** Still other executors may be "fancy" and adapt some
 other type of base executor. For example, consider a hypothetical logging
 executor which prints output to a log when the base executor is used to create
@@ -979,9 +976,7 @@ Currently, this trait returns one of three values:
 
   1. `other_execution_mapping_tag`: The executor maps agents onto non-standard execution resources.
   2. `thread_execution_mapping_tag`: The executor maps agents onto threads of execution.
-  3. `unique_thread_execution_mapping_tag`: The executor maps each agent onto a new thread of execution, and that thread of execution does not change over the agent's lifetime.[^unique_thread_footnote]
-
-[^unique_thread_footnote]: `new_thread_execution_mapping_tag` might be a better name for this. `unique_thread_execution_mapping_tag` wouldn't necessarily suggest each agent gets a newly-created thread, just its *own* thread. MW: I too prefer `new_thread_execution_mapping_tag`as unique does not imply new.
+  3. `unique_thread_execution_mapping_tag`: The executor maps each agent onto a new thread of execution, and that thread of execution does not change over the agent's lifetime.
 
 The first mapping category is intended to represent mappings onto resources
 which are not standard threads of execution. The abilities of such agents may
@@ -1008,8 +1003,6 @@ returns one of three values:
   1. `blocking_execution_tag`: The agents' execution blocks the client.
   2. `possibly_blocking_execution_tag`: The agent's execution possibly block the client.
   3. `non_blocking_execution_tag`: The agent's execution does not block the client.
-
-[^possibly_blocking_execution_footnote]:I (MW) like to suggest we change this to match std::atomic lock-free properties: always_blocking_executor_tag, maybe_blocking_executor_tag, and never_blocking_executor_tag. Not only is this consistent with the atomic lock-free proiperties, it makes searching easier as in all cases the first word needs to be changed, whereas block_execution_tag now finds all three tags. This is likely not for this paper until we change the specification paper.
 
 The guarantee provided by `executor_execute_blocking_category` only applies to
 those customization points whose name is suffixed with `execute`. Exceptions
@@ -1076,9 +1069,6 @@ associated future type, which is the type of object returned by asynchronous,
            of the `Future` concept[^future_footnote]. Otherwise, the type is
            `std::future`. All of an executor's two-way asynchronous
            customization points must return the same type of future.
-           \textcolor{red}{Do we allow users to specialize this type trait? P0443R1
-             suggests yes, but if so, why do we allow this for the future
-               type trait but not for the context type trait?}
 
 [^future_footnote]: For now, the only type which satisfies `Future` is
 `std::experimental::future`, specified by the Concurrency TS. We expect the
@@ -1441,7 +1431,7 @@ requiring executors to explicitly support continuations with `then_execute`, inc
              class Allocator = std::allocator<void>>
     executor_future_t<std::invoke_result_t<std::decay_t<Function>>>
     async_post(const Executor& exec, Function&& func,
-            Allocator& alloc = Allocator());
+               Allocator& alloc = Allocator());
 
 `async_post` asynchronously creates a single execution agent bound to the
 executor `exec` whose execution may begin immediately and returns a future that
@@ -1481,10 +1471,11 @@ functionality when `async_defer` is absent. For example, an implementation of
 possible only if `executor_execute_blocking_category_t<Executor>` is
 `nonblocking_execution_tag`.
 
-**Comparison to async_post.** The behavior of `async_defer` is semantically
-equivalent to `async_post` and is primarily to indicate an ordering of work
-which allows for additional performance optimizations within the executor
-implementation.
+**Comparison to async_post.** `async_defer`'s semantics are identical to
+`async_post`. That is, they may be used interchangeably without effecting a
+program's correctness. `async_defer` indicates that `func` represents a
+continuation of the caller which allows for additional performance
+optimizations within the executor implementation.
 
 ### `sync_execute`
 
@@ -1594,10 +1585,11 @@ simply forwards its arguments directly to `bulk_execute` is possible only if
 `executor_execute_blocking_category_t<Executor>` is
 `nonblocking_execution_tag`.
 
-**Comparison to bulk_post.** The behavior of `bulk_defer` is semantically
-equivalent to `bulk_post` and is primarily to indicate an ordering of work
-which allows for additional performance optimizations within the executor
-implementation.
+**Comparison to bulk_post.** `bulk_defer`'s semantics are identical to
+`bulk_post`. That is, they may be used interchangeably without effecting a
+program's correctness. `bulk_defer` indicates that `func` represents a bulk
+continuation of the caller which allows for additional performance
+optimizations within the executor implementation.
 
 ### `bulk_execute`
 
@@ -1679,9 +1671,11 @@ absent. For example, an implementation of `defer` which simply forwards its
 arguments directly to `execute` is possible only if
 `executor_execute_blocking_category_t<Executor>` is `nonblocking_execution_tag`.
 
-**Comparison to post.** The behavior of `defer` is semantically equivalent to
-`post` and is primarily to indicate an ordering of work which allows for
-additional performance optimizations within the executor implementation.
+**Comparison to post.** `defer`'s semantics are identical to `post`. That is,
+they may be used interchangeably without effecting a program's correctness.
+`defer` indicates that `func` represents a continuation of the caller which
+allows for additional performance optimizations within the executor
+implementation.
 
 ### `execute`
 
@@ -1718,41 +1712,35 @@ As with the adaptation of `then_execute` described earlier this group has only
 one agent and no sharing actually occurs. The cost of this unnecessary sharing
 may be significant and can be avoided if an executor specializes `then_execute`.
 
+# Future Work
 
-* Describe the adaptations performed by executor customization points
-  * Highlight the costs implied by specific adaptations, e.g. temporary intermediate future
-    creation or dynamic memory allocation
-  * Discuss how the adaptations performed by customization points are chosen and in what order
-    they are preferred
-  * Discuss how blocking behavior interacts with customization points
+We conclude with a survey of future work. Some of this work is in scope for
+P0443 and should be done before the design is considered complete. Other work
+is explicitly out of scope, and should be pursued independently using our
+design as a foundation. 
 
-# Ongoing Discussions
+## Open Design Issues
 
-Much of the design of the executors interface is well established, however there are aspects of the
-design that have been subject of debate and still an ongoing discussion.
+Much of our design for executors is well-established. However, some aspects of the
+design remain the subject of ongoing discussion.
 
-// TODO Add any other questions that were raised during the SG1 meetings
-
-## Semantics of defer and post
+### `post` and `defer`
 
 Execution functions named `post` and `defer` have identical semantics.
 Specifically this means that, in generic code (i.e. code where the executor
-type is a template parameter), calls to `post` and `defer` may be interchanged
-without altering program semantics or correctness. Where `post` and `defer`
-differ is in the information conveyed to the executor about the caller's
-intent: the use of `defer` indicates that the submitted function object
-represents a continuation of the caller. The implementation can use this
-information for performance optimization internally (e.g. to allow multiple
-calls to defer to result in only a single call to lock the internal task
-queue). 
+    type is a template parameter), calls to `post` and `defer` may be interchanged
+without altering program semantics or correctness. Where `post` and `defer` differ
+is in the information conveyed to the executor about the caller's intent: the
+use of `defer` indicates that the submitted function object represents a
+continuation of the caller.
 
 Concrete executor implementations can use this information to optimize
 performance. For example, a simple static thread pool can halve the
 synchronization performed per submitted function object (e.g. reducing the cost
 per function from 55ns to 26ns on recent x86-64 CPUs running Linux) when these
-function objects are chained. For applications that consist of chains of
-small continuations, this represents a significant improvement in throughput
-and latency.
+function objects are chained. For applications that consist of long
+chains of short continuations, this represents a significant improvement in
+throughput and latency.
 
 // TODO: provide reference to this data
 
@@ -1761,24 +1749,41 @@ guarantees; `post` and `defer` are the exceptions. To address this
 inconsistency, we may consider providing only one of these functions (i.e.
 `post`) and to introduce a hinting mechanism to convey the additional
 information to an executor. Ideally, this mechanism would be extensible to
-allow other hints to be introduced in the future (e.g. a hint about task-CPU
-affinity).
+allow other hints to be introduced in the future (e.g. a hint to indicate that
+a submitted function object benefits from CPU affinity).
 
 As an example of established practice, the Boost.Asio library uses an ADL
-customization point, named asio_handler_is_continuation to provide
-functionality equivalent to "defer". The library's executors apply this
+customization point, named `asio_handler_is_continuation` to provide
+functionality equivalent to `defer`. The library's executors apply this
 function to all submitted function objects to determine when the optimization
 may be applied.
 
-## Relationship with Thread Local Storage
+### Relationship with Thread Local Storage
 
-// TODO
+By design, our executors model provides no explicit support for creating
+thread-local storage. Instead, our design provides programmers with tools to
+reason about the relationship of programmer-defined `thread_local` variables
+and execution agents created by executors. For example, the executor type trait
+`executor_execution_mapping_category` describes how execution agents are mapped
+onto threads, and consequently how the lifetimes of those agents relate to the
+lifetimes of `thread_local` variables. It is unclear whether these tools are
+sufficient or if more fine-grained control over thread local storage is
+warranted.
 
-## Forward Progress Guarantees and Boost Blocking
+### Forward Progress Guarantees and Boost Blocking
 
-// TODO
+Our executor programming model prescribes a way for bulk executors to advertise
+the forward progress guarantees of execution agents created in bulk. This
+guarantee describes an agent's forward progress with respect to other agents
+within the same group as that agent. However, our model prescribes no analogous
+way for advertising any guarantee of forward progress between a single
+execution agent and the client thread which requested the creation of that
+agent. Similarly, our programming model does not describe how executors would
+make such guarantees. Incorporating a model of *boost blocking* into our design
+could be one option.
 
-## Blocking Guarantees
+### Blocking Guarantees
+>>>>>>> 8ad6f05dc1be48db0e8f30cc8211ae615f8cef0a
 
 The blocking property is not
   applied uniformly. It is both a holistic property of the executor type and
@@ -1804,19 +1809,13 @@ possibly-blocking `execute` as well as the unconditionally non-blocking
 customization points `post` and `defer`. In such a situation, all three of
 these customization points have different semantics.
 
-\textcolor{red}{TODO:} Perhaps speculate about alternative approaches to blocking guarantees which would not suffer from the above problems
+## Envisioned Extensions
 
-## Querying Information about a Context's Execution Resources
-
-// TODO
-
-# Future Work
-
-We conclude with a brief survey of future work extending our proposal. Some of
+we conclude with a brief survey of future work extending our proposal. some of
 this work has already begun and there are others which we believe ought to be
 investigated.
 
-## `Future` Concept
+### `Future` Concept
 
 Our proposal depends upon the ability of executors to create future objects
 whose types differ from `std::future`. Such user-defined `std::future`-like
@@ -1833,7 +1832,7 @@ primitives of full-fledged `std::future` objects. We envision that a
 separate effort will propose a `Future` concept which would introduce
 requirements for these user-defined `std::future`-like types.
 
-## Error Handling
+### Error Handling
 
 Our proposal prescribes no mechanism for execution functions to communicate
 exceptional behavior back to their clients. For our purposes, exceptional
@@ -1847,7 +1846,7 @@ object, and synchronous two-way functions will simply throw any exceptions they
 encounter as normal. However, it is not clear what mechanism, if any, one-way
 execution functions should use for error reporting.
 
-## Additional Thread Pool Types
+### Additional Thread Pool Types
 
 Our proposal specifies a single thread pool type, `static_thread_pool`, which
 represents a simple thread pool which does not automatically resize itself. We
@@ -1857,7 +1856,17 @@ separate effort which will propose an additional thread pool type,
          `dynamic_thread_pool`, and we expect this type of thread pool to be
          both dynamically and automatically resizable.
 
-## Heterogeneity
+### Execution Resources
+
+Our executors model describes execution agents as bound to *execution
+resources*, which we imagine as the physical hardware and software facilities
+upon which execution happens. However, our design does not incorporate a
+programming model for execution resources. We expect that future proposals will
+extend our work by describing a programming model for programming tasks such as
+enumerating the resources of a system and querying the underlying resources of
+a particular execution context.
+
+### Heterogeneity
 
 Contemporary execution resources are heterogeneous. CPU cores, lightweight CPU
 cores, SIMD units, GPU cores, operating system runtimes, embedded runtimes, and
@@ -1878,7 +1887,7 @@ compilation, reflection, serialization, and others. A separate
 effort should characterize the programming problems posed by
 heterogeneity and suggest solutions.
 
-## Bulk Execution Extensions
+### Bulk Execution Extensions
 
 Our current proposal's model of bulk execution is flat and one-dimensional.
 Each bulk execution function creates a single group of execution agents, and
