@@ -143,16 +143,11 @@ from the execution context.
 
 Typical examples of an execution agent are a CPU thread or GPU execution unit.
 
-An **execution function** is function which executes a callable function with a
-particular set of semantics derived from it's properties.
-
-Examples of execution functions will be described in further detail later in
-the paper.
-
 An **executor** is an object associated with a specific execution context. It
-provides a mechanism for creating execution agents from a callable function
-object. The execution agents created are bound to the executor's context, and hence to
-one or more of the resources that context represents.
+provides one or more **execution functions** for creating execution agents from
+a callable function object. The execution agents created are bound to the
+executor's context, and hence to one or more of the resources that context
+represents.
 
 Executors themselves are the primary concern of our design.
 
