@@ -466,6 +466,10 @@ and technical specifications.
 
 Table: The control structures we propose to introduce.
 
+Addionally, note that SG5 Transactional Memory is also studying how proposed TM constructs in the Transactional Memory TS can be
+integrated with executors. As TM constructs are compound statements of the form `atomic_noexcept  | atomic_commit | atomic_cancel  {<compound-statement> }` and `synchronized  {<compound-statement> }`, it seems they can also apply with executors.
+
+
 ## Fundamental Interactions with Executors via Customization Points
 
 Some control structures (e.g., `solve`) will simply forward the executor to
