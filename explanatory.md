@@ -1262,6 +1262,11 @@ of `bulk_async_defer` which simply forwards its arguments directly to
 `bulk_async_execute` is possible only if
 `executor_execute_blocking_category_t<Executor>` is `nonblocking_execution_tag`.
 
+**Comparison to bulk_async_post.** The behavior of `bulk_async_defer` is
+semantically equivalent to `bulk_async_post` and is primarily to indicate an
+ordering of work which allows for additional performance optimizations within
+the executor implementation.
+
 ### `bulk_sync_execute`
 
     template<class Executor, class Function, class ResultFactory,
@@ -1445,8 +1450,6 @@ The created execution agent calls `std::forward<Function>(func)()`. `async_post`
 does not block the caller until execution completes. The allocator `alloc` can
 be used to allocate memory for `func`.
 
-\textcolor{red}{TODO:} Describe `async_post` semantics as differing from `async_defer`.
-
 `async_post` is equivalent to `async_execute` except that it makes an
 additional guarantee not to block the client's execution. Some executors will
 not be able to provide such a guarantee and could not be adapted to this
@@ -1470,8 +1473,6 @@ The created execution agent calls `std::forward<Function>(func)()`.
 `async_defer` does not block the caller until execution completes. The allocator
 `alloc` can be used to allocate memory for `func`.
 
-\textcolor{red}{TODO:} Describe `async_defer` semantics as differing from `async_post`.
-
 `async_defer` is equivalent to `async_execute` except that it makes an
 additional guarantee not to block the client's execution. Some executors will
 not be able to provide such a guarantee and could not be adapted to this
@@ -1480,9 +1481,10 @@ functionality when `async_defer` is absent. For example, an implementation of
 possible only if `executor_execute_blocking_category_t<Executor>` is
 `nonblocking_execution_tag`.
 
-The behavior of `async_defer` is semantically equivalent to `async_post` and is
-primarily to indicate an ordering of work which allows for additional
-performance optimizations within the executor implementation.
+**Comparison to async_post.** The behavior of `async_defer` is semantically
+equivalent to `async_post` and is primarily to indicate an ordering of work
+which allows for additional performance optimizations within the executor
+implementation.
 
 ### `sync_execute`
 
@@ -1560,13 +1562,13 @@ execution agent calls `std::forward<Function>(func)(i, s)`, where `i` is of type
 `shared_factory`. `bulk_post` does not block the caller until execution
 completes.
 
-\textcolor{red}{TODO:} Describe `bulk_post` semantics as differing from `bulk_defer`.
-
 `bulk_post` is equivalent to `bulk_execute` except that it makes an additional
 guarantee not to block the client's execution. Some executors will not be able
 to provide such a guarantee and could not be adapted to this functionality when
 `bulk_post` is absent. For example, an implementation of `bulk_post` which
-simply forwards its arguments directly to `bulk_execute` is possible only if `executor_execute_blocking_category_t<Executor>` is `nonblocking_execution_tag`.
+simply forwards its arguments directly to `bulk_execute` is possible only if
+`executor_execute_blocking_category_t<Executor>` is
+`nonblocking_execution_tag`.
 
 ### `bulk_defer`
 
@@ -1584,13 +1586,18 @@ execution agent calls `std::forward<Function>(func)(i, s)`, where `i` is of type
 `shared_factory`. `bulk_defer` does not block the caller until execution
 completes.
 
-\textcolor{red}{TODO:} Describe `bulk_defer` semantics as differing from `bulk_post`.
-
 `bulk_defer` is equivalent to `bulk_execute` except that it makes an additional
 guarantee not to block the client's execution. Some executors will not be able
 to provide such a guarantee and could not be adapted to this functionality when
 `bulk_defer` is absent. For example, an implementation of `bulk_defer` which
-simply forwards its arguments directly to `bulk_execute` is possible only if `executor_execute_blocking_category_t<Executor>` is `nonblocking_execution_tag`.
+simply forwards its arguments directly to `bulk_execute` is possible only if
+`executor_execute_blocking_category_t<Executor>` is
+`nonblocking_execution_tag`.
+
+**Comparison to bulk_post.** The behavior of `bulk_defer` is semantically
+equivalent to `bulk_post` and is primarily to indicate an ordering of work
+which allows for additional performance optimizations within the executor
+implementation.
 
 ### `bulk_execute`
 
@@ -1647,8 +1654,6 @@ created execution agent calls `std::forward<Function>(func)()`. `post` does not
 block the caller until execution completes. The allocator `alloc` can be used to
 allocate memory for `func`.
 
-\textcolor{red}{TODO:} Describe `post` semantics as differing from `differ`.
-
 `post` is equivalent to `execute` except that it makes an additional guarantee
 not to block the client's execution. Some executors will not be able to provide
 such a guarantee and could not be adapted to this functionality when `post` is
@@ -1667,14 +1672,16 @@ created execution agent calls `std::forward<Function>(func)()`. `defer` does not
 block the caller until execution completes. The allocator `alloc` can be used to
 allocate memory for `func`.
 
-\textcolor{red}{TODO:} Describe `defer` semantics as differing from `post`.
-
 `defer` is equivalent to `execute` except that it makes an additional guarantee
 not to block the client's execution. Some executors will not be able to provide
 such a guarantee and could not be adapted to this functionality when `defer` is
 absent. For example, an implementation of `defer` which simply forwards its
 arguments directly to `execute` is possible only if
 `executor_execute_blocking_category_t<Executor>` is `nonblocking_execution_tag`.
+
+**Comparison to post.** The behavior of `defer` is semantically equivalent to
+`post` and is primarily to indicate an ordering of work which allows for
+additional performance optimizations within the executor implementation.
 
 ### `execute`
 
