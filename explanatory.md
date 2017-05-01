@@ -1480,6 +1480,10 @@ functionality when `async_defer` is absent. For example, an implementation of
 possible only if `executor_execute_blocking_category_t<Executor>` is
 `nonblocking_execution_tag`.
 
+The behavior of `async_defer` is semantically equivalent to `async_post` and is
+primarily to indicate an ordering of work which allows for additional
+performance optimizations within the executor implementation.
+
 ### `sync_execute`
 
     template<class Executor, class Function,
@@ -1721,6 +1725,43 @@ Much of the design of the executors interface is well established, however there
 design that have been subject of debate and still an ongoing discussion.
 
 // TODO Add any other questions that were raised during the SG1 meetings
+
+## Semantics of defer and post
+
+Execution functions named `post` and `defer` have identical semantics.
+Specifically this means that, in generic code (i.e. code where the executor
+type is a template parameter), calls to `post` and `defer` may be interchanged
+without altering program semantics or correctness. Where `post` and `defer`
+differ is in the information conveyed to the executor about the caller's
+intent: the use of `defer` indicates that the submitted function object
+represents a continuation of the caller. The implementation can use this
+information for performance optimization internally (e.g. to allow multiple
+calls to defer to result in only a single call to lock the internal task
+queue). 
+
+Concrete executor implementations can use this information to optimize
+performance. For example, a simple static thread pool can halve the
+synchronization performed per submitted function object (e.g. reducing the cost
+per function from 55ns to 26ns on recent x86-64 CPUs running Linux) when these
+function objects are chained. For applications that consist of chains of
+small continuations, this represents a significant improvement in throughput
+and latency.
+
+// TODO: provide reference to this data
+
+However, all other execution function names represent distinct semantic
+guarantees; `post` and `defer` are the exceptions. To address this
+inconsistency, we may consider providing only one of these functions (i.e.
+`post`) and to introduce a hinting mechanism to convey the additional
+information to an executor. Ideally, this mechanism would be extensible to
+allow other hints to be introduced in the future (e.g. a hint about task-CPU
+affinity).
+
+As an example of established practice, the Boost.Asio library uses an ADL
+customization point, named asio_handler_is_continuation to provide
+functionality equivalent to "defer". The library's executors apply this
+function to all submitted function objects to determine when the optimization
+may be applied.
 
 ## Relationship with Thread Local Storage
 
