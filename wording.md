@@ -1742,10 +1742,10 @@ void attach();
 *Effects:* Adds the calling thread to the pool such that this thread is used to
 execute submitted function objects. (Note: Threads created during thread pool
 construction, or previously attached to the pool, will continue to be used for
-function object execution.) Blocks the calling thread until signalled to
-complete by `stop()` or `wait()`, and then blocks until all the threads created
-during `static_thread_pool` object construction have completed. (NAMING: a
-possible alternate name for this function is `join()`.)
+function object execution. --end note) Blocks the calling thread until
+signalled to complete by `stop()` or `wait()`, and then blocks until all the
+threads created during `static_thread_pool` object construction have completed.
+(NAMING: a possible alternate name for this function is `join()`.)
 
 ```
 void stop();
