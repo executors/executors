@@ -662,8 +662,8 @@ unavailable.
 
 Bulk customization points create a group of execution agents as a unit, and
 each of these execution agents calls an individual invocation of the given
-callable function object. The ordering guarantees of these invocations are
-given by `std::execution::executor_execution_category_t`. Because they create
+callable function object. The foward progress ordering guarantees of these invocations are
+given by `std::execution::executor_bulk_forward_progress_guarantee_t`. Because they create
 multiple agents, bulk customization points introduce ownership and lifetime
 issues avoided by single-agent customization points and they include additional
 parameters to address these issues. For example, consider
@@ -1010,22 +1010,22 @@ definition. When the agents created by an executor possibly block its client,
 The default value of `executor_execute_blocking_guarantee` is `possibly_blocking_execution`.
 
 **Bulk forward progress guarantee.** When an executor creates a group of execution
-agents, their forward progress obeys certain semantics. For example, a group of
+agents, their bulk forward progress obeys certain semantics. For example, a group of
 agents may invoke the user-provided function sequentially, or they may be
 invoked in parallel. Any guarantee the executor makes of these semantics is
-conveyed by the `executor_execution_category` trait, which takes one one of
+conveyed by the `executor_bulk_forward_progress_guarantee_t` trait, which takes one one of
 three values:
 
-  1. `sequenced_execution_tag`: The invocations of the user-provided callable function object are sequenced in lexicographical order of their indices.
-  2. `parallel_execution_tag`: The invocations of the user-provided callable function object are unsequenced when invoked on separate threads, and indeterminately sequenced when invoked on the same thread.
-  3. `unsequenced_execution_tag`: The invocations of the user-provided callable function object are not guaranteed to be sequenced, even when those invocations are executed within the same thread.
+  1. `bulk_sequenced_execution`: The invocations of the user-provided callable function object are sequenced in lexicographical order of their indices.
+  2. `bulk_parallel_execution`: The invocations of the user-provided callable function object are unsequenced when invoked on separate threads, and indeterminately sequenced when invoked on the same thread.
+  3. `bulk_unsequenced_execution`: The invocations of the user-provided callable function object are not guaranteed to be sequenced, even when those invocations are executed within the same thread.
 
 These guarantees agree with those made by the corresponding standard execution
 policies, and indeed these guarantees are intended to be used by execution
 policies to describe the invocations of element access functions during
 parallel algorithm execution. One difference between these guarantees and the
 standard execution policies is that, unlike `std::execution::sequenced_policy`,
-         `sequenced_execution_tag` does not imply that execution happens on the
+         `bulk_sequenced_execution` does not imply that execution happens on the
          client's thread[^seq_footnote]. Instead, `executor_execution_mapping`
          captures such guarantees.
 
@@ -1033,7 +1033,7 @@ We expect this list to grow in the future. For example, guarantees of
 concurrent or vectorized execution among a group of agents would be obvious
 additions.
 
-The default value of `executor_execution_category` is `unsequenced_execution_tag`.
+The default value of `executor_bulk_forward_progress_guarantee` is `bulk_unsequenced_execution`.
 
 [^seq_footnote]: We might want to introduce something like `this_thread_execution_mapping_tag` to capture the needs of `std::execution::seq`, which requires algorithms to execute on the current thread.
 
