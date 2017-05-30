@@ -692,7 +692,7 @@ The name `async_execute` denotes a customization point. The effect of the expres
 
 * Otherwise, `async_execute(E, F, A...)` if `has_async_execute_free_function_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, if `can_execute_v<decay_t<decltype(E)>>` is true, creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `std::experimental::concurrency_v2::execution::execute(E, g, A...)` where `g` is a function object of unspecified type that performs `DECAY_COPY(F)()`, with the call to `DECAY_COPY` being performed in the thread that called `async_execute`. On successful completion of `DECAY_COPY(F)()`, the return value of `DECAY_COPY(F)()` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(F)()` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready. The result of the expression `std::experimental::concurrency_v2::execution::async_execute(E, F, A...)` is an object of type `std::future<result_of_t<decay_t<decltype(F)>>()>` that refers to the shared state.
+* Otherwise, if `can_execute_v<decay_t<decltype(E)>>` is true, creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `std::experimental::concurrency_v2::execution::execute(E, g, A...)` where `g` is a function object of unspecified type that performs `DECAY_COPY(F)()`, with the call to `DECAY_COPY` being performed in the thread that called `async_execute`. On successful completion of `DECAY_COPY(F)()`, the return value of `DECAY_COPY(F)()` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(F)()` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready. The result of the expression `std::experimental::concurrency_v2::execution::async_execute(E, F, A...)` is an object of type `std::experimental::future<result_of_t<decay_t<decltype(F)>>()>` that refers to the shared state.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::async_execute(E, F, A...)` is ill-formed.
 
@@ -710,7 +710,7 @@ The name `async_post` denotes a customization point. The effect of the expressio
 
 * Otherwise, `std::experimental::concurrency_v2::execution::async_execute(E, F, A...)` if `can_async_execute_v<decay_t<decltype(E)>> && is_same_v<execution_execute_blocking_category_t<decay_t<decltype(E)>>, non_blocking_execution_tag>` is true.
 
-* Otherwise, if `can_post_v<decay_t<decltype(E)>>` is true, creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `std::experimental::concurrency_v2::execution::execute(E, g, A...)` where `g` is a function object of unspecified type that performs `DECAY_COPY(F)()`, with the call to `DECAY_COPY` being performed in the thread that called `async_post`. On successful completion of `DECAY_COPY(F)()`, the return value of `DECAY_COPY(F)()` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(F)()` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready. The result of the expression `std::experimental::concurrency_v2::execution::async_post(E, F, A...)` is an object of type `std::future<result_of_t<decay_t<decltype(F)>>()>` that refers to the shared state.
+* Otherwise, if `can_post_v<decay_t<decltype(E)>>` is true, creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `std::experimental::concurrency_v2::execution::execute(E, g, A...)` where `g` is a function object of unspecified type that performs `DECAY_COPY(F)()`, with the call to `DECAY_COPY` being performed in the thread that called `async_post`. On successful completion of `DECAY_COPY(F)()`, the return value of `DECAY_COPY(F)()` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(F)()` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready. The result of the expression `std::experimental::concurrency_v2::execution::async_post(E, F, A...)` is an object of type `std::experimental::future<result_of_t<decay_t<decltype(F)>>()>` that refers to the shared state.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::async_post(E, F, A...)` is ill-formed.
 
@@ -728,7 +728,7 @@ The name `async_defer` denotes a customization point. The effect of the expressi
 
 * Otherwise, `std::experimental::concurrency_v2::execution::async_execute(E, F, A...)` if `can_async_execute_v<decay_t<decltype(E)>> && is_same_v<execution_execute_blocking_category_t<decay_t<decltype(E)>>, non_blocking_execution_tag>` is true.
 
-* Otherwise, if `can_defer_v<decay_t<decltype(E)>>` is true, creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `std::experimental::concurrency_v2::execution::execute(E, g, A...)` where `g` is a function object of unspecified type that performs `DECAY_COPY(F)()`, with the call to `DECAY_COPY` being performed in the thread that called `async_defer`. On successful completion of `DECAY_COPY(F)()`, the return value of `DECAY_COPY(F)()` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(F)()` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready. The result of the expression `std::experimental::concurrency_v2::execution::async_defer(E, F, A...)` is an object of type `std::future<result_of_t<decay_t<decltype(F)>>()>` that refers to the shared state.
+* Otherwise, if `can_defer_v<decay_t<decltype(E)>>` is true, creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `std::experimental::concurrency_v2::execution::execute(E, g, A...)` where `g` is a function object of unspecified type that performs `DECAY_COPY(F)()`, with the call to `DECAY_COPY` being performed in the thread that called `async_defer`. On successful completion of `DECAY_COPY(F)()`, the return value of `DECAY_COPY(F)()` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(F)()` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready. The result of the expression `std::experimental::concurrency_v2::execution::async_defer(E, F, A...)` is an object of type `std::experimental::future<result_of_t<decay_t<decltype(F)>>()>` that refers to the shared state.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::async_defer(E, F, A...)` is ill-formed.
 
@@ -1023,7 +1023,7 @@ The type of `executor_future<Executor, T>::type` is determined as follows:
 
 * if `is_two_way_executor<Executor>` is true, `decltype(declval<const Executor&>().async_execute( declval<T(*)()>())`;
 
-* otherwise, if `is_one_way_executor<Executor>` is true, `std::future<T>`;
+* otherwise, if `is_one_way_executor<Executor>` is true, `std::experimental::future<T>`;
 
 * otherwise, the program is ill formed.
 
@@ -1601,7 +1601,7 @@ public:
     result_of_t<decay_t<Function>()>
       sync_execute(Function&& f, const ProtoAllocator& a = ProtoAllocator()) const;
   template<class Function, class ProtoAllocator = std::allocator<void>>
-    std::future<result_of_t<decay_t<Function>()>>
+    std::experimental::future<result_of_t<decay_t<Function>()>>
       async_execute(Function&& f, const ProtoAllocator& a = ProtoAllocator()) const;
 };
 ```
@@ -1622,7 +1622,7 @@ Let `e` be the target object of `*this`. Let `a1` be the allocator that was spec
 
 ```
 template<class Function, class ProtoAllocator>
-  std::future<result_of_t<decay_t<Function>()>>
+  std::experimental::future<result_of_t<decay_t<Function>()>>
     async_execute(Function&& f, const ProtoAllocator& a) const;
 ```
 
@@ -1630,7 +1630,7 @@ Let `e` be the target object of `*this`. Let `a1` be the allocator that was spec
 
 *Effects:* Performs `e.async_execute(g, a1)`, where `g` is a function object of unspecified type that, when called as `g()`, performs `fd()`. The allocator `a` is used to allocate any memory required to implement `g`.
 
-*Returns:* A future with an associated shared state that will contain the result of `fd()`. [*Note:* `e.async_execute(g)` may return any future type that satisfies the Future requirements, and not necessarily `std::future`. One possible implementation approach is for the polymorphic wrapper to attach a continuation to the inner future via that object's `then()` member function. When invoked, this continuation stores the result in the outer future's associated shared and makes that shared state ready. *--end note*]
+*Returns:* A future with an associated shared state that will contain the result of `fd()`. [*Note:* `e.async_execute(g)` may return any future type that satisfies the Future requirements, and not necessarily `std::experimental::future`. One possible implementation approach is for the polymorphic wrapper to attach a continuation to the inner future via that object's `then()` member function. When invoked, this continuation stores the result in the outer future's associated shared and makes that shared state ready. *--end note*]
 
 ## Thread pools
 
@@ -2022,7 +2022,7 @@ async(const Executor& exec, Function&& f, Args&&... args);
 
 #### `std::experimental::future::then()`
 
-The member function template `then` provides a mechanism for attaching a *continuation* to a `std::future` object,
+The member function template `then` provides a mechanism for attaching a *continuation* to a `std::experimental::future` object,
 which will be executed on a new execution agent created by an executor.
 
 ```
@@ -2046,7 +2046,7 @@ using `exec.execute()` otherwise.
 
 #### `std::experimental::shared_future::then()`
 
-The member function template `then` provides a mechanism for attaching a *continuation* to a `std::shared_future` object,
+The member function template `then` provides a mechanism for attaching a *continuation* to a `std::experimental::shared_future` object,
 which will be executed on a new execution agent created by an executor.
 
 ```
