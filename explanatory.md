@@ -1162,7 +1162,7 @@ wait for execution to complete containing the result of `result_factory`. Each
 created execution agent calls `std::forward<Function>(func)(i, r, s)`, where `i`
 is of type `executor_index_t<Executor>`, `r` is a function object returned from
 `return_factory` and `s` is a shared object returned from `shared_factory`.
-`bulk_async_post` may or may not the caller until execution completes, depending
+`bulk_async_execute` may or may not block the caller until execution completes, depending
 on the value of `executor_execute_blocking_category_t<Executor>`.
 
 Like `bulk_then_execute`, `bulk_async_execute`
