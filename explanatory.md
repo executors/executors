@@ -662,7 +662,7 @@ unavailable.
 
 Bulk customization points create a group of execution agents as a unit, and
 each of these execution agents calls an individual invocation of the given
-callable function object. The foward progress ordering guarantees of these invocations are
+callable function object. The forward progress ordering guarantees of these invocations are
 given by `std::execution::executor_bulk_forward_progress_guarantee_t`. Because they create
 multiple agents, bulk customization points introduce ownership and lifetime
 issues avoided by single-agent customization points and they include additional
