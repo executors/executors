@@ -966,24 +966,24 @@ interest to some clients. For example, the relationship between an execution
 agent and the lifetime of `thread_local` variables may be inferred by
 inspecting the mapping of the agent onto its thread of execution (if any). In
 our model, such mappings are represented as empty tag types and they are
-introspected through the `executor_execution_mapping_category` type trait.
+introspected through the `executor_execution_mapping_guarantee` type trait.
 Currently, this trait returns one of three values:
 
-  1. `other_execution_mapping_tag`: The executor maps agents onto non-standard execution resources.
-  2. `thread_execution_mapping_tag`: The executor maps agents onto threads of execution.
-  3. `unique_thread_execution_mapping_tag`: The executor maps each agent onto a new thread of execution, and that thread of execution does not change over the agent's lifetime.
+  1. `other_execution_mapping`: The executor maps agents onto non-standard execution resources.
+  2. `thread_execution_mapping`: The executor maps agents onto threads of execution.
+  3. `new_thread_execution_mapping`: The executor maps each agent onto a new thread of execution, and that thread of execution does not change over the agent's lifetime.
 
-The first mapping category is intended to represent mappings onto resources
+The first mapping type is intended to represent mappings onto resources
 which are not standard threads of execution. The abilities of such agents may
-be subject to executor-defined limitations. The next two categories indicate
+be subject to executor-defined limitations. The next two types indicate
 that agents execute on standard threads of execution as normal.
-`thread_execution_mapping_tag` guarantees that agents execute on threads, but
+`thread_execution_mapping` guarantees that agents execute on threads, but
 makes no additional guarantee about the identification between agent and
-thread. `unique_thread_execution_mapping_tag` does make an additional
+thread. `new_thread_execution_mapping` does make an additional
 guarantee; each agent executes on a newly-created thread. We envision that
-this set of mapping categories may grow in the future.
+this set of mapping types may grow in the future.
 
-The default value of `executor_execution_mapping_category` is `thread_execution_mapping_tag`.
+The default value of `executor_execution_mapping_guarantee` is `thread_execution_mapping`.
 
 **Blocking guarantee.** When a client uses an executor to create execution
 agents, the execution of that client may be blocked pending the completion of
@@ -1026,7 +1026,7 @@ policies to describe the invocations of element access functions during
 parallel algorithm execution. One difference between these guarantees and the
 standard execution policies is that, unlike `std::execution::sequenced_policy`,
          `sequenced_execution_tag` does not imply that execution happens on the
-         client's thread[^seq_footnote]. Instead, `executor_execution_mapping`
+         client's thread[^seq_footnote]. Instead, `executor_execution_mapping_guarantee`
          captures such guarantees.
 
 We expect this list to grow in the future. For example, guarantees of
@@ -1035,7 +1035,7 @@ additions.
 
 The default value of `executor_execution_category` is `unsequenced_execution_tag`.
 
-[^seq_footnote]: We might want to introduce something like `this_thread_execution_mapping_tag` to capture the needs of `std::execution::seq`, which requires algorithms to execute on the current thread.
+[^seq_footnote]: We might want to introduce something like `this_thread_execution_mapping` to capture the needs of `std::execution::seq`, which requires algorithms to execute on the current thread.
 
 These describe the types of parameters involved in bulk customization points
 
@@ -1107,7 +1107,7 @@ functionally special case.
 
 `bulk_then_execute` asynchronously creates a group of execution agents of shape
 `shape` with forward progress guarantees of
-`executor_execution_mapping_category_t<Executor>`, bound to the executor `exec`
+`executor_execution_mapping_guarantee_t<Executor>`, bound to the executor `exec`
 whose execution begins after the completion of `pred` and returns a future that
 can be used to wait for execution to complete containing the result of
 `result_factory`. Each created execution agent calls
@@ -1156,7 +1156,7 @@ unacceptable.
 
 `bulk_async_execute` asynchronously creates a group of execution agents of shape
 `shape` with forward progress guarantees of
-`executor_execution_mapping_category_t<Executor>`, bound to the executor `exec`
+`executor_execution_mapping_guarantee_t<Executor>`, bound to the executor `exec`
 whose execution may begin immediately and returns a future that can be used to
 wait for execution to complete containing the result of `result_factory`. Each
 created execution agent calls `std::forward<Function>(func)(i, r, s)`, where
@@ -1201,7 +1201,7 @@ require accommodating a predecessor dependency.
 
 `bulk_async_post` asynchronously creates a group of execution agents of shape
 `shape` with forward progress guarantees of
-`executor_execution_mapping_category_t<Executor>`, bound to the executor `exec`
+`executor_execution_mapping_guarantee_t<Executor>`, bound to the executor `exec`
 whose execution may begin immediately and returns a future that can be used to
 wait for execution to complete containing the result of `result_factory`. Each
 created execution agent calls `std::forward<Function>(func)(i, r, s)`, where `i`
@@ -1230,7 +1230,7 @@ of `bulk_async_post` which simply forwards its arguments directly to
 
 `bulk_async_defer` asynchronously creates a group of execution agents of shape
 `shape` with forward progress guarantees of
-`executor_execution_mapping_category_t<Executor>`, bound to the executor `exec`
+`executor_execution_mapping_guarantee_t<Executor>`, bound to the executor `exec`
 whose execution may begin immediately and returns a future that can be used to
 wait for execution to complete containing the result of `result_factory`. Each
 created execution agent calls `std::forward<Function>(func)(i, r, s)`, where `i`
@@ -1264,7 +1264,7 @@ the executor implementation.
 
 `bulk_sync_execute` asynchronously creates a group of execution agents of shape
 `shape` with forward progress guarantees of
-`executor_execution_mapping_category_t<Executor>`, bound to the executor `exec`
+`executor_execution_mapping_guarantee_t<Executor>`, bound to the executor `exec`
 whose execution may begin immediately and returns the result of
 `result_factory`. Each created execution agent calls
 `std::forward<Function>(func)(i, r, s)`, where `i` is of type
@@ -1541,7 +1541,7 @@ including.
 
 `bulk_post` asynchronously creates a group of execution agents of shape `shape`
 with forward progress guarantees of
-`executor_execution_mapping_category_t<Executor>`, bound to the executor `exec`
+`executor_execution_mapping_guarantee_t<Executor>`, bound to the executor `exec`
 whose execution may begin immediately and does not return a value. Each created
 execution agent calls `std::forward<Function>(func)(i, s)`, where `i` is of type
 `executor_index_t<Executor>` and `s` is a shared object returned from
@@ -1565,7 +1565,7 @@ simply forwards its arguments directly to `bulk_execute` is possible only if
 
 `bulk_defer` asynchronously creates a group of execution agents of shape `shape`
 with forward progress guarantees of
-`executor_execution_mapping_category_t<Executor>`, bound to the executor `exec`
+`executor_execution_mapping_guarantee_t<Executor>`, bound to the executor `exec`
 whose execution may begin immediately and does not return a value. Each created
 execution agent calls `std::forward<Function>(func)(i, s)`, where `i` is of type
 `executor_index_t<Executor>` and `s` is a shared object returned from
@@ -1595,7 +1595,7 @@ optimizations within the executor implementation.
 
 `bulk_execute` asynchronously creates a group of execution agents of shape
 `shape` with forward progress guarantees of
-`executor_execution_mapping_category_t<Executor>`, bound to the executor `exec`
+`executor_execution_mapping_guarantee_t<Executor>`, bound to the executor `exec`
 whose execution may begin immediately and does not return a value. Each created
 execution agent calls `std::forward<Function>(func)(i, s)`, where `i` is of type
 `executor_index_t<Executor>` and `s` is a shared object returned from
@@ -1759,7 +1759,7 @@ By design, our executors model provides no explicit support for creating
 thread-local storage. Instead, our design provides programmers with tools to
 reason about the relationship of programmer-defined `thread_local` variables
 and execution agents created by executors. For example, the executor type trait
-`executor_execution_mapping_category` describes how execution agents are mapped
+`executor_execution_mapping_guarantee` describes how execution agents are mapped
 onto threads, and consequently how the lifetimes of those agents relate to the
 lifetimes of `thread_local` variables. It is unclear whether these tools are
 sufficient or if more fine-grained control over thread local storage is
@@ -1778,7 +1778,6 @@ make such guarantees. Incorporating a model of *boost blocking* into our design
 could be one option.
 
 ### Blocking Guarantees
->>>>>>> 8ad6f05dc1be48db0e8f30cc8211ae615f8cef0a
 
 The blocking property is not
   applied uniformly. It is both a holistic property of the executor type and
