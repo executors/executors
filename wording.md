@@ -244,10 +244,10 @@ namespace execution {
   struct possibly_blocking_execution_tag {};
   struct non_blocking_execution_tag {};
 
-  template<class Executor> struct executor_execute_blocking_guarantee;
+  template<class Executor> struct executor_execute_blocking_category;
 
   template<class Executor>
-    using executor_execute_blocking_guarantee_t = typename executor_execute_blocking_guarantee<Executor>::type;
+    using executor_execute_blocking_category_t = typename executor_execute_blocking_category<Executor>::type;
 
   // Bulk executor traits:
 
@@ -1071,41 +1071,41 @@ agent executes as-if on a `std::thread`. Therefore, the facilities provided by
 particular that thread-local storage will not be shared between execution
 agents. *--end note*]
 
-### Guaranteeing the blocking behavior of potentially blocking operations
+### Classifying the blocking behavior of potentially blocking operations
 
-    struct blocking_execution {};
-    struct possibly_blocking_execution {};
-    struct non_blocking_execution {};
+    struct blocking_execution_tag {};
+    struct possibly_blocking_execution_tag {};
+    struct non_blocking_execution_tag {};
 
     template<class Executor>
-    struct executor_execute_blocking_guarantee
+    struct executor_execute_blocking_category
     {
       private:
         // exposition only
         template<class T>
-        using helper = typename T::blocking_guarantee;
+        using helper = typename T::blocking_category;
 
       public:
         using type = std::experimental::detected_or_t<
-          possibly_blocking_execution, helper, Executor
+          possibly_blocking_execution_tag, helper, Executor
         >;
     };
 
-Components which create possibly blocking execution may use *blocking guarantees*
+Components which create possibly blocking execution may use *blocking categories*
 to communicate the way in which this execution blocks the progress of its caller.
 
-`blocking_execution` indicates that a component blocks its caller's
+`blocking_execution_tag` indicates that a component blocks its caller's
 progress pending the completion of the execution agents created by that component.
 
-`possibly_blocking_execution` indicates that a component may block its
+`possibly_blocking_execution_tag` indicates that a component may block its
 caller's progress pending the completion of the execution agents created by that
 component.
 
-`non_blocking_execution` indicates that a component does not block its
+`non_blocking_execution_tag` indicates that a component does not block its
 caller's progress pending the completion of the execution agents created by that
 component.
 
-Programs may use `executor_execute_blocking_guarantee` to query the blocking behavior of
+Programs may use `executor_execute_blocking_category` to query the blocking behavior of
 executor customization points whose semantics allow the possibility of
 blocking.
 
