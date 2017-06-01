@@ -251,14 +251,14 @@ namespace execution {
 
   // Bulk executor traits:
 
-  struct sequenced_execution_tag {};
-  struct parallel_execution_tag {};
-  struct unsequenced_execution_tag {};
+  struct bulk_sequenced_execution {};
+  struct bulk_parallel_execution {};
+  struct bulk_unsequenced_execution {};
 
-  template<class Executor> struct executor_execution_category;
+  template<class Executor> struct executor_bulk_forward_progress_guarantee;
 
   template<class Executor>
-    using executor_execution_category_t = typename executor_execution_category<Executor>::type;
+    using executor_bulk_forward_progress_guarantee_t = typename executor_bulk_forward_progress_guarantee<Executor>::type;
 
   template<class Executor> struct executor_shape;
 
@@ -692,7 +692,7 @@ The name `async_execute` denotes a customization point. The effect of the expres
 
 * Otherwise, `async_execute(E, F, A...)` if `has_async_execute_free_function_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, if `can_execute_v<decay_t<decltype(E)>>` is true, creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `std::experimental::concurrency_v2::execution::execute(E, g, A...)` where `g` is a function object of unspecified type that performs `DECAY_COPY(F)()`, with the call to `DECAY_COPY` being performed in the thread that called `async_execute`. On successful completion of `DECAY_COPY(F)()`, the return value of `DECAY_COPY(F)()` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(F)()` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready. The result of the expression `std::experimental::concurrency_v2::execution::async_execute(E, F, A...)` is an object of type `std::future<result_of_t<decay_t<decltype(F)>>()>` that refers to the shared state.
+* Otherwise, if `can_execute_v<decay_t<decltype(E)>>` is true, creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `std::experimental::concurrency_v2::execution::execute(E, g, A...)` where `g` is a function object of unspecified type that performs `DECAY_COPY(F)()`, with the call to `DECAY_COPY` being performed in the thread that called `async_execute`. On successful completion of `DECAY_COPY(F)()`, the return value of `DECAY_COPY(F)()` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(F)()` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready. The result of the expression `std::experimental::concurrency_v2::execution::async_execute(E, F, A...)` is an object of type `std::experimental::future<result_of_t<decay_t<decltype(F)>>()>` that refers to the shared state.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::async_execute(E, F, A...)` is ill-formed.
 
@@ -710,7 +710,7 @@ The name `async_post` denotes a customization point. The effect of the expressio
 
 * Otherwise, `std::experimental::concurrency_v2::execution::async_execute(E, F, A...)` if `can_async_execute_v<decay_t<decltype(E)>> && is_same_v<execution_execute_blocking_category_t<decay_t<decltype(E)>>, non_blocking_execution_tag>` is true.
 
-* Otherwise, if `can_post_v<decay_t<decltype(E)>>` is true, creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `std::experimental::concurrency_v2::execution::execute(E, g, A...)` where `g` is a function object of unspecified type that performs `DECAY_COPY(F)()`, with the call to `DECAY_COPY` being performed in the thread that called `async_post`. On successful completion of `DECAY_COPY(F)()`, the return value of `DECAY_COPY(F)()` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(F)()` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready. The result of the expression `std::experimental::concurrency_v2::execution::async_post(E, F, A...)` is an object of type `std::future<result_of_t<decay_t<decltype(F)>>()>` that refers to the shared state.
+* Otherwise, if `can_post_v<decay_t<decltype(E)>>` is true, creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `std::experimental::concurrency_v2::execution::execute(E, g, A...)` where `g` is a function object of unspecified type that performs `DECAY_COPY(F)()`, with the call to `DECAY_COPY` being performed in the thread that called `async_post`. On successful completion of `DECAY_COPY(F)()`, the return value of `DECAY_COPY(F)()` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(F)()` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready. The result of the expression `std::experimental::concurrency_v2::execution::async_post(E, F, A...)` is an object of type `std::experimental::future<result_of_t<decay_t<decltype(F)>>()>` that refers to the shared state.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::async_post(E, F, A...)` is ill-formed.
 
@@ -728,7 +728,7 @@ The name `async_defer` denotes a customization point. The effect of the expressi
 
 * Otherwise, `std::experimental::concurrency_v2::execution::async_execute(E, F, A...)` if `can_async_execute_v<decay_t<decltype(E)>> && is_same_v<execution_execute_blocking_category_t<decay_t<decltype(E)>>, non_blocking_execution_tag>` is true.
 
-* Otherwise, if `can_defer_v<decay_t<decltype(E)>>` is true, creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `std::experimental::concurrency_v2::execution::execute(E, g, A...)` where `g` is a function object of unspecified type that performs `DECAY_COPY(F)()`, with the call to `DECAY_COPY` being performed in the thread that called `async_defer`. On successful completion of `DECAY_COPY(F)()`, the return value of `DECAY_COPY(F)()` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(F)()` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready. The result of the expression `std::experimental::concurrency_v2::execution::async_defer(E, F, A...)` is an object of type `std::future<result_of_t<decay_t<decltype(F)>>()>` that refers to the shared state.
+* Otherwise, if `can_defer_v<decay_t<decltype(E)>>` is true, creates an asynchronous provider with an associated shared state (C++Std [futures.state]). Calls `std::experimental::concurrency_v2::execution::execute(E, g, A...)` where `g` is a function object of unspecified type that performs `DECAY_COPY(F)()`, with the call to `DECAY_COPY` being performed in the thread that called `async_defer`. On successful completion of `DECAY_COPY(F)()`, the return value of `DECAY_COPY(F)()` is atomically stored in the shared state and the shared state is made ready. If `DECAY_COPY(F)()` exits via an exception, the exception is atomically stored in the shared state and the shared state is made ready. The result of the expression `std::experimental::concurrency_v2::execution::async_defer(E, F, A...)` is an object of type `std::experimental::future<result_of_t<decay_t<decltype(F)>>()>` that refers to the shared state.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::async_defer(E, F, A...)` is ill-formed.
 
@@ -1023,7 +1023,7 @@ The type of `executor_future<Executor, T>::type` is determined as follows:
 
 * if `is_two_way_executor<Executor>` is true, `decltype(declval<const Executor&>().async_execute( declval<T(*)()>())`;
 
-* otherwise, if `is_one_way_executor<Executor>` is true, `std::future<T>`;
+* otherwise, if `is_one_way_executor<Executor>` is true, `std::experimental::future<T>`;
 
 * otherwise, the program is ill formed.
 
@@ -1113,33 +1113,34 @@ blocking.
 
 ## Bulk executor traits
 
-### Classifying forward progress guarantees of groups of execution agents
+### Guaranteeing the bulk forward progress of groups of execution agents
 
-    struct sequenced_execution_tag {};
-    struct parallel_execution_tag {};
-    struct unsequenced_execution_tag {};
+    struct bulk_sequenced_execution {};
+    struct bulk_parallel_execution {};
+    struct bulk_unsequenced_execution {};
 
     template<class Executor>
-    struct executor_execution_category
+    struct executor_bulk_forward_progress_guarantee
     {
       private:
         // exposition only
         template<class T>
-        using helper = typename T::execution_category;
+        using helper = typename T::bulk_forward_progress_guarantee;
 
       public:
         using type = std::experimental::detected_or_t<
-          unsequenced_execution_tag, helper, Executor
+          bulk_unsequenced_execution, helper, Executor
         >;
     };
 
-Components which create groups of execution agents may use *execution
-categories* to communicate the forward progress and ordering guarantees of
-these execution agents with respect to other agents within the same group.
+Components which create groups of execution agents may use *bulk forward
+progress guarantees* to communicate the forward progress and ordering
+guarantees of these execution agents with respect to other agents within the
+same group.
   
 TODO: *The meanings and relative "strength" of these categores are to be defined.
-Most of the wording for `sequenced_execution_tag`, `parallel_execution_tag`,
-and `unsequenced_execution_tag` can be migrated from S 25.2.3 p2, p3, and
+Most of the wording for `bulk_sequenced_execution`, `bulk_parallel_execution`,
+and `bulk_unsequenced_execution` can be migrated from S 25.2.3 p2, p3, and
 p4, respectively.*
 
 ### Associated shape type
@@ -1601,7 +1602,7 @@ public:
     result_of_t<decay_t<Function>()>
       sync_execute(Function&& f, const ProtoAllocator& a = ProtoAllocator()) const;
   template<class Function, class ProtoAllocator = std::allocator<void>>
-    std::future<result_of_t<decay_t<Function>()>>
+    std::experimental::future<result_of_t<decay_t<Function>()>>
       async_execute(Function&& f, const ProtoAllocator& a = ProtoAllocator()) const;
 };
 ```
@@ -1622,7 +1623,7 @@ Let `e` be the target object of `*this`. Let `a1` be the allocator that was spec
 
 ```
 template<class Function, class ProtoAllocator>
-  std::future<result_of_t<decay_t<Function>()>>
+  std::experimental::future<result_of_t<decay_t<Function>()>>
     async_execute(Function&& f, const ProtoAllocator& a) const;
 ```
 
@@ -1630,7 +1631,7 @@ Let `e` be the target object of `*this`. Let `a1` be the allocator that was spec
 
 *Effects:* Performs `e.async_execute(g, a1)`, where `g` is a function object of unspecified type that, when called as `g()`, performs `fd()`. The allocator `a` is used to allocate any memory required to implement `g`.
 
-*Returns:* A future with an associated shared state that will contain the result of `fd()`. [*Note:* `e.async_execute(g)` may return any future type that satisfies the Future requirements, and not necessarily `std::future`. One possible implementation approach is for the polymorphic wrapper to attach a continuation to the inner future via that object's `then()` member function. When invoked, this continuation stores the result in the outer future's associated shared and makes that shared state ready. *--end note*]
+*Returns:* A future with an associated shared state that will contain the result of `fd()`. [*Note:* `e.async_execute(g)` may return any future type that satisfies the Future requirements, and not necessarily `std::experimental::future`. One possible implementation approach is for the polymorphic wrapper to attach a continuation to the inner future via that object's `then()` member function. When invoked, this continuation stores the result in the outer future's associated shared and makes that shared state ready. *--end note*]
 
 ## Thread pools
 
@@ -1801,7 +1802,7 @@ class static_thread_pool::executor_type
   public:
     // types:
 
-    typedef parallel_execution_tag execution_category;
+    typedef bulk_parallel_execution bulk_forward_progress_guarantee;
     typedef possibly_blocking_execution_tag blocking_category;
     typedef std::size_t shape_type;
     typedef std::size_t index_type;
@@ -1933,11 +1934,11 @@ bool operator!=(const static_thread_pool::executor_type& a,
 ### Execution policy interoperation
 
 ```
-class parallel_execution_policy
+class parallel_policy
 {
   public:
     // types:
-    using execution_category = parallel_execution_tag;
+    using bulk_forward_progress_requirement = bulk_parallel_execution;
     using executor_type = implementation-defined;
 
     // executor access
@@ -1948,8 +1949,8 @@ class parallel_execution_policy
     see-below on(Executor&& exec) const;
 };
 
-class sequenced_execution_tag { by-analogy-to-parallel_execution_policy };
-class parallel_unsequenced_execution_tag { by-analogy-to-parallel_execution_policy };
+class sequenced_policy { by-analogy-to-parallel_policy };
+class parallel_unsequenced_policy { by-analogy-to-parallel_policy };
 ```
 
 #### Associated executor
@@ -1964,18 +1965,18 @@ execution policy's associated executor.
 
 The type of an execution policy's associated executor is the member type `executor_type`.
 
-#### Execution category
+#### Bulk forward progress requirement
 
-Each execution policy is categorized by an *execution category*.
+Each execution policy advertises their forward progress requirements via a *bulk forward progress requirement*.
 
 When an execution policy is used as a parameter to a parallel algorithm, the
-execution agents it creates are guaranteed to make forward progress and
-execute invocations of element access functions as ordered by its execution
-category.
+execution agents it creates are required to make forward progress and execute
+invocations of element access functions as according to its bulk forward
+progress requirement.
 
-An execution policy's execution category is given by the member type `execution_category`.
+An execution policy's bulk forward progress requirement is given by the member type `bulk_forward_progress_guarantee`.
 
-The execution category of an execution policy's associated executor shall not be weaker than the execution policy's execution category.
+The bulk forward progress guarantee of an execution policy's associated executor shall satisfy the execution policy's bulk forward progress requirement.
 
 #### Associated executor access
 
@@ -1994,12 +1995,13 @@ see-below on(Executor&& exec) const;
 
 Let `T` be `decay_t<Executor>`.
 
-*Returns:* An execution policy whose execution category is `execution_category`. If `T` satisfies the requirements of
+*Returns:* An execution policy whose bulk forward progress requirement is `bulk_forward_progress_requirement`. If `T` satisfies the requirements of
 `BulkTwoWayExecutor`, the returned execution policy's associated executor is equal to `exec`. Otherwise,
 the returned execution policy's associated executor fulfills the `BulkTwoWayExecutor` requirements which creates execution agents using a copy of `exec`.
 
-*Remarks:* This member function shall not participate in overload resolution unless `is_executor_v<T>` is `true` and
-`executor_execution_category_t<T>` is as strong as `execution_category`.
+*Remarks:* This member function shall not participate in overload resolution
+unless `is_executor_v<T>` is `true` and `bulk_forward_progress_requirement`
+cannot be satisfied by `executor_bulk_forward_progress_guarantee_t<T>`.
 
 ### Control structure interoperation
 
@@ -2022,7 +2024,7 @@ async(const Executor& exec, Function&& f, Args&&... args);
 
 #### `std::experimental::future::then()`
 
-The member function template `then` provides a mechanism for attaching a *continuation* to a `std::future` object,
+The member function template `then` provides a mechanism for attaching a *continuation* to a `std::experimental::future` object,
 which will be executed on a new execution agent created by an executor.
 
 ```
@@ -2046,7 +2048,7 @@ using `exec.execute()` otherwise.
 
 #### `std::experimental::shared_future::then()`
 
-The member function template `then` provides a mechanism for attaching a *continuation* to a `std::shared_future` object,
+The member function template `then` provides a mechanism for attaching a *continuation* to a `std::experimental::shared_future` object,
 which will be executed on a new execution agent created by an executor.
 
 ```
