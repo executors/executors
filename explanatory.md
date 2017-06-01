@@ -662,8 +662,8 @@ unavailable.
 
 Bulk customization points create a group of execution agents as a unit, and
 each of these execution agents calls an individual invocation of the given
-callable function object. The ordering guarantees of these invocations are
-given by `std::execution::executor_execution_category_t`. Because they create
+callable function object. The forward progress ordering guarantees of these invocations are
+given by `std::execution::executor_bulk_forward_progress_guarantee_t`. Because they create
 multiple agents, bulk customization points introduce ownership and lifetime
 issues avoided by single-agent customization points and they include additional
 parameters to address these issues. For example, consider
@@ -1010,22 +1010,22 @@ definition. When the agents created by an executor possibly block its client,
 The default value of `executor_execute_blocking_guarantee` is `possibly_blocking_execution`.
 
 **Bulk forward progress guarantee.** When an executor creates a group of execution
-agents, their forward progress obeys certain semantics. For example, a group of
+agents, their bulk forward progress obeys certain semantics. For example, a group of
 agents may invoke the user-provided function sequentially, or they may be
 invoked in parallel. Any guarantee the executor makes of these semantics is
-conveyed by the `executor_execution_category` trait, which takes one one of
+conveyed by the `executor_bulk_forward_progress_guarantee_t` trait, which takes one one of
 three values:
 
-  1. `sequenced_execution_tag`: The invocations of the user-provided callable function object are sequenced in lexicographical order of their indices.
-  2. `parallel_execution_tag`: The invocations of the user-provided callable function object are unsequenced when invoked on separate threads, and indeterminately sequenced when invoked on the same thread.
-  3. `unsequenced_execution_tag`: The invocations of the user-provided callable function object are not guaranteed to be sequenced, even when those invocations are executed within the same thread.
+  1. `bulk_sequenced_execution`: The invocations of the user-provided callable function object are sequenced in lexicographical order of their indices.
+  2. `bulk_parallel_execution`: The invocations of the user-provided callable function object are unsequenced when invoked on separate threads, and indeterminately sequenced when invoked on the same thread.
+  3. `bulk_unsequenced_execution`: The invocations of the user-provided callable function object are not guaranteed to be sequenced, even when those invocations are executed within the same thread.
 
 These guarantees agree with those made by the corresponding standard execution
 policies, and indeed these guarantees are intended to be used by execution
 policies to describe the invocations of element access functions during
 parallel algorithm execution. One difference between these guarantees and the
 standard execution policies is that, unlike `std::execution::sequenced_policy`,
-         `sequenced_execution_tag` does not imply that execution happens on the
+         `bulk_sequenced_execution` does not imply that execution happens on the
          client's thread[^seq_footnote]. Instead, `executor_execution_mapping`
          captures such guarantees.
 
@@ -1033,7 +1033,7 @@ We expect this list to grow in the future. For example, guarantees of
 concurrent or vectorized execution among a group of agents would be obvious
 additions.
 
-The default value of `executor_execution_category` is `unsequenced_execution_tag`.
+The default value of `executor_bulk_forward_progress_guarantee` is `bulk_unsequenced_execution`.
 
 [^seq_footnote]: We might want to introduce something like `this_thread_execution_mapping_tag` to capture the needs of `std::execution::seq`, which requires algorithms to execute on the current thread.
 
@@ -1162,8 +1162,9 @@ wait for execution to complete containing the result of `result_factory`. Each
 created execution agent calls `std::forward<Function>(func)(i, r, s)`, where
 `i` is of type `executor_index_t<Executor>`, `r` is a function object returned
 from `return_factory` and `s` is a shared object returned from `shared_factory`.
-`bulk_async_execute` may or may not the caller until execution completes,
+`bulk_async_execute` may or may not block the caller until execution completes,
 depending on the value of `executor_execute_blocking_guarantee_t<Executor>`.
+
 
 Like `bulk_then_execute`, `bulk_async_execute`
 returns a future corresponding to the result of the asynchronous group of
@@ -1204,11 +1205,11 @@ require accommodating a predecessor dependency.
 `executor_execution_mapping_category_t<Executor>`, bound to the executor `exec`
 whose execution may begin immediately and returns a future that can be used to
 wait for execution to complete containing the result of `result_factory`. Each
-created execution agent calls `std::forward<Function>(func)(i, r, s)`, where `i`
-is of type `executor_index_t<Executor>`, `r` is a function object returned from
-`return_factory` and `s` is a shared object returned from `shared_factory`.
-`bulk_async_post` may or may not the caller until execution completes, depending
-on the value of `executor_execute_blocking_guarantee_t<Executor>`.
+created execution agent calls `std::forward<Function>(func)(i, r, s)`, where
+`i` is of type `executor_index_t<Executor>`, `r` is a function object returned
+from `return_factory` and `s` is a shared object returned from
+`shared_factory`. `bulk_async_post` does not block the caller, regardless of
+the value of `executor_execute_blocking_guarantee_t<Executor>`.
 
 `bulk_async_post` is equivalent to `bulk_async_execute` except that it makes an
 additional guarantee not to block the client's execution. Some executors will
@@ -1236,8 +1237,8 @@ wait for execution to complete containing the result of `result_factory`. Each
 created execution agent calls `std::forward<Function>(func)(i, r, s)`, where `i`
 is of type `executor_index_t<Executor>`, `r` is a function object returned from
 `return_factory` and `s` is a shared object returned from `shared_factory`.
-`bulk_async_defer` may or may not the caller until execution completes,
-depending on the value of `executor_execute_blocking_guarantee_t<Executor>`.
+`bulk_async_defer` does not block the caller,
+regardless of the value of `executor_execute_blocking_guarantee_t<Executor>`.
 
 `bulk_async_defer` is equivalent to `bulk_async_execute` except that it makes an
 additional guarantee not to block the client's execution. Some executors will
@@ -1270,8 +1271,8 @@ whose execution may begin immediately and returns the result of
 `std::forward<Function>(func)(i, r, s)`, where `i` is of type
 `executor_index_t<Executor>`, `r` is a function object retured from
 `return_factory` and `s` is a shared object returned from `shared_factory`.
-`bulk_sync_execute` may or may not the caller until execution completes,
-depending on the value of `executor_execute_blocking_guarantee_t<Executor>`.
+`bulk_sync_execute` always blocks the caller until execution completes,
+regardless of the value of `executor_execute_blocking_guarantee_t<Executor>`.
 
 `bulk_sync_execute` is equivalent to `bulk_async_execute` except that it blocks
 its client until the result of execution is complete. It returns this result
@@ -1431,9 +1432,10 @@ requiring executors to explicitly support continuations with `then_execute`, inc
 `async_post` asynchronously creates a single execution agent bound to the
 executor `exec` whose execution may begin immediately and returns a future that
 can be used to wait for execution to complete containing the result of `func`.
-The created execution agent calls `std::forward<Function>(func)()`. `async_post`
-does not block the caller until execution completes. The allocator `alloc` can
-be used to allocate memory for `func`.
+The created execution agent calls `std::forward<Function>(func)()`.
+`async_post` does not block the caller, regardless of the value of
+`executor_execute_blocking_category_t<Executor>`. The allocator `alloc` can be
+used to allocate memory for `func`.
 
 `async_post` is equivalent to `async_execute` except that it makes an
 additional guarantee not to block the client's execution. Some executors will
@@ -1455,8 +1457,9 @@ possible only if `executor_execute_blocking_guarantee_t<Executor>` is
 executor `exec` whose execution may begin immediately and returns a future that
 can be used to wait for execution to complete containing the result of `func`.
 The created execution agent calls `std::forward<Function>(func)()`.
-`async_defer` does not block the caller until execution completes. The allocator
-`alloc` can be used to allocate memory for `func`.
+`async_defer` does not block the caller, regardless of the value of
+`executor_execute_blocking_category_t<Executor>`. The allocator `alloc` can be
+used to allocate memory for `func`.
 
 `async_defer` is equivalent to `async_execute` except that it makes an
 additional guarantee not to block the client's execution. Some executors will
@@ -1543,10 +1546,10 @@ including.
 with forward progress guarantees of
 `executor_execution_mapping_category_t<Executor>`, bound to the executor `exec`
 whose execution may begin immediately and does not return a value. Each created
-execution agent calls `std::forward<Function>(func)(i, s)`, where `i` is of type
-`executor_index_t<Executor>` and `s` is a shared object returned from
-`shared_factory`. `bulk_post` does not block the caller until execution
-completes.
+execution agent calls `std::forward<Function>(func)(i, s)`, where `i` is of
+type `executor_index_t<Executor>` and `s` is a shared object returned from
+`shared_factory`. `bulk_post` does not block the caller, regardless of the
+value of `executor_execute_blocking_category_t<Executor>`.
 
 `bulk_post` is equivalent to `bulk_execute` except that it makes an additional
 guarantee not to block the client's execution. Some executors will not be able
@@ -1563,14 +1566,14 @@ simply forwards its arguments directly to `bulk_execute` is possible only if
                     executor_shape_t<Executor> shape,
                     SharedFactory shared_factory);
 
-`bulk_defer` asynchronously creates a group of execution agents of shape `shape`
-with forward progress guarantees of
+`bulk_defer` asynchronously creates a group of execution agents of shape
+`shape` with forward progress guarantees of
 `executor_execution_mapping_category_t<Executor>`, bound to the executor `exec`
 whose execution may begin immediately and does not return a value. Each created
-execution agent calls `std::forward<Function>(func)(i, s)`, where `i` is of type
-`executor_index_t<Executor>` and `s` is a shared object returned from
-`shared_factory`. `bulk_defer` does not block the caller until execution
-completes.
+execution agent calls `std::forward<Function>(func)(i, s)`, where `i` is of
+type `executor_index_t<Executor>` and `s` is a shared object returned from
+`shared_factory`. `bulk_defer` does not block the caller, regardless of the
+value of `executor_execute_blocking_category_t<Executor>`.
 
 `bulk_defer` is equivalent to `bulk_execute` except that it makes an additional
 guarantee not to block the client's execution. Some executors will not be able
@@ -1638,8 +1641,9 @@ created by `execute`.
 `post` asynchronously creates a single execution agent bound to the executor
 `exec` whose execution may begin immediately and does not return a value. The
 created execution agent calls `std::forward<Function>(func)()`. `post` does not
-block the caller until execution completes. The allocator `alloc` can be used to
-allocate memory for `func`.
+block the caller, regardless of the value of
+`executor_execute_blocking_category_t<Executor>`. The allocator `alloc` can be
+used to allocate memory for `func`.
 
 `post` is equivalent to `execute` except that it makes an additional guarantee
 not to block the client's execution. Some executors will not be able to provide
@@ -1655,9 +1659,10 @@ arguments directly to `execute` is possible only if
 
 `defer` asynchronously creates a single execution agent bound to the executor
 `exec` whose execution may begin immediately and does not return a value. The
-created execution agent calls `std::forward<Function>(func)()`. `defer` does not
-block the caller until execution completes. The allocator `alloc` can be used to
-allocate memory for `func`.
+created execution agent calls `std::forward<Function>(func)()`. `defer` does
+not block the caller, regardless of the value of
+`executor_execute_blocking_category_t<Executor>`. The allocator `alloc` can be
+used to allocate memory for `func`.
 
 `defer` is equivalent to `execute` except that it makes an additional guarantee
 not to block the client's execution. Some executors will not be able to provide
