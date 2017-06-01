@@ -251,14 +251,14 @@ namespace execution {
 
   // Bulk executor traits:
 
-  struct sequenced_execution_tag {};
-  struct parallel_execution_tag {};
-  struct unsequenced_execution_tag {};
+  struct bulk_sequenced_execution {};
+  struct bulk_parallel_execution {};
+  struct bulk_unsequenced_execution {};
 
-  template<class Executor> struct executor_execution_category;
+  template<class Executor> struct executor_bulk_forward_progress_guarantee;
 
   template<class Executor>
-    using executor_execution_category_t = typename executor_execution_category<Executor>::type;
+    using executor_bulk_forward_progress_guarantee_t = typename executor_bulk_forward_progress_guarantee<Executor>::type;
 
   template<class Executor> struct executor_shape;
 
@@ -1113,33 +1113,34 @@ blocking.
 
 ## Bulk executor traits
 
-### Classifying forward progress guarantees of groups of execution agents
+### Guaranteeing the bulk forward progress of groups of execution agents
 
-    struct sequenced_execution_tag {};
-    struct parallel_execution_tag {};
-    struct unsequenced_execution_tag {};
+    struct bulk_sequenced_execution {};
+    struct bulk_parallel_execution {};
+    struct bulk_unsequenced_execution {};
 
     template<class Executor>
-    struct executor_execution_category
+    struct executor_bulk_forward_progress_guarantee
     {
       private:
         // exposition only
         template<class T>
-        using helper = typename T::execution_category;
+        using helper = typename T::bulk_forward_progress_guarantee;
 
       public:
         using type = std::experimental::detected_or_t<
-          unsequenced_execution_tag, helper, Executor
+          bulk_unsequenced_execution, helper, Executor
         >;
     };
 
-Components which create groups of execution agents may use *execution
-categories* to communicate the forward progress and ordering guarantees of
-these execution agents with respect to other agents within the same group.
+Components which create groups of execution agents may use *bulk forward
+progress guarantees* to communicate the forward progress and ordering
+guarantees of these execution agents with respect to other agents within the
+same group.
   
 TODO: *The meanings and relative "strength" of these categores are to be defined.
-Most of the wording for `sequenced_execution_tag`, `parallel_execution_tag`,
-and `unsequenced_execution_tag` can be migrated from S 25.2.3 p2, p3, and
+Most of the wording for `bulk_sequenced_execution`, `bulk_parallel_execution`,
+and `bulk_unsequenced_execution` can be migrated from S 25.2.3 p2, p3, and
 p4, respectively.*
 
 ### Associated shape type
@@ -1801,7 +1802,7 @@ class static_thread_pool::executor_type
   public:
     // types:
 
-    typedef parallel_execution_tag execution_category;
+    typedef bulk_parallel_execution bulk_forward_progress_guarantee;
     typedef possibly_blocking_execution_tag blocking_category;
     typedef std::size_t shape_type;
     typedef std::size_t index_type;
@@ -1933,11 +1934,11 @@ bool operator!=(const static_thread_pool::executor_type& a,
 ### Execution policy interoperation
 
 ```
-class parallel_execution_policy
+class parallel_policy
 {
   public:
     // types:
-    using execution_category = parallel_execution_tag;
+    using bulk_forward_progress_requirement = bulk_parallel_execution;
     using executor_type = implementation-defined;
 
     // executor access
@@ -1948,8 +1949,8 @@ class parallel_execution_policy
     see-below on(Executor&& exec) const;
 };
 
-class sequenced_execution_tag { by-analogy-to-parallel_execution_policy };
-class parallel_unsequenced_execution_tag { by-analogy-to-parallel_execution_policy };
+class sequenced_policy { by-analogy-to-parallel_policy };
+class parallel_unsequenced_policy { by-analogy-to-parallel_policy };
 ```
 
 #### Associated executor
@@ -1964,18 +1965,18 @@ execution policy's associated executor.
 
 The type of an execution policy's associated executor is the member type `executor_type`.
 
-#### Execution category
+#### Bulk forward progress requirement
 
-Each execution policy is categorized by an *execution category*.
+Each execution policy advertises their forward progress requirements via a *bulk forward progress requirement*.
 
 When an execution policy is used as a parameter to a parallel algorithm, the
-execution agents it creates are guaranteed to make forward progress and
-execute invocations of element access functions as ordered by its execution
-category.
+execution agents it creates are required to make forward progress and execute
+invocations of element access functions as according to its bulk forward
+progress requirement.
 
-An execution policy's execution category is given by the member type `execution_category`.
+An execution policy's bulk forward progress requirement is given by the member type `bulk_forward_progress_guarantee`.
 
-The execution category of an execution policy's associated executor shall not be weaker than the execution policy's execution category.
+The bulk forward progress guarantee of an execution policy's associated executor shall satisfy the execution policy's bulk forward progress requirement.
 
 #### Associated executor access
 
@@ -1994,12 +1995,13 @@ see-below on(Executor&& exec) const;
 
 Let `T` be `decay_t<Executor>`.
 
-*Returns:* An execution policy whose execution category is `execution_category`. If `T` satisfies the requirements of
+*Returns:* An execution policy whose bulk forward progress requirement is `bulk_forward_progress_requirement`. If `T` satisfies the requirements of
 `BulkTwoWayExecutor`, the returned execution policy's associated executor is equal to `exec`. Otherwise,
 the returned execution policy's associated executor fulfills the `BulkTwoWayExecutor` requirements which creates execution agents using a copy of `exec`.
 
-*Remarks:* This member function shall not participate in overload resolution unless `is_executor_v<T>` is `true` and
-`executor_execution_category_t<T>` is as strong as `execution_category`.
+*Remarks:* This member function shall not participate in overload resolution
+unless `is_executor_v<T>` is `true` and `bulk_forward_progress_requirement`
+cannot be satisfied by `executor_bulk_forward_progress_guarantee_t<T>`.
 
 ### Control structure interoperation
 
