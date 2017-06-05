@@ -231,14 +231,14 @@ namespace execution {
   template<class Executor, class T>
     using executor_future_t = typename executor_future<Executor, T>::type;
 
-  struct other_execution_mapping_tag {};
-  struct thread_execution_mapping_tag {};
-  struct unique_thread_execution_mapping_tag {};
+  struct other_execution_mapping {};
+  struct thread_execution_mapping {};
+  struct new_thread_execution_mapping {};
 
-  template<class Executor> struct executor_execution_mapping_category;
+  template<class Executor> struct executor_execution_mapping_guarantee;
 
   template<class Executor>
-    using executor_execution_mapping_category_t = typename executor_execution_mapping_catetory<Executor>::type;
+    using executor_execution_mapping_guarantee_t = typename executor_execution_mapping_guarantee<Executor>::type;
 
   struct always_blocking_execution {};
   struct possibly_blocking_execution {};
@@ -360,7 +360,7 @@ In the Table below, `x` denotes a (possibly const) executor object of type `X` a
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.execute(f, ...)` <br/> `execute(x, f, ...)` | void | Creates an execution agent with forward progress guarantees of `executor_execution_mapping_category_t<X>` which invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `execute`. <br/> <br/> May block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))()` finishes execution. <br/> <br/> The invocation of `execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. |
+| `x.execute(f, ...)` <br/> `execute(x, f, ...)` | void | Creates an execution agent with forward progress guarantees of `executor_execution_mapping_guarantee_t<X>` which invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `execute`. <br/> <br/> May block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))()` finishes execution. <br/> <br/> The invocation of `execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. |
 
 ##### Requirements on execution functions having never-blocking semantics
 
@@ -368,8 +368,8 @@ In the Table below, `x` denotes a (possibly const) executor object of type `X` a
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.post(f, ...)` <br/>`post(x, f, ...)` | void | Creates an execution agent with forward progress guarantees of `executor_execution_mapping_category_t<X>` which invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `post`. <br/> <br/> Shall not block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))()` finishes execution. <br/> <br/> The invocation of `post` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. |
-| `x.defer(f, ...)` <br/>`defer(x, f, ...)` | void | Creates an execution agent with forward progress guarantees of `executor_execution_mapping_category_t<X>` invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `defer`. <br/> <br/> Shall not block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))()` finishes execution. <br/> <br/> The invocation of `defer` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. |
+| `x.post(f, ...)` <br/>`post(x, f, ...)` | void | Creates an execution agent with forward progress guarantees of `executor_execution_mapping_guarantee_t<X>` which invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `post`. <br/> <br/> Shall not block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))()` finishes execution. <br/> <br/> The invocation of `post` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. |
+| `x.defer(f, ...)` <br/>`defer(x, f, ...)` | void | Creates an execution agent with forward progress guarantees of `executor_execution_mapping_guarantee_t<X>` invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `defer`. <br/> <br/> Shall not block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))()` finishes execution. <br/> <br/> The invocation of `defer` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. |
 
 #### Directionality
 
@@ -437,7 +437,7 @@ In the Table below,
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.bulk_'e'(..., n, ...,[ rf,] sf)` <br/> `bulk_'e'(x, ..., n, ...,[ rf,] sf)` | `'ret'` | Creates a group of execution agents of shape `n` with forward progress guarantees of `executor_execution_mapping_category_t<X>` which invokes `DECAY_COPY( std::forward<F>(f))(i, r, s)` if `'ret'` is non void otherwise invokes `DECAY_COPY( std::forward<F>(f))(i, s)` , with the call to `DECAY_COPY` being evaluated in the thread that called `bulk_'e'`. <br/> <br/> Parameter `rf` is only included in the execution function if `'ret'` is non void. <br/> <br/> The value of type `R` returned is the result of `rf()` if `'ret'` is non void. <br/> <br/> Invokes `rf()` on an unspecified execution agent. <br/><br/> Invokes `sf()` on an unspecified execution agent. |
+| `x.bulk_'e'(..., n, ...,[ rf,] sf)` <br/> `bulk_'e'(x, ..., n, ...,[ rf,] sf)` | `'ret'` | Creates a group of execution agents of shape `n` with forward progress guarantees of `executor_execution_mapping_guarantee_t<X>` which invokes `DECAY_COPY( std::forward<F>(f))(i, r, s)` if `'ret'` is non void otherwise invokes `DECAY_COPY( std::forward<F>(f))(i, s)` , with the call to `DECAY_COPY` being evaluated in the thread that called `bulk_'e'`. <br/> <br/> Parameter `rf` is only included in the execution function if `'ret'` is non void. <br/> <br/> The value of type `R` returned is the result of `rf()` if `'ret'` is non void. <br/> <br/> Invokes `rf()` on an unspecified execution agent. <br/><br/> Invokes `sf()` on an unspecified execution agent. |
 
 #### Execution function combinations
 
@@ -1031,43 +1031,43 @@ The type of `executor_future<Executor, T>::type` is determined as follows:
 
 ### Classifying the mapping of execution agents
 
-    struct other_execution_mapping_tag {};
-    struct thread_execution_mapping_tag {};
-    struct unique_thread_execution_mapping_tag {};
+    struct other_execution_mapping {};
+    struct thread_execution_mapping {};
+    struct new_thread_execution_mapping {};
 
     template<class Executor>
-    struct executor_execution_mapping_category
+    struct executor_execution_mapping_guarantee
     {
       private:
         // exposition only
         template<class T>
-        using helper = typename T::execution_mapping_category;
+        using helper = typename T::execution_mapping;
 
       public:
         using type = std::experimental::detected_or_t<
-          thread_execution_mapping_tag, helper, Executor
+          thread_execution_mapping, helper, Executor
         >;
     };
 
-Components which create execution agents may use *execution mapping categories*
+Components which create execution agents may use *execution mapping guarantees*
 to communicate the mapping of execution agents onto threads of execution.
-Execution mapping categories encode the characterisitics of that mapping, if it
+Execution mapping guarantees encode the characterisitics of that mapping, if it
 exists.
 
-`other_execution_mapping_tag` indicates that execution agents created by a
+`other_execution_mapping` indicates that execution agents created by a
 component may be mapped onto execution resources other than threads of
 execution.
 
-`thread_execution_mapping_tag` indicates that execution agents created by a
+`thread_execution_mapping` indicates that execution agents created by a
 component are mapped onto threads of execution.
 
-`unique_thread_execution_mapping_tag` indicates that each execution agent
+`new_thread_execution_mapping` indicates that each execution agent
 created by a component is mapped onto a new thread of execution.
 
 [*Note:* A mapping of an execution agent onto a thread of execution implies the
 agent executes as-if on a `std::thread`. Therefore, the facilities provided by
 `std::thread`, such as thread-local storage, are available.
-`unique_thread_execution_mapping_tag` provides stronger guarantees, in
+`new_thread_execution_mapping` provides stronger guarantees, in
 particular that thread-local storage will not be shared between execution
 agents. *--end note*]
 
