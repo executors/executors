@@ -85,35 +85,39 @@ namespace execution {
   template<class T> struct has_execute_member;
   template<class T> struct has_post_member;
   template<class T> struct has_defer_member;
-  template<class T> struct has_sync_execute_member;
+  template<class T> struct has_invoke_member;
   template<class T> struct has_async_execute_member;
   template<class T> struct has_async_post_member;
   template<class T> struct has_async_defer_member;
+  template<class T> struct has_async_invoke_member;
   template<class T> struct has_then_execute_member;
   template<class T> struct has_bulk_execute_member;
   template<class T> struct has_bulk_post_member;
   template<class T> struct has_bulk_defer_member;
-  template<class T> struct has_bulk_sync_execute_member;
+  template<class T> struct has_bulk_invoke_member;
   template<class T> struct has_bulk_async_execute_member;
   template<class T> struct has_bulk_async_post_member;
   template<class T> struct has_bulk_async_defer_member;
+  template<class T> struct has_bulk_async_invoke_member;
   template<class T> struct has_bulk_then_execute_member;
 
   template<class T> constexpr bool has_execute_member_v = has_execute_member<T>::value;
   template<class T> constexpr bool has_post_member_v = has_post_member<T>::value;
   template<class T> constexpr bool has_defer_member_v = has_defer_member<T>::value;
-  template<class T> constexpr bool has_sync_execute_member_v = has_sync_execute_member<T>::value;
+  template<class T> constexpr bool has_invoke_member_v = has_invoke_member<T>::value;
   template<class T> constexpr bool has_async_execute_member_v = has_async_execute_member<T>::value;
   template<class T> constexpr bool has_async_post_member_v = has_async_post_member<T>::value;
   template<class T> constexpr bool has_async_defer_member_v = has_async_defer_member<T>::value;
+  template<class T> constexpr bool has_async_invoke_member_v = has_async_invoke_member<T>::value;
   template<class T> constexpr bool has_then_execute_member_v = has_then_execute_member<T>::value;
   template<class T> constexpr bool has_bulk_execute_member_v = has_bulk_execute_member<T>::value;
   template<class T> constexpr bool has_bulk_post_member_v = has_bulk_post_member<T>::value;
   template<class T> constexpr bool has_bulk_defer_member_v = has_bulk_defer_member<T>::value;
-  template<class T> constexpr bool has_bulk_sync_execute_member_v = has_bulk_sync_execute_member<T>::value;
+  template<class T> constexpr bool has_bulk_invoke_member_v = has_bulk_invoke_member<T>::value;
   template<class T> constexpr bool has_bulk_async_execute_member_v = has_bulk_async_execute_member<T>::value;
   template<class T> constexpr bool has_bulk_async_post_member_v = has_bulk_async_post_member<T>::value;
   template<class T> constexpr bool has_bulk_async_defer_member_v = has_bulk_async_defer_member<T>::value;
+  template<class T> constexpr bool has_bulk_async_invoke_member_v = has_bulk_async_invoke_member<T>::value;
   template<class T> constexpr bool has_bulk_then_execute_member_v = has_bulk_then_execute_member<T>::value;
 
   // Free function detection type traits:
@@ -121,35 +125,39 @@ namespace execution {
   template<class T> struct has_execute_free_function;
   template<class T> struct has_post_free_function;
   template<class T> struct has_defer_free_function;
-  template<class T> struct has_sync_execute_free_function;
+  template<class T> struct has_invoke_free_function;
   template<class T> struct has_async_execute_free_function;
   template<class T> struct has_async_post_free_function;
   template<class T> struct has_async_defer_free_function;
+  template<class T> struct has_async_invoke_free_function;
   template<class T> struct has_then_execute_free_function;
   template<class T> struct has_bulk_execute_free_function;
   template<class T> struct has_bulk_post_free_function;
   template<class T> struct has_bulk_defer_free_function;
-  template<class T> struct has_bulk_sync_execute_free_function;
+  template<class T> struct has_bulk_invoke_free_function;
   template<class T> struct has_bulk_async_execute_free_function;
   template<class T> struct has_bulk_async_post_free_function;
   template<class T> struct has_bulk_async_defer_free_function;
+  template<class T> struct has_bulk_async_invoke_free_function;
   template<class T> struct has_bulk_then_execute_free_function;
 
   template<class T> constexpr bool has_execute_free_function_v = has_execute_free_function<T>::value;
   template<class T> constexpr bool has_post_free_function_v = has_post_free_function<T>::value;
   template<class T> constexpr bool has_defer_free_function_v = has_defer_free_function<T>::value;
-  template<class T> constexpr bool has_sync_execute_free_function_v = has_sync_execute_free_function<T>::value;
+  template<class T> constexpr bool has_invoke_free_function_v = has_invoke_free_function<T>::value;
   template<class T> constexpr bool has_async_execute_free_function_v = has_async_execute_free_function<T>::value;
   template<class T> constexpr bool has_async_post_free_function_v = has_async_post_free_function<T>::value;
   template<class T> constexpr bool has_async_defer_free_function_v = has_async_defer_free_function<T>::value;
+  template<class T> constexpr bool has_async_invoke_free_function_v = has_async_invoke_free_function<T>::value;
   template<class T> constexpr bool has_then_execute_free_function_v = has_then_execute_free_function<T>::value;
   template<class T> constexpr bool has_bulk_execute_free_function_v = has_bulk_execute_free_function<T>::value;
   template<class T> constexpr bool has_bulk_post_free_function_v = has_bulk_post_free_function<T>::value;
   template<class T> constexpr bool has_bulk_defer_free_function_v = has_bulk_defer_free_function<T>::value;
-  template<class T> constexpr bool has_bulk_sync_execute_free_function_v = has_bulk_sync_execute_free_function<T>::value;
+  template<class T> constexpr bool has_bulk_invoke_free_function_v = has_bulk_invoke_free_function<T>::value;
   template<class T> constexpr bool has_bulk_async_execute_free_function_v = has_bulk_async_execute_free_function<T>::value;
   template<class T> constexpr bool has_bulk_async_post_free_function_v = has_bulk_async_post_free_function<T>::value;
   template<class T> constexpr bool has_bulk_async_defer_free_function_v = has_bulk_async_defer_free_function<T>::value;
+  template<class T> constexpr bool has_bulk_async_invoke_free_function_v = has_bulk_async_invoke_free_function<T>::value;
   template<class T> constexpr bool has_bulk_then_execute_free_function_v = has_bulk_then_execute_free_function<T>::value;
 
   // Customization points:
@@ -158,18 +166,20 @@ namespace execution {
     constexpr unspecified execute = unspecified;
     constexpr unspecified post = unspecified;
     constexpr unspecified defer = unspecified;
-    constexpr unspecified sync_execute = unspecified;
+    constexpr unspecified invoke = unspecified;
     constexpr unspecified async_execute = unspecified;
     constexpr unspecified async_post = unspecified;
     constexpr unspecified async_defer = unspecified;
+    constexpr unspecified async_invoke = unspecified;
     constexpr unspecified then_execute = unspecified;
     constexpr unspecified bulk_execute = unspecified;
     constexpr unspecified bulk_post = unspecified;
     constexpr unspecified bulk_defer = unspecified;
-    constexpr unspecified bulk_sync_execute = unspecified;
+    constexpr unspecified bulk_invoke = unspecified;
     constexpr unspecified bulk_async_execute = unspecified;
     constexpr unspecified bulk_async_post = unspecified;
     constexpr unspecified bulk_async_defer = unspecified;
+    constexpr unspecified bulk_async_invoke = unspecified;
     constexpr unspecified bulk_then_execute = unspecified;
   }
 
@@ -178,46 +188,52 @@ namespace execution {
   template<class T> struct can_execute;
   template<class T> struct can_post;
   template<class T> struct can_defer;
-  template<class T> struct can_sync_execute;
+  template<class T> struct can_invoke;
   template<class T> struct can_async_execute;
   template<class T> struct can_async_post;
   template<class T> struct can_async_defer;
+  template<class T> struct can_async_invoke;
   template<class T> struct can_then_execute;
   template<class T> struct can_bulk_execute;
-  template<class T> struct can_post_execute;
-  template<class T> struct can_defer_execute;
-  template<class T> struct can_bulk_sync_execute;
+  template<class T> struct can_bulk_post;
+  template<class T> struct can_bulk_defer;
+  template<class T> struct can_bulk_invoke;
   template<class T> struct can_bulk_async_execute;
   template<class T> struct can_bulk_async_post;
   template<class T> struct can_bulk_async_defer;
+  template<class T> struct can_bulk_async_invoke;
   template<class T> struct can_bulk_then_execute;
 
   template<class T> constexpr bool can_execute_v = can_execute<T>::value;
   template<class T> constexpr bool can_post_v = can_post<T>::value;
   template<class T> constexpr bool can_defer_v = can_defer<T>::value;
-  template<class T> constexpr bool can_sync_execute_v = can_sync_execute<T>::value;
+  template<class T> constexpr bool can_invoke_v = can_invoke<T>::value;
   template<class T> constexpr bool can_async_execute_v = can_async_execute<T>::value;
   template<class T> constexpr bool can_async_post_v = can_async_post<T>::value;
   template<class T> constexpr bool can_async_defer_v = can_async_defer<T>::value;
+  template<class T> constexpr bool can_async_invoke_v = can_async_invoke<T>::value;
   template<class T> constexpr bool can_then_execute_v = can_then_execute<T>::value;
   template<class T> constexpr bool can_bulk_execute_v = can_bulk_execute<T>::value;
   template<class T> constexpr bool can_bulk_post_v = can_bulk_post<T>::value;
   template<class T> constexpr bool can_bulk_defer_v = can_bulk_defer<T>::value;
-  template<class T> constexpr bool can_bulk_sync_execute_v = can_bulk_sync_execute<T>::value;
+  template<class T> constexpr bool can_bulk_invoke_v = can_bulk_invoke<T>::value;
   template<class T> constexpr bool can_bulk_async_execute_v = can_bulk_async_execute<T>::value;
   template<class T> constexpr bool can_bulk_async_post_v = can_bulk_async_post<T>::value;
   template<class T> constexpr bool can_bulk_async_defer_v = can_bulk_async_defer<T>::value;
+  template<class T> constexpr bool can_bulk_async_invoke_v = can_bulk_async_invoke<T>::value;
   template<class T> constexpr bool can_bulk_then_execute_v = can_bulk_then_execute<T>::value;
 
   // Executor type traits:
 
   template<class T> struct is_one_way_executor;
   template<class T> struct is_non_blocking_one_way_executor;
+  template<class T> struct is_always_blocking_one_way_executor;
   template<class T> struct is_two_way_executor;
   template<class T> struct is_bulk_two_way_executor;
 
   template<class T> constexpr bool is_one_way_executor_v = is_one_way_executor<T>::value;
   template<class T> constexpr bool is_non_blocking_one_way_executor_v = is_non_blocking_one_way_executor<T>::value;
+  template<class T> constexpr bool is_always_blocking_one_way_executor_v = is_always_blocking_one_way_executor<T>::value;
   template<class T> constexpr bool is_two_way_executor_v = is_two_way_executor<T>::value;
   template<class T> constexpr bool is_bulk_two_way_executor_v = is_bulk_two_way_executor<T>::value;
 
