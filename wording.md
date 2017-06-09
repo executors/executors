@@ -1655,8 +1655,11 @@ inline namespace concurrency_v2 {
 ### Class `static_thread_pool`
 
 `static_thread_pool` is a statically-sized thread pool which may be explicitly
-grown via thread attachment. However, `static_thread_pool` does not
-automatically change size. 
+grown via thread attachment. The `static_thread_pool` is expected to be created
+with the use case clearly in mind with the number of threads known by the
+creator. As a result, no default constructor is considered correct for
+arbitrary use cases and `static_thread_pool` does not support any form of
+automatic resizing.   
 
 `static_thread_pool` presents an effectively unbounded input queue and the execution functions of `static_thread_pool`'s associated executors do not block on this input queue.
 
