@@ -1846,16 +1846,23 @@ object, and synchronous two-way functions will simply throw any exceptions they
 encounter as normal. However, it is not clear what mechanism, if any, one-way
 execution functions should use for error reporting.
 
-### Additional Thread Pool Types
+### Thread Pool Variations
 
 Our proposal specifies a single thread pool type, `static_thread_pool`, which
 represents a simple thread pool which assumes that the creator knows the
 correct thread count for the use case. As a result, it assumes a pre-determined
-sizing and does not automatically resize itself. We recognize that alternative
-approaches serving other use cases exist and anticipate additional thread pool
-proposals. In particular, we are aware of a separate effort which will propose
-an additional thread pool type, `dynamic_thread_pool`, and we expect this type
-of thread pool to be both dynamically and automatically resizable.
+sizing and does not automatically resize itself and has no default size.
+
+There exist heuristics for right-sizing a thread pool (both statically
+determined like 2*hardware_concurrency, as well as dynamically adjusted), but
+these are considered to be out of scope of this proposal as a reasonable size
+pool is specific to the application and hardware.
+
+We recognize that alternative approaches serving other use cases exist and
+anticipate additional thread pool proposals. In particular, we are aware of a
+separate effort which will propose an additional thread pool type,
+`dynamic_thread_pool`, and we expect this type of thread pool to be both
+dynamically and automatically resizable.
 
 ### Execution Resources
 
