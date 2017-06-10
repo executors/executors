@@ -1,0 +1,37 @@
+EXAMPLES = \
+	one_way_always_blocking_calls_one_way_always_blocking \
+	one_way_always_blocking_calls_one_way_never_blocking \
+	one_way_always_blocking_calls_one_way_never_blocking_continuation \
+	one_way_always_blocking_calls_one_way_possibly_blocking \
+	one_way_never_blocking_calls_one_way_always_blocking \
+	one_way_never_blocking_calls_one_way_never_blocking \
+	one_way_never_blocking_calls_one_way_never_blocking_continuation \
+	one_way_never_blocking_calls_one_way_possibly_blocking \
+	one_way_possibly_blocking_calls_one_way_always_blocking \
+	one_way_possibly_blocking_calls_one_way_never_blocking \
+	one_way_possibly_blocking_calls_one_way_never_blocking_continuation \
+	one_way_possibly_blocking_calls_one_way_possibly_blocking\
+	polymorphic_one_way_always_blocking_calls_one_way_always_blocking \
+	polymorphic_one_way_always_blocking_calls_one_way_never_blocking \
+	polymorphic_one_way_always_blocking_calls_one_way_never_blocking_continuation \
+	polymorphic_one_way_always_blocking_calls_one_way_possibly_blocking \
+	polymorphic_one_way_never_blocking_calls_one_way_always_blocking \
+	polymorphic_one_way_never_blocking_calls_one_way_never_blocking \
+	polymorphic_one_way_never_blocking_calls_one_way_never_blocking_continuation \
+	polymorphic_one_way_never_blocking_calls_one_way_possibly_blocking \
+	polymorphic_one_way_possibly_blocking_calls_one_way_always_blocking \
+	polymorphic_one_way_possibly_blocking_calls_one_way_never_blocking \
+	polymorphic_one_way_possibly_blocking_calls_one_way_never_blocking_continuation \
+	polymorphic_one_way_possibly_blocking_calls_one_way_possibly_blocking
+
+CXXFLAGS = -std=c++14 -pthread -Wall -Wextra -I../../include
+
+.PHONY: all clean
+
+all: $(EXAMPLES)
+
+clean:
+	rm -f $(EXAMPLES)
+
+$(EXAMPLES): %: %.cpp
+	$(CXX) $(CXXFLAGS) -o$@ $<
