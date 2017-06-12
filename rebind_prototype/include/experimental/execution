@@ -59,6 +59,17 @@ template<class Executor> struct executor_index;
 template<class Executor> using executor_shape_t = typename executor_shape<Executor>::type;
 template<class Executor> using executor_index_t = typename executor_index<Executor>::type;
 
+// Bulk forward progress.
+// XXX consider exposing these similar to the blocking guarantees et. al
+struct bulk_sequenced_execution {};
+struct bulk_parallel_execution {};
+struct bulk_unsequenced_execution {};
+
+// Type trait to obtain a bulk executor's bulk forward progress guarantee.
+template<class Executor> struct executor_bulk_forward_progress_guarantee;
+
+template<class Executor> using executor_bulk_forward_progress_guarantee_t = typename executor_bulk_forward_progress_guarantee<Executor>::type;
+
 // Type traits to determine whether a rebind member invocation is valid, and what its result is.
 template<class Executor, class... Args> struct has_rebind_member;
 template<class Executor, class... Args> struct rebind_member_result;
@@ -96,6 +107,7 @@ class one_way_executor;
 #include <experimental/bits/executor_future.h>
 #include <experimental/bits/executor_shape.h>
 #include <experimental/bits/executor_index.h>
+#include <experimental/bits/executor_bulk_forward_progress_guarantee.h>
 #include <experimental/bits/has_rebind_member.h>
 #include <experimental/bits/rebind_member_result.h>
 #include <experimental/bits/rebind_adaptations.h>
