@@ -535,20 +535,20 @@ to the important special case of a single agent. Customization points which
 create multiple agents in bulk have names prefixed with `bulk_`;
 single-agent customization points have no prefix. 
 
-**Directionality.** Some executor customization points return a channel back to
-the client for synchronizing with the result of execution. For asynchronous
-customization points, this channel is a future object corresponding to an
-eventual result. For synchronous customization points, this channel is simply
-the result itself. Other customization points allow clients to
-"fire-and-forget" their execution and return no such channel. We refer to
-fire-and-forgetful customization points as "one-way" while those that provide a
-synchronization channel are "two-way"[^directionality_caveat]. Two-way
-customization points allow executors to participate directly in synchronization rather
-than require inefficient synchronization out-of-band. On the other hand, when
-synchronization is not required, one-way customization points avoid the cost of
-a synchronization channel. The names of two-way customization points names are
-infixed with `sync_`, `async_`, or `then_`.  One-way customization points have
-no infix.
+**Directionality.** Some executor customization points return a `Future` object
+for synchronizing with and retrieving the result or exception of execution.
+Other customization points allow clients to "fire-and-forget" their execution
+and return no `Future`. We refer to fire-and-forgetful customization points as
+"one-way" while those that provide a synchronization channel are
+"two-way"[^directionality_caveat]. Two-way customization points allow executors
+to participate directly in delivering the result of execution rather than
+require inefficient synchronization out-of-band. On the other hand, when
+synchronization is not required (perhaps when some other backchannel is
+    available), one-way customization points avoid the cost of a `Future` and
+shield the user from exceptional execution. In these cases, a one-way executor
+may provide a backchannel for communicating user exceptions back to the client.
+The names of two-way customization points names are infixed with `sync_`,
+    `async_`, or `then_`.  One-way customization points have no infix.
 
 [^directionality_caveat]: We think that the names "one-way" and "two-way" should be improved.
 
@@ -788,11 +788,12 @@ As a simple example, consider the adaptation performed by
 `execution::sync_execute` when a given executor provides no native support:
 
     template<class Executor, class Function>
-    std::invoke_result_t<std::decay_t<Function>>
+    executor_future_t<Executor,std::invoke_result_t<std::decay_t<Function>>>
     sync_execute(const Executor& exec, Function&& f)
     {
       auto future = execution::async_execute(exec, std::forward<Function>(f));
-      return future.get();
+      future.wait();
+      return future;
     }
 
 In this case, `execution::sync_execute` creates asynchronous execution via
@@ -852,7 +853,8 @@ executor which always creates execution "inline":
 
       template<class Function>
       auto sync_execute(Function&& f) const {
-        return std::forward<Function>(f)();
+        using result_type = std::invoke_result_t<Function>;
+        return make_ready_future<result_type>(std::forward<Function>(f)());
       }
     };
 
@@ -1131,7 +1133,7 @@ functionality by making a call to `bulk_sync_execute` inside a continuation
 created by `predecessor_future.then`:
 
     predecessor_future.then([=] {
-      return exec.bulk_sync_execute(exec, f, shape, result_factory, shared_factory);
+      return exec.bulk_sync_execute(exec, f, shape, result_factory, shared_factory).get();
     });
 
 Note that this implementation creates `1 + shape` execution agents: one agent
@@ -1148,7 +1150,7 @@ unacceptable.
 
     template<class Executor, class Function, class ResultFactory,
              class SharedFactory>
-    executor_future_t<std::invoke_result_t<std::decay_t<ResultFactory>>>
+    executor_future_t<Executor, std::invoke_result_t<std::decay_t<ResultFactory>>>
     bulk_async_execute(const Executor& exec, Function&& func,
                        executor_shape_t<Executor> shape,
                        ResultFactory result_factory,
@@ -1194,7 +1196,7 @@ require accommodating a predecessor dependency.
 
     template<class Executor, class Function, class ResultFactory,
              class SharedFactory>
-    executor_future_t<std::invoke_result_t<std::decay_t<ResultFactory>>>
+    executor_future_t<Executor, std::invoke_result_t<std::decay_t<ResultFactory>>>
     bulk_async_post(const Executor& exec, Function&& func,
                     executor_shape_t<Executor> shape,
                     ResultFactory result_factory,
@@ -1257,7 +1259,7 @@ the executor implementation.
 
     template<class Executor, class Function, class ResultFactory,
              class SharedFactory>
-    std::invoke_result_t<std::decay_t<Function>>
+    executor_future_t<Executor, std::invoke_result_t<std::decay_t<ResultFactory>>>
     bulk_sync_execute(const Executor& exec, Function&& func,
                       executor_shape_t<Executor> shape,
                       ResultFactory result_factory,
@@ -1275,18 +1277,17 @@ whose execution may begin immediately and returns the result of
 regardless of the value of `executor_execute_blocking_guarantee_t<Executor>`.
 
 `bulk_sync_execute` is equivalent to `bulk_async_execute` except that it blocks
-its client until the result of execution is complete. It returns this result
-directly as a value, rather than indirectly via a future object.
-Correspondingly, it may be implemented by calling `bulk_async_execute` and
-getting the future's result:
+its client until the result of execution is complete. Correspondingly, it may
+be implemented by calling `bulk_async_execute` and waiting on the resulting future:
 
     auto future = exec.bulk_async_execute(f, shape, result_factory, shared_factory);
-    return future.get();
+    future.wait();
+    return future;
 
-Like `bulk_async_execute`, we include `bulk_sync_execute` to avoid overhead
-incurred by introducing a temporary future object. This overhead is likely to
-be significant for executors whose cost of execution agent creation is very
-small. A hypothetical `simd_executor` or `inline_executor` are examples.
+We include `bulk_sync_execute` to avoid overhead incurred by introducing
+unnecessary asynchrony. This overhead is likely to be significant for executors
+whose cost of execution agent creation is very small. A hypothetical
+`simd_executor` or `inline_executor` are examples.
 
 ## Two-Way Single-Agent Functions
 
@@ -1380,7 +1381,7 @@ may be significant and can be avoided if an executor specializes `then_execute`.
 
     template<class Executor, class Function,
              class Allocator = std::allocator<void>>
-    executor_future_t<std::invoke_result_t<std::decay_t<Function>>>
+    executor_future_t<Executor, std::invoke_result_t<std::decay_t<Function>>>
     async_execute(const Executor& exec, Function&& func,
                   Allocator& alloc = Allocator());
 
@@ -1425,7 +1426,7 @@ requiring executors to explicitly support continuations with `then_execute`, inc
 
     template<class Executor, class Function,
              class Allocator = std::allocator<void>>
-    executor_future_t<std::invoke_result_t<std::decay_t<Function>>>
+    executor_future_t<Executor, std::invoke_result_t<std::decay_t<Function>>>
     async_post(const Executor& exec, Function&& func,
                Allocator& alloc = Allocator());
 
@@ -1449,7 +1450,7 @@ possible only if `executor_execute_blocking_guarantee_t<Executor>` is
 
     template<class Executor, class Function,
              class Allocator = std::allocator<void>>
-    executor_future_t<std::invoke_result_t<std::decay_t<Function>>>
+    executor_future_t<Executor, std::invoke_result_t<std::decay_t<Function>>>
     async_defer(const Executor& exec, Function&& func,
                 Allocator& alloc = Allocator());
 
@@ -1479,7 +1480,7 @@ optimizations within the executor implementation.
 
     template<class Executor, class Function,
              class Allocator = std::allocator<void>>
-    std::invoke_result_t<std::decay_t<Function>>
+    executor_future_t<Executor,std::invoke_result_t<std::decay_t<Function>>>
     sync_execute(const Executor& exec, Function&& func,
                  Allocator& alloc = Allocator());
 
@@ -1490,17 +1491,17 @@ executor `exec` whose execution may begin immediately and returns the result of
 `alloc` can be used to allocate memory for `func`.
 
 `sync_execute` is equivalent to `async_execute` except that it blocks its
-client until the result of execution is complete. It returns this result
-directly as a value, rather than indirectly via a future object.
-Correspondingly, it may be implemented by calling `async_execute` and getting the future's result:
+client until the result of execution is complete. 
+Correspondingly, it may be implemented by calling `async_execute` and waiting on the resulting future:
 
     auto future = exec.async_execute(std::forward<Function>(f));
-    return future.get();
+    future.wait();
+    return future;
 
-Like `async_execute`, we include `sync_execute` to avoid overhead incurred by
-introducing a temporary future object. This overhead is likely to be
-significant for executors whose cost of execution agent creation is very small.
-A hypothetical `simd_executor` or `inline_executor` are examples.
+We include `sync_execute` to avoid overhead incurred by introducing unnecessary
+asynchrony. This overhead is likely to be significant for executors whose cost
+of execution agent creation is very small. A hypothetical `simd_executor` or
+`inline_executor` are examples.
 
 We believe it is possible to make the cost of the future arbitrarily small in
 very special cases. For example, if the executor's associated future is a
@@ -1831,20 +1832,6 @@ results do not require expensive dynamic allocation or synchronization
 primitives of full-fledged `std::future` objects. We envision that a
 separate effort will propose a `Future` concept which would introduce
 requirements for these user-defined `std::future`-like types.
-
-### Error Handling
-
-Our proposal prescribes no mechanism for execution functions to communicate
-exceptional behavior back to their clients. For our purposes, exceptional
-behavior includes exceptions thrown by the callable functions invoked by
-execution agents and failures to create those execution agents due to resource
-exhaustion. In most cases, resource exhaustion can be reported immediately
-similar to `std::async`'s behavior. Reporting exceptions encountered by
-execution agents can also be generalized from `std::async`. We envision that
-asynchronous two-way functions will report errors through an exceptional future
-object, and synchronous two-way functions will simply throw any exceptions they
-encounter as normal. However, it is not clear what mechanism, if any, one-way
-execution functions should use for error reporting.
 
 ### Thread Pool Variations
 

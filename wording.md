@@ -375,9 +375,9 @@ In the Table below, `x` denotes a (possibly const) executor object of type `X` a
 
 The directionality property of an execution function may be one of the following:
 
-* *One-way:* The execution function creates execution agents without a channel for awaiting the completion of a submitted function object or for obtaining its result. *Note:* That is, the executor provides fire-and-forget semantics. *--end note*] The names of execution functions having one-way directionality do not have an associated prefix.
-* *Synchronous two-way:* The execution function blocks until execution of the submitted function is complete, and returns the result. The names of execution functions having synchronous two-way directionality have the prefix `sync_`.
-* *Asynchronous two-way:* The execution function returns a `Future` for awaiting the completion of a submitted function object and obtaining its result. The names of execution functions having asynchronous two-way directionality have the prefix `async_` or `then_`.
+* *One-way:* The execution function creates execution agents without returning a `Future` for awaiting the completion of a submitted function object or for obtaining its result or exception. *Note:* That is, the executor provides fire-and-forget semantics. *--end note*] The names of execution functions having one-way directionality do not have an associated prefix.
+* *Synchronous two-way:* The execution function blocks until execution of the submitted function is complete, and returns a ready `Future` for obtaining the function object's result or exception. The names of execution functions having synchronous two-way directionality have the prefix `sync_`.
+* *Asynchronous two-way:* The execution function returns a `Future` for awaiting the completion of a submitted function object and obtaining its result or exception. The names of execution functions having asynchronous two-way directionality have the prefix `async_` or `then_`.
 
 ##### Requirements on execution functions of one-way directionality
 
@@ -385,23 +385,15 @@ In the Table below, `x` denotes a (possibly const) executor object of type `X`, 
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.'e'(...)` <br/> `'e'(x, ...)` | void | [*Note:* If `f()` exits via an exception, the behavior is specific to the executor. *--end note.*] |
+| `x.'e'(...)` <br/> `'e'(x, ...)` | void | Shall not exit via any exception thrown by `f()`. [*Note:* If `f()` exits via an exception, the behavior is specific to the executor, as long as that exception is not thrown. *--end note.*] |
 
-##### Requirements on execution functions of synchronous two-way directionality
-
-In the Table below, `x` denotes a (possibly const) executor object of type `X`, `'e'` denotes an expression from the requirements on blocking semantics and `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
-
-| Expression | Return Type | Operational semantics |
-|------------|-------------|---------------------- |
-| `x.sync_'e'(...)` <br/> `sync_'e'(x, ...)` | `R` | Returns the result of `f()`. <br/><br/> Throws any exception thrown by `f()`. <br/> <br/> Must block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))()` finishes execution. |
-
-##### Requirements on execution functions of asynchronous two-way directionality
+##### Requirements on execution functions of two-way directionality
 
 In the Table below, `x` denotes a (possibly const) executor object of type `X`, `'e'` denotes an expression from the requirements on blocking semantics, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements and `pred` denotes a `Future` object whose result is `pr`.
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.async_'e'(...)` <br/> `async_'e'(x, ...)` | A type that satisfies the `Future` requirements for the value type `R`. |  Stores the result of `f()`, or any exception thrown by `f()`, in the associated shared state of the resulting `Future`. |
+| `x.async_'e'(...)` <br/> `async_'e'(x, ...)` <br/> `x.sync_'e'(...)` <br/> `sync_'e'(x, ...)` | A type that satisfies the `Future` requirements for the value type `R`. |  Stores the result of `f()`, or any exception thrown by `f()`, in the associated shared state of the resulting `Future`. |
 | `x.then_'e'(..., pred, ...)` <br/> `then_'e'(x, ..., pred, ...)` | A type that satisfies the `Future` requirements for the value type `R`. | Stores the result of `f(pr)`, or any exception thrown by `f(pr)`, in the associated shared state of the resulting `Future`. |
 
 #### Cardinality
@@ -482,7 +474,7 @@ Table: (Base executor requirements) \label{base_executor_requirements}
 
 ### `OneWayExecutor` requirements
 
-The `OneWayExecutor` requirements specify requirements for executors which create execution agents without a channel for awaiting the completion of a submitted function object and obtaining its result. [*Note:* That is, the executor provides fire-and-forget semantics. *--end note*]
+The `OneWayExecutor` requirements specify requirements for executors which create execution agents and do not return a `Future` for awaiting the completion of a submitted function object and obtaining its result or exception. [*Note:* That is, the executor provides fire-and-forget semantics. *--end note*]
 
 A type `X` satisfies the `OneWayExecutor` requirements if it satisfies the `BaseExecutor` requirements, and `can_execute_v<X>` is true.
 
@@ -495,16 +487,16 @@ A type `X` satisfies the `NeverBlockingOneWayExecutor` requirements if it satisf
 ### `TwoWayExecutor` requirements
 
 The `TwoWayExecutor` requirements specify requirements for executors which
-creating execution agents with a channel for awaiting the completion of a
-submitted function object and obtaining its result.
+creating execution agents and return a `Future` for awaiting the completion of a
+submitted function object and obtaining its result or exception.
 
 A type `X` satisfies the `TwoWayExecutor` requirements if it satisfies the `BaseExecutor` requirements, `can_sync_execute_v<X>` is true, and `can_async_execute_v<X>` is true.
 
 ### `BulkTwoWayExecutor` requirements
 
 The `BulkTwoWayExecutor` requirements specify requirements for executors which
-create groups of execution agents in bulk from a single execution function with
-a channel for awaiting the completion of a submitted function object invoked by
+create groups of execution agents in bulk from a single execution function and return
+a `Future` for awaiting the completion of a submitted function object invoked by
 those execution agents and obtaining its result.
 
 A type `X` satisfies the `BulkTwoWayExecutor` requirements if it satisfies the `BaseExecutor` requirements, `can_bulk_sync_execute_v<X>` is true, `can_bulk_async_execute_v<X>` is true, and `can_bulk_then_execute_v<X>` is true.
@@ -676,7 +668,11 @@ The name `sync_execute` denotes a customization point. The effect of the express
 
 * Otherwise, `sync_execute(E, F, A...)` if `has_sync_execute_free_function_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `std::experimental::concurrency_v2::execution::async_execute(E, F, A...).get()` if `can_async_execute_v<decay_t<decltype(E)>>` is true.
+* Otherwise, if `can_async_execute_v<decay_t<decltype(E)>>` is true, equivalent to
+
+        auto __future = std::experimental::concurrency_v2::execution::async_execute(E, F, A...);
+        __future.wait();
+        return __future;
 
 * Otherwise, `std::experimental::concurrency_v2::execution::sync_execute(E, F, A...)` is ill-formed.
 
@@ -823,7 +819,11 @@ The name `bulk_sync_execute` denotes a customization point. The effect of the ex
 
 * Otherwise, `bulk_sync_execute(E, F, S, RF, SF)` if `has_bulk_sync_execute_free_function_v<decay_t<decltype(E)>>` is true.
 
-* Otherwise, `std::experimental::concurrency_v2::execution::bulk_async_execute(E, F, S, RF, SF).get()` if `can_bulk_async_execute_v<decay_t<decltype(E)>>` is true.
+* Otherwise, if `can_bulk_async_execute_v<decay_t<decltype(E)>>` is true, equivalent to
+
+        auto __future = std::experimental::concurrency_v2::execution::bulk_async_execute(E, F, S, RF, SF);
+        __future.wait();
+        return __future;
 
 * Otherwise, `std::experimental::concurrency_v2::execution::bulk_sync_execute(E, F, S, RF, SF)` is ill-formed.
 
