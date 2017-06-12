@@ -285,10 +285,10 @@ scheduled for invocation using the executor's `post` customization point:
         }
       );
 
-A non-blocking execution function is used above to ensure that operations that
+A never-blocking execution function is used above to ensure that operations that
 always complete immediately do not lead to deadlock or stack exhaustion. On the
 other hand, if the operation completes later then the asynchronous operation
-invokes the completion handler using the potentially-blocking execution
+invokes the completion handler using the possibly-blocking execution
 function:
 
     std::execution::execute(ex,
@@ -781,7 +781,7 @@ requested interaction's requirements.
 
 [^adaptation_caveat]: In certain cases, some interactions are impossible
 because their requirements are inherently incompatible with a particular
-executor's provided functionality. For example, a requirement for non-blocking
+executor's provided functionality. For example, a requirement for never-blocking
 execution from an executor which always executes "inline".
 
 As a simple example, consider the adaptation performed by
@@ -825,7 +825,7 @@ behavior when adapting an executor's native functionality. During adaptation,
          unless the executor itself introduces those threads as an effect of
          creating execution agents. Additionally, this rule implies that a
          customization point never weakens guarantees made by an executor. For
-         example, given a non-blocking executor, a customization point
+         example, given a never-blocking executor, a customization point
          never[^invariant_caveat] blocks its client's execution.  Moreover, a
          customization point never weakens the group execution ordering
          guarantee provided by a bulk executor.
@@ -968,40 +968,40 @@ interest to some clients. For example, the relationship between an execution
 agent and the lifetime of `thread_local` variables may be inferred by
 inspecting the mapping of the agent onto its thread of execution (if any). In
 our model, such mappings are represented as empty tag types and they are
-introspected through the `executor_execution_mapping_category` type trait.
+introspected through the `executor_execution_mapping_guarantee` type trait.
 Currently, this trait returns one of three values:
 
-  1. `other_execution_mapping_tag`: The executor maps agents onto non-standard execution resources.
-  2. `thread_execution_mapping_tag`: The executor maps agents onto threads of execution.
-  3. `unique_thread_execution_mapping_tag`: The executor maps each agent onto a new thread of execution, and that thread of execution does not change over the agent's lifetime.
+  1. `other_execution_mapping`: The executor maps agents onto non-standard execution resources.
+  2. `thread_execution_mapping`: The executor maps agents onto threads of execution.
+  3. `new_thread_execution_mapping`: The executor maps each agent onto a new thread of execution, and that thread of execution does not change over the agent's lifetime.
 
-The first mapping category is intended to represent mappings onto resources
+The first mapping type is intended to represent mappings onto resources
 which are not standard threads of execution. The abilities of such agents may
-be subject to executor-defined limitations. The next two categories indicate
+be subject to executor-defined limitations. The next two types indicate
 that agents execute on standard threads of execution as normal.
-`thread_execution_mapping_tag` guarantees that agents execute on threads, but
+`thread_execution_mapping` guarantees that agents execute on threads, but
 makes no additional guarantee about the identification between agent and
-thread. `unique_thread_execution_mapping_tag` does make an additional
+thread. `new_thread_execution_mapping` does make an additional
 guarantee; each agent executes on a newly-created thread. We envision that
-this set of mapping categories may grow in the future.
+this set of mapping types may grow in the future.
 
-The default value of `executor_execution_mapping_category` is `thread_execution_mapping_tag`.
+The default value of `executor_execution_mapping_guarantee` is `thread_execution_mapping`.
 
 **Blocking guarantee.** When a client uses an executor to create execution
 agents, the execution of that client may be blocked pending the completion of
-those execution agents. The `executor_execute_blocking_category` trait
+those execution agents. The `executor_execute_blocking_guarantee` trait
 describes the way in which these agents are guaranteed to block their client.
 
 When executors create execution agents, those agents
 possibly block the client's execution pending the completion of those agents.
-This guarantee is given by `executor_execute_blocking_category`, which
+This guarantee is given by `executor_execute_blocking_guarantee`, which
 returns one of three values:
 
-  1. `blocking_execution_tag`: The agents' execution blocks the client.
-  2. `possibly_blocking_execution_tag`: The agent's execution possibly block the client.
-  3. `non_blocking_execution_tag`: The agent's execution does not block the client.
+  1. `always_blocking_execution`: The agents' execution blocks the client.
+  2. `possibly_blocking_execution`: The agents' execution possibly blocks the client.
+  3. `never_blocking_execution`: The agents' execution does not block the client.
 
-The guarantee provided by `executor_execute_blocking_category` only applies to
+The guarantee provided by `executor_execute_blocking_guarantee` only applies to
 those customization points whose name is suffixed with `execute`. Exceptions
 are the `sync_` customization points, which must always block their client by
 definition. When the agents created by an executor possibly block its client,
@@ -1009,7 +1009,7 @@ definition. When the agents created by an executor possibly block its client,
   for querying its actual blocking behavior. However, our design prescribes no
   interface for doing so.
 
-The default value of `executor_execute_blocking_category` is `possibly_blocking_execution_tag`.
+The default value of `executor_execute_blocking_guarantee` is `possibly_blocking_execution`.
 
 **Bulk forward progress guarantee.** When an executor creates a group of execution
 agents, their bulk forward progress obeys certain semantics. For example, a group of
@@ -1027,9 +1027,9 @@ policies, and indeed these guarantees are intended to be used by execution
 policies to describe the invocations of element access functions during
 parallel algorithm execution. One difference between these guarantees and the
 standard execution policies is that, unlike `std::execution::sequenced_policy`,
-         `bulk_sequenced_execution` does not imply that execution happens on the
-         client's thread[^seq_footnote]. Instead, `executor_execution_mapping`
-         captures such guarantees.
+`bulk_sequenced_execution` does not imply that execution happens on the
+client's thread[^seq_footnote]. Instead, `executor_execution_mapping_guarantee`
+captures such guarantees.
 
 We expect this list to grow in the future. For example, guarantees of
 concurrent or vectorized execution among a group of agents would be obvious
@@ -1037,7 +1037,7 @@ additions.
 
 The default value of `executor_bulk_forward_progress_guarantee` is `bulk_unsequenced_execution`.
 
-[^seq_footnote]: We might want to introduce something like `this_thread_execution_mapping_tag` to capture the needs of `std::execution::seq`, which requires algorithms to execute on the current thread.
+[^seq_footnote]: We might want to introduce something like `this_thread_execution_mapping` to capture the needs of `std::execution::seq`, which requires algorithms to execute on the current thread.
 
 These describe the types of parameters involved in bulk customization points
 
@@ -1109,7 +1109,7 @@ functionally special case.
 
 `bulk_then_execute` asynchronously creates a group of execution agents of shape
 `shape` with forward progress guarantees of
-`executor_execution_mapping_category_t<Executor>`, bound to the executor `exec`
+`executor_execution_mapping_guarantee_t<Executor>`, bound to the executor `exec`
 whose execution begins after the completion of `pred` and returns a future that
 can be used to wait for execution to complete containing the result of
 `result_factory`. Each created execution agent calls
@@ -1117,7 +1117,7 @@ can be used to wait for execution to complete containing the result of
 `executor_index_t<Executor>`, `r` is a function object returned from
 `return_factory` and `s` is a shared object returned from `shared_factory`.
 `bulk_then_execute` may or may not the caller until execution completes,
-depending on the value of `executor_execute_blocking_category_t<Executor>`.
+depending on the value of `executor_execute_blocking_guarantee_t<Executor>`.
 
 `bulk_then_execute` is the most general execution function we have identified
 because it may be used to implement any other execution function without having
@@ -1158,14 +1158,15 @@ unacceptable.
 
 `bulk_async_execute` asynchronously creates a group of execution agents of shape
 `shape` with forward progress guarantees of
-`executor_execution_mapping_category_t<Executor>`, bound to the executor `exec`
+`executor_execution_mapping_guarantee_t<Executor>`, bound to the executor `exec`
 whose execution may begin immediately and returns a future that can be used to
 wait for execution to complete containing the result of `result_factory`. Each
-created execution agent calls `std::forward<Function>(func)(i, r, s)`, where `i`
-is of type `executor_index_t<Executor>`, `r` is a function object returned from
-`return_factory` and `s` is a shared object returned from `shared_factory`.
-`bulk_async_execute` may or may not block the caller until execution completes, depending
-on the value of `executor_execute_blocking_category_t<Executor>`.
+created execution agent calls `std::forward<Function>(func)(i, r, s)`, where
+`i` is of type `executor_index_t<Executor>`, `r` is a function object returned
+from `return_factory` and `s` is a shared object returned from `shared_factory`.
+`bulk_async_execute` may or may not block the caller until execution completes,
+depending on the value of `executor_execute_blocking_guarantee_t<Executor>`.
+
 
 Like `bulk_then_execute`, `bulk_async_execute`
 returns a future corresponding to the result of the asynchronous group of
@@ -1203,14 +1204,14 @@ require accommodating a predecessor dependency.
 
 `bulk_async_post` asynchronously creates a group of execution agents of shape
 `shape` with forward progress guarantees of
-`executor_execution_mapping_category_t<Executor>`, bound to the executor `exec`
+`executor_execution_mapping_guarantee_t<Executor>`, bound to the executor `exec`
 whose execution may begin immediately and returns a future that can be used to
 wait for execution to complete containing the result of `result_factory`. Each
 created execution agent calls `std::forward<Function>(func)(i, r, s)`, where
 `i` is of type `executor_index_t<Executor>`, `r` is a function object returned
 from `return_factory` and `s` is a shared object returned from
 `shared_factory`. `bulk_async_post` does not block the caller, regardless of
-the value of `executor_execute_blocking_category_t<Executor>`.
+the value of `executor_execute_blocking_guarantee_t<Executor>`.
 
 `bulk_async_post` is equivalent to `bulk_async_execute` except that it makes an
 additional guarantee not to block the client's execution. Some executors will
@@ -1218,7 +1219,7 @@ not be able to provide such a guarantee and could not be adapted to this
 functionality when `bulk_async_post` is absent. For example, an implementation
 of `bulk_async_post` which simply forwards its arguments directly to
 `bulk_async_execute` is possible only if
-`executor_execute_blocking_category_t<Executor>` is `nonblocking_execution_tag`.
+`executor_execute_blocking_guarantee_t<Executor>` is `never_blocking_execution`.
 
 ### `bulk_async_defer`
 
@@ -1232,14 +1233,14 @@ of `bulk_async_post` which simply forwards its arguments directly to
 
 `bulk_async_defer` asynchronously creates a group of execution agents of shape
 `shape` with forward progress guarantees of
-`executor_execution_mapping_category_t<Executor>`, bound to the executor `exec`
+`executor_execution_mapping_guarantee_t<Executor>`, bound to the executor `exec`
 whose execution may begin immediately and returns a future that can be used to
 wait for execution to complete containing the result of `result_factory`. Each
 created execution agent calls `std::forward<Function>(func)(i, r, s)`, where `i`
 is of type `executor_index_t<Executor>`, `r` is a function object returned from
 `return_factory` and `s` is a shared object returned from `shared_factory`.
 `bulk_async_defer` does not block the caller,
-regardless of the value of `executor_execute_blocking_category_t<Executor>`.
+regardless of the value of `executor_execute_blocking_guarantee_t<Executor>`.
 
 `bulk_async_defer` is equivalent to `bulk_async_execute` except that it makes an
 additional guarantee not to block the client's execution. Some executors will
@@ -1247,7 +1248,7 @@ not be able to provide such a guarantee and could not be adapted to this
 functionality when `bulk_async_defer` is absent. For example, an implementation
 of `bulk_async_defer` which simply forwards its arguments directly to
 `bulk_async_execute` is possible only if
-`executor_execute_blocking_category_t<Executor>` is `nonblocking_execution_tag`.
+`executor_execute_blocking_guarantee_t<Executor>` is `never_blocking_execution`.
 
 **Comparison to bulk_async_post.** The behavior of `bulk_async_defer` is
 semantically equivalent to `bulk_async_post` and is primarily to indicate an
@@ -1266,14 +1267,14 @@ the executor implementation.
 
 `bulk_sync_execute` asynchronously creates a group of execution agents of shape
 `shape` with forward progress guarantees of
-`executor_execution_mapping_category_t<Executor>`, bound to the executor `exec`
+`executor_execution_mapping_guarantee_t<Executor>`, bound to the executor `exec`
 whose execution may begin immediately and returns the result of
 `result_factory`. Each created execution agent calls
 `std::forward<Function>(func)(i, r, s)`, where `i` is of type
 `executor_index_t<Executor>`, `r` is a function object retured from
 `return_factory` and `s` is a shared object returned from `shared_factory`.
 `bulk_sync_execute` always blocks the caller until execution completes,
-regardless of the value of `executor_execute_blocking_category_t<Executor>`.
+regardless of the value of `executor_execute_blocking_guarantee_t<Executor>`.
 
 `bulk_sync_execute` is equivalent to `bulk_async_execute` except that it blocks
 its client until the result of execution is complete. Correspondingly, it may
@@ -1336,7 +1337,7 @@ returns a future that can be used to wait for execution to complete containing
 the result of `func`. The created execution agent calls
 `std::forward<Function>(func)()`. `then_execute` may or may not the caller until
 execution completes, depending on the value of
-`executor_execute_blocking_category_t<Executor>`. The allocator `alloc` can be
+`executor_execute_blocking_guarantee_t<Executor>`. The allocator `alloc` can be
 used to allocate memory for `func`.
 
 `then_execute` creates an asynchronous execution agent. It may be implemented
@@ -1389,7 +1390,7 @@ executor `exec` whose execution may begin immediately and returns a future that
 can be used to wait for execution to complete containing the result of `func`.
 The created execution agent calls `std::forward<Function>(func)()`.
 `async_execute` may or may not the caller until execution completes, depending
-on the value of `executor_execute_blocking_category_t<Executor>`. The allocator
+on the value of `executor_execute_blocking_guarantee_t<Executor>`. The allocator
 `alloc` can be used to allocate memory for `func`.
 
 `async_execute`  may be implemented by using `then_execute` with a ready `void` future:
@@ -1442,8 +1443,8 @@ additional guarantee not to block the client's execution. Some executors will
 not be able to provide such a guarantee and could not be adapted to this
 functionality when `async_post` is absent. For example, an implementation of
 `async_post` which simply forwards its arguments directly to `async_post` is
-possible only if `executor_execute_blocking_category_t<Executor>` is
-`nonblocking_execution_tag`.
+possible only if `executor_execute_blocking_guarantee_t<Executor>` is
+`never_blocking_execution`.
 
 ### `async_defer`
 
@@ -1466,8 +1467,8 @@ additional guarantee not to block the client's execution. Some executors will
 not be able to provide such a guarantee and could not be adapted to this
 functionality when `async_defer` is absent. For example, an implementation of
 `async_defer` which simply forwards its arguments directly to `async_defer` is
-possible only if `executor_execute_blocking_category_t<Executor>` is
-`nonblocking_execution_tag`.
+possible only if `executor_execute_blocking_guarantee_t<Executor>` is
+`never_blocking_execution`.
 
 **Comparison to async_post.** `async_defer`'s semantics are identical to
 `async_post`. That is, they may be used interchangeably without effecting a
@@ -1544,7 +1545,7 @@ including.
 
 `bulk_post` asynchronously creates a group of execution agents of shape `shape`
 with forward progress guarantees of
-`executor_execution_mapping_category_t<Executor>`, bound to the executor `exec`
+`executor_execution_mapping_guarantee_t<Executor>`, bound to the executor `exec`
 whose execution may begin immediately and does not return a value. Each created
 execution agent calls `std::forward<Function>(func)(i, s)`, where `i` is of
 type `executor_index_t<Executor>` and `s` is a shared object returned from
@@ -1556,8 +1557,8 @@ guarantee not to block the client's execution. Some executors will not be able
 to provide such a guarantee and could not be adapted to this functionality when
 `bulk_post` is absent. For example, an implementation of `bulk_post` which
 simply forwards its arguments directly to `bulk_execute` is possible only if
-`executor_execute_blocking_category_t<Executor>` is
-`nonblocking_execution_tag`.
+`executor_execute_blocking_guarantee_t<Executor>` is
+`never_blocking_execution`.
 
 ### `bulk_defer`
 
@@ -1566,9 +1567,10 @@ simply forwards its arguments directly to `bulk_execute` is possible only if
                     executor_shape_t<Executor> shape,
                     SharedFactory shared_factory);
 
+
 `bulk_defer` asynchronously creates a group of execution agents of shape
 `shape` with forward progress guarantees of
-`executor_execution_mapping_category_t<Executor>`, bound to the executor `exec`
+`executor_execution_mapping_guarantee_t<Executor>`, bound to the executor `exec`
 whose execution may begin immediately and does not return a value. Each created
 execution agent calls `std::forward<Function>(func)(i, s)`, where `i` is of
 type `executor_index_t<Executor>` and `s` is a shared object returned from
@@ -1580,8 +1582,8 @@ guarantee not to block the client's execution. Some executors will not be able
 to provide such a guarantee and could not be adapted to this functionality when
 `bulk_defer` is absent. For example, an implementation of `bulk_defer` which
 simply forwards its arguments directly to `bulk_execute` is possible only if
-`executor_execute_blocking_category_t<Executor>` is
-`nonblocking_execution_tag`.
+`executor_execute_blocking_guarantee_t<Executor>` is
+`never_blocking_execution`.
 
 **Comparison to bulk_post.** `bulk_defer`'s semantics are identical to
 `bulk_post`. That is, they may be used interchangeably without effecting a
@@ -1598,13 +1600,13 @@ optimizations within the executor implementation.
 
 `bulk_execute` asynchronously creates a group of execution agents of shape
 `shape` with forward progress guarantees of
-`executor_execution_mapping_category_t<Executor>`, bound to the executor `exec`
+`executor_execution_mapping_guarantee_t<Executor>`, bound to the executor `exec`
 whose execution may begin immediately and does not return a value. Each created
 execution agent calls `std::forward<Function>(func)(i, s)`, where `i` is of type
 `executor_index_t<Executor>` and `s` is a shared object returned from
 `shared_factory`. `bulk_execute` may or may not the caller until execution
 completes, depending on the value of
-`executor_execute_blocking_category_t<Executor>`.
+`executor_execute_blocking_guarantee_t<Executor>`.
 
 `bulk_execute` is equivalent to `execute` except that it creates a single
 execution agent rather than a group of execution agents.
@@ -1650,7 +1652,7 @@ not to block the client's execution. Some executors will not be able to provide
 such a guarantee and could not be adapted to this functionality when `post` is
 absent. For example, an implementation of `post` which simply forwards its
 arguments directly to `execute` is possible only if
-`executor_execute_blocking_category_t<Executor>` is `nonblocking_execution_tag`.
+`executor_execute_blocking_guarantee_t<Executor>` is `never_blocking_execution`.
 
 ### `defer`
 
@@ -1669,7 +1671,7 @@ not to block the client's execution. Some executors will not be able to provide
 such a guarantee and could not be adapted to this functionality when `defer` is
 absent. For example, an implementation of `defer` which simply forwards its
 arguments directly to `execute` is possible only if
-`executor_execute_blocking_category_t<Executor>` is `nonblocking_execution_tag`.
+`executor_execute_blocking_guarantee_t<Executor>` is `never_blocking_execution`.
 
 **Comparison to post.** `defer`'s semantics are identical to `post`. That is,
 they may be used interchangeably without effecting a program's correctness.
@@ -1686,7 +1688,7 @@ implementation.
 `exec` whose execution may begin immediately and does not return a value. The
 created execution agent calls `std::forward<Function>(func)()`. `execute` may or
 may not the caller until execution completes, depending on the value of
-`executor_execute_blocking_category_t<Executor>`. The allocator `alloc` can be
+`executor_execute_blocking_guarantee_t<Executor>`. The allocator `alloc` can be
 used to allocate memory for `func`.
 
 `execute` is equivalent to `bulk_execute` except that it creates a group of
@@ -1764,7 +1766,7 @@ By design, our executors model provides no explicit support for creating
 thread-local storage. Instead, our design provides programmers with tools to
 reason about the relationship of programmer-defined `thread_local` variables
 and execution agents created by executors. For example, the executor type trait
-`executor_execution_mapping_category` describes how execution agents are mapped
+`executor_execution_mapping_guarantee` describes how execution agents are mapped
 onto threads, and consequently how the lifetimes of those agents relate to the
 lifetimes of `thread_local` variables. It is unclear whether these tools are
 sufficient or if more fine-grained control over thread local storage is
@@ -1784,13 +1786,13 @@ could be one option.
 
 ### Blocking Guarantees
 
-The blocking property is not
+The blocking guarantee is not
   applied uniformly. It is both a holistic property of the executor type and
   also a property of individual customization points in a few exceptional
   cases. This design is currently controversial. The reason that we chose for
   blocking to be a property of the executor type was to avoid the combinatorial
-  explosion of three versions of each customization point: blocking,
-  non-blocking, and possibly blocking. An alternative design could avoid
+  explosion of three versions of each customization point: always-blocking,
+  never-blocking, and possibly-blocking. An alternative design could avoid
   explosively versioning customization points but would also require a way to
   introspect the blocking guarantee of individual customization points. A
   design which discarded the ability to introspect blocking guarantees is
@@ -1803,8 +1805,8 @@ granularity of individual customization points. The two-way `sync_` functions
 are exceptions because it is impossible to return the result of execution in a
 way that does not block the client which created that execution. The `post` and
 `defer` functions are exceptions to the executor's blocking trait because we
-desire the ability for a single executor to provide a blocking or
-possibly-blocking `execute` as well as the unconditionally non-blocking
+desire the ability for a single executor to provide an always-blocking or
+possibly-blocking `execute` as well as the unconditionally never-blocking
 customization points `post` and `defer`. In such a situation, all three of
 these customization points have different semantics.
 
@@ -1831,15 +1833,23 @@ primitives of full-fledged `std::future` objects. We envision that a
 separate effort will propose a `Future` concept which would introduce
 requirements for these user-defined `std::future`-like types.
 
-### Additional Thread Pool Types
+### Thread Pool Variations
 
 Our proposal specifies a single thread pool type, `static_thread_pool`, which
-represents a simple thread pool which does not automatically resize itself. We
-recognize that alternative approaches serving other use cases exist and
+represents a simple thread pool which assumes that the creator knows the
+correct thread count for the use case. As a result, it assumes a pre-determined
+sizing and does not automatically resize itself and has no default size.
+
+There exist heuristics for right-sizing a thread pool (both statically
+determined like 2*hardware_concurrency, as well as dynamically adjusted), but
+these are considered to be out of scope of this proposal as a reasonable size
+pool is specific to the application and hardware.
+
+We recognize that alternative approaches serving other use cases exist and
 anticipate additional thread pool proposals. In particular, we are aware of a
 separate effort which will propose an additional thread pool type,
-         `dynamic_thread_pool`, and we expect this type of thread pool to be
-         both dynamically and automatically resizable.
+`dynamic_thread_pool`, and we expect this type of thread pool to be both
+dynamically and automatically resizable.
 
 ### Execution Resources
 
