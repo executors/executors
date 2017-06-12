@@ -536,18 +536,19 @@ create multiple agents in bulk have names prefixed with `bulk_`;
 single-agent customization points have no prefix. 
 
 **Directionality.** Some executor customization points return a `Future` object
-for synchronizing with and retrieving the result or exception of execution. Other
-customization points allow clients to "fire-and-forget" their execution and
-return no `Future`. We refer to fire-and-forgetful customization points as
+for synchronizing with and retrieving the result or exception of execution.
+Other customization points allow clients to "fire-and-forget" their execution
+and return no `Future`. We refer to fire-and-forgetful customization points as
 "one-way" while those that provide a synchronization channel are
 "two-way"[^directionality_caveat]. Two-way customization points allow executors
 to participate directly in delivering the result of execution rather than
 require inefficient synchronization out-of-band. On the other hand, when
 synchronization is not required (perhaps when some other backchannel is
     available), one-way customization points avoid the cost of a `Future` and
-shield the user from exceptional execution. The names of two-way customization
-points names are infixed with `sync_`, `async_`, or `then_`.  One-way
-customization points have no infix.
+shield the user from exceptional execution. In these cases, a one-way executor
+may provide a backchannel for communicating user exceptions back to the client.
+The names of two-way customization points names are infixed with `sync_`,
+    `async_`, or `then_`.  One-way customization points have no infix.
 
 [^directionality_caveat]: We think that the names "one-way" and "two-way" should be improved.
 
