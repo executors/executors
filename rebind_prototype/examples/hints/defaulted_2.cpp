@@ -116,7 +116,7 @@ int main()
   auto ex2 = execution::rebind(pool.executor(), custom_hints::tracing, true);
   ex2.execute([]{ std::cout << "we made it again\n"; });
 
-  execution::one_way_executor ex3 = pool.executor();
+  execution::executor ex3 = pool.executor();
   auto ex4 = execution::rebind(ex3, custom_hints::tracing, true);
   ex4.execute([]{ std::cout << "and again\n"; });
 

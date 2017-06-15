@@ -8,8 +8,8 @@ using std::experimental::static_thread_pool;
 
 // An operation that doubles a value asynchronously.
 template <class CompletionHandler>
-void my_async_operation_1(const execution::one_way_executor& tex, int n,
-    const execution::one_way_executor& cex, CompletionHandler h)
+void my_async_operation_1(const execution::executor& tex, int n,
+    const execution::executor& cex, CompletionHandler h)
 {
   if (n == 0)
   {
@@ -41,9 +41,9 @@ void my_async_operation_1(const execution::one_way_executor& tex, int n,
 template <class CompletionHandler>
 struct my_async_operation_2_impl
 {
-  execution::one_way_executor tex;
+  execution::executor tex;
   int i, m;
-  execution::one_way_executor cex;
+  execution::executor cex;
   CompletionHandler h;
 
   void operator()(int n)
@@ -62,8 +62,8 @@ struct my_async_operation_2_impl
 };
 
 template <class CompletionHandler>
-void my_async_operation_2(const execution::one_way_executor& tex, int n, int m,
-    const execution::one_way_executor& cex, CompletionHandler h)
+void my_async_operation_2(const execution::executor& tex, int n, int m,
+    const execution::executor& cex, CompletionHandler h)
 {
   // Intermediate steps of the composed operation are always continuations,
   // so we save the stored executors with that attribute rebound in.

@@ -90,8 +90,7 @@ template<class Executor, class... Args> constexpr bool can_rebind_v = can_rebind
 
 // Polymorphic wrappers.
 class bad_executor;
-class one_way_executor;
-//class two_way_executor;
+class executor;
 
 } // namespace execution
 } // inline namespace concurrency_v2
@@ -112,6 +111,6 @@ class one_way_executor;
 #include <experimental/bits/rebind_member_result.h>
 #include <experimental/bits/rebind_adaptations.h>
 #include <experimental/bits/can_rebind.h>
-#include <experimental/bits/one_way_executor.h>
+#include <experimental/bits/executor.h>
 
 #endif // STD_EXPERIMENTAL_EXECUTION

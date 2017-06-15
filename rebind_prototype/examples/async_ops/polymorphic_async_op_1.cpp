@@ -8,8 +8,8 @@ using std::experimental::static_thread_pool;
 
 // An operation that doubles a value asynchronously.
 template <class CompletionHandler>
-void my_async_operation_1(const execution::one_way_executor& tex, int n,
-    const execution::one_way_executor& cex, CompletionHandler h)
+void my_async_operation_1(const execution::executor& tex, int n,
+    const execution::executor& cex, CompletionHandler h)
 {
   if (n == 0)
   {
