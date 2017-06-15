@@ -3,6 +3,7 @@ DIRS = \
 	adapter \
 	async \
 	async_ops \
+	for_each \
 	hints \
 	inline \
 	invoke \
