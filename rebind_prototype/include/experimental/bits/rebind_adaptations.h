@@ -170,6 +170,84 @@ template<class Executor>
     && !has_rebind_member<Executor, two_way_t>::value, Executor>::type
       rebind(Executor ex, two_way_t) { return std::move(ex); }
 
+// Default rebind for always blocking adapts all executors.
+
+template<class InnerExecutor>
+class always_blocking_adapter
+{
+  InnerExecutor inner_ex_;
+  template <class T> static auto inner_declval() -> decltype(std::declval<InnerExecutor>());
+
+public:
+  always_blocking_adapter(InnerExecutor ex) : inner_ex_(std::move(ex)) {}
+
+  always_blocking_adapter rebind(always_blocking_t) const & { return *this; }
+  always_blocking_adapter rebind(always_blocking_t) && { return std::move(*this); }
+  always_blocking_adapter rebind(possibly_blocking_t) const & { return *this; }
+  always_blocking_adapter rebind(possibly_blocking_t) && { return std::move(*this); }
+
+  template<class... T> auto rebind(T&&... t) const &
+    -> always_blocking_adapter<typename rebind_member_result<InnerExecutor, T...>::type>
+      { return { inner_ex_.rebind(std::forward<T>(t)...) }; }
+  template<class... T> auto rebind(T&&... t) &&
+    -> always_blocking_adapter<typename rebind_member_result<InnerExecutor&&, T...>::type>
+      { return { std::move(inner_ex_).rebind(std::forward<T>(t)...) }; }
+
+  auto& context() const noexcept { return inner_ex_.context(); }
+
+  friend bool operator==(const always_blocking_adapter& a, const always_blocking_adapter& b) noexcept
+  {
+    return a.inner_ex_ == b.inner_ex_;
+  }
+
+  friend bool operator!=(const always_blocking_adapter& a, const always_blocking_adapter& b) noexcept
+  {
+    return !(a == b);
+  }
+
+  template<class Function> auto execute(Function f) const
+    -> decltype(inner_declval<Function>().execute(std::move(f)))
+  {
+    std::promise<void> promise;
+    std::future<void> future = promise.get_future();
+    inner_ex_.execute([f = std::move(f), p = std::move(promise)]() mutable { f(); });
+    future.wait();
+  }
+
+  template<class Function>
+  auto async_execute(Function f) const
+    -> decltype(inner_declval<Function>().async_execute(std::move(f)))
+  {
+    auto future = inner_ex_.async_execute(std::move(f));
+    future.wait();
+    return future;
+  }
+
+  template<class Function, class SharedFactory>
+  auto bulk_execute(Function f, std::size_t n, SharedFactory sf) const
+    -> decltype(inner_declval<Function>().bulk_execute(std::move(f), n, std::move(sf)))
+  {
+    std::promise<void> promise;
+    std::future<void> future = promise.get_future();
+    inner_ex_.bulk_execute([f = std::move(f), p = std::move(promise)](auto i, auto& s) mutable { f(i, s); }, n, std::move(sf));
+    future.wait();
+  }
+
+  template<class Function, class ResultFactory, class SharedFactory>
+  auto bulk_async_execute(Function f, std::size_t n, ResultFactory rf, SharedFactory sf) const
+    -> decltype(inner_declval<Function>().bulk_async_execute(std::move(f), n, std::move(rf), std::move(sf)))
+  {
+    auto future = inner_ex_.bulk_async_execute(std::move(f), n, std::move(rf), std::move(sf));
+    future.wait();
+    return future;
+  }
+};
+
+template<class Executor>
+  constexpr typename std::enable_if<!has_rebind_member<Executor, always_blocking_t>::value,
+    always_blocking_adapter<Executor>>::type
+      rebind(Executor ex, always_blocking_t) { return always_blocking_adapter<Executor>(std::move(ex)); }
+
 // Default rebind for possibly blocking does no adaptation, as all executors are possibly blocking.
 
 template<class Executor>

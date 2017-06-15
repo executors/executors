@@ -5,6 +5,7 @@ DIRS = \
 	async_ops \
 	hints \
 	inline \
+	invoke \
 	nested \
 	simple
 
