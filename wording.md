@@ -82,157 +82,211 @@ namespace execution {
 
   // Member detection type traits:
 
-  template<class T> struct has_execute_member;
-  template<class T> struct has_post_member;
-  template<class T> struct has_defer_member;
-  template<class T> struct has_invoke_member;
-  template<class T> struct has_async_execute_member;
-  template<class T> struct has_async_post_member;
-  template<class T> struct has_async_defer_member;
-  template<class T> struct has_async_invoke_member;
-  template<class T> struct has_then_execute_member;
-  template<class T> struct has_bulk_execute_member;
-  template<class T> struct has_bulk_post_member;
-  template<class T> struct has_bulk_defer_member;
-  template<class T> struct has_bulk_invoke_member;
-  template<class T> struct has_bulk_async_execute_member;
-  template<class T> struct has_bulk_async_post_member;
-  template<class T> struct has_bulk_async_defer_member;
-  template<class T> struct has_bulk_async_invoke_member;
-  template<class T> struct has_bulk_then_execute_member;
+  template<class T> struct has_possibly_blocking_execute_member;
+  template<class T> struct has_never_blocking_execute_member;
+  template<class T> struct has_never_blocking_continuation_execute_member;
+  template<class T> struct has_always_blocking_execute_member;
+  template<class T> struct has_twoway_possibly_blocking_execute_member;
+  template<class T> struct has_twoway_never_blocking_execute_member;
+  template<class T> struct has_twoway_never_blocking_continuation_execute_member;
+  template<class T> struct has_twoway_always_blocking_execute_member;
+  template<class T> struct has_twoway_then_possibly_blocking_execute_member;
+  template<class T> struct has_bulk_possibly_blocking_execute_member;
+  template<class T> struct has_bulk_never_blocking_execute_member;
+  template<class T> struct has_bulk_never_blocking_continuation_execute_member;
+  template<class T> struct has_bulk_always_blocking_execute_member;
+  template<class T> struct has_bulk_twoway_possibly_blocking_execute_member;
+  template<class T> struct has_bulk_twoway_never_blocking_execute_member;
+  template<class T> struct has_bulk_twoway_never_blocking_continuation_execute_member;
+  template<class T> struct has_bulk_twoway_always_blocking_execute_member;
+  template<class T> struct has_bulk_twoway_then_possibly_blocking_execute_member;
 
-  template<class T> constexpr bool has_execute_member_v = has_execute_member<T>::value;
-  template<class T> constexpr bool has_post_member_v = has_post_member<T>::value;
-  template<class T> constexpr bool has_defer_member_v = has_defer_member<T>::value;
-  template<class T> constexpr bool has_invoke_member_v = has_invoke_member<T>::value;
-  template<class T> constexpr bool has_async_execute_member_v = has_async_execute_member<T>::value;
-  template<class T> constexpr bool has_async_post_member_v = has_async_post_member<T>::value;
-  template<class T> constexpr bool has_async_defer_member_v = has_async_defer_member<T>::value;
-  template<class T> constexpr bool has_async_invoke_member_v = has_async_invoke_member<T>::value;
-  template<class T> constexpr bool has_then_execute_member_v = has_then_execute_member<T>::value;
-  template<class T> constexpr bool has_bulk_execute_member_v = has_bulk_execute_member<T>::value;
-  template<class T> constexpr bool has_bulk_post_member_v = has_bulk_post_member<T>::value;
-  template<class T> constexpr bool has_bulk_defer_member_v = has_bulk_defer_member<T>::value;
-  template<class T> constexpr bool has_bulk_invoke_member_v = has_bulk_invoke_member<T>::value;
-  template<class T> constexpr bool has_bulk_async_execute_member_v = has_bulk_async_execute_member<T>::value;
-  template<class T> constexpr bool has_bulk_async_post_member_v = has_bulk_async_post_member<T>::value;
-  template<class T> constexpr bool has_bulk_async_defer_member_v = has_bulk_async_defer_member<T>::value;
-  template<class T> constexpr bool has_bulk_async_invoke_member_v = has_bulk_async_invoke_member<T>::value;
-  template<class T> constexpr bool has_bulk_then_execute_member_v = has_bulk_then_execute_member<T>::value;
+  template<class T> constexpr bool has_possibly_blocking_execute_member_v =
+    has_possibly_blocking_execute_member<T>::value;
+  template<class T> constexpr bool has_never_blocking_execute_member_v =
+    has_never_blocking_execute_member<T>::value;
+  template<class T> constexpr bool has_never_blocking_continuation_execute_member_v =
+    has_never_blocking_continuation_execute_member<T>::value;
+  template<class T> constexpr bool has_always_blocking_execute_member_v =
+    has_always_blocking_execute_member<T>::value;
+  template<class T> constexpr bool has_twoway_possibly_blocking_execute_member_v =
+    has_twoway_possibly_blocking_execute_member<T>::value;
+  template<class T> constexpr bool has_twoway_never_blocking_execute_member_v =
+    has_twoway_never_blocking_execute_member<T>::value;
+  template<class T> constexpr bool has_twoway_never_blocking_continuation_execute_member_v =
+    has_twoway_never_blocking_continuation_execute_member<T>::value;
+  template<class T> constexpr bool has_twoway_always_blocking_execute_member_v =
+    has_twoway_always_blocking_execute_member<T>::value;
+  template<class T> constexpr bool has_twoway_then_possibly_blocking_execute_member_v =
+    has_twoway_then_possibly_blocking_execute_member<T>::value;
+  template<class T> constexpr bool has_bulk_possibly_blocking_execute_member_v =
+    has_bulk_possibly_blocking_execute_member<T>::value;
+  template<class T> constexpr bool has_bulk_never_blocking_execute_member_v =
+    has_bulk_never_blocking_execute_member<T>::value;
+  template<class T> constexpr bool has_bulk_never_blocking_continuation_execute_member_v =
+    has_bulk_never_blocking_continuation_execute_member<T>::value;
+  template<class T> constexpr bool has_bulk_always_blocking_execute_member_v =
+    has_bulk_always_blocking_execute_member<T>::value;
+  template<class T> constexpr bool has_bulk_twoway_possibly_blocking_execute_member_v =
+    has_bulk_twoway_possibly_blocking_execute_member<T>::value;
+  template<class T> constexpr bool has_bulk_twoway_never_blocking_execute_member_v =
+    has_bulk_twoway_never_blocking_execute_member<T>::value;
+  template<class T> constexpr bool has_bulk_twoway_never_blocking_continuation_execute_member_v =
+    has_bulk_twoway_never_blocking_continuation_execute_member<T>::value;
+  template<class T> constexpr bool has_bulk_twoway_always_blocking_execute_member_v =
+    has_bulk_twoway_always_blocking_execute_member<T>::value;
+  template<class T> constexpr bool has_bulk_twoway_then_possibly_blocking_execute_member_v =
+    has_bulk_twoway_then_possibly_blocking_execute_member<T>::value;
 
   // Free function detection type traits:
 
-  template<class T> struct has_execute_free_function;
-  template<class T> struct has_post_free_function;
-  template<class T> struct has_defer_free_function;
-  template<class T> struct has_invoke_free_function;
-  template<class T> struct has_async_execute_free_function;
-  template<class T> struct has_async_post_free_function;
-  template<class T> struct has_async_defer_free_function;
-  template<class T> struct has_async_invoke_free_function;
-  template<class T> struct has_then_execute_free_function;
-  template<class T> struct has_bulk_execute_free_function;
-  template<class T> struct has_bulk_post_free_function;
-  template<class T> struct has_bulk_defer_free_function;
-  template<class T> struct has_bulk_invoke_free_function;
-  template<class T> struct has_bulk_async_execute_free_function;
-  template<class T> struct has_bulk_async_post_free_function;
-  template<class T> struct has_bulk_async_defer_free_function;
-  template<class T> struct has_bulk_async_invoke_free_function;
-  template<class T> struct has_bulk_then_execute_free_function;
+  template<class T> struct has_possibly_blocking_execute_free_function;
+  template<class T> struct has_never_blocking_execute_free_function;
+  template<class T> struct has_never_blocking_continuation_execute_free_function;
+  template<class T> struct has_always_blocking_execute_free_function;
+  template<class T> struct has_twoway_possibly_blocking_execute_free_function;
+  template<class T> struct has_twoway_never_blocking_execute_free_function;
+  template<class T> struct has_twoway_never_blocking_continuation_execute_free_function;
+  template<class T> struct has_twoway_always_blocking_execute_free_function;
+  template<class T> struct has_twoway_then_possibly_blocking_execute_free_function;
+  template<class T> struct has_bulk_possibly_blocking_execute_free_function;
+  template<class T> struct has_bulk_never_blocking_execute_free_function;
+  template<class T> struct has_bulk_never_blocking_continuation_execute_free_function;
+  template<class T> struct has_bulk_always_blocking_execute_free_function;
+  template<class T> struct has_bulk_twoway_possibly_blocking_execute_free_function;
+  template<class T> struct has_bulk_twoway_never_blocking_execute_free_function;
+  template<class T> struct has_bulk_twoway_never_blocking_continuation_execute_free_function;
+  template<class T> struct has_bulk_twoway_always_blocking_execute_free_function;
+  template<class T> struct has_bulk_twoway_then_possibly_blocking_execute_free_function;
 
-  template<class T> constexpr bool has_execute_free_function_v = has_execute_free_function<T>::value;
-  template<class T> constexpr bool has_post_free_function_v = has_post_free_function<T>::value;
-  template<class T> constexpr bool has_defer_free_function_v = has_defer_free_function<T>::value;
-  template<class T> constexpr bool has_invoke_free_function_v = has_invoke_free_function<T>::value;
-  template<class T> constexpr bool has_async_execute_free_function_v = has_async_execute_free_function<T>::value;
-  template<class T> constexpr bool has_async_post_free_function_v = has_async_post_free_function<T>::value;
-  template<class T> constexpr bool has_async_defer_free_function_v = has_async_defer_free_function<T>::value;
-  template<class T> constexpr bool has_async_invoke_free_function_v = has_async_invoke_free_function<T>::value;
-  template<class T> constexpr bool has_then_execute_free_function_v = has_then_execute_free_function<T>::value;
-  template<class T> constexpr bool has_bulk_execute_free_function_v = has_bulk_execute_free_function<T>::value;
-  template<class T> constexpr bool has_bulk_post_free_function_v = has_bulk_post_free_function<T>::value;
-  template<class T> constexpr bool has_bulk_defer_free_function_v = has_bulk_defer_free_function<T>::value;
-  template<class T> constexpr bool has_bulk_invoke_free_function_v = has_bulk_invoke_free_function<T>::value;
-  template<class T> constexpr bool has_bulk_async_execute_free_function_v = has_bulk_async_execute_free_function<T>::value;
-  template<class T> constexpr bool has_bulk_async_post_free_function_v = has_bulk_async_post_free_function<T>::value;
-  template<class T> constexpr bool has_bulk_async_defer_free_function_v = has_bulk_async_defer_free_function<T>::value;
-  template<class T> constexpr bool has_bulk_async_invoke_free_function_v = has_bulk_async_invoke_free_function<T>::value;
-  template<class T> constexpr bool has_bulk_then_execute_free_function_v = has_bulk_then_execute_free_function<T>::value;
+  template<class T> constexpr bool has_possibly_blocking_execute_free_function_v =
+    has_possibly_blocking_execute_free_function<T>::value;
+  template<class T> constexpr bool has_never_blocking_execute_free_function_v =
+    has_never_blocking_execute_free_function<T>::value;
+  template<class T> constexpr bool has_never_blocking_continuation_execute_free_function_v =
+    has_never_blocking_continuation_execute_free_function<T>::value;
+  template<class T> constexpr bool has_always_blocking_execute_free_function_v =
+    has_always_blocking_execute_free_function<T>::value;
+  template<class T> constexpr bool has_twoway_possibly_blocking_execute_free_function_v =
+    has_twoway_possibly_blocking_execute_free_function<T>::value;
+  template<class T> constexpr bool has_twoway_never_blocking_execute_free_function_v =
+    has_twoway_never_blocking_execute_free_function<T>::value;
+  template<class T> constexpr bool has_twoway_never_blocking_continuation_execute_free_function_v =
+    has_twoway_never_blocking_continuation_execute_free_function<T>::value;
+  template<class T> constexpr bool has_twoway_always_blocking_execute_free_function_v =
+    has_twoway_always_blocking_execute_free_function<T>::value;
+  template<class T> constexpr bool has_twoway_then_possibly_blocking_execute_free_function_v =
+    has_twoway_then_possibly_blocking_execute_free_function<T>::value;
+  template<class T> constexpr bool has_bulk_possibly_blocking_execute_free_function_v =
+    has_bulk_possibly_blocking_execute_free_function<T>::value;
+  template<class T> constexpr bool has_bulk_never_blocking_execute_free_function_v =
+    has_bulk_never_blocking_execute_free_function<T>::value;
+  template<class T> constexpr bool has_bulk_never_blocking_continuation_execute_free_function_v =
+    has_bulk_never_blocking_continuation_execute_free_function<T>::value;
+  template<class T> constexpr bool has_bulk_always_blocking_execute_free_function_v =
+    has_bulk_always_blocking_execute_free_function<T>::value;
+  template<class T> constexpr bool has_bulk_twoway_possibly_blocking_execute_free_function_v =
+    has_bulk_twoway_possibly_blocking_execute_free_function<T>::value;
+  template<class T> constexpr bool has_bulk_twoway_never_blocking_execute_free_function_v =
+    has_bulk_twoway_never_blocking_execute_free_function<T>::value;
+  template<class T> constexpr bool has_bulk_twoway_never_blocking_continuation_execute_free_function_v =
+    has_bulk_twoway_never_blocking_continuation_execute_free_function<T>::value;
+  template<class T> constexpr bool has_bulk_twoway_always_blocking_execute_free_function_v =
+    has_bulk_twoway_always_blocking_execute_free_function<T>::value;
+  template<class T> constexpr bool has_bulk_twoway_then_possibly_blocking_execute_free_function_v =
+    has_bulk_twoway_then_possibly_blocking_execute_free_function<T>::value;
 
   // Customization points:
 
   namespace {
-    constexpr unspecified execute = unspecified;
-    constexpr unspecified post = unspecified;
-    constexpr unspecified defer = unspecified;
-    constexpr unspecified invoke = unspecified;
-    constexpr unspecified async_execute = unspecified;
-    constexpr unspecified async_post = unspecified;
-    constexpr unspecified async_defer = unspecified;
-    constexpr unspecified async_invoke = unspecified;
-    constexpr unspecified then_execute = unspecified;
-    constexpr unspecified bulk_execute = unspecified;
-    constexpr unspecified bulk_post = unspecified;
-    constexpr unspecified bulk_defer = unspecified;
-    constexpr unspecified bulk_invoke = unspecified;
-    constexpr unspecified bulk_async_execute = unspecified;
-    constexpr unspecified bulk_async_post = unspecified;
-    constexpr unspecified bulk_async_defer = unspecified;
-    constexpr unspecified bulk_async_invoke = unspecified;
-    constexpr unspecified bulk_then_execute = unspecified;
+    constexpr unspecified possibly_blocking_execute = unspecified;
+    constexpr unspecified never_blocking_execute = unspecified;
+    constexpr unspecified never_blocking_continuation_execute = unspecified;
+    constexpr unspecified always_blocking_execute = unspecified;
+    constexpr unspecified twoway_possibly_blocking_execute = unspecified;
+    constexpr unspecified twoway_never_blocking_execute = unspecified;
+    constexpr unspecified twoway_never_blocking_continuation_execute = unspecified;
+    constexpr unspecified twoway_always_blocking_execute = unspecified;
+    constexpr unspecified twoway_then_execute = unspecified;
+    constexpr unspecified bulk_possibly_blocking_execute = unspecified;
+    constexpr unspecified bulk_never_blocking_execute = unspecified;
+    constexpr unspecified bulk_never_blocking_continuation_execute = unspecified;
+    constexpr unspecified bulk_always_blocking_execute = unspecified;
+    constexpr unspecified bulk_twoway_possibly_blocking_execute = unspecified;
+    constexpr unspecified bulk_twoway_never_blocking_execute = unspecified;
+    constexpr unspecified bulk_twoway_never_blocking_continuation_execute = unspecified;
+    constexpr unspecified bulk_twoway_always_blocking_execute = unspecified;
+    constexpr unspecified bulk_twoway_then_possibly_blocking_execute = unspecified;
   }
 
   // Customization point type traits:
 
-  template<class T> struct can_execute;
-  template<class T> struct can_post;
-  template<class T> struct can_defer;
-  template<class T> struct can_invoke;
-  template<class T> struct can_async_execute;
-  template<class T> struct can_async_post;
-  template<class T> struct can_async_defer;
-  template<class T> struct can_async_invoke;
-  template<class T> struct can_then_execute;
-  template<class T> struct can_bulk_execute;
-  template<class T> struct can_bulk_post;
-  template<class T> struct can_bulk_defer;
-  template<class T> struct can_bulk_invoke;
-  template<class T> struct can_bulk_async_execute;
-  template<class T> struct can_bulk_async_post;
-  template<class T> struct can_bulk_async_defer;
-  template<class T> struct can_bulk_async_invoke;
-  template<class T> struct can_bulk_then_execute;
+  template<class T> struct can_possibly_blocking_execute;
+  template<class T> struct can_never_blocking_execute;
+  template<class T> struct can_never_blocking_continuation_execute;
+  template<class T> struct can_always_blocking_execute;
+  template<class T> struct can_twoway_possibly_blocking_execute;
+  template<class T> struct can_twoway_never_blocking_execute;
+  template<class T> struct can_twoway_never_blocking_continuation_execute;
+  template<class T> struct can_twoway_always_blocking_execute;
+  template<class T> struct can_twoway_then_execute;
+  template<class T> struct can_bulk_possibly_blocking_execute;
+  template<class T> struct can_bulk_never_blocking_execute;
+  template<class T> struct can_bulk_never_blocking_continuation_execute;
+  template<class T> struct can_bulk_always_blocking_execute;
+  template<class T> struct can_bulk_twoway_possibly_blocking_execute;
+  template<class T> struct can_bulk_twoway_never_blocking_execute;
+  template<class T> struct can_bulk_twoway_never_blocking_continuation_execute;
+  template<class T> struct can_bulk_twoway_always_blocking_execute;
+  template<class T> struct can_bulk_twoway_then_possibly_blocking_execute;
 
-  template<class T> constexpr bool can_execute_v = can_execute<T>::value;
-  template<class T> constexpr bool can_post_v = can_post<T>::value;
-  template<class T> constexpr bool can_defer_v = can_defer<T>::value;
-  template<class T> constexpr bool can_invoke_v = can_invoke<T>::value;
-  template<class T> constexpr bool can_async_execute_v = can_async_execute<T>::value;
-  template<class T> constexpr bool can_async_post_v = can_async_post<T>::value;
-  template<class T> constexpr bool can_async_defer_v = can_async_defer<T>::value;
-  template<class T> constexpr bool can_async_invoke_v = can_async_invoke<T>::value;
-  template<class T> constexpr bool can_then_execute_v = can_then_execute<T>::value;
-  template<class T> constexpr bool can_bulk_execute_v = can_bulk_execute<T>::value;
-  template<class T> constexpr bool can_bulk_post_v = can_bulk_post<T>::value;
-  template<class T> constexpr bool can_bulk_defer_v = can_bulk_defer<T>::value;
-  template<class T> constexpr bool can_bulk_invoke_v = can_bulk_invoke<T>::value;
-  template<class T> constexpr bool can_bulk_async_execute_v = can_bulk_async_execute<T>::value;
-  template<class T> constexpr bool can_bulk_async_post_v = can_bulk_async_post<T>::value;
-  template<class T> constexpr bool can_bulk_async_defer_v = can_bulk_async_defer<T>::value;
-  template<class T> constexpr bool can_bulk_async_invoke_v = can_bulk_async_invoke<T>::value;
-  template<class T> constexpr bool can_bulk_then_execute_v = can_bulk_then_execute<T>::value;
+  template<class T> constexpr bool can_possibly_blocking_execute_v =
+    can_possibly_blocking_execute<T>::value;
+  template<class T> constexpr bool can_never_blocking_execute_v =
+    can_never_blocking_execute<T>::value;
+  template<class T> constexpr bool can_never_blocking_continuation_execute_v =
+    can_never_blocking_continuation_execute<T>::value;
+  template<class T> constexpr bool can_always_blocking_execute_v =
+    can_always_blocking_execute<T>::value;
+  template<class T> constexpr bool can_twoway_possibly_blocking_execute_v =
+    can_twoway_possibly_blocking_execute<T>::value;
+  template<class T> constexpr bool can_twoway_never_blocking_execute_v =
+    can_twoway_never_blocking_execute<T>::value;
+  template<class T> constexpr bool can_twoway_never_blocking_continuation_execute_v =
+    can_twoway_never_blocking_continuation_execute<T>::value;
+  template<class T> constexpr bool can_twoway_always_blocking_execute_v =
+    can_twoway_always_blocking_execute<T>::value;
+  template<class T> constexpr bool can_twoway_then_execute_v =
+    can_twoway_then_execute<T>::value;
+  template<class T> constexpr bool can_bulk_possibly_blocking_execute_v =
+    can_bulk_possibly_blocking_execute<T>::value;
+  template<class T> constexpr bool can_bulk_never_blocking_execute_v =
+    can_bulk_never_blocking_execute<T>::value;
+  template<class T> constexpr bool can_bulk_never_blocking_continuation_execute_v =
+    can_bulk_never_blocking_continuation_execute<T>::value;
+  template<class T> constexpr bool can_bulk_always_blocking_execute_v =
+    can_bulk_always_blocking_execute<T>::value;
+  template<class T> constexpr bool can_bulk_twoway_possibly_blocking_execute_v =
+    can_bulk_twoway_possibly_blocking_execute<T>::value;
+  template<class T> constexpr bool can_bulk_twoway_never_blocking_execute_v =
+    can_bulk_twoway_never_blocking_execute<T>::value;
+  template<class T> constexpr bool can_bulk_twoway_never_blocking_continuation_execute_v =
+    can_bulk_twoway_never_blocking_continuation_execute<T>::value;
+  template<class T> constexpr bool can_bulk_twoway_always_blocking_execute_v =
+    can_bulk_twoway_always_blocking_execute<T>::value;
+  template<class T> constexpr bool can_bulk_twoway_then_possibly_blocking_execute_v =
+    can_bulk_twoway_then_possibly_blocking_execute<T>::value;
 
   // Executor type traits:
 
   template<class T> struct is_one_way_executor;
-  template<class T> struct is_non_blocking_one_way_executor;
+  template<class T> struct is_never_blocking_one_way_executor;
   template<class T> struct is_always_blocking_one_way_executor;
   template<class T> struct is_two_way_executor;
   template<class T> struct is_bulk_two_way_executor;
 
   template<class T> constexpr bool is_one_way_executor_v = is_one_way_executor<T>::value;
-  template<class T> constexpr bool is_non_blocking_one_way_executor_v = is_non_blocking_one_way_executor<T>::value;
+  template<class T> constexpr bool is_never_blocking_one_way_executor_v = is_never_blocking_one_way_executor<T>::value;
   template<class T> constexpr bool is_always_blocking_one_way_executor_v = is_always_blocking_one_way_executor<T>::value;
   template<class T> constexpr bool is_two_way_executor_v = is_two_way_executor<T>::value;
   template<class T> constexpr bool is_bulk_two_way_executor_v = is_bulk_two_way_executor<T>::value;
@@ -258,7 +312,7 @@ namespace execution {
 
   struct blocking_execution_tag {};
   struct possibly_blocking_execution_tag {};
-  struct non_blocking_execution_tag {};
+  struct never_blocking_execution_tag {};
 
   template<class Executor> struct executor_execute_blocking_category;
 
@@ -355,7 +409,7 @@ The name of an execution function is determined by the combination of its proper
 
 | Cardinality | Directionality | Blocking semantics |
 |-------------|----------------|--------------------|
-| `""` or `"bulk_"` | `""` or `"sync_"` or `"async_"` or `"then_"` | `"execute"` or `"post"` or `"defer"` |
+| `""` or `"bulk_"` | `""` or `"twoway_"` or `"twoway_then_"` | `"possibly_blocking_execute"` or `"never_blocking_execute"` or `"never_blocking_continuation_execute"` or `"always_blocking_execute"` |
 
 #### Semantics of execution functions
 
@@ -367,8 +421,9 @@ The parameters of the execution function and semantics that apply to the the exe
 
 The blocking semantics of an execution function may be one of the following:
 
-* *Potentially blocking:* The execution function may block the caller pending completion of the submitted function objects. Execution functions having potentially blocking semantics are named `execute`.
-* *Non-blocking:* The execution function shall not block the caller pending completion of the submitted function objects. Execution functions having non-blocking semantics are named `post` or `defer`.
+* *Potentially blocking:* The execution function may block the caller pending completion of the submitted function objects. Execution functions having potentially blocking semantics are named `possibly_blocking_execute`.
+* *Never blocking:* The execution function shall not block the caller pending completion of the submitted function objects. Execution functions having never blocking semantics are named `never_blocking_execute` or `never_blocking_continuation_execute`.
+* *Always blocking:* The execution function must block the caller pending completion of the submitted function object. Execution functions having always blocking semantics are named `always_blocking_execute`.
 
 ##### Requirements on execution functions having potentially blocking semantics
 
@@ -376,24 +431,31 @@ In the Table below, `x` denotes a (possibly const) executor object of type `X` a
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.execute(f, ...)` <br/> `execute(x, f, ...)` | void | Creates an execution agent with forward progress guarantees of `executor_execution_mapping_category_t<X>` which invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `execute`. <br/> <br/> May block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))()` finishes execution. <br/> <br/> The invocation of `execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. |
+| `x.possibly_blocking_execute(f, ...)` <br/> `possibly_blocking_execute(x, f, ...)` | void | Creates an execution agent with forward progress guarantees of `executor_execution_mapping_category_t<X>` which invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `possibly_blocking_execute`. <br/> <br/> May block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))()` finishes execution. <br/> <br/> The invocation of `possibly_blocking_execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. |
 
-##### Requirements on execution functions having non-blocking semantics
+##### Requirements on execution functions having never blocking semantics
 
 In the Table below, `x` denotes a (possibly const) executor object of type `X` and `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.post(f, ...)` <br/>`post(x, f, ...)` | void | Creates an execution agent with forward progress guarantees of `executor_execution_mapping_category_t<X>` which invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `post`. <br/> <br/> Shall not block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))()` finishes execution. <br/> <br/> The invocation of `execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. |
-| `x.defer(f, ...)` <br/>`defer(x, f, ...)` | void | Creates an execution agent with forward progress guarantees of `executor_execution_mapping_category_t<X>` invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `defer`. <br/> <br/> Shall not block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))()` finishes execution. <br/> <br/> The invocation of `execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. |
+| `x.never_blocking_execute(f, ...)` <br/>`never_blocking_execute(x, f, ...)` | void | Creates an execution agent with forward progress guarantees of `executor_execution_mapping_category_t<X>` which invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `never_blocking_execute`. <br/> <br/> Shall not block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))()` finishes execution. <br/> <br/> The invocation of `never_blocking_execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. |
+| `x.never_blocking_continuation_execute(f, ...)` <br/>`never_blocking_continuation_execute(x, f, ...)` | void | Creates an execution agent with forward progress guarantees of `executor_execution_mapping_category_t<X>` invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `never_blocking_continuation_execute`. <br/> <br/> Shall not block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))()` finishes execution. <br/> <br/> The invocation of `never_blocking_continuation_execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. |
+
+##### Requirements on execution functions having always blocking semantics
+
+In the Table below, `x` denotes a (possibly const) executor object of type `X` and `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
+
+| Expression | Return Type | Operational semantics |
+|------------|-------------|---------------------- |
+| `x.always_blocking_execute(f, ...)` <br/> `always_blocking_execute(x, f, ...)` | void | Creates an execution agent with forward progress guarantees of `executor_execution_mapping_category_t<X>` which invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `always_blocking_execute`. <br/> <br/> Must block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))()` finishes execution. <br/> <br/> The invocation of `alwaysblocking_execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. |
 
 #### Directionality
 
 The directionality property of an execution function may be one of the following:
 
 * *One-way:* The execution function creates execution agents without a channel for awaiting the completion of a submitted function object or for obtaining its result. *Note:* That is, the executor provides fire-and-forget semantics. *--end note*] The names of execution functions having one-way directionality do not have an associated prefix.
-* *Synchronous two-way:* The execution function blocks until execution of the submitted function is complete, and returns the result. The names of execution functions having synchronous two-way directionality have the prefix `sync_`.
-* *Asynchronous two-way:* The execution function returns a `Future` for awaiting the completion of a submitted function object and obtaining its result. The names of execution functions having asynchronous two-way directionality have the prefix `async_` or `then_`.
+* *Two-way:* The execution function returns a `Future` for awaiting the completion of a submitted function object and obtaining its result. The names of execution functions having asynchronous two-way directionality have the prefix `twoway_` or `twoway_then_`.
 
 ##### Requirements on execution functions of one-way directionality
 
@@ -403,22 +465,14 @@ In the Table below, `x` denotes a (possibly const) executor object of type `X`, 
 |------------|-------------|---------------------- |
 | `x.'e'(...)` <br/> `'e'(x, ...)` | void | [*Note:* If `f()` exits via an exception, the behavior is specific to the executor. *--end note.*] |
 
-##### Requirements on execution functions of synchronous two-way directionality
-
-In the Table below, `x` denotes a (possibly const) executor object of type `X`, `'e'` denotes an expression from the requirements on blocking semantics and `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
-
-| Expression | Return Type | Operational semantics |
-|------------|-------------|---------------------- |
-| `x.sync_'e'(...)` <br/> `sync_'e'(x, ...)` | `R` | Returns the result of `f()`. <br/><br/> Throws any exception thrown by `f()`. <br/> <br/> Must block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))()` finishes execution. |
-
-##### Requirements on execution functions of asynchronous two-way directionality
+##### Requirements on execution functions of two-way directionality
 
 In the Table below, `x` denotes a (possibly const) executor object of type `X`, `'e'` denotes an expression from the requirements on blocking semantics, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements and `pred` denotes a `Future` object whose result is `pr`.
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.async_'e'(...)` <br/> `async_'e'(x, ...)` | A type that satisfies the `Future` requirements for the value type `R`. |  Stores the result of `f()`, or any exception thrown by `f()`, in the associated shared state of the resulting `Future`. |
-| `x.then_'e'(..., pred, ...)` <br/> `then_'e'(x, ..., pred, ...)` | A type that satisfies the `Future` requirements for the value type `R`. | Stores the result of `f(pr)`, or any exception thrown by `f(pr)`, in the associated shared state of the resulting `Future`. |
+| `x.twoway_'e'(...)` <br/> `twoway_'e'(x, ...)` | A type that satisfies the `Future` requirements for the value type `R`. |  Stores the result of `f()`, or any exception thrown by `f()`, in the associated shared state of the resulting `Future`. |
+| `x.twoway_then_'e'(..., pred, ...)` <br/> `twoway_then_'e'(x, ..., pred, ...)` | A type that satisfies the `Future` requirements for the value type `R`. | Stores the result of `f(pr)`, or any exception thrown by `f(pr)`, in the associated shared state of the resulting `Future`. |
 
 #### Cardinality
 
@@ -461,18 +515,18 @@ The table below describes the execution member functions and non-member function
 
 | Cardinality | Directionality | Blocking semantics | Member function | Free function |
 | ------------ | -------------- | --------------------- | ------------------- | ---------------------- |
-| Single | One-way | Potentially blocking | `x.execute(f)` <br/> `x.execute(f, a)` | `execute(x, f)` <br/> `execute(x, f, a)` |
-| Single | One-way | Non-blocking | `x.post(f)` <br/> `x.post(f, a)` <br/> `x.defer(f)`  <br/> `x.defer(f, a)` | `post(x, f)` <br/> `post(x, f, a)` <br/> `defer(x, f)`  <br/> `defer(x, f, a)` |
-| Single | Two-way synchronous | Potentially blocking | `x.sync_execute(f)` <br/> `x.sync_execute(f, a)` | `sync_execute(x, f)` <br/> `sync_execute(x, f, a)` |
-| Single | Two-way synchronous | Non-blocking | NA | NA |
-| Single | Two-way asynchronous | Potentially blocking | `x.async_execute(f)` <br/> `x.async_execute(f, a)`  <br/> `x.then_execute(f, pred)` <br/> `x.then_execute(f, pred, a)` | `async_execute(x, f)` <br/> `async_execute(x, f, a)`  <br/> `then_execute(x, f, pred)` <br/> `then_execute(x, f, pred, a)` |
-| Single | Two-way asynchronous | Non-blocking | `x.async_post(f)` <br/> `x.async_post(f, a)` <br/> `x.async_defer(f)` <br/> `x.async_defer(f, a)` | `async_post(x, f)` <br/> `x.async_post(x, f, a)` <br/> `async_defer(x, f)` <br/> `x.async_defer(x, f, a)` |
-| Bulk | One-way | Potentially blocking | `x.bulk_execute(f, n, sf)` | `bulk_execute(x, f, n, sf)` |
-| Bulk | One-way | Non-blocking | `x.bulk_post(f, n, sf)` <br/> `x.bulk_defer(f, n, sf)` | `bulk_post(x, f, n, sf)` <br/> `bulk_defer(x, f, n, sf)` |
-| Bulk | Two-way synchronous | Potentially blocking | `x.bulk_sync_execute(f, n, rf, sf)` | `bulk_sync_execute(x, f, n, rf, sf)` |
-| Bulk | Two-way synchronous | Non-blocking | NA | NA |
-| Bulk | Two-way asynchronous | Potentially blocking | `x.bulk_async_execute(f, n, rf, sf)` <br/> `x.bulk_then_execute(f, n, pred, rf, sf)` | `bulk_async_execute(x, f, n, rf, sf)` <br/> `bulk_then_execute(x, f, n, pred, rf, sf)` |
-| Bulk | Two-way asynchronous | Non-blocking |  `x.bulk_async_post(f, n, rf, sf)` <br/> `x.bulk_async_defer(f, n, rf, sf)` | `bulk_async_post(x, f, n, rf, sf)` <br/> `bulk_async_defer(x, f, n, rf, sf)` |
+| Single | One-way | Possibly blocking | `x.possibly_blocking(f)` <br/> `x.possibly_blocking(f, a)` | `possibly_blocking(x, f)` <br/> `possibly_blocking(x, f, a)` |
+| Single | One-way | Never blocking | `x.never_blocking__execute(f)` <br/> `x.never_blocking_execute(f, a)` <br/> `x.never_blocking_continuation_execute(f)`  <br/> `x.never_blocking_continuation_execute(f, a)` | `never_blocking_execute(x, f)` <br/> `never_blocking_execute(x, f, a)` <br/> `never_blocking_continuation_execute(x, f)`  <br/> `never_blocking_continuation_execute(x, f, a)` |
+| Single | One-way | Always blocking | `x.always_blocking_execute(f)` <br/> `x.always_blocking_execute(f, a)` | `always_blocking_execute(x, f)` <br/> `always_blocking_execute(x, f, a)` |
+| Single | Two-way | Possibly blocking | `x.twoway_possibly_blocking(f)` <br/> `x.twoway_possibly_blocking(f, a)`  <br/> `x.twoway_then_possibly_blocking(f, pred)` <br/> `x.twoway_then_possibly_blocking(f, pred, a)` | `twoway_possibly_blocking(x, f)` <br/> `twoway_possibly_blocking(x, f, a)`  <br/> `twoway_then_possibly_blocking(x, f, pred)` <br/> `twoway_then_possibly_blocking(x, f, pred, a)` |
+| Single | Two-way | Never blocking | `x.twoway_never_blocking_execute(f)` <br/> `x.twoway_never_blocking_execute(f, a)` <br/> `x.twoway_never_blocking_continuation_execute(f)` <br/> `x.twoway_never_blocking_continuation_execute(f, a)` | `twoway_never_blocking_execute(x, f)` <br/> `x.twoway_never_blocking_execute(x, f, a)` <br/> `twoway_never_blocking_continuation_execute(x, f)` <br/> `x.twoway_never_blocking_continuation_execute(x, f, a)` |
+| Single | Two-way | Always blocking | `x.twoway_always_blocking_execute(f)` <br/> `x.twoway_always_blocking_execute(f, a)` | `twoway_always_blocking_execute(x, f)` <br/> `twoway_always_blocking_execute(x, f, a)` |
+| Bulk | One-way | Possibly blocking | `x.bulk_possibly_blocking(f, n, sf)` | `bulk_possibly_blocking(x, f, n, sf)` |
+| Bulk | One-way | Never blocking | `x.bulk_never_blocking_execute(f, n, sf)` <br/> `x.bulk_never_blocking_continuation_execute(f, n, sf)` | `bulk_never_blocking_execute(x, f, n, sf)` <br/> `bulk_never_blocking_continuation_execute(x, f, n, sf)` |
+| Bulk | One-way | Always blocking | `x.bulk_always_blocking_execute(f, n, sf)` | `bulk_always_blocking_execute(x, f, n, sf)` |
+| Bulk | Two-way | Possibly blocking | `x.bulk_twoway_possibly_blocking(f, n, rf, sf)` <br/> `x.bulk_twoway_then_possibly_blocking(f, n, pred, rf, sf)` | `bulk_twoway_possibly_blocking(x, f, n, rf, sf)` <br/> `bulk_twoway_then_possibly_blocking(x, f, n, pred, rf, sf)` |
+| Bulk | Two-way | Never blocking |  `x.bulk_twoway_never_blocking_execute(f, n, rf, sf)` <br/> `x.bulk_twoway_never_blocking_continuation_execute(f, n, rf, sf)` | `bulk_twoway_never_blocking_execute(x, f, n, rf, sf)` <br/> `bulk_twoway_never_blocking_continuation_execute(x, f, n, rf, sf)` |
+| Bulk | Two-way | Always blocking | `x.bulk_twoway_always_blocking_execute(f, n, rf, sf)` | `bulk_twoway_always_blocking_execute(x, f, n, rf, sf)` |
 
 ### `BaseExecutor` requirements
 
@@ -500,13 +554,19 @@ Table: (Base executor requirements) \label{base_executor_requirements}
 
 The `OneWayExecutor` requirements specify requirements for executors which create execution agents without a channel for awaiting the completion of a submitted function object and obtaining its result. [*Note:* That is, the executor provides fire-and-forget semantics. *--end note*]
 
-A type `X` satisfies the `OneWayExecutor` requirements if it satisfies the `BaseExecutor` requirements, and `can_execute_v<X>` is true.
+A type `X` satisfies the `OneWayExecutor` requirements if it satisfies the `BaseExecutor` requirements, and `can_possibly_blocking_execute_v<X>` is true.
 
-### `NonBlockingOneWayExecutor` requirements
+### `NeverBlockingOneWayExecutor` requirements
 
-The `NonBlockingOneWayExecutor` requirements refine the `OneWayExecutor` requirements by adding one-way operations that are guaranteed not to block the caller pending completion of submitted function objects.
+The `NeverBlockingOneWayExecutor` requirements refine the `OneWayExecutor` requirements by adding one-way operations that are guaranteed not to block the caller pending completion of submitted function objects.
 
-A type `X` satisfies the `NonBlockingOneWayExecutor` requirements if it satisfies the `OneWayExecutor` requirements, `can_post_v<X>` is true, and `can_defer_v<X>` is true.
+A type `X` satisfies the `NeverBlockingOneWayExecutor` requirements if it satisfies the `OneWayExecutor` requirements, `can_never_blocking_execute_v<X>` is true, and `can_never_blocking_continuation_execute_v<X>` is true.
+
+### `AlwaysBlockingOneWayExecutor` requirements
+
+The `AlwaysBlockingOneWayExecutor` requirements refine the `OneWayExecutor` requirements by adding one-way operations that are guaranteed to always block the caller pending completion of submitted function objects.
+
+A type `X` satisfies the `AlwaysBlockingOneWayExecutor` requirements if it satisfies the `OneWayExecutor` requirements, `can_always_blocking_execute_v<X>` is true.
 
 ### `TwoWayExecutor` requirements
 
@@ -514,7 +574,17 @@ The `TwoWayExecutor` requirements specify requirements for executors which
 creating execution agents with a channel for awaiting the completion of a
 submitted function object and obtaining its result.
 
-A type `X` satisfies the `TwoWayExecutor` requirements if it satisfies the `BaseExecutor` requirements, `can_sync_execute_v<X>` is true, and `can_async_execute_v<X>` is true.
+### `NeverBlockingTwoWayExecutor` requirements
+
+The `NeverBlockingTwoWayExecutor` requirements refine the `TwoWayExecutor` requirements by adding two-way operations that are guaranteed not to block the caller pending completion of submitted function objects.
+
+A type `X` satisfies the `NeverBlockingTwoWayExecutor` requirements if it satisfies the `TwoWayExecutor` requirements, `can_twoway_never_blocking_execute_v<X>` is true, and `can_twoway_never_blocking_continuation_execute_v<X>` is true.
+
+### `AlwaysBlockingTwoWayExecutor` requirements
+
+The `AlwaysBlockingTwoWayExecutor` requirements refine the `TwoWayExecutor` requirements by adding two-way operations that are guaranteed to always block the caller pending completion of submitted function objects.
+
+A type `X` satisfies the `AlwaysBlockingTwoWayExecutor` requirements if it satisfies the `TwoWayExecutor` requirements, `can_twoway_always_blocking_execute_v<X>` is true.
 
 ### `BulkTwoWayExecutor` requirements
 
@@ -546,83 +616,91 @@ Table: (Executor Work Tracker requirements) \label{executor_work_tracker_require
 
 ### Member detection type traits
 
-    template<class T> struct has_execute_member;
-    template<class T> struct has_post_member;
-    template<class T> struct has_defer_member;
-    template<class T> struct has_sync_execute_member;
-    template<class T> struct has_async_execute_member;
-    template<class T> struct has_async_post_member;
-    template<class T> struct has_async_defer_member;
-    template<class T> struct has_then_execute_member;
-    template<class T> struct has_bulk_execute_member;
-    template<class T> struct has_bulk_post_member;
-    template<class T> struct has_bulk_defer_member;
-    template<class T> struct has_bulk_sync_execute_member;
-    template<class T> struct has_bulk_async_execute_member;
-    template<class T> struct has_bulk_async_post_member;
-    template<class T> struct has_bulk_async_defer_member;
-    template<class T> struct has_bulk_then_execute_member;
+    template<class T> struct has_possibly_blocking_execute_member;
+    template<class T> struct has_never_blocking_execute_member;
+    template<class T> struct has_never_blocking_continuation_execute_member;
+    template<class T> struct has_always_blocking_execute_member;
+    template<class T> struct has_twoway_possibly_blocking_execute_member;
+    template<class T> struct has_twoway_never_blocking_execute_member;
+    template<class T> struct has_twoway_never_blocking_continuation_execute_member;
+    template<class T> struct has_twoway_always_blocking_execute_member;
+    template<class T> struct has_twoway_then_possibly_blocking_execute_member;
+    template<class T> struct has_bulk_possibly_blocking_execute_member;
+    template<class T> struct has_bulk_never_blocking_execute_member;
+    template<class T> struct has_bulk_never_blocking_continuation_execute_member;
+    template<class T> struct has_bulk_always_blocking_execute_member;
+    template<class T> struct has_bulk_twoway_possibly_blocking_execute_member;
+    template<class T> struct has_bulk_twoway_never_blocking_execute_member;
+    template<class T> struct has_bulk_twoway_never_blocking_continuation_execute_member;
+    template<class T> struct has_bulk_twoway_always_blocking_execute_member;
+    template<class T> struct has_bulk_twoway_then_possibly_blocking_execute_member;
 
 This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
 
 | Template                   | Condition           | Preconditions  |
 |----------------------------|---------------------|----------------|
-| `template<class T>` <br/>`struct has_execute_member` | `T` has a member function named `execute` that satisfies the syntactic requirements of a one-way, potentially blocking execution function of single cardinality. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_post_member` | `T` has a member function named `post` that satisfies the syntactic requirements of a one-way, non-blocking execution function of single cardinality. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_defer_member` | `T` has a member function named `defer` that satisfies the syntactic requirements of a one-way, non-blocking execution function of single cardinality. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_sync_execute_member` | `T` has a member function named `sync_execute` that satisfies the syntactic requirements of a synchronous two-way execution function of single cardinality. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_async_execute_member` | `T` has a member function named `async_execute` that satisfies the syntactic requirements of an asynchronous two-way, potentially blocking execution function of single cardinality. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_async_post_member` | `T` has a member function named `async_post` that satisfies the syntactic requirements of an asynchronous two-way, non-blocking execution function of single cardinality. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_async_defer_member` | `T` has a member function named `async_defer` that satisfies the syntactic requirements of an asynchronous two-way, non-blocking execution function of single cardinality. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_then_execute_member` | `T` has a member function named `then_execute` that satisfies the syntactic requirements of an asynchronous two-way, potentially blocking execution function of single cardinality. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_bulk_execute_member` | `T` has a member function named `bulk_execute` that satisfies the syntactic requirements of a one-way, potentially blocking execution function of bulk cardinality. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_bulk_post_member` | `T` has a member function named `bulk_post` that satisfies the syntactic requirements of a one-way, non-blocking execution function of bulk cardinality. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_bulk_defer_member` | `T` has a member function named `bulk_defer` that satisfies the syntactic requirements of a one-way, non-blocking execution function of bulk cardinality. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_bulk_sync_execute_member` | `T` has a member function named `bulk_sync_execute` that satisfies the syntactic requirements of a synchronous two-way execution function of bulk cardinality. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_bulk_async_execute_member` | `T` has a member function named `bulk_async_execute` that satisfies the syntactic requirements of an asynchronous two-way, potentially blocking execution function of bulk cardinality. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_bulk_async_post_member` | `T` has a member function named `bulk_async_post` that satisfies the syntactic requirements of an asynchronous two-way, non-blocking execution function of bulk cardinality. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_bulk_async_defer_member` | `T` has a member function named `bulk_async_defer` that satisfies the syntactic requirements of an asynchronous two-way, non-blocking execution function of bulk cardinality. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_bulk_then_execute_member` | `T` has a member function named `bulk_then_execute` that satisfies the syntactic requirements of an a asynchronous two-way, potentially blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_possibly_blocking_execute_member` | `T` has a member function named `possibly_blocking_execute` that satisfies the syntactic requirements of a one-way, possibly blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_never_blocking_execute_member` | `T` has a member function named `never_blocking_execute` that satisfies the syntactic requirements of a one-way, never blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_never_blocking_continuation_execute_member` | `T` has a member function named `never_blocking_continuation_execute` that satisfies the syntactic requirements of a one-way, never blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_always_blocking_execute_member` | `T` has a member function named `always_blocking_execute` that satisfies the syntactic requirements of a one-way, always blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_twoway_possibly_blocking_execute_member` | `T` has a member function named `twoway_possibly_blocking_execute` that satisfies the syntactic requirements of a two-way, possibly blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_twoway_never_blocking_execute_member` | `T` has a member function named `twoway_never_blocking_execute` that satisfies the syntactic requirements of a two-way, never blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_twoway_never_blocking_continuation_execute_member` | `T` has a member function named `twoway_never_blocking_continuation_execute` that satisfies the syntactic requirements of a two-way, never blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_twoway_always_blocking_execute_member` | `T` has a member function named `twoway_always_blocking_execute` that satisfies the syntactic requirements of a two-way always blocking two-way execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_twoway_then_possibly_blocking_execute_member` | `T` has a member function named `twoway_then_possibly_blocking_execute` that satisfies the syntactic requirements of a two-way, possibly blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_possibly_blocking_execute_member` | `T` has a member function named `bulk_possibly_blocking_execute` that satisfies the syntactic requirements of a one-way, possibly blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_never_blocking_execute_member` | `T` has a member function named `bulk_never_blocking_execute` that satisfies the syntactic requirements of a one-way, never blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_never_blocking_continuation_execute_member` | `T` has a member function named `bulk_never_blocking_continuation_execute` that satisfies the syntactic requirements of a one-way, never blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_always_blocking_execute_member` | `T` has a member function named `bulk_always_blocking_execute` that satisfies the syntactic requirements of a one-way, always blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_twoway_possibly_blocking_execute_member` | `T` has a member function named `bulk_twoway_possibly_blocking_execute` that satisfies the syntactic requirements of a two-way, possibly blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_twoway_never_blocking_execute_member` | `T` has a member function named `bulk_twoway_never_blocking_execute` that satisfies the syntactic requirements of a two-way, never blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_twoway_never_blocking_continuation_execute_member` | `T` has a member function named `bulk_twoway_never_blocking_continuation_execute` that satisfies the syntactic requirements of a two-way, never blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_twoway_always_blocking_execute_member` | `T` has a member function named `bulk_twoway_always_blocking_execute` that satisfies the syntactic requirements of a two-way, always blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_twoway_then_possibly_blocking_execute_member` | `T` has a member function named `bulk_twoway_then_possibly_blocking_execute` that satisfies the syntactic requirements of a two-way, possibly blocking execution function of bulk cardinality. | `T` is a complete type. |
 
 ### Free function detection type traits
 
-    template<class T> struct has_execute_free_function;
-    template<class T> struct has_post_free_function;
-    template<class T> struct has_defer_free_function;
-    template<class T> struct has_sync_execute_free_function;
-    template<class T> struct has_async_execute_free_function;
-    template<class T> struct has_async_post_free_function;
-    template<class T> struct has_async_defer_free_function;
-    template<class T> struct has_then_execute_free_function;
-    template<class T> struct has_bulk_execute_free_function;
-    template<class T> struct has_bulk_post_free_function;
-    template<class T> struct has_bulk_defer_free_function;
-    template<class T> struct has_bulk_sync_execute_free_function;
-    template<class T> struct has_bulk_async_execute_free_function;
-    template<class T> struct has_bulk_async_post_free_function;
-    template<class T> struct has_bulk_async_defer_free_function;
-    template<class T> struct has_bulk_then_execute_free_function;
+    template<class T> struct has_possibly_blocking_execute_free_function;
+    template<class T> struct has_never_blocking_execute_free_function;
+    template<class T> struct has_never_blocking_continuation_execute_free_function;
+    template<class T> struct has_always_blocking_execute_free_function;
+    template<class T> struct has_twoway_possibly_blocking_execute_free_function;
+    template<class T> struct has_twoway_never_blocking_execute_free_function;
+    template<class T> struct has_twoway_never_blocking_continuation_execute_free_function;
+    template<class T> struct has_twoway_always_blocking_execute_free_function;
+    template<class T> struct has_twoway_then_possibly_blocking_execute_free_function;
+    template<class T> struct has_bulk_possibly_blocking_execute_free_function;
+    template<class T> struct has_bulk_never_blocking_execute_free_function;
+    template<class T> struct has_bulk_never_blocking_continuation_execute_free_function;
+    template<class T> struct has_bulk_always_blocking_execute_free_function;
+    template<class T> struct has_bulk_twoway_possibly_blocking_execute_free_function;
+    template<class T> struct has_bulk_twoway_never_blocking_execute_free_function;
+    template<class T> struct has_bulk_twoway_never_blocking_continuation_execute_free_function;
+    template<class T> struct has_bulk_twoway_always_blocking_execute_free_function;
+    template<class T> struct has_bulk_twoway_then_possibly_blocking_execute_free_function;
 
 This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
 
 | Template                   | Condition           | Preconditions  |
 |----------------------------|---------------------|----------------|
-| `template<class T>` <br/>`struct has_execute_free_function` | There exists a free function named `execute` taking an executor of type `T` that satisfies the syntactic requirements of a one-way, potentially blocking execution function of single cardinality. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_post_free_function` | There exists a free function named `post` taking an executor of type `T` that satisfies the syntactic requirements of a one-way, non-blocking execution function of single cardinality. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_defer_free_function` | There exists a free function named `defer` taking an executor of type `T` that satisfies the syntactic requirements of a one-way, non-blocking execution function of single cardinality. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_sync_execute_free_function` | There exists a free function named `sync_execute` taking an executor of type `T` that satisfies the syntactic requirements of a synchronous two-way execution function of single cardinality. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_async_execute_free_function` | There exists a free function named `async_execute` taking an executor of type `T` that satisfies the syntactic requirements of an asynchronous two-way, potentially blocking execution function of single cardinality. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_async_post_free_function` | There exists a free function named `async_post` taking an executor of type `T` that satisfies the syntactic requirements of an asynchronous two-way, non-blocking execution function of single cardinality. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_async_defer_free_function` | There exists a free function named `async_defer` taking an executor of type `T` that satisfies the syntactic requirements of an asynchronous two-way, non-blocking execution function of single cardinality. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_then_execute_free_function` | There exists a free function named `then_execute` taking an executor of type `T` that satisfies the syntactic requirements of an asynchronous two-way, potentially blocking execution function of single cardinality. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_bulk_execute_free_function` | There exists a free function named `bulk_execute` taking an executor of type `T` that satisfies the syntactic requirements of a one-way, potentially blocking execution function of bulk cardinality. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_bulk_post_free_function` | There exists a free function named `bulk_post` taking an executor of type `T` that satisfies the syntactic requirements of a one-way, non-blocking execution function of bulk cardinality. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_bulk_defer_free_function` | There exists a free function named `bulk_defer` taking an executor of type `T` that satisfies the syntactic requirements of a one-way, non-blocking execution function of bulk cardinality. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_bulk_sync_execute_free_function` | There exists a free function named `bulk_sync_execute` taking an executor of type `T` that satisfies the syntactic requirements of a synchronous two-way execution function of bulk cardinality. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_bulk_async_execute_free_function` | There exists a free function named `bulk_async_execute` taking an executor of type `T` that satisfies the syntactic requirements of an asynchronous two-way, potentially blocking execution function of bulk cardinality. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_bulk_async_post_free_function` | There exists a free function named `bulk_async_post` taking an executor of type `T` that satisfies the syntactic requirements of an asynchronous two-way, non-blocking execution function of bulk cardinality. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_bulk_async_defer_free_function` | There exists a free function named `bulk_async_defer` taking an executor of type `T` that satisfies the syntactic requirements of an asynchronous two-way, non-blocking execution function of bulk cardinality. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_bulk_then_execute_free_function` | There exists a free function named `bulk_then_execute` taking an executor of type `T` that satisfies the syntactic requirements of an an asynchronous two-way, potentially blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_possibly_blocking_execute_free_function` | There exists a free function named `possibly_blocking_execute` taking an executor of type `T` that satisfies the syntactic requirements of a one-way, possibly blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_never_blocking_execute_free_function` | There exists a free function named `never_blocking_execute` taking an executor of type `T` that satisfies the syntactic requirements of a one-way, never blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_never_blocking_continuation_execute_free_function` | There exists a free function named `never_blocking_continuation_execute` taking an executor of type `T` that satisfies the syntactic requirements of a one-way, never blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_always_blocking_execute_free_function` | There exists a free function named `always_blocking_execute` taking an executor of type `T` that satisfies the syntactic requirements of a one-way, always blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_twoway_possibly_blocking_execute_free_function` | There exists a free function named `twoway_possibly_blocking_execute` taking an executor of type `T` that satisfies the syntactic requirements of a two-way, possibly blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_twoway_never_blocking_execute_free_function` | There exists a free function named `twoway_never_blocking_execute` taking an executor of type `T` that satisfies the syntactic requirements of a two-way, never blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_twoway_never_blocking_continuation_execute_free_function` | There exists a free function named `twoway_never_blocking_continuation_execute` taking an executor of type `T` that satisfies the syntactic requirements of a two-way, never blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_twoway_always_blocking_execute_free_function` | There exists a free function named `twoway_always_blocking_execute` taking an executor of type `T` that satisfies the syntactic requirements of a two-way, always blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_twoway_then_possibly_blocking_execute_free_function` | There exists a free function named `twoway_then_possibly_blocking_execute` taking an executor of type `T` that satisfies the syntactic requirements of a two-way, possibly blocking execution function of single cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_possibly_blocking_execute_free_function` | There exists a free function named `bulk_possibly_blocking_execute` taking an executor of type `T` that satisfies the syntactic requirements of a one-way, possibly blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_never_blocking_execute_free_function` | There exists a free function named `bulk_never_blocking_execute` taking an executor of type `T` that satisfies the syntactic requirements of a one-way, never blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_never_blocking_continuation_execute_free_function` | There exists a free function named `bulk_never_blocking_continuation_execute` taking an executor of type `T` that satisfies the syntactic requirements of a one-way, never blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_always_blocking_execute_free_function` | There exists a free function named `bulk_always_blocking_execute` taking an executor of type `T` that satisfies the syntactic requirements of a one-way, always blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_twoway_possibly_blocking_execute_free_function` | There exists a free function named `bulk_twoway_possibly_blocking_execute` taking an executor of type `T` that satisfies the syntactic requirements of a two-way, possibly blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_twoway_never_blocking_execute_free_function` | There exists a free function named `bulk_twoway_never_blocking_execute` taking an executor of type `T` that satisfies the syntactic requirements of a two-way, never blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_twoway_never_blocking_continuation_execute_free_function` | There exists a free function named `bulk_twoway_never_blocking_continuation_execute` taking an executor of type `T` that satisfies the syntactic requirements of a two-way, never blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_twoway_always_blocking_execute_free_function` | There exists a free function named `bulk_twoway_always_blocking_execute` taking an executor of type `T` that satisfies the syntactic requirements of a two-way, always blocking execution function of bulk cardinality. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_bulk_twoway_then_possibly_blocking_execute_free_function` | There exists a free function named `bulk_twoway_then_possibly_blocking_execute` taking an executor of type `T` that satisfies the syntactic requirements of an a two-way, possibly blocking execution function of bulk cardinality. | `T` is a complete type. |
 
 ## Executor customization points
 
