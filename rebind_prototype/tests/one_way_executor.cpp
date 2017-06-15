@@ -58,7 +58,7 @@ void one_way_executor_compile_test()
   const context_type& context = cex1.context();
   (void)context;
 
-  cex1([]{});
+  cex1.execute([]{});
 
   bool b1 = static_cast<bool>(ex1);
   (void)b1;

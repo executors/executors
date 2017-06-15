@@ -16,6 +16,8 @@ namespace custom_hints
     bool tracing_;
     InnerExecutor inner_ex_;
 
+    template <class T> static auto inner_declval() -> decltype(std::declval<InnerExecutor>());
+
   public:
     tracing_executor(bool on, const InnerExecutor& ex)
       : tracing_(on), inner_ex_(ex) {}
@@ -44,9 +46,22 @@ namespace custom_hints
     }
 
     template <class Function>
-    auto operator()(Function f) const
+    auto execute(Function f) const
+      -> decltype(inner_declval<Function>().execute(std::move(f)))
     {
-      return inner_ex_(
+      return inner_ex_.execute(
+          [tracing = tracing_, f = std::move(f)]() mutable
+          {
+            if (tracing) std::cout << "running function adapted\n";
+            return f();
+          });
+    }
+
+    template <class Function>
+    auto async_execute(Function f) const
+      -> decltype(inner_declval<Function>().async_execute(std::move(f)))
+    {
+      return inner_ex_.async_execute(
           [tracing = tracing_, f = std::move(f)]() mutable
           {
             if (tracing) std::cout << "running function adapted\n";
@@ -78,7 +93,7 @@ public:
   }
 
   template <class Function>
-  void operator()(Function f) const noexcept
+  void execute(Function f) const noexcept
   {
     if (tracing_) std::cout << "running function inline\n";
     f();
@@ -96,14 +111,14 @@ int main()
   static_thread_pool pool{1};
 
   auto ex1 = execution::rebind(inline_executor(), custom_hints::tracing, true);
-  ex1([]{ std::cout << "we made it\n"; });
+  ex1.execute([]{ std::cout << "we made it\n"; });
 
   auto ex2 = execution::rebind(pool.executor(), custom_hints::tracing, true);
-  ex2([]{ std::cout << "we made it again\n"; });
+  ex2.execute([]{ std::cout << "we made it again\n"; });
 
   execution::one_way_executor ex3 = pool.executor();
   auto ex4 = execution::rebind(ex3, custom_hints::tracing, true);
-  ex4([]{ std::cout << "and again\n"; });
+  ex4.execute([]{ std::cout << "and again\n"; });
 
   pool.wait();
 }

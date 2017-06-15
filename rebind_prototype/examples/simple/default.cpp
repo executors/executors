@@ -8,6 +8,33 @@ int main()
 {
   static_thread_pool pool{1};
   auto ex = pool.executor();
-  ex([]{ std::cout << "we made it\n"; });
-  pool.wait();
+
+  // One way, single.
+  ex.execute([]{ std::cout << "we made it\n"; });
+
+  // Two way, single.
+  std::future<int> f1 = ex.async_execute([]{ return 42; });
+  f1.wait();
+  std::cout << "result is " << f1.get() << "\n";
+
+  // One way, bulk.
+  ex.bulk_execute([](int n, int&){ std::cout << "part " << n << "\n"; }, 8, []{ return 0; });
+
+  // Two way, bulk, void result.
+  std::future<void> f2 = ex.bulk_async_execute(
+      [](int n, int&)
+      {
+        std::cout << "async part " << n << "\n";
+      }, 8, []{}, []{ return 0; });
+  f2.wait();
+  std::cout << "bulk result available\n";
+
+  // Two way, bulk, non-void result.
+  std::future<double> f3 = ex.bulk_async_execute(
+      [](int n, double&, int&)
+      {
+        std::cout << "async part " << n << "\n";
+      }, 8, [](){ return 123.456; }, []{ return 0; });
+  f3.wait();
+  std::cout << "bulk result is " << f3.get() << "\n";
 }

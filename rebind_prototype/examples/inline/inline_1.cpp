@@ -19,7 +19,7 @@ public:
   }
 
   template <class Function>
-  void operator()(Function f) const noexcept
+  void execute(Function f) const noexcept
   {
     f();
   }
@@ -30,5 +30,5 @@ static_assert(execution::is_one_way_executor_v<inline_executor>, "one way execut
 int main()
 {
   inline_executor ex;
-  ex([]{ std::cout << "we made it\n"; });
+  ex.execute([]{ std::cout << "we made it\n"; });
 }

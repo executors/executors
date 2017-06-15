@@ -40,7 +40,7 @@ class one_way_executor
     virtual ~impl_base() {}
     virtual impl_base* clone() const noexcept = 0;
     virtual void destroy() noexcept = 0;
-    virtual void executor_call(std::unique_ptr<func_base> f) = 0;
+    virtual void executor_execute(std::unique_ptr<func_base> f) = 0;
     virtual const type_info& executor_target_type() const = 0;
     virtual void* executor_target() = 0;
     virtual const void* executor_target() const = 0;
@@ -78,9 +78,9 @@ class one_way_executor
         delete this;
     }
 
-    virtual void executor_call(std::unique_ptr<func_base> f)
+    virtual void executor_execute(std::unique_ptr<func_base> f)
     {
-      executor_([f = std::move(f)]() mutable { f.release()->call(); });
+      executor_.execute([f = std::move(f)]() mutable { f.release()->call(); });
     }
 
     virtual const type_info& executor_target_type() const
@@ -297,10 +297,10 @@ public:
     return context_;
   }
 
-  template<class Function> void operator()(Function f) const
+  template<class Function> void execute(Function f) const
   {
     std::unique_ptr<func_base> fp(new func<Function>(std::move(f)));
-    context_.impl_ ? context_.impl_->executor_call(std::move(fp)) : throw bad_executor();
+    context_.impl_ ? context_.impl_->executor_execute(std::move(fp)) : throw bad_executor();
   }
 
   // polymorphic executor capacity:

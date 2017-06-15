@@ -1,3 +1,1 @@
-inline_1
-inline_2
-inline_3
+inline_[0-9]

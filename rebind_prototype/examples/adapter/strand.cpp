@@ -54,7 +54,7 @@ class strand
 
     // Need to reschedule the strand to run the queued items.
     Executor ex(ex_);
-    ex([s = std::move(*this)]() mutable
+    ex.execute([s = std::move(*this)]() mutable
         {
           s.run_first_item();
         });
@@ -102,7 +102,7 @@ public:
   }
 
   template <class Function>
-  void operator()(Function f) const
+  void execute(Function f) const
   {
     std::unique_lock<std::mutex> lock(state_->mutex_);
 
@@ -124,7 +124,7 @@ public:
     lock.unlock();
 
     // Need to schedule the strand to run the queued items.
-    ex_([s = this->rebind(execution::never_blocking).rebind(execution::is_continuation)]() mutable
+    ex_.execute([s = this->rebind(execution::never_blocking).rebind(execution::is_continuation)]() mutable
         {
           s.run_first_item();
         });
@@ -151,9 +151,9 @@ struct foo
     {
       std::this_thread::sleep_for(std::chrono::seconds(1));
       std::cout << "count is " << count_ << "\n";
-      strand_.rebind(execution::possibly_blocking)([count = count_]{ std::cout << "nested count is " << count << "\n"; });
+      strand_.rebind(execution::possibly_blocking).execute([count = count_]{ std::cout << "nested count is " << count << "\n"; });
       ++count_;
-      strand_(*this);
+      strand_.execute(*this);
     }
   }
 };
@@ -162,7 +162,7 @@ int main()
 {
   static_thread_pool pool{2};
   strand<static_thread_pool::executor_type> s1(pool.executor());
-  s1.rebind(execution::never_blocking)(foo{s1});
-  s1.rebind(execution::possibly_blocking)([]{ std::cout << "After 0, before 1\n"; });
+  s1.rebind(execution::never_blocking).execute(foo{s1});
+  s1.rebind(execution::possibly_blocking).execute([]{ std::cout << "After 0, before 1\n"; });
   pool.wait();
 }

@@ -27,7 +27,7 @@ public:
   }
 
   template <class Function>
-  void operator()(Function f) const noexcept
+  void execute(Function f) const noexcept
   {
     if (tracing_) std::cout << "running function inline\n";
     f();
@@ -42,7 +42,7 @@ static_assert(execution::is_one_way_executor_v<inline_executor>, "one way execut
 int main()
 {
   auto ex1 = execution::rebind(inline_executor(), custom_hints::tracing, true);
-  ex1([]{ std::cout << "we made it\n"; });
+  ex1.execute([]{ std::cout << "we made it\n"; });
 
   // No default means we can't rebind arbitrary executors using our custom hint.
   static_assert(!execution::can_rebind_v<static_thread_pool::executor_type, custom_hints::tracing_t, bool>, "can't add tracing to static_thread_pool");

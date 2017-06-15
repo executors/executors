@@ -4,6 +4,7 @@
 #include <experimental/bits/rebind_member_result.h>
 #include <future>
 #include <type_traits>
+#include <tuple>
 #include <utility>
 
 namespace std {
@@ -15,29 +16,32 @@ namespace rebind_impl {
 // Default rebind for one way leaves one way executors as is.
 
 template<class Executor>
-  constexpr typename std::enable_if<is_one_way_executor<Executor>::value
+  constexpr typename std::enable_if<
+    (is_one_way_executor<Executor>::value || is_bulk_one_way_executor<Executor>::value)
     && !has_rebind_member<Executor, one_way_t>::value, Executor>::type
       rebind(Executor ex, one_way_t) { return std::move(ex); }
 
 // Default rebind for two way adapts one way executors, leaves two way executors as is.
 
-template <class InnerExecutor>
+template<class InnerExecutor>
 class two_way_adapter
 {
   InnerExecutor inner_ex_;
+  template <class T> static auto inner_declval() -> decltype(std::declval<InnerExecutor>());
+  template <class, class T> struct dependent_type { using type = T; };
 
 public:
   two_way_adapter(InnerExecutor ex) : inner_ex_(std::move(ex)) {}
 
-  InnerExecutor rebind(one_way_t) const & { return inner_ex_; }
-  InnerExecutor rebind(one_way_t) && { return std::move(inner_ex_); }
+  two_way_adapter rebind(one_way_t) const & { return *this; }
+  two_way_adapter rebind(one_way_t) && { return std::move(*this); }
   two_way_adapter rebind(two_way_t) const & { return *this; }
   two_way_adapter rebind(two_way_t) && { return std::move(*this); }
 
-  template <class... T> auto rebind(T&&... t) const &
+  template<class... T> auto rebind(T&&... t) const &
     -> two_way_adapter<typename rebind_member_result<InnerExecutor, T...>::type>
       { return { inner_ex_.rebind(std::forward<T>(t)...) }; }
-  template <class... T> auto rebind(T&&... t) &&
+  template<class... T> auto rebind(T&&... t) &&
     -> two_way_adapter<typename rebind_member_result<InnerExecutor&&, T...>::type>
       { return { std::move(inner_ex_).rebind(std::forward<T>(t)...) }; }
 
@@ -53,23 +57,116 @@ public:
     return !(a == b);
   }
 
-  template <class Function>
-  auto operator()(Function f) const -> std::future<decltype(f())>
+  template<class Function> auto execute(Function f) const
+    -> decltype(inner_declval<Function>().execute(std::move(f)))
+  {
+    inner_ex_.execute(std::move(f));
+  }
+
+  template<class Function>
+  auto async_execute(Function f) const -> typename dependent_type<
+      decltype(inner_declval<Function>().execute(std::move(f))),
+      std::future<decltype(f())>>::type
   {
     std::packaged_task<decltype(f())()> task(std::move(f));
     std::future<decltype(f())> future = task.get_future();
-    inner_ex_(std::move(task));
+    inner_ex_.execute(std::move(task));
+    return future;
+  }
+
+  template<class Function, class SharedFactory>
+  auto bulk_execute(Function f, std::size_t n, SharedFactory sf) const
+    -> decltype(inner_declval<Function>().bulk_execute(std::move(f), n, std::move(sf)))
+  {
+    inner_ex_.bulk_execute(std::move(f), n, std::move(sf));
+  }
+
+  template<class Function, class ResultFactory, class SharedFactory>
+  auto bulk_async_execute(Function f, std::size_t n, ResultFactory rf, SharedFactory sf) const -> typename dependent_type<
+      decltype(inner_declval<Function>().bulk_execute(std::move(f), n, std::move(sf))),
+      typename std::enable_if<is_same<decltype(rf()), void>::value, std::future<void>>::type>::type
+  {
+    auto shared_state = std::make_shared<
+        std::tuple<
+          std::atomic<std::size_t>, // Number of incomplete functions.
+          decltype(sf()), // Underlying shared state.
+          std::atomic<std::size_t>, // Number of exceptions raised.
+          std::exception_ptr, // First exception raised.
+          std::promise<void> // Promise to receive result
+        >>(n, sf(), 0, nullptr, std::promise<void>());
+    std::future<void> future = std::get<4>(*shared_state).get_future();
+    inner_ex_.bulk_execute(
+        [f = std::move(f)](auto i, auto& s) mutable
+        {
+          try
+          {
+            f(i, std::get<1>(*s));
+          }
+          catch (...)
+          {
+            if (std::get<2>(*s)++ == 0)
+              std::get<3>(*s) = std::current_exception();
+          }
+          if (--std::get<0>(*s) == 0)
+          {
+            if (std::get<3>(*s))
+              std::get<4>(*s).set_exception(std::get<3>(*s));
+            else
+              std::get<4>(*s).set_value();
+          }
+        }, n, [shared_state]{ return shared_state; });
+    return future;
+  }
+
+  template<class Function, class ResultFactory, class SharedFactory>
+  auto bulk_async_execute(Function f, std::size_t n, ResultFactory rf, SharedFactory sf) const -> typename dependent_type<
+      decltype(inner_declval<Function>().bulk_execute(std::move(f), n, std::move(sf))),
+      typename std::enable_if<!is_same<decltype(rf()), void>::value, std::future<decltype(rf())>>::type>::type
+  {
+    auto shared_state = std::make_shared<
+        std::tuple<
+          std::atomic<std::size_t>, // Number of incomplete functions.
+          decltype(rf()), // Result.
+          decltype(sf()), // Underlying shared state.
+          std::atomic<std::size_t>, // Number of exceptions raised.
+          std::exception_ptr, // First exception raised.
+          std::promise<decltype(rf())> // Promise to receive result
+        >>(n, rf(), sf(), 0, nullptr, std::promise<decltype(rf())>());
+    std::future<decltype(rf())> future = std::get<5>(*shared_state).get_future();
+    inner_ex_.bulk_execute(
+        [f = std::move(f)](auto i, auto& s) mutable
+        {
+          try
+          {
+            f(i, std::get<1>(*s), std::get<2>(*s));
+          }
+          catch (...)
+          {
+            if (std::get<3>(*s)++ == 0)
+              std::get<4>(*s) = std::current_exception();
+          }
+          if (--std::get<0>(*s) == 0)
+          {
+            if (std::get<4>(*s))
+              std::get<5>(*s).set_exception(std::get<4>(*s));
+            else
+              std::get<5>(*s).set_value(std::move(std::get<1>(*s)));
+          }
+        }, n, [shared_state]{ return shared_state; });
     return future;
   }
 };
 
 template<class Executor>
-  typename std::enable_if<is_one_way_executor<Executor>::value && !is_two_way_executor<Executor>::value
+  typename std::enable_if<
+    (is_one_way_executor<Executor>::value || is_bulk_one_way_executor<Executor>::value)
+    && !(is_two_way_executor<Executor>::value || is_bulk_two_way_executor<Executor>::value)
     && !has_rebind_member<Executor, two_way_t>::value, two_way_adapter<Executor>>::type
       rebind(Executor ex, two_way_t) { return two_way_adapter<Executor>(std::move(ex)); }
 
 template<class Executor>
-  constexpr typename std::enable_if<is_two_way_executor<Executor>::value
+  constexpr typename std::enable_if<
+    (is_two_way_executor<Executor>::value || is_bulk_two_way_executor<Executor>::value)
     && !has_rebind_member<Executor, two_way_t>::value, Executor>::type
       rebind(Executor ex, two_way_t) { return std::move(ex); }
 

@@ -28,10 +28,10 @@ struct eval : std::false_type {};
 template<class T>
 struct eval<T,
   typename type_check<
-    decltype(static_cast<const dummy&>(std::declval<const T&>()(std::declval<nullary_function>()).get())),
-    decltype(static_cast<const dummy&>(std::declval<const T&>()(std::declval<nullary_function&>()).get())),
-    decltype(static_cast<const dummy&>(std::declval<const T&>()(std::declval<const nullary_function&>()).get())),
-    decltype(static_cast<const dummy&>(std::declval<const T&>()(std::declval<nullary_function&&>()).get()))
+    decltype(static_cast<const dummy&>(std::declval<const T&>().async_execute(std::declval<nullary_function>()).get())),
+    decltype(static_cast<const dummy&>(std::declval<const T&>().async_execute(std::declval<nullary_function&>()).get())),
+    decltype(static_cast<const dummy&>(std::declval<const T&>().async_execute(std::declval<const nullary_function&>()).get())),
+    decltype(static_cast<const dummy&>(std::declval<const T&>().async_execute(std::declval<nullary_function&&>()).get()))
 	>::type> : is_executor<T> {};
 
 } // namespace is_two_way_executor_impl

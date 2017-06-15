@@ -8,6 +8,6 @@ int main()
 {
   static_thread_pool pool{1};
   execution::one_way_executor ex = pool.executor().rebind(execution::never_blocking).rebind(execution::is_continuation);
-  ex([]{ std::cout << "we made it\n"; });
+  ex.execute([]{ std::cout << "we made it\n"; });
   pool.wait();
 }

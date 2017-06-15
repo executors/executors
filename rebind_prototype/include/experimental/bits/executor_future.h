@@ -11,7 +11,7 @@ namespace execution {
 template<class Executor, class T>
 struct executor_future
 {
-  using type = std::decay_t<decltype(declval<const Executor&>()(std::declval<T(*)()>()))>;
+  using type = std::decay_t<decltype(declval<const Executor&>().async_execute(std::declval<T(*)()>()))>;
 };
 
 } // namespace execution

@@ -9,9 +9,9 @@ int main()
   static_thread_pool pool{1};
   auto ex = pool.executor().rebind(execution::never_blocking);
   std::cout << "before submission\n";
-  ex([ex = ex.rebind(execution::possibly_blocking)]{
+  ex.execute([ex = ex.rebind(execution::possibly_blocking)]{
       std::cout << "outer starts\n";
-      ex([]{ std::cout << "inner\n"; });
+      ex.execute([]{ std::cout << "inner\n"; });
       std::cout << "outer ends\n";
     });
   std::cout << "after submission, before wait\n";

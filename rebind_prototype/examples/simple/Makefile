@@ -1,11 +1,12 @@
 EXAMPLES = \
 	allocator \
-	bulk \
 	bulk_one_way_always_blocking \
 	bulk_one_way_never_blocking \
 	bulk_one_way_possibly_blocking \
+	bulk_two_way_always_blocking \
+	bulk_two_way_never_blocking \
+	bulk_two_way_possibly_blocking \
 	default \
-	one_way \
 	one_way_always_blocking \
 	one_way_never_blocking \
 	one_way_never_blocking_continuation \
@@ -15,8 +16,6 @@ EXAMPLES = \
 	polymorphic_one_way_never_blocking \
 	polymorphic_one_way_never_blocking_continuation \
 	polymorphic_one_way_possibly_blocking \
-	single \
-	two_way \
 	two_way_always_blocking \
 	two_way_never_blocking \
 	two_way_possibly_blocking

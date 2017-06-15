@@ -4,6 +4,8 @@
 #include <experimental/bits/has_rebind_member.h>
 #include <experimental/bits/is_two_way_executor.h>
 #include <experimental/bits/is_one_way_executor.h>
+#include <experimental/bits/is_bulk_one_way_executor.h>
+#include <experimental/bits/is_bulk_two_way_executor.h>
 #include <utility>
 
 namespace std {
@@ -30,16 +32,20 @@ constexpr auto rebind(Executor&& ex, Args&&... args)
 
 // Forward declare the default adaptations.
 template<class Executor>
-  constexpr typename std::enable_if<is_one_way_executor<Executor>::value
+  constexpr typename std::enable_if<
+    (is_one_way_executor<Executor>::value || is_bulk_one_way_executor<Executor>::value)
     && !has_rebind_member<Executor, one_way_t>::value, Executor>::type
       rebind(Executor ex, one_way_t);
 template<class Executor> class two_way_adapter;
 template<class Executor>
-  typename std::enable_if<is_one_way_executor<Executor>::value && !is_two_way_executor<Executor>::value
+  typename std::enable_if<
+    (is_one_way_executor<Executor>::value || is_bulk_one_way_executor<Executor>::value)
+    && !(is_two_way_executor<Executor>::value || is_bulk_two_way_executor<Executor>::value)
     && !has_rebind_member<Executor, two_way_t>::value, two_way_adapter<Executor>>::type
       rebind(Executor ex, two_way_t);
 template<class Executor>
-  constexpr typename std::enable_if<is_two_way_executor<Executor>::value
+  constexpr typename std::enable_if<
+    (is_two_way_executor<Executor>::value || is_bulk_two_way_executor<Executor>::value)
     && !has_rebind_member<Executor, two_way_t>::value, Executor>::type
       rebind(Executor ex, two_way_t);
 template<class Executor>

@@ -8,7 +8,7 @@ using std::experimental::static_thread_pool;
 template <class Executor, class Function>
 auto async(Executor ex, Function f)
 {
-  return execution::rebind(ex, execution::two_way)(std::move(f));
+  return execution::rebind(ex, execution::two_way).async_execute(std::move(f));
 }
 
 int main()

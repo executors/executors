@@ -1,6 +1,7 @@
 #ifndef STD_EXPERIMENTAL_BITS_STATIC_THREAD_POOL_H
 #define STD_EXPERIMENTAL_BITS_STATIC_THREAD_POOL_H
 
+#include <atomic>
 #include <condition_variable>
 #include <cstddef>
 #include <future>
@@ -9,6 +10,7 @@
 #include <mutex>
 #include <new>
 #include <thread>
+#include <tuple>
 
 namespace std {
 namespace experimental {
@@ -16,16 +18,10 @@ inline namespace concurrency_v2 {
 
 class static_thread_pool
 {
-  class single_base {};
-  class bulk_base { using shape_type = std::size_t; };
-
-  static single_base base_factory(execution::single_t) { return {}; }
-  static bulk_base base_factory(execution::bulk_t) { return {}; }
-
   template<class, class T, class U> struct dependent_is_same : std::is_same<T, U> {};
 
-  template<class Directionality, class Cardinality, class Blocking, class Continuation, class Work, class ProtoAllocator>
-  class executor_impl : public decltype(static_thread_pool::base_factory(Cardinality{}))
+  template<class Blocking, class Continuation, class Work, class ProtoAllocator>
+  class executor_impl
   {
     friend class static_thread_pool;
     static_thread_pool* pool_;
@@ -35,44 +31,42 @@ class static_thread_pool
       : pool_(p), allocator_(a) { pool_->work_up(Work{}); }
 
   public:
+    using shape_type = std::size_t;
+
     executor_impl(const executor_impl& other) noexcept : pool_(other.pool_) { pool_->work_up(Work{}); }
     ~executor_impl() { pool_->work_down(Work{}); }
 
-    // Directionality.
-    executor_impl<execution::one_way_t, Cardinality, Blocking, Continuation, Work, ProtoAllocator>
-      rebind(execution::one_way_t) const { return {pool_, allocator_}; };
-    executor_impl<execution::two_way_t, Cardinality, Blocking, Continuation, Work, ProtoAllocator>
-      rebind(execution::two_way_t) const { return {pool_, allocator_}; };
+    // Directionality. Both kinds supported, so rebinding does not change type.
+    executor_impl rebind(execution::one_way_t) const { return *this; }
+    executor_impl rebind(execution::two_way_t) const { return *this; }
 
-    // Cardinality.
-    executor_impl<Directionality, execution::single_t, Blocking, Continuation, Work, ProtoAllocator>
-      rebind(execution::single_t) const { return {pool_, allocator_}; };
-    executor_impl<Directionality, execution::bulk_t, Blocking, Continuation, Work, ProtoAllocator>
-      rebind(execution::bulk_t) const { return {pool_, allocator_}; };
+    // Cardinality. Both kinds supported, so rebinding does not change type.
+    executor_impl rebind(execution::single_t) const { return *this; }
+    executor_impl rebind(execution::bulk_t) const { return *this; }
 
     // Blocking modes.
-    executor_impl<Directionality, Cardinality, execution::never_blocking_t, Continuation, Work, ProtoAllocator>
+    executor_impl<execution::never_blocking_t, Continuation, Work, ProtoAllocator>
       rebind(execution::never_blocking_t) const { return {pool_, allocator_}; };
-    executor_impl<Directionality, Cardinality, execution::possibly_blocking_t, Continuation, Work, ProtoAllocator>
+    executor_impl<execution::possibly_blocking_t, Continuation, Work, ProtoAllocator>
       rebind(execution::possibly_blocking_t) const { return {pool_, allocator_}; };
-    executor_impl<Directionality, Cardinality, execution::always_blocking_t, Continuation, Work, ProtoAllocator>
+    executor_impl<execution::always_blocking_t, Continuation, Work, ProtoAllocator>
       rebind(execution::always_blocking_t) const { return {pool_, allocator_}; };
 
     // Continuation hint.
-    executor_impl<Directionality, Cardinality, Blocking, execution::is_continuation_t, Work, ProtoAllocator>
+    executor_impl<Blocking, execution::is_continuation_t, Work, ProtoAllocator>
       rebind(execution::is_continuation_t) const { return {pool_, allocator_}; };
-    executor_impl<Directionality, Cardinality, Blocking, execution::is_not_continuation_t, Work, ProtoAllocator>
+    executor_impl<Blocking, execution::is_not_continuation_t, Work, ProtoAllocator>
       rebind(execution::is_not_continuation_t) const { return {pool_, allocator_}; };
 
     // Work tracking.
-    executor_impl<Directionality, Cardinality, Blocking, Continuation, execution::is_work_t, ProtoAllocator>
+    executor_impl<Blocking, Continuation, execution::is_work_t, ProtoAllocator>
       rebind(execution::is_work_t) const { return {pool_, allocator_}; };
-    executor_impl<Directionality, Cardinality, Blocking, Continuation, execution::is_not_work_t, ProtoAllocator>
+    executor_impl<Blocking, Continuation, execution::is_not_work_t, ProtoAllocator>
       rebind(execution::is_not_work_t) const { return {pool_, allocator_}; };
 
     // Allocator.
     template <class NewProtoAllocator>
-    executor_impl<Directionality, Cardinality, Blocking, Continuation, execution::is_not_work_t, NewProtoAllocator>
+    executor_impl<Blocking, Continuation, execution::is_not_work_t, NewProtoAllocator>
       rebind(std::allocator_arg_t, const NewProtoAllocator& alloc) const { return {pool_, alloc}; };
 
     bool running_in_this_thread() const noexcept { return pool_->running_in_this_thread(); }
@@ -89,46 +83,30 @@ class static_thread_pool
       return a.pool_ != b.pool_;
     }
 
-    template<class Function> auto operator()(Function f) const ->
-      typename std::enable_if<
-        dependent_is_same<Function, Directionality, execution::one_way_t>::value
-          && dependent_is_same<Function, Cardinality, execution::single_t>::value
-      >::type
+    template<class Function> void execute(Function f) const
     {
-      pool_->execute(Directionality{}, Cardinality{}, Blocking{}, Continuation{}, allocator_, std::move(f));
+      pool_->execute(Blocking{}, Continuation{}, allocator_, std::move(f));
     }
 
-    template<class Function> auto operator()(Function f) const ->
-      typename std::enable_if<
-        dependent_is_same<Function, Directionality, execution::two_way_t>::value
-          && dependent_is_same<Function, Cardinality, execution::single_t>::value,
-        std::future<decltype(f())>
-      >::type
+    template<class Function> auto async_execute(Function f) const -> std::future<decltype(f())>
     {
-      return pool_->execute(Directionality{}, Cardinality{}, Blocking{}, Continuation{}, allocator_, std::move(f));
+      return pool_->async_execute(Blocking{}, Continuation{}, allocator_, std::move(f));
     }
 
-    template<class Function, class SharedFactory> auto operator()(Function f, std::size_t n, SharedFactory sf) const ->
-      typename std::enable_if<
-        dependent_is_same<Function, Directionality, execution::one_way_t>::value
-          && dependent_is_same<Function, Cardinality, execution::bulk_t>::value
-      >::type
+    template<class Function, class SharedFactory> void bulk_execute(Function f, std::size_t n, SharedFactory sf) const
     {
-      return pool_->execute(Directionality{}, Cardinality{}, Blocking{}, Continuation{}, allocator_, std::move(f), n, std::move(sf));
+      pool_->bulk_execute(Blocking{}, Continuation{}, allocator_, std::move(f), n, std::move(sf));
     }
 
-#if 0 // Not yet implemented.
-    template<class Function, class SharedFactory> auto operator()(Function f, std::size_t n, SharedFactory sf) const ->
-      typename std::enable_if<
-        dependent_is_same<Function, Directionality, execution::two_way_t>::value
-          && dependent_is_same<Function, Cardinality, execution::bulk_t>::value
-      >::type;
-#endif
+    template<class Function, class ResultFactory, class SharedFactory>
+    auto bulk_async_execute(Function f, std::size_t n, ResultFactory rf, SharedFactory sf) const -> std::future<decltype(rf())>
+    {
+      return pool_->bulk_async_execute(Blocking{}, Continuation{}, allocator_, std::move(f), n, std::move(rf), std::move(sf));
+    }
   };
 
 public:
-  using executor_type = executor_impl<execution::one_way_t, execution::single_t, execution::possibly_blocking_t,
-      execution::is_not_continuation_t, execution::is_not_work_t, std::allocator<void>>;
+  using executor_type = executor_impl<execution::possibly_blocking_t, execution::is_not_continuation_t, execution::is_not_work_t, std::allocator<void>>;
 
   explicit static_thread_pool(std::size_t threads)
   {
@@ -279,7 +257,7 @@ private:
   }
 
   template<class Blocking, class Continuation, class ProtoAllocator, class Function>
-  void execute(execution::one_way_t, execution::single_t, Blocking, Continuation, const ProtoAllocator& alloc, Function f)
+  void execute(Blocking, Continuation, const ProtoAllocator& alloc, Function f)
   {
     if (std::is_same<Blocking, execution::possibly_blocking_t>::value)
     {
@@ -318,7 +296,7 @@ private:
   }
 
   template<class Continuation, class ProtoAllocator, class Function>
-  void execute(execution::one_way_t, execution::single_t, execution::always_blocking_t, Continuation, const ProtoAllocator& alloc, Function f)
+  void execute(execution::always_blocking_t, Continuation, const ProtoAllocator& alloc, Function f)
   {
     // Run immediately if already in the pool.
     if (thread_private_state* private_state = thread_private_state::instance())
@@ -333,31 +311,39 @@ private:
     // Otherwise, wrap the function with a promise that, when broken, will signal that the function is complete.
     std::promise<void> promise;
     std::future<void> future = promise.get_future();
-    this->execute(execution::one_way, execution::single, execution::never_blocking, Continuation{}, alloc, [f = std::move(f), p = std::move(promise)]() mutable { f(); });
+    this->execute(execution::never_blocking, Continuation{}, alloc, [f = std::move(f), p = std::move(promise)]() mutable { f(); });
     future.wait();
   }
 
   template<class Blocking, class Continuation, class ProtoAllocator, class Function>
-  auto execute(execution::two_way_t, execution::single_t, Blocking, Continuation, const ProtoAllocator& alloc, Function f) -> std::future<decltype(f())>
+  auto async_execute(Blocking, Continuation, const ProtoAllocator& alloc, Function f) -> std::future<decltype(f())>
   {
     std::packaged_task<decltype(f())()> task(std::move(f));
     std::future<decltype(f())> future = task.get_future();
-    this->execute(execution::one_way, execution::single, Blocking{}, Continuation{}, alloc, std::move(task));
+    this->execute(Blocking{}, Continuation{}, alloc, std::move(task));
     return future;
   }
 
-  template<class Blocking, class Continuation, class ProtoAllocator, class Function, class SharedFactory>
-  void execute(execution::one_way_t, execution::bulk_t, Blocking, Continuation,
-      const ProtoAllocator& alloc, Function f, std::size_t n, SharedFactory sf)
+  template<class Function, class SharedFactory>
+  struct bulk_state
   {
-    auto wrapped_f = [f = std::move(f), ss = sf()](int n) mutable { f(n, ss); };
-    auto shared_f = std::make_shared<decltype(wrapped_f)>(std::move(wrapped_f));
+    Function f_;
+    decltype(std::declval<SharedFactory>()()) ss_;
+    bulk_state(Function f, SharedFactory sf) : f_(std::move(f)), ss_(sf()) {}
+    void operator()(std::size_t i) { f_(i, ss_); }
+  };
+
+  template<class Blocking, class Continuation, class ProtoAllocator, class Function, class SharedFactory>
+  void bulk_execute(Blocking, Continuation, const ProtoAllocator& alloc, Function f, std::size_t n, SharedFactory sf)
+  {
+    typename std::allocator_traits<ProtoAllocator>::template rebind_alloc<char> alloc2(alloc);
+    auto shared_state = std::allocate_shared<bulk_state<Function, SharedFactory>>(alloc2, std::move(f), std::move(sf));
 
     func_base::pointer head;
     func_base::pointer* tail{&head};
     for (std::size_t i = 0; i < n; ++i)
     {
-      auto indexed_f = [shared_f, i]() mutable { (*shared_f)(i); };
+      auto indexed_f = [shared_state, i]() mutable { (*shared_state)(i); };
       *tail = func_base::pointer(func<decltype(indexed_f), ProtoAllocator>::create(std::move(indexed_f), alloc));
       tail = &(*tail)->next_;
     }
@@ -384,15 +370,105 @@ private:
   }
 
   template<class Continuation, class ProtoAllocator, class Function, class SharedFactory>
-  void execute(execution::one_way_t, execution::bulk_t, execution::always_blocking_t, Continuation,
-      const ProtoAllocator& alloc, Function f, std::size_t n, SharedFactory sf)
+  void bulk_execute(execution::always_blocking_t, Continuation, const ProtoAllocator& alloc, Function f, std::size_t n, SharedFactory sf)
   {
     // Wrap the function with a promise that, when broken, will signal that the function is complete.
     std::promise<void> promise;
     std::future<void> future = promise.get_future();
     auto wrapped_f = [f = std::move(f), p = std::move(promise)](std::size_t n, auto& s) mutable { f(n, s); };
-    this->execute(execution::one_way, execution::bulk, execution::never_blocking, Continuation{}, alloc, std::move(wrapped_f), n, std::move(sf));
+    this->bulk_execute(execution::never_blocking, Continuation{}, alloc, std::move(wrapped_f), n, std::move(sf));
     future.wait();
+  }
+
+  template<class Blocking, class Continuation, class ProtoAllocator, class Function, class ResultFactory, class SharedFactory>
+  auto bulk_async_execute(Blocking, Continuation, const ProtoAllocator& alloc, Function f, std::size_t n, ResultFactory rf, SharedFactory sf)
+    -> typename std::enable_if<is_same<decltype(rf()), void>::value, std::future<void>>::type
+  {
+    // Wrap the shared state so that we can capture and return the result.
+    typename std::allocator_traits<ProtoAllocator>::template rebind_alloc<char> alloc2(alloc);
+    auto shared_state = std::allocate_shared<
+        std::tuple<
+          std::atomic<std::size_t>, // Number of incomplete functions.
+          decltype(sf()), // Underlying shared state.
+          std::atomic<std::size_t>, // Number of exceptions raised.
+          std::exception_ptr, // First exception raised.
+          std::promise<void> // Promise to receive result
+        >>(alloc2, n, sf(), 0, nullptr, std::promise<void>());
+    std::future<void> future = std::get<4>(*shared_state).get_future();
+
+    // Convert to a one way bulk operation.
+    this->bulk_execute(Blocking{}, Continuation{}, alloc,
+        [f = std::move(f)](auto i, auto& s) mutable
+        {
+          try
+          {
+            f(i, std::get<1>(*s));
+          }
+          catch (...)
+          {
+            if (std::get<2>(*s)++ == 0)
+              std::get<3>(*s) = std::current_exception();
+          }
+          if (--std::get<0>(*s) == 0)
+          {
+            if (std::get<3>(*s))
+              std::get<4>(*s).set_exception(std::get<3>(*s));
+            else
+              std::get<4>(*s).set_value();
+          }
+        }, n, [shared_state]{ return shared_state; });
+
+    return future;
+  }
+
+  template<class Blocking, class Continuation, class ProtoAllocator, class Function, class ResultFactory, class SharedFactory>
+  auto bulk_async_execute(Blocking, Continuation, const ProtoAllocator& alloc, Function f, std::size_t n, ResultFactory rf, SharedFactory sf)
+    -> typename std::enable_if<!is_same<decltype(rf()), void>::value, std::future<decltype(rf())>>::type
+  {
+    // Wrap the shared state so that we can capture and return the result.
+    typename std::allocator_traits<ProtoAllocator>::template rebind_alloc<char> alloc2(alloc);
+    auto shared_state = std::allocate_shared<
+        std::tuple<
+          std::atomic<std::size_t>, // Number of incomplete functions.
+          decltype(rf()), // Result.
+          decltype(sf()), // Underlying shared state.
+          std::atomic<std::size_t>, // Number of exceptions raised.
+          std::exception_ptr, // First exception raised.
+          std::promise<decltype(rf())> // Promise to receive result
+        >>(alloc2, n, rf(), sf(), 0, nullptr, std::promise<decltype(rf())>());
+    std::future<decltype(rf())> future = std::get<5>(*shared_state).get_future();
+
+    // Convert to a one way bulk operation.
+    this->bulk_execute(Blocking{}, Continuation{}, alloc,
+        [f = std::move(f)](auto i, auto& s) mutable
+        {
+          try
+          {
+            f(i, std::get<1>(*s), std::get<2>(*s));
+          }
+          catch (...)
+          {
+            if (std::get<3>(*s)++ == 0)
+              std::get<4>(*s) = std::current_exception();
+          }
+          if (--std::get<0>(*s) == 0)
+          {
+            if (std::get<4>(*s))
+              std::get<5>(*s).set_exception(std::get<4>(*s));
+            else
+              std::get<5>(*s).set_value(std::move(std::get<1>(*s)));
+          }
+        }, n, [shared_state]{ return shared_state; });
+
+    return future;
+  }
+
+  template<class Blocking, class Continuation, class ProtoAllocator, class Function, class ResultFactory, class SharedFactory>
+  auto bulk_async_execute(execution::always_blocking_t, Continuation, const ProtoAllocator& alloc, Function f, std::size_t n, ResultFactory rf, SharedFactory sf)
+  {
+    auto future = this->bulk_async_execute(execution::never_blocking, Continuation{}, alloc, std::move(f), n, std::move(rf), std::move(sf));
+    future.wait();
+    return future;
   }
 
   void work_up(execution::is_work_t) noexcept

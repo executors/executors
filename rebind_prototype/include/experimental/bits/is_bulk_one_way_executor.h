@@ -17,6 +17,11 @@ struct type_check
 
 struct shared_state {};
 
+struct shared_factory
+{
+  shared_state operator()() const { return {}; }
+};
+
 struct bulk_function
 {
   void operator()(std::size_t, shared_state&) {}
@@ -28,10 +33,14 @@ struct eval : std::false_type {};
 template<class T>
 struct eval<T,
   typename type_check<
-    typename std::enable_if<std::is_same<void, decltype(std::declval<const T&>()(std::declval<bulk_function>(), 1, std::declval<shared_state>()))>::value>::type,
-    typename std::enable_if<std::is_same<void, decltype(std::declval<const T&>()(std::declval<bulk_function&>(), 1, std::declval<shared_state>()))>::value>::type,
-    typename std::enable_if<std::is_same<void, decltype(std::declval<const T&>()(std::declval<const bulk_function&>(), 1, std::declval<shared_state>()))>::value>::type,
-    typename std::enable_if<std::is_same<void, decltype(std::declval<const T&>()(std::declval<bulk_function&&>(), 1, std::declval<shared_state>()))>::value>::type
+    typename std::enable_if<std::is_same<void, decltype(std::declval<const T&>().bulk_execute(
+          std::declval<bulk_function>(), 1, std::declval<shared_factory>()))>::value>::type,
+    typename std::enable_if<std::is_same<void, decltype(std::declval<const T&>().bulk_execute(
+          std::declval<bulk_function&>(), 1, std::declval<shared_factory>()))>::value>::type,
+    typename std::enable_if<std::is_same<void, decltype(std::declval<const T&>().bulk_execute(
+          std::declval<const bulk_function&>(), 1, std::declval<shared_factory>()))>::value>::type,
+    typename std::enable_if<std::is_same<void, decltype(std::declval<const T&>().bulk_execute(
+          std::declval<bulk_function&&>(), 1, std::declval<shared_factory>()))>::value>::type
 	>::type> : is_executor<T> {};
 
 } // namespace is_bulk_one_way_executor_impl

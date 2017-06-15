@@ -93,7 +93,7 @@ public:
   {
     // Execute the message handler in the context of the target's executor.
     std::experimental::execution::rebind(to->executor_,
-      std::experimental::execution::never_blocking)(
+      std::experimental::execution::never_blocking).execute(
         [=, msg=std::move(msg)]() mutable
         {
           to->call_handler(std::move(msg), from);
@@ -143,7 +143,7 @@ protected:
     std::experimental::execution::rebind(
       std::experimental::execution::rebind(to->executor_,
         std::experimental::execution::never_blocking),
-          std::experimental::execution::is_continuation)(
+          std::experimental::execution::is_continuation).execute(
             [=, msg=std::move(msg), from=this]() mutable
             {
               to->call_handler(std::move(msg), from);
