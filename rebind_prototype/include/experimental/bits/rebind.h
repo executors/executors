@@ -15,6 +15,8 @@ namespace execution {
 
 struct one_way_t;
 struct two_way_t;
+struct single_t;
+struct bulk_t;
 struct always_blocking_t;
 struct possibly_blocking_t;
 struct is_continuation_t;
@@ -44,11 +46,22 @@ template<class Executor>
     && !(is_two_way_executor<Executor>::value || is_bulk_two_way_executor<Executor>::value)
     && !has_rebind_member<Executor, two_way_t>::value, two_way_adapter<Executor>>::type
       rebind(Executor ex, two_way_t);
+template<class Executor> class bulk_adapter;
 template<class Executor>
   constexpr typename std::enable_if<
     (is_two_way_executor<Executor>::value || is_bulk_two_way_executor<Executor>::value)
     && !has_rebind_member<Executor, two_way_t>::value, Executor>::type
       rebind(Executor ex, two_way_t);
+template<class Executor>
+  typename std::enable_if<is_one_way_executor<Executor>::value
+    && !(is_bulk_one_way_executor<Executor>::value || is_bulk_two_way_executor<Executor>::value)
+    && !has_rebind_member<Executor, bulk_t>::value, bulk_adapter<Executor>>::type
+      rebind(Executor ex, bulk_t);
+template<class Executor>
+  constexpr typename std::enable_if<
+    (is_bulk_one_way_executor<Executor>::value || is_bulk_two_way_executor<Executor>::value)
+    && !has_rebind_member<Executor, bulk_t>::value, Executor>::type
+      rebind(Executor ex, bulk_t);
 template<class Executor> class always_blocking_adapter;
 template<class Executor>
   constexpr typename std::enable_if<!has_rebind_member<Executor, always_blocking_t>::value,
