@@ -22,7 +22,7 @@ public:
   }
 
   template <class Function>
-  void operator()(Function f) const noexcept
+  void execute(Function f) const noexcept
   {
     f();
   }
@@ -34,5 +34,5 @@ int main()
 {
   inline_executor ex1;
   auto ex2 = ex1.rebind(execution::always_blocking);
-  ex2([]{ std::cout << "we made it\n"; });
+  ex2.execute([]{ std::cout << "we made it\n"; });
 }

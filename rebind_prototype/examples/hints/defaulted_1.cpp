@@ -32,7 +32,7 @@ public:
   }
 
   template <class Function>
-  void operator()(Function f) const noexcept
+  void execute(Function f) const noexcept
   {
     if (tracing_) std::cout << "running function inline\n";
     f();
@@ -49,10 +49,10 @@ int main()
   static_thread_pool pool{1};
 
   auto ex1 = execution::rebind(inline_executor(), custom_hints::tracing, true);
-  ex1([]{ std::cout << "we made it\n"; });
+  ex1.execute([]{ std::cout << "we made it\n"; });
 
   auto ex2 = execution::rebind(pool.executor(), custom_hints::tracing, true);
-  ex2([]{ std::cout << "we made it again\n"; });
+  ex2.execute([]{ std::cout << "we made it again\n"; });
 
   pool.wait();
 }

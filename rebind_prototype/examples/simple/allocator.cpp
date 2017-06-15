@@ -30,6 +30,6 @@ int main()
 {
   static_thread_pool pool{1};
   auto ex = pool.executor().rebind(std::allocator_arg, tracing_allocator<char>{});
-  ex([]{ std::cout << "we made it\n"; });
+  ex.execute([]{ std::cout << "we made it\n"; });
   pool.wait();
 }

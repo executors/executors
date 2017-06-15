@@ -8,14 +8,14 @@ using std::experimental::static_thread_pool;
 
 // An operation that doubles a value asynchronously.
 template <class CompletionHandler>
-void my_async_operation_1(const execution::one_way_executor& tex, int n,
-    const execution::one_way_executor& cex, CompletionHandler h)
+void my_async_operation_1(const execution::executor& tex, int n,
+    const execution::executor& cex, CompletionHandler h)
 {
   if (n == 0)
   {
     // Nothing to do. Operation finishes immediately.
     // Specify non-blocking to prevent stack overflow.
-    cex.rebind(execution::never_blocking)(
+    cex.rebind(execution::never_blocking).execute(
         [h = std::move(h), n]() mutable
         {
           h(n);
@@ -24,12 +24,12 @@ void my_async_operation_1(const execution::one_way_executor& tex, int n,
   else
   {
     // Simulate an asynchronous operation.
-    tex.rebind(execution::never_blocking)(
+    tex.rebind(execution::never_blocking).execute(
         [n, cex = cex.rebind(execution::is_work), h = std::move(h)]() mutable
         {
           int result = n * 2;
           std::this_thread::sleep_for(std::chrono::seconds(1)); // Simulate long running work.
-          cex.rebind(execution::possibly_blocking)(
+          cex.rebind(execution::possibly_blocking).execute(
               [h = std::move(h), result]() mutable
               {
                 h(result);

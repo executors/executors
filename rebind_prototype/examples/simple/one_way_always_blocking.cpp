@@ -8,5 +8,5 @@ int main()
 {
   static_thread_pool pool{1};
   auto ex = pool.executor().rebind(execution::always_blocking);
-  ex([]{ std::cout << "we made it\n"; });
+  ex.execute([]{ std::cout << "we made it\n"; });
 }

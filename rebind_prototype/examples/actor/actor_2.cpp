@@ -93,7 +93,7 @@ public:
   {
     // Execute the message handler in the context of the target's executor.
     std::experimental::execution::rebind(to->executor_,
-      std::experimental::execution::never_blocking)(
+      std::experimental::execution::never_blocking).execute(
         [=, msg=std::move(msg)]() mutable
         {
           to->call_handler(std::move(msg), from);
@@ -102,7 +102,7 @@ public:
 
 protected:
   // Construct the actor to use the specified pool for all message handlers.
-  actor(const std::experimental::execution::one_way_executor& ex)
+  actor(const std::experimental::execution::executor& ex)
     : executor_(ex)
   {
   }
@@ -143,7 +143,7 @@ protected:
     std::experimental::execution::rebind(
       std::experimental::execution::rebind(to->executor_,
         std::experimental::execution::never_blocking),
-          std::experimental::execution::is_continuation)(
+          std::experimental::execution::is_continuation).execute(
             [=, msg=std::move(msg), from=this]() mutable
             {
               to->call_handler(std::move(msg), from);
@@ -169,7 +169,7 @@ private:
   // All messages associated with a single actor object should be processed
   // non-concurrently. We require that the supplied executor guarantees
   // non-concurrent execution.
-  std::experimental::execution::one_way_executor executor_;
+  std::experimental::execution::executor executor_;
 
   std::vector<std::shared_ptr<message_handler_base>> handlers_;
 };
@@ -221,7 +221,7 @@ private:
 class member : public actor
 {
 public:
-  explicit member(const std::experimental::execution::one_way_executor& ex)
+  explicit member(const std::experimental::execution::executor& ex)
     : actor(ex)
   {
     register_handler(&member::init_handler);

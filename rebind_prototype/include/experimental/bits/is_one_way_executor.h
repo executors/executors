@@ -26,10 +26,10 @@ struct eval : std::false_type {};
 template<class T>
 struct eval<T,
   typename type_check<
-    typename std::enable_if<std::is_same<void, decltype(std::declval<const T&>()(std::declval<nullary_function>()))>::value>::type,
-    typename std::enable_if<std::is_same<void, decltype(std::declval<const T&>()(std::declval<nullary_function&>()))>::value>::type,
-    typename std::enable_if<std::is_same<void, decltype(std::declval<const T&>()(std::declval<const nullary_function&>()))>::value>::type,
-    typename std::enable_if<std::is_same<void, decltype(std::declval<const T&>()(std::declval<nullary_function&&>()))>::value>::type
+    typename std::enable_if<std::is_same<void, decltype(std::declval<const T&>().execute(std::declval<nullary_function>()))>::value>::type,
+    typename std::enable_if<std::is_same<void, decltype(std::declval<const T&>().execute(std::declval<nullary_function&>()))>::value>::type,
+    typename std::enable_if<std::is_same<void, decltype(std::declval<const T&>().execute(std::declval<const nullary_function&>()))>::value>::type,
+    typename std::enable_if<std::is_same<void, decltype(std::declval<const T&>().execute(std::declval<nullary_function&&>()))>::value>::type
 	>::type> : is_executor<T> {};
 
 } // namespace is_one_way_executor_impl

@@ -8,7 +8,7 @@ using std::experimental::static_thread_pool;
 template <class Executor, class Function, class Args, std::size_t... I>
 auto async_helper(Executor ex, Function f, Args args, std::index_sequence<I...>)
 {
-  return execution::rebind(ex, execution::two_way)(
+  return execution::rebind(ex, execution::two_way).async_execute(
       [f = std::move(f), args = std::move(args)]() mutable
       {
         return f(std::move(std::get<I>(args))...);
@@ -39,7 +39,7 @@ public:
   }
 
   template <class Function>
-  void operator()(Function f) const noexcept
+  void execute(Function f) const noexcept
   {
     f();
   }

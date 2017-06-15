@@ -1,7 +1,12 @@
 EXAMPLES = \
-  inline_1 \
-  inline_2 \
-  inline_3
+	inline_1 \
+	inline_2 \
+	inline_3 \
+	inline_4 \
+	inline_5 \
+	inline_6 \
+	inline_7 \
+	inline_8
 
 CXXFLAGS = -std=c++14 -pthread -Wall -Wextra -I../../include
 

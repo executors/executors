@@ -19,7 +19,7 @@ public:
   }
 
   template <class Function>
-  void operator()(Function f) const noexcept
+  void execute(Function f) const noexcept
   {
     f();
   }
@@ -31,7 +31,7 @@ static_assert(execution::is_two_way_executor_v<decltype(execution::rebind(inline
 int main()
 {
   inline_executor ex1;
-  auto ex2 = execution::rebind(ex1, execution::two_way).rebind(execution::two_way);
-  std::future<int> f = ex2([]{ return 42; });
+  auto ex2 = execution::rebind(ex1, execution::two_way);
+  std::future<int> f = ex2.async_execute([]{ return 42; });
   std::cout << "result is " << f.get() << "\n";
 }
