@@ -431,7 +431,7 @@ The name of an execution function and it's respective customization point is det
 
 The blocking semantics of an execution function may be one of the following:
 
-* *Potentially blocking:* The execution function may block the caller pending completion of the submitted function objects. Execution functions having potentially blocking semantics are named `possibly_blocking_execute`.
+* *Potentially blocking:* The execution function may block the caller pending completion of the submitted function objects. Execution functions having possibly blocking semantics are named `possibly_blocking_execute`.
 * *Never blocking:* The execution function shall not block the caller pending completion of the submitted function objects. Execution functions having never blocking semantics are named `never_blocking_execute` or `never_blocking_continuation_execute`.
 * *Always blocking:* The execution function must block the caller pending completion of the submitted function object. Execution functions having always blocking semantics are named `always_blocking_execute`.
 
@@ -1220,7 +1220,7 @@ agent executes as-if on a `std::thread`. Therefore, the facilities provided by
 particular that thread-local storage will not be shared between execution
 agents. *--end note*]
 
-### Guaranteeing the blocking behavior of potentially blocking operations
+### Guaranteeing the blocking behavior of possibly blocking operations
 
     struct always_blocking_execution {};
     struct possibly_blocking_execution {};
@@ -1240,7 +1240,7 @@ agents. *--end note*]
         >;
     };
 
-Components which create potentially blocking execution may use *blocking guarantees*
+Components which create possibly blocking execution may use *blocking guarantees*
 to communicate the way in which this execution blocks the progress of its caller.
 
 `always_blocking_execution` indicates that a component blocks its caller's
