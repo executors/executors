@@ -43,7 +43,7 @@ facilities.
 
 **Synchronization.** Execution created through different facilities has
 different synchronization properties. For example, an OpenMP parallel for loop
-is synchronous because the spawning thread blocks until the loop is complete 
+is synchronous because the spawning thread blocks until the loop is complete
 due to an implicit barrier at the end of the parallel region by default.
 In contrast, the execution of GPU kernels is typically asynchronous; kernel
 launches return immediately and the launching thread continues its execution
@@ -276,9 +276,9 @@ the operation is complete. This object automatically calls the executor's
 
 If an asynchronous operation completes immediately (that is, within the
 asynchronous operation's initiating function), the completion handler is
-scheduled for invocation using the executor's `post` customization point:
+scheduled for invocation using the executor's `never_blocking_execute` customization point:
 
-    std::execution::post(ex,
+    std::execution::never_blocking_execute(ex,
         [h = std::move(completion_handler), my_result]() mutable
         {
           h(my_result);
@@ -291,7 +291,7 @@ other hand, if the operation completes later then the asynchronous operation
 invokes the completion handler using the possibly-blocking execution
 function:
 
-    std::execution::execute(ex,
+    std::execution::possibly_blocking_execute(ex,
         [h = std::move(completion_handler), my_result]() mutable
         {
           h(my_result);
@@ -305,7 +305,7 @@ Finally, if an asynchronous operation consists of multiple intermediate steps,
 these steps may be scheduled using the defer execution function:
 
     // asynchronous operation consists of multiple steps
-    std::execution::defer(my_intermediate_complete_handler)
+    std::execution::never_blocking_continuation_execute(my_intermediate_complete_handler)
 
 This informs the executor of the relationship between the intermediate
 completion handlers, and allows it to optimize the scheduling and invocation
@@ -410,7 +410,7 @@ believe many execution contexts will provide methods to create executors bound
 to them. For example, our proposal defines `static_thread_pool`, which is an
 execution context representing a simple, manually-sized thread pool. Clients
 may receive an executor which creates work on a `static_thread_pool` by calling
-its `.executor` method:  
+its `.executor` method:
 
     // create a thread pool with 4 threads
     static_thread_pool pool(4);
@@ -501,8 +501,8 @@ async(const Executor& exec, Function&& f, Args&&... args) {
   // bind together f with its arguments
   auto g = bind(forward<Function>(f), forward<Args>(args)...);
 
-  // implement with executor customization point async_execute
-  return execution::async_execute(exec, g);
+  // implement with executor customization point twoway_possibly_blocking_execute
+  return execution::twoway_possibly_blocking_execute(exec, g);
 }
 ```
 
@@ -511,9 +511,9 @@ arguments and forward this package along with the executor to an **executor
 customization point**. Executor customization points are functions for
 performing fundamental interactions with all types of
 executors[^customization_point_note]. In this case, that customization point is
-`execution::async_execute`, which uses the executor to create a single
+`execution::twoway_possibly_blocking_execute`, which uses the executor to create a single
 execution agent to invoke a function. The agent's execution is asynchronous,
-          and `execution::async_execute` returns a future corresponding to its
+          and `execution::twoway_possibly_blocking_execute` returns a future corresponding to its
           completion.
 
 [^customization_point_note]: The model for our design the one suggested by Niebler[-@Niebler15:N4381].
@@ -533,7 +533,7 @@ the cost of execution agent creation over multiple agents. By the same token,
 support for single-agent creation enables executors to apply optimizations
 to the important special case of a single agent. Customization points which
 create multiple agents in bulk have names prefixed with `bulk_`;
-single-agent customization points have no prefix. 
+single-agent customization points have no prefix.
 
 **Directionality.** Some executor customization points return a `Future` object
 for synchronizing with and retrieving the result or exception of execution.
@@ -547,8 +547,8 @@ synchronization is not required (perhaps when some other backchannel is
     available), one-way customization points avoid the cost of a `Future` and
 shield the user from exceptional execution. In these cases, a one-way executor
 may provide a backchannel for communicating user exceptions back to the client.
-The names of two-way customization points names are infixed with `sync_`,
-    `async_`, or `then_`.  One-way customization points have no infix.
+The names of two-way customization points names are infixed with `twoway_`,
+    `twoway_then_`.  One-way customization points have no infix.
 
 [^directionality_caveat]: We think that the names "one-way" and "two-way" should be improved.
 
@@ -558,50 +558,50 @@ Depending on the relationship between client and executed task, blocking
 guarantees may be critical to either program correctness or performance. A
 customization point may guarantee to always block, possibly block, or never
 block its client. Customization points which may possibly block its client are
-suffixed with `execute`. The exception to this rule are customization points
-infixed with `sync_`. Because they always return the result of execution to
-their client as a value, there is no way for `sync_` customization points to
-execute without blocking their client. Customization points which will never
-block its client are suffixed with `post` or `defer`. `defer` indicates a
+suffixed with `possibly_blocking_`. Customization points which will never
+block its client are suffixed with `never_blocking_` or `never_blocking_continuation_`. `never_blocking_continuation_execute` indicates a
 preference to treat the created execution as a continuation of the client while
-`post` indicates no such preference. A futher discussion of blocking guarantees
-can be found in the ongoing discussions section later in the paper.
+`never_blocking_execute` indicates no such preference. Customization points which
+will always block its client are suffixed with `always_blocking_`. A futher discussion
+of blocking guarantees can be found in the ongoing discussions section later in the
+paper.
+
+For the purposes of clarity the naming of the customization points have been named
+using a particularly verbose naming scheme. The aim of this naming scheme is to make
+the semantics of each function clearer, we intend for these names to replaced a another
+naming scheme at a later date.
 
 ## The Customization Points Provided by Our Design
 
 Combining these properties results in customization points with names like
-`execute` and `bulk_async_execute`. One goal of the naming scheme is to allow
+`possibly_blocking_execute` and `bulk_twoway_possibly_blocking_execute`. One goal of the naming scheme is to allow
 readers to understand, at a glance, the gross properties of the execution
-created by a call to a customization point. For example, `execute` is the
+created by a call to a customization point. For example, `possibly_blocking_execute` is the
 customization point which creates a single execution agent and provides the
-least guarantees about the agent it creates. `execute` provides no way to
+least guarantees about the agent it creates. `possibly_blocking_execute` provides no way to
 synchronize with the created execution, and this execution may or may not block
-the caller. On the other hand, `bulk_sync_execute` creates a group of execution
+the caller. On the other hand, `bulk_twoway_always_blocking_execute` creates a group of execution
 agents in bulk, and these execution agents clearly synchronize with the caller.
 
 Combining these three sets of properties yields the following table of customization points.
 
-| Name           | Cardinality | Directionality | Blocking |
-|----------------|-------------|----------------|----------|
-| `execute`      | single      | one-way        | possibly |
-| `post`         | single      | one-way        | no       |
-| `defer`        | single      | one-way        | no       |
-| `async_execute`| single      | two-way        | possibly |
-| `then_execute` | single      | two-way        | possibly |
-| `sync_execute` | single      | two-way        | yes      |
-| `async_post`   | single      | two-way        | no       |
-| `async_defer`  | single      | two-way        | no       |
-| `bulk_execute` | bulk        | one-way        | possibly |
-| `bulk_post`    | bulk        | one-way        | no       |
-| `bulk_defer`   | bulk        | one-way        | no       |
-| `bulk_async_execute` | bulk   | two-way        | possibly |
-| `bulk_then_execute`  | bulk   | two-way        | possibly |
-| `bulk_sync_execute`  | bulk   | two-way        | yes      |
-| `bulk_async_post`    | bulk   | two-way        | no       |
-| `bulk_async_defer`   | bulk   | two-way        | no       |
+| Cardinality | Directionality | Blocking           | Name            |
+|-------------|----------------|--------------------|-----------------|
+| single      | one-way        | possibly  | `possibly_blocking_execute` |
+| single      | one-way        | never     | `never_blocking_execute` <br/> `never_blocking_continuation_execute` |
+| single      | one-way        | always     | `always_blocking_execute` |
+| single      | two-way        | possibly  | `twoway_possibly_blocking_execute` <br/> `twoway_then_possibly_blocking_execute` |
+| single      | two-way        | never     | `twoway_never_blocking_execute` <br/> `twoway_never_blocking_continuation_execute` |
+| single      | two-way        | always     | `twoway_always_blocking_execute` |
+| bulk      | one-way        | possibly  | `bulk_possibly_blocking_execute` |
+| bulk      | one-way        | never     | `bulk_never_blocking_execute` <br/> `bulk_never_blocking_continuation_execute` |
+| bulk      | one-way        | always     | `bulk_always_blocking_execute` |
+| bulk      | two-way        | possibly  | `bulk_twoway_possibly_blocking_execute` <br/> `bulk_twoway_then_possibly_blocking_execute` |
+| bulk      | two-way        | never     | `bulk_twoway_never_blocking_execute` <br/> `bulk_twoway_never_blocking_continuation_execute` |
+| bulk      | two-way        | always     | `bulk_twoway_always_blocking_execute` |
 
 Note that the entire cross product of the three sets of properties is not
-represented in this table. For example, `then_post` does not exist. When
+represented in this table. For example, `twoway_then_never_blocking_execute` does not exist. When
 selecting customization points, we have made a trade-off between expressivity
 and minimalism guided by their usefulness to the Standard Library and the
 technical specifications we initially wish to target.
@@ -613,13 +613,13 @@ Ranges TS [@Niebler17:RangesTS] and are provided in the `execution` namespace.
 
 ### Single-Agent Interfaces
 
-First we describe single-agent customization points. For example, `execution::async_execute`: 
+First we describe single-agent customization points. For example, `execution::twoway_possibly_blocking_execute`: 
 
     namespace execution {
 
     template<class Executor, class Function>
     executor_future_t<Executor,std::invoke_result_t<std::decay_t<Function>>
-    async_execute(const Executor& exec, Function&& f);
+    twoway_possibly_blocking_execute(const Executor& exec, Function&& f);
 
     }
 
@@ -633,11 +633,11 @@ Single-agent, two-way customization points return the result of the callable
 object either directly, or through a future as shown above. One-way
 customization points always return `void`.
 
-For `then_execute`, the third parameter is a future which is the predecessor dependency for the execution:
+For `twoway_then_possibly_blocking_execute`, the third parameter is a future which is the predecessor dependency for the execution:
 
     template<class Executor, class Function, class Future>
     executor_future_t<Executor,std::invoke_result_t<std::decay_t<Function>,U&>>
-    then_execute(const Executor& exec, Function&& f, Future& predecessor_future);
+    twoway_then_possibly_blocking_execute(const Executor& exec, Function&& f, Future& predecessor_future);
 
 Let `U` be the type of `Future`'s result object. The callable object `f` is
 invoked with a reference to the result object of the predecessor future (or
@@ -645,7 +645,7 @@ invoked with a reference to the result object of the predecessor future (or
 with the interface of the Concurrency TS's `future::then` which invokes its
 continuation with a copy of the predecessor future. Our design avoids the
 composability issues of `future::then` [@Executors16:Issue96] and is consistent
-with `bulk_then_execute`, discussed below. Note that the type of `Future` is
+with `bulk_twoway_then_possibly_blocking_execute`, discussed below. Note that the type of `Future` is
 allowed to differ from `executor_future_t<Executor,U>`, enabling
 interoperability between executors and foreign or new future types.
 
@@ -667,14 +667,14 @@ given by `std::execution::executor_bulk_forward_progress_guarantee_t`. Because t
 multiple agents, bulk customization points introduce ownership and lifetime
 issues avoided by single-agent customization points and they include additional
 parameters to address these issues. For example, consider
-`execution::bulk_async_execute`:
+`execution::bulk_twoway_possibly_blocking_execute`:
 
     template<class Executor, class Function, class Factory1, class Factory2>
     executor_future_t<Executor,std::invoke_result_t<Factory1>>
-    bulk_async_execute(const Executor& exec, Function f, executor_shape_t<Executor> shape,
+    bulk_twoway_possibly_blocking_execute(const Executor& exec, Function f, executor_shape_t<Executor> shape,
                        Factory1 result_factory, Factory2 shared_parameter_factory);
 
-**Bulk results.** The first difference is that `bulk_async_execute` returns the
+**Bulk results.** The first difference is that `bulk_twoway_possibly_blocking_execute` returns the
 result of a **factory** rather than the result of `f`. Because bulk
 customization points create a group of execution agents which invoke multiple
 invocations of `f`, the result of execution is ambiguous. For example, all
@@ -734,12 +734,12 @@ storage and sharing schemes.
 
 [^factory_footnote]: This envisioned allocator support is why we refer to these callable objects as "factories" rather than simply "functions" or "callable objects".
 
-**Bulk continuations.** Like `then_execute`, `bulk_then_execute` introduces a
+**Bulk continuations.** Like `bulk_twoway_then_possibly_blocking_execute`, `bulk_twoway_then_possibly_blocking_execute` introduces a
 predecessor future upon which the bulk continuation depends:
 
     template<class Executor, class Function, class Future, class Factory1, class Factory2>
     executor_future_t<Executor,std::invoke_result_t<Factory1>>
-    bulk_then_execute(const Executor& exec, Function f, executor_shape_t<Executor> shape,
+    bulk_twoway_then_possibly_blocking_execute(const Executor& exec, Function f, executor_shape_t<Executor> shape,
                       Future& predecessor_future,
                       Factory1 result_factory, Factory2 shared_factory);
 
@@ -785,24 +785,24 @@ executor's provided functionality. For example, a requirement for never-blocking
 execution from an executor which always executes "inline".
 
 As a simple example, consider the adaptation performed by
-`execution::sync_execute` when a given executor provides no native support:
+`execution::twoway_always_blocking_execute` when a given executor provides no native support:
 
     template<class Executor, class Function>
     executor_future_t<Executor,std::invoke_result_t<std::decay_t<Function>>>
-    sync_execute(const Executor& exec, Function&& f)
+    twoway_always_blocking_execute(const Executor& exec, Function&& f)
     {
-      auto future = execution::async_execute(exec, std::forward<Function>(f));
+      auto future = execution::twoway_possibly_blocking_execute(exec, std::forward<Function>(f));
       future.wait();
       return future;
     }
 
-In this case, `execution::sync_execute` creates asynchronous execution via
-`execution::async_execute` and receives a future object, which is immediately
+In this case, `execution::twoway_always_blocking_execute` creates asynchronous execution via
+`execution::twoway_possibly_blocking_execute` and receives a future object, which is immediately
 waited on. Even though `exec` does not provide a native version of
-`sync_execute`, its client may use it as if it does.
+`twoway_always_blocking_execute`, its client may use it as if it does.
 
 **Predicting adaptations.** Other customization points may apply more complex
-adaptations than the simple one applied by `sync_execute`. Indeed, there may be
+adaptations than the simple one applied by `twoway_always_blocking_execute`. Indeed, there may be
 a variety of ways to adapt a particular executor given the native interactions
 it offers. Some of these adaptations imply greater costs than others. Our
 proposal specifies these adaptations in detail and provides compile-time tools
@@ -813,7 +813,7 @@ point.
 For example in order to predict whether the above adaptation is possible the type
 trait to query the executor:
 
-    template<class T> struct can_sync_execute;
+    template<class T> struct can_twoway_always_blocking_execute;
 
 **Invariant preservation.** There are limits to the kinds of adaptations that
 customization points may apply, and these limits preserve executor invariants.
@@ -830,7 +830,7 @@ behavior when adapting an executor's native functionality. During adaptation,
          customization point never weakens the group execution ordering
          guarantee provided by a bulk executor.
 
-[^invariant_caveat]: Except in the case of `sync_execute`, as previously mentioned. 
+[^invariant_caveat]: Except in the case of `twoway_always_blocking_execute`, as previously mentioned.
 
 # Implementing Executors
 
@@ -852,7 +852,7 @@ executor which always creates execution "inline":
       }
 
       template<class Function>
-      auto sync_execute(Function&& f) const {
+      auto twoway_always_blocking_execute(Function&& f) const {
         using result_type = std::invoke_result_t<Function>;
         return make_ready_future<result_type>(std::forward<Function>(f)());
       }
@@ -873,7 +873,7 @@ through executor-specific type traits.
 **Executor identity.** All executors are required to be `EqualityComparable` in
 order for clients to reason about their identity. If two executors are
 equivalent, then they may be used interchangably to produce the same side
-effects. For example, because `inline_executor::sync_execute` simply invokes
+effects. For example, because `inline_executor::twoway_always_blocking_execute` simply invokes
 its function inline, all instances of `inline_executor` produce the same side
 effects and are therefore equivalent.
 
@@ -909,7 +909,7 @@ make choices about where to create execution agents. In generic programming
 contexts such as templates the concrete type of execution context will not be
 known. However, the programmer may still manipulate execution contexts
 semi-generically through specializations which apply to concrete contexts.
-    
+
 Recall `inline_executor`. Because it is such a simple executor, it serves as
 its own execution context. Its `.context()` function simply returns a reference
 to itself. In general, more sophisticated executors will return some other
@@ -935,7 +935,7 @@ object. Consider a `thread_pool_executor`:
         }
 
         template<class Function>
-        void execute(Function&& f) const {
+        void possibly_blocking_execute(Function&& f) const {
           pool_.submit(std::forward<Function>(f));
         }
     };
@@ -1002,7 +1002,7 @@ returns one of three values:
   3. `never_blocking_execution`: The agents' execution does not block the client.
 
 The guarantee provided by `executor_execute_blocking_guarantee` only applies to
-those customization points whose name is suffixed with `execute`. Exceptions
+those customization points whose name is suffixed with `possibly_blocking_execute`. Exceptions
 are the `sync_` customization points, which must always block their client by
 definition. When the agents created by an executor possibly block its client,
   it's conceivable that the executor could provide dynamic runtime facilities
@@ -1062,7 +1062,7 @@ executor's execution context by decaying the result of its member function
 **Associated `Future` type.** `executor_future` names the type of an executor's
 associated future type, which is the type of object returned by asynchronous,
            two-way customization points. The type is determined by the result
-           of `execution::async_execute`, which must satisfy the requirements
+           of `execution::twoway_possibly_blocking_execute`, which must satisfy the requirements
            of the `Future` concept[^future_footnote]. Otherwise, the type is
            `std::future`. All of an executor's two-way asynchronous
            customization points must return the same type of future.
@@ -1096,18 +1096,17 @@ We begin by discussing the execution functions which create groups of execution
 agents in bulk, because the corresponding single-agent functions are each a
 functionally special case.
 
-### `bulk_then_execute`
+### `bulk_twoway_then_possibly_blocking_execute`
 
     template<class Executor, class Future, class Function, class ResultFactory,
              class SharedFactory>
     executor_future_t<Executor, std::invoke_result_t<std::decay_t<Function>,
                      decltype(std::declval<Future>().get())&>>
-    bulk_then_execute(const Executor& exec, Function&& func, Future& pred,
-                      executor_shape_t<Executor> shape,
-                      ResultFactory result_factory,
-                      SharedFactory shared_factory);
+    bulk_twoway_then_possibly_blocking_execute(const Executor& exec,
+      Function&& func, Future& pred, executor_shape_t<Executor> shape,
+      ResultFactory result_factory, SharedFactory shared_factory);
 
-`bulk_then_execute` asynchronously creates a group of execution agents of shape
+`bulk_twoway_then_possibly_blocking_execute` asynchronously creates a group of execution agents of shape
 `shape` with forward progress guarantees of
 `executor_execution_mapping_guarantee_t<Executor>`, bound to the executor `exec`
 whose execution begins after the completion of `pred` and returns a future that
@@ -1116,10 +1115,10 @@ can be used to wait for execution to complete containing the result of
 `std::forward<Function>(func)(i, r, s)`, where `i` is of type
 `executor_index_t<Executor>`, `r` is a function object returned from
 `return_factory` and `s` is a shared object returned from `shared_factory`.
-`bulk_then_execute` may or may not the caller until execution completes,
+`bulk_twoway_then_possibly_blocking_execute` may or may not block the caller until execution completes,
 depending on the value of `executor_execute_blocking_guarantee_t<Executor>`.
 
-`bulk_then_execute` is the most general execution function we have identified
+`bulk_twoway_then_possibly_blocking_execute` is the most general execution function we have identified
 because it may be used to implement any other execution function without having
 to go out-of-band through channels not made explicit through the execution
 function's interface. Explicitly elaborating this information through the
@@ -1128,35 +1127,34 @@ optimizations which would not be possible had that information been discarded
 through backchannels.
 
 For example, suppose the only available execution function was
-`bulk_sync_execute`. It would be possible to implement `bulk_then_execute`'s
-functionality by making a call to `bulk_sync_execute` inside a continuation
+`bulk_twoway_always_blocking_execute`. It would be possible to implement `bulk_twoway_then_possibly_blocking_execute`'s
+functionality by making a call to `bulk_twoway_always_blocking_execute` inside a continuation
 created by `predecessor_future.then`:
 
     predecessor_future.then([=] {
-      return exec.bulk_sync_execute(exec, f, shape, result_factory, shared_factory).get();
+      return exec.bulk_twoway_always_blocking_execute(exec, f, shape, result_factory, shared_factory).get();
     });
 
 Note that this implementation creates `1 + shape` execution agents: one agent
-created by `then` along with `shape` agents created by `bulk_sync_execute`.
+created by `then` along with `shape` agents created by `bulk_twoway_always_blocking_execute`.
 Depending on the relative cost of agents created by `then` and
-`bulk_sync_execute`, the overhead of introducing that extra agent may be
+`bulk_twoway_always_blocking_execute`, the overhead of introducing that extra agent may be
 significant. Moreover, because the `then` operation occurs separately from
-`bulk_sync_execute`, the continuation is invisible to `exec` and this precludes
+`bulk_twoway_always_blocking_execute`, the continuation is invisible to `exec` and this precludes
 `exec`'s participation in scheduling. Because we wish to allow executors to
 abstract sophisticated task-scheduling runtimes, this shortcoming is
 unacceptable.
 
-### `bulk_async_execute`
+### `bulk_twoway_possibly_blocking_execute`
 
     template<class Executor, class Function, class ResultFactory,
              class SharedFactory>
     executor_future_t<Executor, std::invoke_result_t<std::decay_t<ResultFactory>>>
-    bulk_async_execute(const Executor& exec, Function&& func,
-                       executor_shape_t<Executor> shape,
-                       ResultFactory result_factory,
-                       SharedFactory shared_factory);
+    bulk_twoway_possibly_blocking_execute(const Executor& exec, Function&& func,
+      executor_shape_t<Executor> shape, ResultFactory result_factory,
+      SharedFactory shared_factory);
 
-`bulk_async_execute` asynchronously creates a group of execution agents of shape
+`bulk_twoway_possibly_blocking_execute` asynchronously creates a group of execution agents of shape
 `shape` with forward progress guarantees of
 `executor_execution_mapping_guarantee_t<Executor>`, bound to the executor `exec`
 whose execution may begin immediately and returns a future that can be used to
@@ -1164,22 +1162,22 @@ wait for execution to complete containing the result of `result_factory`. Each
 created execution agent calls `std::forward<Function>(func)(i, r, s)`, where
 `i` is of type `executor_index_t<Executor>`, `r` is a function object returned
 from `return_factory` and `s` is a shared object returned from `shared_factory`.
-`bulk_async_execute` may or may not block the caller until execution completes,
+`bulk_twoway_possibly_blocking_execute` may or may not block the caller until execution completes,
 depending on the value of `executor_execute_blocking_guarantee_t<Executor>`.
 
 
-Like `bulk_then_execute`, `bulk_async_execute`
+Like `bulk_twoway_then_possibly_blocking_execute`, `bulk_twoway_possibly_blocking_execute`
 returns a future corresponding to the result of the asynchronous group of
-execution agents it creates. Due to these similarities, `bulk_async_execute` is
-functionally equivalent to calling `bulk_then_execute` with a ready `void`
+execution agents it creates. Due to these similarities, `bulk_twoway_possibly_blocking_execute` is
+functionally equivalent to calling `bulk_twoway_then_possibly_blocking_execute` with a ready `void`
 future:
 
     future<void> no_predecessor = make_ready_future();
-    exec.bulk_then_execute(func, shape, no_predecessor, result_factory,
+    exec.bulk_twoway_then_possibly_blocking_execute(func, shape, no_predecessor, result_factory,
                            shared_factory);
 
-We include `bulk_async_execute` because the equivalent path through
-`bulk_then_execute` via a ready future may incur overhead. The cost of the
+We include `bulk_twoway_possibly_blocking_execute` because the equivalent path through
+`bulk_twoway_then_possibly_blocking_execute` via a ready future may incur overhead. The cost of the
 future itself may be significant, especially if any sort of
 dynamically-allocated asynchronous state is associated with that future.
 Alternatively, the act of scheduling itself may be a source of overhead,
@@ -1188,21 +1186,20 @@ runtime. Providing executors the opportunity to specialize for cases where
 it is known at compile time that no dependency exists avoids both hazards.
 
 Moreover, common types of executor may not naturally create execution in terms
-of continuations on futures as expected by `bulk_then_execute`.
-`bulk_async_execute` is a better match for these cases because it does not
+of continuations on futures as expected by `bulk_twoway_then_possibly_blocking_execute`.
+`bulk_twoway_possibly_blocking_execute` is a better match for these cases because it does not
 require accommodating a predecessor dependency.
 
-### `bulk_async_post`
+### `bulk_twoway_never_blocking_execute`
 
     template<class Executor, class Function, class ResultFactory,
              class SharedFactory>
     executor_future_t<Executor, std::invoke_result_t<std::decay_t<ResultFactory>>>
-    bulk_async_post(const Executor& exec, Function&& func,
-                    executor_shape_t<Executor> shape,
-                    ResultFactory result_factory,
-                    SharedFactory shared_factory);
+    bulk_twoway_never_blocking_execute(const Executor& exec, Function&& func,
+      executor_shape_t<Executor> shape, ResultFactory result_factory,
+      SharedFactory shared_factory);
 
-`bulk_async_post` asynchronously creates a group of execution agents of shape
+`bulk_twoway_never_blocking_execute` asynchronously creates a group of execution agents of shape
 `shape` with forward progress guarantees of
 `executor_execution_mapping_guarantee_t<Executor>`, bound to the executor `exec`
 whose execution may begin immediately and returns a future that can be used to
@@ -1210,28 +1207,27 @@ wait for execution to complete containing the result of `result_factory`. Each
 created execution agent calls `std::forward<Function>(func)(i, r, s)`, where
 `i` is of type `executor_index_t<Executor>`, `r` is a function object returned
 from `return_factory` and `s` is a shared object returned from
-`shared_factory`. `bulk_async_post` does not block the caller, regardless of
+`shared_factory`. `bulk_twoway_never_blocking_execute` does not block the caller, regardless of
 the value of `executor_execute_blocking_guarantee_t<Executor>`.
 
-`bulk_async_post` is equivalent to `bulk_async_execute` except that it makes an
+`bulk_twoway_never_blocking_execute` is equivalent to `bulk_twoway_possibly_blocking_execute` except that it makes an
 additional guarantee not to block the client's execution. Some executors will
 not be able to provide such a guarantee and could not be adapted to this
-functionality when `bulk_async_post` is absent. For example, an implementation
-of `bulk_async_post` which simply forwards its arguments directly to
-`bulk_async_execute` is possible only if
+functionality when `bulk_twoway_never_blocking_execute` is absent. For example, an implementation
+of `bulk_twoway_never_blocking_execute` which simply forwards its arguments directly to
+`bulk_twoway_possibly_blocking_execute` is possible only if
 `executor_execute_blocking_guarantee_t<Executor>` is `never_blocking_execution`.
 
-### `bulk_async_defer`
+### `bulk_twoway_never_blocking_continuation_execute`
 
     template<class Executor, class Function, class ResultFactory,
              class SharedFactory>
     executor_future_t<std::invoke_result_t<std::decay_t<ResultFactory>>>
-    bulk_async_defer(const Executor& exec, Function&& func,
-                     executor_shape_t<Executor> shape,
-                     ResultFactory result_factory,
-                     SharedFactory shared_factory);
+    bulk_twoway_never_blocking_continuation_execute(const Executor& exec,
+      Function&& func, executor_shape_t<Executor> shape, ResultFactory result_factory,
+      SharedFactory shared_factory);
 
-`bulk_async_defer` asynchronously creates a group of execution agents of shape
+`bulk_twoway_never_blocking_continuation_execute` asynchronously creates a group of execution agents of shape
 `shape` with forward progress guarantees of
 `executor_execution_mapping_guarantee_t<Executor>`, bound to the executor `exec`
 whose execution may begin immediately and returns a future that can be used to
@@ -1239,33 +1235,32 @@ wait for execution to complete containing the result of `result_factory`. Each
 created execution agent calls `std::forward<Function>(func)(i, r, s)`, where `i`
 is of type `executor_index_t<Executor>`, `r` is a function object returned from
 `return_factory` and `s` is a shared object returned from `shared_factory`.
-`bulk_async_defer` does not block the caller,
+`bulk_twoway_never_blocking_continuation_execute` does not block the caller,
 regardless of the value of `executor_execute_blocking_guarantee_t<Executor>`.
 
-`bulk_async_defer` is equivalent to `bulk_async_execute` except that it makes an
+`bulk_twoway_never_blocking_continuation_execute` is equivalent to `bulk_twoway_possibly_blocking_execute` except that it makes an
 additional guarantee not to block the client's execution. Some executors will
 not be able to provide such a guarantee and could not be adapted to this
-functionality when `bulk_async_defer` is absent. For example, an implementation
-of `bulk_async_defer` which simply forwards its arguments directly to
-`bulk_async_execute` is possible only if
+functionality when `bulk_twoway_never_blocking_continuation_execute` is absent. For example, an implementation
+of `bulk_twoway_never_blocking_continuation_execute` which simply forwards its arguments directly to
+`bulk_twoway_possibly_blocking_execute` is possible only if
 `executor_execute_blocking_guarantee_t<Executor>` is `never_blocking_execution`.
 
-**Comparison to bulk_async_post.** The behavior of `bulk_async_defer` is
-semantically equivalent to `bulk_async_post` and is primarily to indicate an
+**Comparison to bulk_twoway_never_blocking_execute.** The behavior of `bulk_twoway_never_blocking_continuation_execute` is
+semantically equivalent to `bulk_twoway_never_blocking_execute` and is primarily to indicate an
 ordering of work which allows for additional performance optimizations within
 the executor implementation.
 
-### `bulk_sync_execute`
+### `bulk_twoway_always_blocking_execute`
 
     template<class Executor, class Function, class ResultFactory,
              class SharedFactory>
     executor_future_t<Executor, std::invoke_result_t<std::decay_t<ResultFactory>>>
-    bulk_sync_execute(const Executor& exec, Function&& func,
-                      executor_shape_t<Executor> shape,
-                      ResultFactory result_factory,
-                      SharedFactory shared_factory);
+    bulk_twoway_always_blocking_execute(const Executor& exec, Function&& func,
+      executor_shape_t<Executor> shape, ResultFactory result_factory,
+      SharedFactory shared_factory);
 
-`bulk_sync_execute` asynchronously creates a group of execution agents of shape
+`bulk_twoway_always_blocking_execute` asynchronously creates a group of execution agents of shape
 `shape` with forward progress guarantees of
 `executor_execution_mapping_guarantee_t<Executor>`, bound to the executor `exec`
 whose execution may begin immediately and returns the result of
@@ -1273,18 +1268,18 @@ whose execution may begin immediately and returns the result of
 `std::forward<Function>(func)(i, r, s)`, where `i` is of type
 `executor_index_t<Executor>`, `r` is a function object retured from
 `return_factory` and `s` is a shared object returned from `shared_factory`.
-`bulk_sync_execute` always blocks the caller until execution completes,
+`bulk_twoway_always_blocking_execute` always blocks the caller until execution completes,
 regardless of the value of `executor_execute_blocking_guarantee_t<Executor>`.
 
-`bulk_sync_execute` is equivalent to `bulk_async_execute` except that it blocks
+`bulk_twoway_always_blocking_execute` is equivalent to `bulk_twoway_possibly_blocking_execute` except that it blocks
 its client until the result of execution is complete. Correspondingly, it may
-be implemented by calling `bulk_async_execute` and waiting on the resulting future:
+be implemented by calling `bulk_twoway_possibly_blocking_execute` and waiting on the resulting future:
 
-    auto future = exec.bulk_async_execute(f, shape, result_factory, shared_factory);
+    auto future = exec.bulk_twoway_possibly_blocking_execute(f, shape, result_factory, shared_factory);
     future.wait();
     return future;
 
-We include `bulk_sync_execute` to avoid overhead incurred by introducing
+We include `bulk_twoway_always_blocking_execute` to avoid overhead incurred by introducing
 unnecessary asynchrony. This overhead is likely to be significant for executors
 whose cost of execution agent creation is very small. A hypothetical
 `simd_executor` or `inline_executor` are examples.
@@ -1322,26 +1317,26 @@ lose the ability to perform a compile time test to determine whether an
 executor "natively" supports single-agent execution (e.g. the
 `has_executor_member` trait included in this proposal).
 
-### `then_execute`
+### `twoway_then_possibly_blocking_execute`
 
     template<class Executor, class Function, class Future,
              class Allocator = std::allocator<void>>
     executor_future_t<Executor, std::invoke_result_t<std::decay_t<Function>,
                       decltype(std::declval<Future>().get())&>>
-    then_execute(const Executor& exec, Function&& func, Future& pred,
-                 Allocator& alloc = Allocator());
+    twoway_then_possibly_blocking_execute(const Executor& exec, Function&& func,
+      Future& pred, Allocator& alloc = Allocator());
 
-`then_execute` asynchronously creates a single execution agent bound to the
+`twoway_then_possibly_blocking_execute` asynchronously creates a single execution agent bound to the
 executor `exec` whose execution begins after the completion of `pred` and
 returns a future that can be used to wait for execution to complete containing
 the result of `func`. The created execution agent calls
-`std::forward<Function>(func)()`. `then_execute` may or may not the caller until
+`std::forward<Function>(func)()`. `twoway_then_possibly_blocking_execute` may or may not block the caller until
 execution completes, depending on the value of
 `executor_execute_blocking_guarantee_t<Executor>`. The allocator `alloc` can be
 used to allocate memory for `func`.
 
-`then_execute` creates an asynchronous execution agent. It may be implemented
-by using `bulk_then_execute` to create a group with a single agent:
+`twoway_then_possibly_blocking_execute` creates an asynchronous execution agent. It may be implemented
+by using `bulk_twoway_then_possibly_blocking_execute` to create a group with a single agent:
 
     using result_t = std::invoke_result_t<Function>;
     using predecessor_t = decltype(predecessor_future.get());
@@ -1364,7 +1359,7 @@ by using `bulk_then_execute` to create a group with a single agent:
       result = func(predecessor);
     };
 
-    return exec.bulk_then_execute(g,
+    return exec.bulk_twoway_then_possibly_blocking_execute(g,
       executor_shape_t<Executor>{1}, // create a single agent group
       pred,
       result_factory,
@@ -1373,33 +1368,33 @@ by using `bulk_then_execute` to create a group with a single agent:
 
 The sample implementation passes both the function to invoke and its result
 indirectly via factories. The result of these factories are shared across the
-group of agents created by `bulk_then_execute`. However, this group has only
+group of agents created by `bulk_twoway_then_possibly_blocking_execute`. However, this group has only
 one agent and no sharing actually occurs. The cost of this unnecessary sharing
-may be significant and can be avoided if an executor specializes `then_execute`.
+may be significant and can be avoided if an executor specializes `twoway_then_possibly_blocking_execute`.
 
-### `async_execute`
+### `twoway_possibly_blocking_execute`
 
     template<class Executor, class Function,
              class Allocator = std::allocator<void>>
     executor_future_t<Executor, std::invoke_result_t<std::decay_t<Function>>>
-    async_execute(const Executor& exec, Function&& func,
-                  Allocator& alloc = Allocator());
+    twoway_possibly_blocking_execute(const Executor& exec, Function&& func,
+      Allocator& alloc = Allocator());
 
-`async_execute` asynchronously creates a single execution agent bound to the
+`twoway_possibly_blocking_execute` asynchronously creates a single execution agent bound to the
 executor `exec` whose execution may begin immediately and returns a future that
 can be used to wait for execution to complete containing the result of `func`.
 The created execution agent calls `std::forward<Function>(func)()`.
-`async_execute` may or may not the caller until execution completes, depending
+`twoway_possibly_blocking_execute` may or may not block the caller until execution completes, depending
 on the value of `executor_execute_blocking_guarantee_t<Executor>`. The allocator
 `alloc` can be used to allocate memory for `func`.
 
-`async_execute`  may be implemented by using `then_execute` with a ready `void` future:
+`twoway_possibly_blocking_execute`  may be implemented by using `twoway_then_possibly_blocking_execute` with a ready `void` future:
 
     std::experimental::future<void> ready_future = std::experimental::make_ready_future();
-    return exec.then_execute(std::forward<Function>(f), ready_future);
+    return exec.twoway_then_possibly_blocking_execute(std::forward<Function>(f), ready_future);
 
-Alternatively, `bulk_async_execute` could be used, analogously to the use of
-`bulk_then_execute` in `then_execute`'s implementation.
+Alternatively, `bulk_twoway_possibly_blocking_execute` could be used, analogously to the use of
+`bulk_twoway_then_possibly_blocking_execute` in `twoway_then_possibly_blocking_execute`'s implementation.
 
 The cost of a superfluous immediately-ready future object could be significant
 compared to the cost of agent creation. For example, the future object's
@@ -1413,99 +1408,99 @@ hypothetical `always_ready_future` could be an efficient substitute as it would
 not require addressing the problem of synchronization:
 
     always_ready_future<void> ready_future;
-    return exec.then_execute(std::forward<Function>(f), ready_future);
+    return exec.twoway_then_possibly_blocking_execute(std::forward<Function>(f), ready_future);
 
-However, to fully exploit such efficiency, `then_execute` may need to
+However, to fully exploit such efficiency, `twoway_then_possibly_blocking_execute` may need to
 recognize this case and take special action for `always_ready_future`.
 
 Because of the opportunity for efficient specialization of a common use case, and to avoid
-requiring executors to explicitly support continuations with `then_execute`, including
-`async_execute` as an execution function is worthwhile.
+requiring executors to explicitly support continuations with `twoway_then_possibly_blocking_execute`, including
+`twoway_possibly_blocking_execute` as an execution function is worthwhile.
 
-### `async_post`
-
-    template<class Executor, class Function,
-             class Allocator = std::allocator<void>>
-    executor_future_t<Executor, std::invoke_result_t<std::decay_t<Function>>>
-    async_post(const Executor& exec, Function&& func,
-               Allocator& alloc = Allocator());
-
-`async_post` asynchronously creates a single execution agent bound to the
-executor `exec` whose execution may begin immediately and returns a future that
-can be used to wait for execution to complete containing the result of `func`.
-The created execution agent calls `std::forward<Function>(func)()`.
-`async_post` does not block the caller, regardless of the value of
-`executor_execute_blocking_category_t<Executor>`. The allocator `alloc` can be
-used to allocate memory for `func`.
-
-`async_post` is equivalent to `async_execute` except that it makes an
-additional guarantee not to block the client's execution. Some executors will
-not be able to provide such a guarantee and could not be adapted to this
-functionality when `async_post` is absent. For example, an implementation of
-`async_post` which simply forwards its arguments directly to `async_post` is
-possible only if `executor_execute_blocking_guarantee_t<Executor>` is
-`never_blocking_execution`.
-
-### `async_defer`
+### `twoway_never_blocking_execute`
 
     template<class Executor, class Function,
              class Allocator = std::allocator<void>>
     executor_future_t<Executor, std::invoke_result_t<std::decay_t<Function>>>
-    async_defer(const Executor& exec, Function&& func,
-                Allocator& alloc = Allocator());
+    twoway_never_blocking_execute(const Executor& exec, Function&& func,
+      Allocator& alloc = Allocator());
 
-`async_defer` asynchronously creates a single execution agent bound to the
+`twoway_never_blocking_execute` asynchronously creates a single execution agent bound to the
 executor `exec` whose execution may begin immediately and returns a future that
 can be used to wait for execution to complete containing the result of `func`.
 The created execution agent calls `std::forward<Function>(func)()`.
-`async_defer` does not block the caller, regardless of the value of
+`twoway_never_blocking_execute` does not block the caller, regardless of the value of
 `executor_execute_blocking_category_t<Executor>`. The allocator `alloc` can be
 used to allocate memory for `func`.
 
-`async_defer` is equivalent to `async_execute` except that it makes an
+`twoway_never_blocking_execute` is equivalent to `twoway_possibly_blocking_execute` except that it makes an
 additional guarantee not to block the client's execution. Some executors will
 not be able to provide such a guarantee and could not be adapted to this
-functionality when `async_defer` is absent. For example, an implementation of
-`async_defer` which simply forwards its arguments directly to `async_defer` is
+functionality when `twoway_never_blocking_execute` is absent. For example, an implementation of
+`twoway_never_blocking_execute` which simply forwards its arguments directly to `twoway_never_blocking_execute` is
 possible only if `executor_execute_blocking_guarantee_t<Executor>` is
 `never_blocking_execution`.
 
-**Comparison to async_post.** `async_defer`'s semantics are identical to
-`async_post`. That is, they may be used interchangeably without effecting a
-program's correctness. `async_defer` indicates that `func` represents a
+### `twoway_never_blocking_continuation_execute`
+
+    template<class Executor, class Function,
+             class Allocator = std::allocator<void>>
+    executor_future_t<Executor, std::invoke_result_t<std::decay_t<Function>>>
+    twoway_never_blocking_continuation_execute(const Executor& exec, Function&& func,
+      Allocator& alloc = Allocator());
+
+`twoway_never_blocking_continuation_execute` asynchronously creates a single execution agent bound to the
+executor `exec` whose execution may begin immediately and returns a future that
+can be used to wait for execution to complete containing the result of `func`.
+The created execution agent calls `std::forward<Function>(func)()`.
+`twoway_never_blocking_continuation_execute` does not block the caller, regardless of the value of
+`executor_execute_blocking_category_t<Executor>`. The allocator `alloc` can be
+used to allocate memory for `func`.
+
+`twoway_never_blocking_continuation_execute` is equivalent to `twoway_possibly_blocking_execute` except that it makes an
+additional guarantee not to block the client's execution. Some executors will
+not be able to provide such a guarantee and could not be adapted to this
+functionality when `twoway_never_blocking_continuation_execute` is absent. For example, an implementation of
+`twoway_never_blocking_continuation_execute` which simply forwards its arguments directly to `twoway_never_blocking_continuation_execute` is
+possible only if `executor_execute_blocking_guarantee_t<Executor>` is
+`never_blocking_execution`.
+
+**Comparison to twoway_never_blocking_execute.** `twoway_never_blocking_continuation_execute`'s semantics are identical to
+`twoway_never_blocking_execute`. That is, they may be used interchangeably without effecting a
+program's correctness. `twoway_never_blocking_continuation_execute` indicates that `func` represents a
 continuation of the caller which allows for additional performance
 optimizations within the executor implementation.
 
-### `sync_execute`
+### `twoway_always_blocking_execute`
 
     template<class Executor, class Function,
              class Allocator = std::allocator<void>>
     executor_future_t<Executor,std::invoke_result_t<std::decay_t<Function>>>
-    sync_execute(const Executor& exec, Function&& func,
-                 Allocator& alloc = Allocator());
+    twoway_always_blocking_execute(const Executor& exec, Function&& func,
+      Allocator& alloc = Allocator());
 
-`sync_execute` asynchronously creates a single execution agent bound to the
+`twoway_always_blocking_execute` asynchronously creates a single execution agent bound to the
 executor `exec` whose execution may begin immediately and returns the result of
 `func`. The created execution agent calls `std::forward<Function>(func)()`.
-`sync_execute` blocks the caller until execution completes. The allocator
+`twoway_always_blocking_execute` blocks the caller until execution completes. The allocator
 `alloc` can be used to allocate memory for `func`.
 
-`sync_execute` is equivalent to `async_execute` except that it blocks its
-client until the result of execution is complete. 
-Correspondingly, it may be implemented by calling `async_execute` and waiting on the resulting future:
+`twoway_always_blocking_execute` is equivalent to `twoway_possibly_blocking_execute` except that it blocks its
+client until the result of execution is complete.
+Correspondingly, it may be implemented by calling `twoway_possibly_blocking_execute` and waiting on the resulting future:
 
-    auto future = exec.async_execute(std::forward<Function>(f));
+    auto future = exec.twoway_possibly_blocking_execute(std::forward<Function>(f));
     future.wait();
     return future;
 
-We include `sync_execute` to avoid overhead incurred by introducing unnecessary
+We include `twoway_always_blocking_execute` to avoid overhead incurred by introducing unnecessary
 asynchrony. This overhead is likely to be significant for executors whose cost
 of execution agent creation is very small. A hypothetical `simd_executor` or
 `inline_executor` are examples.
 
 We believe it is possible to make the cost of the future arbitrarily small in
 very special cases. For example, if the executor's associated future is a
-hypothetical `always_ready_future`, then a path through `async_execute` is
+hypothetical `always_ready_future`, then a path through `twoway_possibly_blocking_execute` is
 unlikely to incur any penalty:
 
     template<class T>
@@ -1522,93 +1517,91 @@ unlikely to incur any penalty:
     ...
 
     using result_type = std::invoke_result_t<std::decay_t<Function>>;
-    always_ready_future<result_type> future = exec.async_execute(std::forward<Function>(f));
+    always_ready_future<result_type> future = exec.twoway_possibly_blocking_execute(std::forward<Function>(f));
 
 However, this efficient implementation depends on `always_ready_future` being
 the executor's associated future type. Moreover, it requires the executor to
-treat `async_execute` as `sync_execute`'s moral equivalent by returning an
+treat `twoway_possibly_blocking_execute` as `twoway_always_blocking_execute`'s moral equivalent by returning an
 immediately ready result which always blocks the client.
 
 Because most executors will not return ready future objects from their two-way
 asynchronous execution functions, they will incur the overhead of this
-`async_execute`-based implementation. Therefore, `sync_execute` is worth
+`twoway_possibly_blocking_execute`-based implementation. Therefore, `twoway_always_blocking_execute` is worth
 including.
 
 ## One-Way Bulk-Agent Functions
 
-### `bulk_post`
+### `bulk_never_blocking_execute`
 
     template<class Executor, class Function, class SharedFactory>
-    void bulk_post(const Executor& exec, Function&& func,
-                   executor_shape_t<Executor> shape,
-                   SharedFactory shared_factory);
+    void bulk_never_blocking_execute(const Executor& exec, Function&& func,
+      executor_shape_t<Executor> shape, SharedFactory shared_factory);
 
-`bulk_post` asynchronously creates a group of execution agents of shape `shape`
+`bulk_never_blocking_execute` asynchronously creates a group of execution agents of shape `shape`
 with forward progress guarantees of
 `executor_execution_mapping_guarantee_t<Executor>`, bound to the executor `exec`
 whose execution may begin immediately and does not return a value. Each created
 execution agent calls `std::forward<Function>(func)(i, s)`, where `i` is of
 type `executor_index_t<Executor>` and `s` is a shared object returned from
-`shared_factory`. `bulk_post` does not block the caller, regardless of the
+`shared_factory`. `bulk_never_blocking_execute` does not block the caller, regardless of the
 value of `executor_execute_blocking_category_t<Executor>`.
 
-`bulk_post` is equivalent to `bulk_execute` except that it makes an additional
+`bulk_never_blocking_execute` is equivalent to `bulk_possibly_blocking_execute` except that it makes an additional
 guarantee not to block the client's execution. Some executors will not be able
 to provide such a guarantee and could not be adapted to this functionality when
-`bulk_post` is absent. For example, an implementation of `bulk_post` which
-simply forwards its arguments directly to `bulk_execute` is possible only if
+`bulk_never_blocking_execute` is absent. For example, an implementation of `bulk_never_blocking_execute` which
+simply forwards its arguments directly to `bulk_possibly_blocking_execute` is possible only if
 `executor_execute_blocking_guarantee_t<Executor>` is
 `never_blocking_execution`.
 
-### `bulk_defer`
+### `bulk_never_blocking_continuation_execute`
 
     template<class Executor, class Function, class SharedFactory>
-    void bulk_defer(const Executor& exec, Function&& func,
-                    executor_shape_t<Executor> shape,
-                    SharedFactory shared_factory);
+    void bulk_never_blocking_continuation_execute(const Executor& exec,
+      Function&& func, executor_shape_t<Executor> shape,
+      SharedFactory shared_factory);
 
 
-`bulk_defer` asynchronously creates a group of execution agents of shape
+`bulk_never_blocking_continuation_execute` asynchronously creates a group of execution agents of shape
 `shape` with forward progress guarantees of
 `executor_execution_mapping_guarantee_t<Executor>`, bound to the executor `exec`
 whose execution may begin immediately and does not return a value. Each created
 execution agent calls `std::forward<Function>(func)(i, s)`, where `i` is of
 type `executor_index_t<Executor>` and `s` is a shared object returned from
-`shared_factory`. `bulk_defer` does not block the caller, regardless of the
+`shared_factory`. `bulk_never_blocking_continuation_execute` does not block the caller, regardless of the
 value of `executor_execute_blocking_category_t<Executor>`.
 
-`bulk_defer` is equivalent to `bulk_execute` except that it makes an additional
+`bulk_never_blocking_continuation_execute` is equivalent to `bulk_possibly_blocking_execute` except that it makes an additional
 guarantee not to block the client's execution. Some executors will not be able
 to provide such a guarantee and could not be adapted to this functionality when
-`bulk_defer` is absent. For example, an implementation of `bulk_defer` which
-simply forwards its arguments directly to `bulk_execute` is possible only if
+`bulk_never_blocking_continuation_execute` is absent. For example, an implementation of `bulk_never_blocking_continuation_execute` which
+simply forwards its arguments directly to `bulk_possibly_blocking_execute` is possible only if
 `executor_execute_blocking_guarantee_t<Executor>` is
 `never_blocking_execution`.
 
-**Comparison to bulk_post.** `bulk_defer`'s semantics are identical to
-`bulk_post`. That is, they may be used interchangeably without effecting a
-program's correctness. `bulk_defer` indicates that `func` represents a bulk
+**Comparison to bulk_never_blocking_execute.** `bulk_never_blocking_continuation_execute`'s semantics are identical to
+`bulk_never_blocking_execute`. That is, they may be used interchangeably without effecting a
+program's correctness. `bulk_never_blocking_continuation_execute` indicates that `func` represents a bulk
 continuation of the caller which allows for additional performance
 optimizations within the executor implementation.
 
-### `bulk_execute`
+### `bulk_possibly_blocking_execute`
 
     template<class Executor, class Function, class SharedFactory>
-    void bulk_execute(const Executor& exec, Function&& func,
-                      executor_shape_t<Executor> shape,
-                      SharedFactory shared_factory);
+    void bulk_possibly_blocking_execute(const Executor& exec, Function&& func,
+      executor_shape_t<Executor> shape, SharedFactory shared_factory);
 
-`bulk_execute` asynchronously creates a group of execution agents of shape
+`bulk_possibly_blocking_execute` asynchronously creates a group of execution agents of shape
 `shape` with forward progress guarantees of
 `executor_execution_mapping_guarantee_t<Executor>`, bound to the executor `exec`
 whose execution may begin immediately and does not return a value. Each created
 execution agent calls `std::forward<Function>(func)(i, s)`, where `i` is of type
 `executor_index_t<Executor>` and `s` is a shared object returned from
-`shared_factory`. `bulk_execute` may or may not the caller until execution
+`shared_factory`. `bulk_possibly_blocking_execute` may or may not block the caller until execution
 completes, depending on the value of
 `executor_execute_blocking_guarantee_t<Executor>`.
 
-`bulk_execute` is equivalent to `execute` except that it creates a single
+`bulk_possibly_blocking_execute` is equivalent to `possibly_blocking_execute` except that it creates a single
 execution agent rather than a group of execution agents.
 
     // create shared object
@@ -1620,81 +1613,108 @@ execution agent rather than a group of execution agents.
         // construct index
         executor_shape_t<Executor> index{i};
 
-        // create a lambda for the function for `execute`
+        // create a lambda for the function for `possibly_blocking_execute`
         auto g = [=, &shared](Function& func) {
           func(index, shared);
         };
 
-        exec.execute(g);
+        exec.possibly_blocking_execute(g);
     }
 
-We include `bulk_execute` because the equivalent path through `execute` via a
+We include `bulk_possibly_blocking_execute` because the equivalent path through `possibly_blocking_execute` via a
 for loop at the point of submission would incur overhead and would not be able
 to guarantee correct forward progress guarantees between each execution agent
-created by `execute`.
+created by `possibly_blocking_execute`.
+
+### `bulk_always_blocking_execute`
+
+    template<class Executor, class Function, class SharedFactory>
+    void bulk_always_blocking_execute(const Executor& exec, Function&& func,
+      executor_shape_t<Executor> shape, SharedFactory shared_factory);
+
+`bulk_always_blocking_execute` is equivalent to `bulk_possibly_blocking_execute` except that it blocks
+its client until the result of execution is complete. Correspondingly, it may
+be implemented by calling `bulk_possibly_blocking_execute` and waiting on the resulting future:
+
+    auto future = exec.bulk_possibly_blocking_execute(f, shape, result_factory, shared_factory);
+    future.wait();
+    return future;
+
+As with `bulk_twoway_always_blocking_execute` we include `bulk_always_blocking_execute` to avoid
+overhead incurred by introducing unnecessary asynchrony. This overhead is likely to be significant
+for executors whose cost of execution agent creation is very small. A hypothetical `simd_executor`
+or `inline_executor` are examples.
+
+`bulk_always_blocking_execute` is useful in a case where a user wants to execute work but block
+the caller until completion. This can be useful if a user wishes to simply send a signal or
+message to a remote device where they are not interested in a return channel but want to wait for
+it to finish immediately.
 
 ## One-Way Single-Agent Functions
 
-### `post`
+### `never_blocking_execute`
 
     template<class Executor, class Function, class Allocator = std::allocator<void>>
-    void post(const Executor& exec, Function&& func, Allocator& alloc = Allocator());
+    void never_blocking_execute(const Executor& exec, Function&& func,
+      Allocator& alloc = Allocator());
 
-`post` asynchronously creates a single execution agent bound to the executor
+`never_blocking_execute` asynchronously creates a single execution agent bound to the executor
 `exec` whose execution may begin immediately and does not return a value. The
-created execution agent calls `std::forward<Function>(func)()`. `post` does not
+created execution agent calls `std::forward<Function>(func)()`. `never_blocking_execute` does not
 block the caller, regardless of the value of
 `executor_execute_blocking_category_t<Executor>`. The allocator `alloc` can be
 used to allocate memory for `func`.
 
-`post` is equivalent to `execute` except that it makes an additional guarantee
+`never_blocking_execute` is equivalent to `possibly_blocking_execute` except that it makes an additional guarantee
 not to block the client's execution. Some executors will not be able to provide
-such a guarantee and could not be adapted to this functionality when `post` is
-absent. For example, an implementation of `post` which simply forwards its
-arguments directly to `execute` is possible only if
+such a guarantee and could not be adapted to this functionality when `never_blocking_execute` is
+absent. For example, an implementation of `never_blocking_execute` which simply forwards its
+arguments directly to `possibly_blocking_execute` is possible only if
 `executor_execute_blocking_guarantee_t<Executor>` is `never_blocking_execution`.
 
-### `defer`
+### `never_blocking_continuation_execute`
 
     template<class Executor, class Function, class Allocator = std::allocator<void>>
-    void defer(const Executor& exec, Function&& func, Allocator& alloc = Allocator());
+    void never_blocking_continuation_execute(const Executor& exec, Function&& func,
+      Allocator& alloc = Allocator());
 
-`defer` asynchronously creates a single execution agent bound to the executor
+`never_blocking_continuation_execute` asynchronously creates a single execution agent bound to the executor
 `exec` whose execution may begin immediately and does not return a value. The
-created execution agent calls `std::forward<Function>(func)()`. `defer` does
+created execution agent calls `std::forward<Function>(func)()`. `never_blocking_continuation_execute` does
 not block the caller, regardless of the value of
 `executor_execute_blocking_category_t<Executor>`. The allocator `alloc` can be
 used to allocate memory for `func`.
 
-`defer` is equivalent to `execute` except that it makes an additional guarantee
+`never_blocking_continuation_execute` is equivalent to `possibly_blocking_execute` except that it makes an additional guarantee
 not to block the client's execution. Some executors will not be able to provide
-such a guarantee and could not be adapted to this functionality when `defer` is
-absent. For example, an implementation of `defer` which simply forwards its
-arguments directly to `execute` is possible only if
+such a guarantee and could not be adapted to this functionality when `never_blocking_continuation_execute` is
+absent. For example, an implementation of `never_blocking_continuation_execute` which simply forwards its
+arguments directly to `possibly_blocking_execute` is possible only if
 `executor_execute_blocking_guarantee_t<Executor>` is `never_blocking_execution`.
 
-**Comparison to post.** `defer`'s semantics are identical to `post`. That is,
+**Comparison to never_blocking_execute.** `never_blocking_continuation_execute`'s semantics are identical to `never_blocking_execute`. That is,
 they may be used interchangeably without effecting a program's correctness.
-`defer` indicates that `func` represents a continuation of the caller which
+`never_blocking_continuation_execute` indicates that `func` represents a continuation of the caller which
 allows for additional performance optimizations within the executor
 implementation.
 
-### `execute`
+### `possibly_blocking_execute`
 
     template<class Executor, class Function, class Allocator = std::allocator<void>>
-    void execute(const Executor& exec, Function&& func, Allocator& alloc = Allocator());
+    void possibly_blocking_execute(const Executor& exec, Function&& func,
+      Allocator& alloc = Allocator());
 
-`execute` asynchronously creates a single execution agent bound to the executor
+`possibly_blocking_execute` asynchronously creates a single execution agent bound to the executor
 `exec` whose execution may begin immediately and does not return a value. The
-created execution agent calls `std::forward<Function>(func)()`. `execute` may or
-may not the caller until execution completes, depending on the value of
+created execution agent calls `std::forward<Function>(func)()`. `possibly_blocking_execute` may or
+may not block the caller until execution completes, depending on the value of
 `executor_execute_blocking_guarantee_t<Executor>`. The allocator `alloc` can be
 used to allocate memory for `func`.
 
-`execute` is equivalent to `bulk_execute` except that it creates a group of
+`possibly_blocking_execute` is equivalent to `bulk_possibly_blocking_execute` except that it creates a group of
 execution agents rather than a single execution agent. This means that an
-executor that provides `bulk_execute` could be adapted to make the semantic
-guarantees of `execute` if it were absent, by creating a group with a single
+executor that provides `bulk_possibly_blocking_execute` could be adapted to make the semantic
+guarantees of `possibly_blocking_execute` if it were absent, by creating a group with a single
 execution agent.
 
     // pass func as a shared parameter to account for move-only functions
@@ -1705,35 +1725,65 @@ execution agent.
       result = func();
     };
 
-    exec.bulk_then_execute(g,
+    exec.bulk_twoway_then_possibly_blocking_execute(g,
       executor_shape_t<Executor>{1}, // create a single agent group
       shared_factory
     );
 
-As with the adaptation of `then_execute` described earlier this group has only
+As with the adaptation of `twoway_then_possibly_blocking_execute` described earlier this group has only
 one agent and no sharing actually occurs. The cost of this unnecessary sharing
-may be significant and can be avoided if an executor specializes `then_execute`.
+may be significant and can be avoided if an executor specializes `twoway_then_possibly_blocking_execute`.
+
+### `always_blocking_execute`
+
+    template<class Executor, class Function, class Allocator = std::allocator<void>>
+    void always_blocking_execute(const Executor& exec, Function&& func,
+      Allocator& alloc = Allocator());
+
+`always_blocking_execute` asynchronously creates a single execution agent bound to the executor
+`exec` whose execution may begin immediately and does not return a value. The
+created execution agent calls `std::forward<Function>(func)()`. `always_blocking_execute` always
+blocks the caller until execution completes, regardless of the value of `executor_execute_blocking_guarantee_t<Executor>`. The allocator `alloc` can be used to allocate
+memory for `func`.
+
+`always_blocking_execute` is equivalent to `possibly_blocking_execute` except that it blocks its
+client until the result of execution is complete.
+Correspondingly, it may be implemented by calling `possibly_blocking_execute` and waiting on the resulting future:
+
+    auto future = exec.possibly_blocking_execute(std::forward<Function>(f));
+    future.wait();
+    return future;
+
+As with `twoway_always_blocking_execute` we include `always_blocking_execute` to avoid overhead incurred by introducing unnecessary
+asynchrony. This overhead is likely to be significant for executors whose cost
+of execution agent creation is very small. A hypothetical `simd_executor` or
+`inline_executor` are examples.
+
+`always_blocking_execute` is useful in a case where a user wants to execute work but block the
+caller until completion. This can be useful if a user wishes to simply send a signal or message
+to a remote device where they are not interested in a return channel but want to wait for it to
+finish immediately.
 
 # Future Work
 
 We conclude with a survey of future work. Some of this work is in scope for
 P0443 and should be done before the design is considered complete. Other work
 is explicitly out of scope, and should be pursued independently using our
-design as a foundation. 
+design as a foundation.
 
 ## Open Design Issues
 
 Much of our design for executors is well-established. However, some aspects of the
 design remain the subject of ongoing discussion.
 
-### `post` and `defer`
+### `never_blocking_execute` and `never_blocking_continuation_execute`
 
-Execution functions named `post` and `defer` have identical semantics.
+Execution functions named `never_blocking_execute` and `never_blocking_continuation_execute` have identical semantics.
 Specifically this means that, in generic code (i.e. code where the executor
-    type is a template parameter), calls to `post` and `defer` may be interchanged
-without altering program semantics or correctness. Where `post` and `defer` differ
+    type is a template parameter), calls to `never_blocking_execute` and `never_blocking_continuation_execute` may be interchanged
+without altering program semantics or correctness. Where `never_blocking_execute` and `never_blocking_continuation_execute` differ
 is in the information conveyed to the executor about the caller's intent: the
-use of `defer` indicates that the submitted function object represents a
+use of `never_blocking_continuation_execute` indicates that the submitted function object represents a
 continuation of the caller.
 
 Concrete executor implementations can use this information to optimize
@@ -1747,16 +1797,16 @@ throughput and latency.
 // TODO: provide reference to this data
 
 However, all other execution function names represent distinct semantic
-guarantees; `post` and `defer` are the exceptions. To address this
+guarantees; `never_blocking_execute` and `never_blocking_continuation_execute` are the exceptions. To address this
 inconsistency, we may consider providing only one of these functions (i.e.
-`post`) and to introduce a hinting mechanism to convey the additional
+`never_blocking_execute`) and to introduce a hinting mechanism to convey the additional
 information to an executor. Ideally, this mechanism would be extensible to
 allow other hints to be introduced in the future (e.g. a hint to indicate that
 a submitted function object benefits from CPU affinity).
 
 As an example of established practice, the Boost.Asio library uses an ADL
 customization point, named `asio_handler_is_continuation` to provide
-functionality equivalent to `defer`. The library's executors apply this
+functionality equivalent to `never_blocking_continuation_execute`. The library's executors apply this
 function to all submitted function objects to determine when the optimization
 may be applied.
 
@@ -1803,11 +1853,11 @@ The blocking guarantee is not
 There are exceptions to this rule where blocking guarantees are provided at the
 granularity of individual customization points. The two-way `sync_` functions
 are exceptions because it is impossible to return the result of execution in a
-way that does not block the client which created that execution. The `post` and
-`defer` functions are exceptions to the executor's blocking trait because we
+way that does not block the client which created that execution. The `never_blocking_execute` and
+`never_blocking_continuation_execute` functions are exceptions to the executor's blocking trait because we
 desire the ability for a single executor to provide an always-blocking or
-possibly-blocking `execute` as well as the unconditionally never-blocking
-customization points `post` and `defer`. In such a situation, all three of
+possibly-blocking `possibly_blocking_execute` as well as the unconditionally never-blocking
+customization points `never_blocking_execute` and `never_blocking_continuation_execute`. In such a situation, all three of
 these customization points have different semantics.
 
 ## Envisioned Extensions
@@ -1900,8 +1950,9 @@ hierarchy. The interface to such an execution function would look like:
 
     template<class Executor, class Function, class ResultFactory, class... SharedFactories>
     std::invoke_result_t<ResultFactory()>
-    bulk_sync_execute(const Executor& exec, Function f, executor_shape_t<Executor> shape,
-                      ResultFactory result_factory, SharedFactories... shared_factories);
+    bulk_twoway_always_blocking_execute(const Executor& exec, Function f,
+      executor_shape_t<Executor> shape, ResultFactory result_factory,
+      SharedFactories... shared_factories);
 
 In this interface, the `shape` parameter simultaneously describes the hierarchy
 of groups created by this execution function as well as the multidimensional
