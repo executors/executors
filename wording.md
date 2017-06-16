@@ -411,19 +411,21 @@ where `x` denotes an executor object, `e` denotes the function name and `...` de
 
 Each execution function is made up from a combination of three properties: its **blocking semantics**, **directionality**, and **cardinality**. The combination of these properties determines the execution function's name, parameters, and semantics.
 
-#### Naming of execution functions
-
-The name of an execution function is determined by the combination of its properties. A word or prefix is associated with each property, and these are concatenated in the order below.
-
-| Cardinality | Directionality | Blocking semantics |
-|-------------|----------------|--------------------|
-| `""` or `"bulk_"` | `""` or `"twoway_"` or `"twoway_then_"` | `"possibly_blocking_execute"` or `"never_blocking_execute"` or `"never_blocking_continuation_execute"` or `"always_blocking_execute"` |
-
 #### Semantics of execution functions
 
 The parameters of the execution function and semantics that apply to the the execution function and to the execution agents created by it are determined by the combination of its properties. Parameters and semantics are added to an execution function for each of the properties. Whenever there is a conflict of semantics the presedence is resolved in the order below.
 
     Cardinality > Directionality > Blocking semantics
+
+#### Naming of execution functions and customization points
+
+The name of an execution function and it's respective customization point is determined by the combination of its properties. A word or prefix is associated with each property, and these are concatenated in the order below.
+
+| Cardinality | Directionality | Blocking semantics |
+|-------------|----------------|--------------------|
+| `""` or `"bulk_"` | `""` or `"twoway_"` or `"twoway_then_"` | `"possibly_blocking_execute"` or `"never_blocking_execute"` or `"never_blocking_continuation_execute"` or `"always_blocking_execute"` |
+
+[*Note:* For the purposes of clarity the naming of execution functions and customization points have been named using a particularly verbose naming scheme. The aim of this naming scheme is to make the semantics of each function clearer, we intend for these names to replaced a another naming scheme at a later date.  *--end note.*]
 
 #### Blocking semantics
 

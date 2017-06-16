@@ -547,8 +547,8 @@ synchronization is not required (perhaps when some other backchannel is
     available), one-way customization points avoid the cost of a `Future` and
 shield the user from exceptional execution. In these cases, a one-way executor
 may provide a backchannel for communicating user exceptions back to the client.
-The names of two-way customization points names are infixed with `sync_`,
-    `async_`, or `then_`.  One-way customization points have no infix.
+The names of two-way customization points names are infixed with `twoway_`,
+    `twoway_then_`.  One-way customization points have no infix.
 
 [^directionality_caveat]: We think that the names "one-way" and "two-way" should be improved.
 
@@ -558,14 +558,18 @@ Depending on the relationship between client and executed task, blocking
 guarantees may be critical to either program correctness or performance. A
 customization point may guarantee to always block, possibly block, or never
 block its client. Customization points which may possibly block its client are
-suffixed with `possibly_blocking_execute`. The exception to this rule are customization points
-infixed with `sync_`. Because they always return the result of execution to
-their client as a value, there is no way for `sync_` customization points to
-execute without blocking their client. Customization points which will never
-block its client are suffixed with `never_blocking_execute` or `never_blocking_continuation_execute`. `never_blocking_continuation_execute` indicates a
+suffixed with `possibly_blocking_`. Customization points which will never
+block its client are suffixed with `never_blocking_` or `never_blocking_continuation_`. `never_blocking_continuation_execute` indicates a
 preference to treat the created execution as a continuation of the client while
-`never_blocking_execute` indicates no such preference. A futher discussion of blocking guarantees
-can be found in the ongoing discussions section later in the paper.
+`never_blocking_execute` indicates no such preference. Customization points which
+will always block its client are suffixed with `always_blocking_`. A futher discussion
+of blocking guarantees can be found in the ongoing discussions section later in the
+paper.
+
+For the purposes of clarity the naming of the customization points have been named
+using a particularly verbose naming scheme. The aim of this naming scheme is to make
+the semantics of each function clearer, we intend for these names to replaced a another
+naming scheme at a later date.
 
 ## The Customization Points Provided by Our Design
 
@@ -1111,7 +1115,7 @@ can be used to wait for execution to complete containing the result of
 `std::forward<Function>(func)(i, r, s)`, where `i` is of type
 `executor_index_t<Executor>`, `r` is a function object returned from
 `return_factory` and `s` is a shared object returned from `shared_factory`.
-`bulk_twoway_then_possibly_blocking_execute` may or may not the caller until execution completes,
+`bulk_twoway_then_possibly_blocking_execute` may or may not block the caller until execution completes,
 depending on the value of `executor_execute_blocking_guarantee_t<Executor>`.
 
 `bulk_twoway_then_possibly_blocking_execute` is the most general execution function we have identified
@@ -1326,7 +1330,7 @@ executor "natively" supports single-agent execution (e.g. the
 executor `exec` whose execution begins after the completion of `pred` and
 returns a future that can be used to wait for execution to complete containing
 the result of `func`. The created execution agent calls
-`std::forward<Function>(func)()`. `twoway_then_possibly_blocking_execute` may or may not the caller until
+`std::forward<Function>(func)()`. `twoway_then_possibly_blocking_execute` may or may not block the caller until
 execution completes, depending on the value of
 `executor_execute_blocking_guarantee_t<Executor>`. The allocator `alloc` can be
 used to allocate memory for `func`.
@@ -1380,7 +1384,7 @@ may be significant and can be avoided if an executor specializes `twoway_then_po
 executor `exec` whose execution may begin immediately and returns a future that
 can be used to wait for execution to complete containing the result of `func`.
 The created execution agent calls `std::forward<Function>(func)()`.
-`twoway_possibly_blocking_execute` may or may not the caller until execution completes, depending
+`twoway_possibly_blocking_execute` may or may not block the caller until execution completes, depending
 on the value of `executor_execute_blocking_guarantee_t<Executor>`. The allocator
 `alloc` can be used to allocate memory for `func`.
 
@@ -1593,7 +1597,7 @@ optimizations within the executor implementation.
 whose execution may begin immediately and does not return a value. Each created
 execution agent calls `std::forward<Function>(func)(i, s)`, where `i` is of type
 `executor_index_t<Executor>` and `s` is a shared object returned from
-`shared_factory`. `bulk_possibly_blocking_execute` may or may not the caller until execution
+`shared_factory`. `bulk_possibly_blocking_execute` may or may not block the caller until execution
 completes, depending on the value of
 `executor_execute_blocking_guarantee_t<Executor>`.
 
@@ -1621,6 +1625,30 @@ We include `bulk_possibly_blocking_execute` because the equivalent path through 
 for loop at the point of submission would incur overhead and would not be able
 to guarantee correct forward progress guarantees between each execution agent
 created by `possibly_blocking_execute`.
+
+### `bulk_always_blocking_execute`
+
+    template<class Executor, class Function, class SharedFactory>
+    void bulk_always_blocking_execute(const Executor& exec, Function&& func,
+      executor_shape_t<Executor> shape, SharedFactory shared_factory);
+
+`bulk_always_blocking_execute` is equivalent to `bulk_possibly_blocking_execute` except that it blocks
+its client until the result of execution is complete. Correspondingly, it may
+be implemented by calling `bulk_possibly_blocking_execute` and waiting on the resulting future:
+
+    auto future = exec.bulk_possibly_blocking_execute(f, shape, result_factory, shared_factory);
+    future.wait();
+    return future;
+
+As with `bulk_twoway_always_blocking_execute` we include `bulk_always_blocking_execute` to avoid
+overhead incurred by introducing unnecessary asynchrony. This overhead is likely to be significant
+for executors whose cost of execution agent creation is very small. A hypothetical `simd_executor`
+or `inline_executor` are examples.
+
+`bulk_always_blocking_execute` is useful in a case where a user wants to execute work but block
+the caller until completion. This can be useful if a user wishes to simply send a signal or
+message to a remote device where they are not interested in a return channel but want to wait for
+it to finish immediately.
 
 ## One-Way Single-Agent Functions
 
@@ -1679,7 +1707,7 @@ implementation.
 `possibly_blocking_execute` asynchronously creates a single execution agent bound to the executor
 `exec` whose execution may begin immediately and does not return a value. The
 created execution agent calls `std::forward<Function>(func)()`. `possibly_blocking_execute` may or
-may not the caller until execution completes, depending on the value of
+may not block the caller until execution completes, depending on the value of
 `executor_execute_blocking_guarantee_t<Executor>`. The allocator `alloc` can be
 used to allocate memory for `func`.
 
@@ -1705,6 +1733,36 @@ execution agent.
 As with the adaptation of `twoway_then_possibly_blocking_execute` described earlier this group has only
 one agent and no sharing actually occurs. The cost of this unnecessary sharing
 may be significant and can be avoided if an executor specializes `twoway_then_possibly_blocking_execute`.
+
+### `always_blocking_execute`
+
+    template<class Executor, class Function, class Allocator = std::allocator<void>>
+    void always_blocking_execute(const Executor& exec, Function&& func,
+      Allocator& alloc = Allocator());
+
+`always_blocking_execute` asynchronously creates a single execution agent bound to the executor
+`exec` whose execution may begin immediately and does not return a value. The
+created execution agent calls `std::forward<Function>(func)()`. `always_blocking_execute` always
+blocks the caller until execution completes, regardless of the value of `executor_execute_blocking_guarantee_t<Executor>`. The allocator `alloc` can be used to allocate
+memory for `func`.
+
+`always_blocking_execute` is equivalent to `possibly_blocking_execute` except that it blocks its
+client until the result of execution is complete.
+Correspondingly, it may be implemented by calling `possibly_blocking_execute` and waiting on the resulting future:
+
+    auto future = exec.possibly_blocking_execute(std::forward<Function>(f));
+    future.wait();
+    return future;
+
+As with `twoway_always_blocking_execute` we include `always_blocking_execute` to avoid overhead incurred by introducing unnecessary
+asynchrony. This overhead is likely to be significant for executors whose cost
+of execution agent creation is very small. A hypothetical `simd_executor` or
+`inline_executor` are examples.
+
+`always_blocking_execute` is useful in a case where a user wants to execute work but block the
+caller until completion. This can be useful if a user wishes to simply send a signal or message
+to a remote device where they are not interested in a return channel but want to wait for it to
+finish immediately.
 
 # Future Work
 
