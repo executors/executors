@@ -36,38 +36,51 @@ class static_thread_pool
     executor_impl(const executor_impl& other) noexcept : pool_(other.pool_) { pool_->work_up(Work{}); }
     ~executor_impl() { pool_->work_down(Work{}); }
 
-    // Directionality. Both kinds supported, so rebinding does not change type.
-    executor_impl rebind(execution::one_way_t) const { return *this; }
-    executor_impl rebind(execution::two_way_t) const { return *this; }
+    // Directionality. Both kinds supported, so requireing does not change type.
+    executor_impl require(execution::oneway_t) const { return *this; }
+    executor_impl require(execution::twoway_t) const { return *this; }
 
-    // Cardinality. Both kinds supported, so rebinding does not change type.
-    executor_impl rebind(execution::single_t) const { return *this; }
-    executor_impl rebind(execution::bulk_t) const { return *this; }
+    // Cardinality. Both kinds supported, so requireing does not change type.
+    executor_impl require(execution::single_t) const { return *this; }
+    executor_impl require(execution::bulk_t) const { return *this; }
 
     // Blocking modes.
     executor_impl<execution::never_blocking_t, Continuation, Work, ProtoAllocator>
-      rebind(execution::never_blocking_t) const { return {pool_, allocator_}; };
+      require(execution::never_blocking_t) const { return {pool_, allocator_}; };
     executor_impl<execution::possibly_blocking_t, Continuation, Work, ProtoAllocator>
-      rebind(execution::possibly_blocking_t) const { return {pool_, allocator_}; };
+      require(execution::possibly_blocking_t) const { return {pool_, allocator_}; };
     executor_impl<execution::always_blocking_t, Continuation, Work, ProtoAllocator>
-      rebind(execution::always_blocking_t) const { return {pool_, allocator_}; };
+      require(execution::always_blocking_t) const { return {pool_, allocator_}; };
 
     // Continuation hint.
     executor_impl<Blocking, execution::is_continuation_t, Work, ProtoAllocator>
-      rebind(execution::is_continuation_t) const { return {pool_, allocator_}; };
+      require(execution::is_continuation_t) const { return {pool_, allocator_}; };
     executor_impl<Blocking, execution::is_not_continuation_t, Work, ProtoAllocator>
-      rebind(execution::is_not_continuation_t) const { return {pool_, allocator_}; };
+      require(execution::is_not_continuation_t) const { return {pool_, allocator_}; };
 
     // Work tracking.
     executor_impl<Blocking, Continuation, execution::is_work_t, ProtoAllocator>
-      rebind(execution::is_work_t) const { return {pool_, allocator_}; };
+      require(execution::is_work_t) const { return {pool_, allocator_}; };
     executor_impl<Blocking, Continuation, execution::is_not_work_t, ProtoAllocator>
-      rebind(execution::is_not_work_t) const { return {pool_, allocator_}; };
+      require(execution::is_not_work_t) const { return {pool_, allocator_}; };
 
     // Allocator.
-    template <class NewProtoAllocator>
+    template<class NewProtoAllocator>
     executor_impl<Blocking, Continuation, execution::is_not_work_t, NewProtoAllocator>
-      rebind(std::allocator_arg_t, const NewProtoAllocator& alloc) const { return {pool_, alloc}; };
+      require(std::allocator_arg_t, const NewProtoAllocator& alloc) const { return {pool_, alloc}; };
+
+    // Prefer uses require if available, otherwise returns *this.
+    template<class... Args> auto prefer(Args&&... args) const
+      -> decltype(this->require(std::forward<Args>(args)...))
+    {
+      return this->require(std::forward<Args>(args)...);
+    }
+
+    template<class... Args> auto prefer(Args&&...) const
+      -> typename std::enable_if<!execution::has_require_member<executor_impl, Args...>::value, executor_impl>::type
+    {
+      return *this;
+    }
 
     bool running_in_this_thread() const noexcept { return pool_->running_in_this_thread(); }
 
@@ -88,9 +101,9 @@ class static_thread_pool
       pool_->execute(Blocking{}, Continuation{}, allocator_, std::move(f));
     }
 
-    template<class Function> auto async_execute(Function f) const -> std::future<decltype(f())>
+    template<class Function> auto twoway_execute(Function f) const -> std::future<decltype(f())>
     {
-      return pool_->async_execute(Blocking{}, Continuation{}, allocator_, std::move(f));
+      return pool_->twoway_execute(Blocking{}, Continuation{}, allocator_, std::move(f));
     }
 
     template<class Function, class SharedFactory> void bulk_execute(Function f, std::size_t n, SharedFactory sf) const
@@ -99,9 +112,9 @@ class static_thread_pool
     }
 
     template<class Function, class ResultFactory, class SharedFactory>
-    auto bulk_async_execute(Function f, std::size_t n, ResultFactory rf, SharedFactory sf) const -> std::future<decltype(rf())>
+    auto bulk_twoway_execute(Function f, std::size_t n, ResultFactory rf, SharedFactory sf) const -> std::future<decltype(rf())>
     {
-      return pool_->bulk_async_execute(Blocking{}, Continuation{}, allocator_, std::move(f), n, std::move(rf), std::move(sf));
+      return pool_->bulk_twoway_execute(Blocking{}, Continuation{}, allocator_, std::move(f), n, std::move(rf), std::move(sf));
     }
   };
 
@@ -316,7 +329,7 @@ private:
   }
 
   template<class Blocking, class Continuation, class ProtoAllocator, class Function>
-  auto async_execute(Blocking, Continuation, const ProtoAllocator& alloc, Function f) -> std::future<decltype(f())>
+  auto twoway_execute(Blocking, Continuation, const ProtoAllocator& alloc, Function f) -> std::future<decltype(f())>
   {
     std::packaged_task<decltype(f())()> task(std::move(f));
     std::future<decltype(f())> future = task.get_future();
@@ -381,7 +394,7 @@ private:
   }
 
   template<class Blocking, class Continuation, class ProtoAllocator, class Function, class ResultFactory, class SharedFactory>
-  auto bulk_async_execute(Blocking, Continuation, const ProtoAllocator& alloc, Function f, std::size_t n, ResultFactory rf, SharedFactory sf)
+  auto bulk_twoway_execute(Blocking, Continuation, const ProtoAllocator& alloc, Function f, std::size_t n, ResultFactory rf, SharedFactory sf)
     -> typename std::enable_if<is_same<decltype(rf()), void>::value, std::future<void>>::type
   {
     // Wrap the shared state so that we can capture and return the result.
@@ -422,7 +435,7 @@ private:
   }
 
   template<class Blocking, class Continuation, class ProtoAllocator, class Function, class ResultFactory, class SharedFactory>
-  auto bulk_async_execute(Blocking, Continuation, const ProtoAllocator& alloc, Function f, std::size_t n, ResultFactory rf, SharedFactory sf)
+  auto bulk_twoway_execute(Blocking, Continuation, const ProtoAllocator& alloc, Function f, std::size_t n, ResultFactory rf, SharedFactory sf)
     -> typename std::enable_if<!is_same<decltype(rf()), void>::value, std::future<decltype(rf())>>::type
   {
     // Wrap the shared state so that we can capture and return the result.
@@ -464,9 +477,9 @@ private:
   }
 
   template<class Blocking, class Continuation, class ProtoAllocator, class Function, class ResultFactory, class SharedFactory>
-  auto bulk_async_execute(execution::always_blocking_t, Continuation, const ProtoAllocator& alloc, Function f, std::size_t n, ResultFactory rf, SharedFactory sf)
+  auto bulk_twoway_execute(execution::always_blocking_t, Continuation, const ProtoAllocator& alloc, Function f, std::size_t n, ResultFactory rf, SharedFactory sf)
   {
-    auto future = this->bulk_async_execute(execution::never_blocking, Continuation{}, alloc, std::move(f), n, std::move(rf), std::move(sf));
+    auto future = this->bulk_twoway_execute(execution::never_blocking, Continuation{}, alloc, std::move(f), n, std::move(rf), std::move(sf));
     future.wait();
     return future;
   }
