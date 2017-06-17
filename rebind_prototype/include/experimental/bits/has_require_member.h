@@ -1,5 +1,5 @@
-#ifndef STD_EXPERIMENTAL_BITS_REBIND_MEMBER_RESULT_H
-#define STD_EXPERIMENTAL_BITS_REBIND_MEMBER_RESULT_H
+#ifndef STD_EXPERIMENTAL_BITS_HAS_REQUIRE_MEMBER_H
+#define STD_EXPERIMENTAL_BITS_HAS_REQUIRE_MEMBER_H
 
 #include <type_traits>
 #include <tuple>
@@ -9,7 +9,7 @@ namespace std {
 namespace experimental {
 inline namespace concurrency_v2 {
 namespace execution {
-namespace rebind_member_result_impl {
+namespace has_require_member_impl {
 
 template<class>
 struct type_check
@@ -18,25 +18,22 @@ struct type_check
 };
 
 template<class Executor, class Args, class = void>
-struct eval {};
+struct eval : std::false_type {};
 
 template<class Executor, class... Args>
 struct eval<Executor, std::tuple<Args...>,
   typename type_check<decltype(
-    std::declval<Executor>().rebind(std::declval<Args>()...)
-  )>::type>
-{
-  typedef decltype(std::declval<Executor>().rebind(std::declval<Args>()...)) type;
-};
+    std::declval<Executor>().require(std::declval<Args>()...)
+  )>::type> : std::true_type {};
 
-} // namespace rebind_member_result_impl
+} // namespace has_require_member_impl
 
 template<class Executor, class... Args>
-struct rebind_member_result : rebind_member_result_impl::eval<Executor, std::tuple<Args...>> {};
+struct has_require_member : has_require_member_impl::eval<Executor, std::tuple<Args...>> {};
 
 } // namespace execution
 } // inline namespace concurrency_v2
 } // namespace experimental
 } // namespace std
 
-#endif // STD_EXPERIMENTAL_BITS_REBIND_MEMBER_RESULT_H
+#endif // STD_EXPERIMENTAL_BITS_HAS_REQUIRE_MEMBER_H

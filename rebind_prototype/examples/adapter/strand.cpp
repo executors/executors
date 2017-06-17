@@ -68,23 +68,44 @@ public:
   {
   }
 
-  template <class... T> auto rebind(T&&... t) const
-    -> strand<execution::rebind_member_result_t<Executor, T...>, Blocking>
-      { return { state_, ex_.rebind(std::forward<T>(t)...) }; }
+  template <class... T> auto require(T&&... t) const
+    -> strand<execution::require_member_result_t<Executor, T...>, Blocking>
+      { return { state_, ex_.require(std::forward<T>(t)...) }; }
 
-  auto rebind(execution::never_blocking_t) const
-    -> strand<execution::rebind_member_result_t<Executor, execution::never_blocking_t>, execution::never_blocking_t>
+  auto require(execution::never_blocking_t) const
+    -> strand<execution::require_member_result_t<Executor, execution::never_blocking_t>, execution::never_blocking_t>
   {
-    return {state_, ex_.rebind(execution::never_blocking)};
+    return {state_, ex_.require(execution::never_blocking)};
   };
 
-  auto rebind(execution::possibly_blocking_t) const
-    -> strand<execution::rebind_member_result_t<Executor, execution::possibly_blocking_t>, execution::never_blocking_t>
+  auto require(execution::possibly_blocking_t) const
+    -> strand<execution::require_member_result_t<Executor, execution::possibly_blocking_t>, execution::never_blocking_t>
   {
-    return {state_, ex_.rebind(execution::possibly_blocking)};
+    return {state_, ex_.require(execution::possibly_blocking)};
   };
 
-  void rebind(execution::always_blocking_t) const = delete;
+  void require(execution::always_blocking_t) const = delete;
+
+  template <class... T> auto prefer(T&&... t) const
+    -> strand<execution::prefer_member_result_t<Executor, T...>, Blocking>
+      { return { state_, ex_.prefer(std::forward<T>(t)...) }; }
+
+  auto prefer(execution::never_blocking_t) const
+    -> strand<execution::prefer_member_result_t<Executor, execution::never_blocking_t>, execution::never_blocking_t>
+  {
+    return {state_, ex_.prefer(execution::never_blocking)};
+  };
+
+  auto prefer(execution::possibly_blocking_t) const
+    -> strand<execution::prefer_member_result_t<Executor, execution::possibly_blocking_t>, execution::never_blocking_t>
+  {
+    return {state_, ex_.prefer(execution::possibly_blocking)};
+  };
+
+  strand prefer(execution::always_blocking_t) const
+  {
+    return *this;
+  }
 
   auto& context() const
   {
@@ -124,7 +145,7 @@ public:
     lock.unlock();
 
     // Need to schedule the strand to run the queued items.
-    ex_.execute([s = this->rebind(execution::never_blocking).rebind(execution::is_continuation)]() mutable
+    ex_.execute([s = this->require(execution::never_blocking).require(execution::is_continuation)]() mutable
         {
           s.run_first_item();
         });
@@ -137,11 +158,11 @@ static_assert(execution::is_oneway_executor_v<
 
 struct foo
 {
-  decltype(std::declval<strand<static_thread_pool::executor_type>>().rebind(execution::never_blocking)) strand_;
+  decltype(std::declval<strand<static_thread_pool::executor_type>>().require(execution::never_blocking)) strand_;
   int count_{0};
 
   explicit foo(const strand<static_thread_pool::executor_type>& s)
-    : strand_(s.rebind(execution::never_blocking))
+    : strand_(s.require(execution::never_blocking))
   {
   }
 
@@ -151,7 +172,7 @@ struct foo
     {
       std::this_thread::sleep_for(std::chrono::seconds(1));
       std::cout << "count is " << count_ << "\n";
-      strand_.rebind(execution::possibly_blocking).execute([count = count_]{ std::cout << "nested count is " << count << "\n"; });
+      strand_.require(execution::possibly_blocking).execute([count = count_]{ std::cout << "nested count is " << count << "\n"; });
       ++count_;
       strand_.execute(*this);
     }
@@ -162,7 +183,7 @@ int main()
 {
   static_thread_pool pool{2};
   strand<static_thread_pool::executor_type> s1(pool.executor());
-  s1.rebind(execution::never_blocking).execute(foo{s1});
-  s1.rebind(execution::possibly_blocking).execute([]{ std::cout << "After 0, before 1\n"; });
+  s1.require(execution::never_blocking).execute(foo{s1});
+  s1.require(execution::possibly_blocking).execute([]{ std::cout << "After 0, before 1\n"; });
   pool.wait();
 }

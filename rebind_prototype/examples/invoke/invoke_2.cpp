@@ -8,7 +8,7 @@ using std::experimental::static_thread_pool;
 template <class Executor, class Function, class Args, std::size_t... I>
 auto invoke_helper(Executor ex, Function f, Args args, std::index_sequence<I...>)
 {
-  return execution::rebind(execution::rebind(ex, execution::twoway), execution::always_blocking).twoway_execute(
+  return execution::prefer(execution::require(ex, execution::twoway), execution::always_blocking).twoway_execute(
       [f = std::move(f), args = std::move(args)]() mutable
       {
         return f(std::move(std::get<I>(args))...);

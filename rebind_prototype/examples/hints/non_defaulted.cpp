@@ -12,7 +12,7 @@ namespace custom_hints
 class inline_executor
 {
 public:
-  inline_executor rebind(custom_hints::tracing_t, bool on) const { inline_executor tmp(*this); tmp.tracing_ = on; return tmp; }
+  inline_executor require(custom_hints::tracing_t, bool on) const { inline_executor tmp(*this); tmp.tracing_ = on; return tmp; }
 
   auto& context() const noexcept { return *this; }
 
@@ -41,9 +41,19 @@ static_assert(execution::is_oneway_executor_v<inline_executor>, "one way executo
 
 int main()
 {
-  auto ex1 = execution::rebind(inline_executor(), custom_hints::tracing, true);
+  static_thread_pool pool{1};
+
+  auto ex1 = execution::require(inline_executor(), custom_hints::tracing, true);
   ex1.execute([]{ std::cout << "we made it\n"; });
 
-  // No default means we can't rebind arbitrary executors using our custom hint.
-  static_assert(!execution::can_rebind_v<static_thread_pool::executor_type, custom_hints::tracing_t, bool>, "can't add tracing to static_thread_pool");
+  auto ex2 = execution::prefer(inline_executor(), custom_hints::tracing, true);
+  ex2.execute([]{ std::cout << "we made it with a preference\n"; });
+
+  // No default means we can't require arbitrary executors using our custom hint ...
+  static_assert(!execution::can_require_v<static_thread_pool::executor_type, custom_hints::tracing_t, bool>, "can't require tracing from static_thread_pool");
+
+  // ... but we can still ask for it as a preference.
+  auto ex3 = execution::prefer(pool.executor(), custom_hints::tracing, true);
+  ex3.execute([]{ std::cout << "we made it again with a preference\n"; });
+  pool.wait();
 }

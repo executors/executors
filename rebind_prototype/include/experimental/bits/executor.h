@@ -84,13 +84,13 @@ class executor
     virtual void* executor_target() = 0;
     virtual const void* executor_target() const = 0;
     virtual bool executor_equals(const impl_base* e) const noexcept = 0;
-    virtual impl_base* executor_rebind(never_blocking_t) const = 0;
-    virtual impl_base* executor_rebind(possibly_blocking_t) const = 0;
-    virtual impl_base* executor_rebind(always_blocking_t) const = 0;
-    virtual impl_base* executor_rebind(is_continuation_t) const = 0;
-    virtual impl_base* executor_rebind(is_not_continuation_t) const = 0;
-    virtual impl_base* executor_rebind(is_work_t) const = 0;
-    virtual impl_base* executor_rebind(is_not_work_t) const = 0;
+    virtual impl_base* executor_require(never_blocking_t) const = 0;
+    virtual impl_base* executor_require(possibly_blocking_t) const = 0;
+    virtual impl_base* executor_require(always_blocking_t) const = 0;
+    virtual impl_base* executor_require(is_continuation_t) const = 0;
+    virtual impl_base* executor_require(is_not_continuation_t) const = 0;
+    virtual impl_base* executor_require(is_work_t) const = 0;
+    virtual impl_base* executor_require(is_not_work_t) const = 0;
     virtual const type_info& context_target_type() const = 0;
     virtual const void* context_target() const = 0;
     virtual bool context_equals(const impl_base* e) const noexcept = 0;
@@ -153,39 +153,39 @@ class executor
       return executor_ == *static_cast<const Executor*>(e->executor_target());
     }
 
-    virtual impl_base* executor_rebind(never_blocking_t) const
+    virtual impl_base* executor_require(never_blocking_t) const
     {
-      return new impl<decltype(execution::rebind(executor_, never_blocking))>(execution::rebind(executor_, never_blocking));
+      return new impl<decltype(execution::require(executor_, never_blocking))>(execution::require(executor_, never_blocking));
     }
 
-    virtual impl_base* executor_rebind(possibly_blocking_t) const
+    virtual impl_base* executor_require(possibly_blocking_t) const
     {
-      return new impl<decltype(execution::rebind(executor_, possibly_blocking))>(execution::rebind(executor_, possibly_blocking));
+      return new impl<decltype(execution::require(executor_, possibly_blocking))>(execution::require(executor_, possibly_blocking));
     }
 
-    virtual impl_base* executor_rebind(always_blocking_t) const
+    virtual impl_base* executor_require(always_blocking_t) const
     {
-      return new impl<decltype(execution::rebind(executor_, always_blocking))>(execution::rebind(executor_, always_blocking));
+      return new impl<decltype(execution::require(executor_, always_blocking))>(execution::require(executor_, always_blocking));
     }
 
-    virtual impl_base* executor_rebind(is_continuation_t) const
+    virtual impl_base* executor_require(is_continuation_t) const
     {
-      return new impl<decltype(execution::rebind(executor_, is_continuation))>(execution::rebind(executor_, is_continuation));
+      return new impl<decltype(execution::require(executor_, is_continuation))>(execution::require(executor_, is_continuation));
     }
 
-    virtual impl_base* executor_rebind(is_not_continuation_t) const
+    virtual impl_base* executor_require(is_not_continuation_t) const
     {
-      return new impl<decltype(execution::rebind(executor_, is_not_continuation))>(execution::rebind(executor_, is_not_continuation));
+      return new impl<decltype(execution::require(executor_, is_not_continuation))>(execution::require(executor_, is_not_continuation));
     }
 
-    virtual impl_base* executor_rebind(is_work_t) const
+    virtual impl_base* executor_require(is_work_t) const
     {
-      return new impl<decltype(execution::rebind(executor_, is_work))>(execution::rebind(executor_, is_work));
+      return new impl<decltype(execution::require(executor_, is_work))>(execution::require(executor_, is_work));
     }
 
-    virtual impl_base* executor_rebind(is_not_work_t) const
+    virtual impl_base* executor_require(is_not_work_t) const
     {
-      return new impl<decltype(execution::rebind(executor_, is_not_work))>(execution::rebind(executor_, is_not_work));
+      return new impl<decltype(execution::require(executor_, is_not_work))>(execution::require(executor_, is_not_work));
     }
 
     virtual const type_info& context_target_type() const
@@ -278,7 +278,7 @@ public:
 
   template<class Executor> executor(Executor e)
   {
-    auto e2 = execution::rebind(execution::rebind(std::move(e), execution::bulk), execution::twoway);
+    auto e2 = execution::require(execution::require(std::move(e), execution::bulk), execution::twoway);
     context_.impl_ = new impl<decltype(e2)>(std::move(e2));
   }
 
@@ -331,14 +331,21 @@ public:
 
   // executor operations:
 
-  executor rebind(never_blocking_t) const { return context_.impl_ ? context_.impl_->executor_rebind(never_blocking) : context_.impl_->clone(); }
-  executor rebind(possibly_blocking_t) const { return context_.impl_ ? context_.impl_->executor_rebind(possibly_blocking) : context_.impl_->clone(); }
-  executor rebind(always_blocking_t) const { return context_.impl_ ? context_.impl_->executor_rebind(always_blocking) : context_.impl_->clone(); }
-  executor rebind(is_continuation_t) const { return context_.impl_ ? context_.impl_->executor_rebind(is_continuation) : context_.impl_->clone(); }
-  executor rebind(is_not_continuation_t) const { return context_.impl_ ? context_.impl_->executor_rebind(is_not_continuation) : context_.impl_->clone(); }
-  executor rebind(is_work_t) const { return context_.impl_ ? context_.impl_->executor_rebind(is_work) : context_.impl_->clone(); }
-  executor rebind(is_not_work_t) const { return context_.impl_ ? context_.impl_->executor_rebind(is_not_work) : context_.impl_->clone(); }
+  executor require(never_blocking_t) const { return context_.impl_ ? context_.impl_->executor_require(never_blocking) : context_.impl_->clone(); }
+  executor require(possibly_blocking_t) const { return context_.impl_ ? context_.impl_->executor_require(possibly_blocking) : context_.impl_->clone(); }
+  executor require(always_blocking_t) const { return context_.impl_ ? context_.impl_->executor_require(always_blocking) : context_.impl_->clone(); }
+  executor require(is_continuation_t) const { return context_.impl_ ? context_.impl_->executor_require(is_continuation) : context_.impl_->clone(); }
+  executor require(is_not_continuation_t) const { return context_.impl_ ? context_.impl_->executor_require(is_not_continuation) : context_.impl_->clone(); }
+  executor require(is_work_t) const { return context_.impl_ ? context_.impl_->executor_require(is_work) : context_.impl_->clone(); }
+  executor require(is_not_work_t) const { return context_.impl_ ? context_.impl_->executor_require(is_not_work) : context_.impl_->clone(); }
   
+  template<class... Args> auto prefer(Args&&... args) const
+    -> decltype(this->require(std::forward<Args>(args)...))
+      { return this->require(std::forward<Args>(args)...); }
+  template<class... Args> auto prefer(Args&&...) const
+    -> typename std::enable_if<!execution::has_require_member<executor, Args...>::value, executor>::type
+      { return *this; }
+
   const context_type& context() const noexcept
   {
     return context_;

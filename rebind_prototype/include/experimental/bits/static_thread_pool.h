@@ -36,38 +36,51 @@ class static_thread_pool
     executor_impl(const executor_impl& other) noexcept : pool_(other.pool_) { pool_->work_up(Work{}); }
     ~executor_impl() { pool_->work_down(Work{}); }
 
-    // Directionality. Both kinds supported, so rebinding does not change type.
-    executor_impl rebind(execution::oneway_t) const { return *this; }
-    executor_impl rebind(execution::twoway_t) const { return *this; }
+    // Directionality. Both kinds supported, so requireing does not change type.
+    executor_impl require(execution::oneway_t) const { return *this; }
+    executor_impl require(execution::twoway_t) const { return *this; }
 
-    // Cardinality. Both kinds supported, so rebinding does not change type.
-    executor_impl rebind(execution::single_t) const { return *this; }
-    executor_impl rebind(execution::bulk_t) const { return *this; }
+    // Cardinality. Both kinds supported, so requireing does not change type.
+    executor_impl require(execution::single_t) const { return *this; }
+    executor_impl require(execution::bulk_t) const { return *this; }
 
     // Blocking modes.
     executor_impl<execution::never_blocking_t, Continuation, Work, ProtoAllocator>
-      rebind(execution::never_blocking_t) const { return {pool_, allocator_}; };
+      require(execution::never_blocking_t) const { return {pool_, allocator_}; };
     executor_impl<execution::possibly_blocking_t, Continuation, Work, ProtoAllocator>
-      rebind(execution::possibly_blocking_t) const { return {pool_, allocator_}; };
+      require(execution::possibly_blocking_t) const { return {pool_, allocator_}; };
     executor_impl<execution::always_blocking_t, Continuation, Work, ProtoAllocator>
-      rebind(execution::always_blocking_t) const { return {pool_, allocator_}; };
+      require(execution::always_blocking_t) const { return {pool_, allocator_}; };
 
     // Continuation hint.
     executor_impl<Blocking, execution::is_continuation_t, Work, ProtoAllocator>
-      rebind(execution::is_continuation_t) const { return {pool_, allocator_}; };
+      require(execution::is_continuation_t) const { return {pool_, allocator_}; };
     executor_impl<Blocking, execution::is_not_continuation_t, Work, ProtoAllocator>
-      rebind(execution::is_not_continuation_t) const { return {pool_, allocator_}; };
+      require(execution::is_not_continuation_t) const { return {pool_, allocator_}; };
 
     // Work tracking.
     executor_impl<Blocking, Continuation, execution::is_work_t, ProtoAllocator>
-      rebind(execution::is_work_t) const { return {pool_, allocator_}; };
+      require(execution::is_work_t) const { return {pool_, allocator_}; };
     executor_impl<Blocking, Continuation, execution::is_not_work_t, ProtoAllocator>
-      rebind(execution::is_not_work_t) const { return {pool_, allocator_}; };
+      require(execution::is_not_work_t) const { return {pool_, allocator_}; };
 
     // Allocator.
-    template <class NewProtoAllocator>
+    template<class NewProtoAllocator>
     executor_impl<Blocking, Continuation, execution::is_not_work_t, NewProtoAllocator>
-      rebind(std::allocator_arg_t, const NewProtoAllocator& alloc) const { return {pool_, alloc}; };
+      require(std::allocator_arg_t, const NewProtoAllocator& alloc) const { return {pool_, alloc}; };
+
+    // Prefer uses require if available, otherwise returns *this.
+    template<class... Args> auto prefer(Args&&... args) const
+      -> decltype(this->require(std::forward<Args>(args)...))
+    {
+      return this->require(std::forward<Args>(args)...);
+    }
+
+    template<class... Args> auto prefer(Args&&...) const
+      -> typename std::enable_if<!execution::has_require_member<executor_impl, Args...>::value, executor_impl>::type
+    {
+      return *this;
+    }
 
     bool running_in_this_thread() const noexcept { return pool_->running_in_this_thread(); }
 

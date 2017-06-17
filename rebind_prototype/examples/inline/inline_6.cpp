@@ -28,14 +28,14 @@ public:
 };
 
 static_assert(execution::is_bulk_oneway_executor_v<inline_executor>, "bulk one way executor requirements not met");
-static_assert(execution::is_bulk_twoway_executor_v<decltype(execution::rebind(inline_executor(), execution::twoway))>, "bulk two way executor requirements not met");
+static_assert(execution::is_bulk_twoway_executor_v<decltype(execution::require(inline_executor(), execution::twoway))>, "bulk two way executor requirements not met");
 static_assert(!execution::is_oneway_executor_v<inline_executor>, "must not meet one way executor requirements");
-static_assert(!execution::is_twoway_executor_v<decltype(execution::rebind(inline_executor(), execution::twoway))>, "must not meet two way executor requirements");
+static_assert(!execution::is_twoway_executor_v<decltype(execution::require(inline_executor(), execution::twoway))>, "must not meet two way executor requirements");
 
 int main()
 {
   inline_executor ex1;
-  auto ex2 = execution::rebind(ex1, execution::twoway);
+  auto ex2 = execution::require(ex1, execution::twoway);
   std::future<void> f1 = ex2.bulk_twoway_execute([](int n, int&){ std::cout << "part " << n << "\n"; }, 8, []{}, []{ return 0; });
   f1.wait();
   std::cout << "bulk operation completed\n";

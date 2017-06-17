@@ -7,9 +7,9 @@ using std::experimental::static_thread_pool;
 int main()
 {
   static_thread_pool pool{1};
-  execution::executor ex = pool.executor().rebind(execution::never_blocking);
+  execution::executor ex = pool.executor().require(execution::never_blocking);
   std::cout << "before submission\n";
-  ex.execute([ex = ex.rebind(execution::always_blocking)]{
+  ex.execute([ex = ex.require(execution::always_blocking)]{
       std::cout << "outer starts\n";
       ex.execute([]{ std::cout << "inner\n"; });
       std::cout << "outer ends\n";

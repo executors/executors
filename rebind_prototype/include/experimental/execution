@@ -1,7 +1,8 @@
 #ifndef STD_EXPERIMENTAL_EXECUTION
 #define STD_EXPERIMENTAL_EXECUTION
 
-#include <experimental/bits/rebind.h>
+#include <experimental/bits/require.h>
+#include <experimental/bits/prefer.h>
 
 namespace std {
 namespace experimental {
@@ -70,23 +71,38 @@ template<class Executor> struct executor_bulk_forward_progress_guarantee;
 
 template<class Executor> using executor_bulk_forward_progress_guarantee_t = typename executor_bulk_forward_progress_guarantee<Executor>::type;
 
-// Type traits to determine whether a rebind member invocation is valid, and what its result is.
-template<class Executor, class... Args> struct has_rebind_member;
-template<class Executor, class... Args> struct rebind_member_result;
+// Type traits to determine whether a require member invocation is valid, and what its result is.
+template<class Executor, class... Args> struct has_require_member;
+template<class Executor, class... Args> struct require_member_result;
 
-template<class Executor, class... Args> constexpr bool has_rebind_member_v = has_rebind_member<Executor, Args...>::value;
-template<class Executor, class... Args> using rebind_member_result_t = typename rebind_member_result<Executor, Args...>::type;
+template<class Executor, class... Args> constexpr bool has_require_member_v = has_require_member<Executor, Args...>::value;
+template<class Executor, class... Args> using require_member_result_t = typename require_member_result<Executor, Args...>::type;
+
+// Type traits to determine whether a prefer member invocation is valid, and what its result is.
+template<class Executor, class... Args> struct has_prefer_member;
+template<class Executor, class... Args> struct prefer_member_result;
+
+template<class Executor, class... Args> constexpr bool has_prefer_member_v = has_prefer_member<Executor, Args...>::value;
+template<class Executor, class... Args> using prefer_member_result_t = typename prefer_member_result<Executor, Args...>::type;
 
 namespace
 {
-  // Rebind customization point.
-  constexpr const auto& rebind = rebind_impl::customization_point<>;
+  // Require customization point.
+  constexpr const auto& require = require_impl::customization_point<>;
+
+  // Prefer customization point.
+  constexpr const auto& prefer = prefer_impl::customization_point<>;
 }
 
-// Type trait to determine whether the rebind customization point is valid for the specified arguments.
-template<class Executor, class... Args> struct can_rebind;
+// Type trait to determine whether the require customization point is valid for the specified arguments.
+template<class Executor, class... Args> struct can_require;
 
-template<class Executor, class... Args> constexpr bool can_rebind_v = can_rebind<Executor, Args...>::value;
+template<class Executor, class... Args> constexpr bool can_require_v = can_require<Executor, Args...>::value;
+
+// Type trait to determine whether the prefer customization point is valid for the specified arguments.
+template<class Executor, class... Args> struct can_prefer;
+
+template<class Executor, class... Args> constexpr bool can_prefer_v = can_prefer<Executor, Args...>::value;
 
 // Polymorphic wrappers.
 class bad_executor;
@@ -107,10 +123,13 @@ class executor;
 #include <experimental/bits/executor_shape.h>
 #include <experimental/bits/executor_index.h>
 #include <experimental/bits/executor_bulk_forward_progress_guarantee.h>
-#include <experimental/bits/has_rebind_member.h>
-#include <experimental/bits/rebind_member_result.h>
-#include <experimental/bits/rebind_adaptations.h>
-#include <experimental/bits/can_rebind.h>
+#include <experimental/bits/has_require_member.h>
+#include <experimental/bits/has_prefer_member.h>
+#include <experimental/bits/require_member_result.h>
+#include <experimental/bits/require_adaptations.h>
+#include <experimental/bits/prefer_member_result.h>
+#include <experimental/bits/can_require.h>
+#include <experimental/bits/can_prefer.h>
 #include <experimental/bits/executor.h>
 
 #endif // STD_EXPERIMENTAL_EXECUTION

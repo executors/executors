@@ -1,7 +1,7 @@
-#ifndef STD_EXPERIMENTAL_BITS_REBIND_ADAPTATIONS_H
-#define STD_EXPERIMENTAL_BITS_REBIND_ADAPTATIONS_H
+#ifndef STD_EXPERIMENTAL_BITS_REQUIRE_ADAPTATIONS_H
+#define STD_EXPERIMENTAL_BITS_REQUIRE_ADAPTATIONS_H
 
-#include <experimental/bits/rebind_member_result.h>
+#include <experimental/bits/require_member_result.h>
 #include <future>
 #include <type_traits>
 #include <tuple>
@@ -11,17 +11,17 @@ namespace std {
 namespace experimental {
 inline namespace concurrency_v2 {
 namespace execution {
-namespace rebind_impl {
+namespace require_impl {
 
-// Default rebind for one way leaves one way executors as is.
+// Default require for one way leaves one way executors as is.
 
 template<class Executor>
   constexpr typename std::enable_if<
     (is_oneway_executor<Executor>::value || is_bulk_oneway_executor<Executor>::value)
-    && !has_rebind_member<Executor, oneway_t>::value, Executor>::type
-      rebind(Executor ex, oneway_t) { return std::move(ex); }
+    && !has_require_member<Executor, oneway_t>::value, Executor>::type
+      require(Executor ex, oneway_t) { return std::move(ex); }
 
-// Default rebind for two way adapts one way executors, leaves two way executors as is.
+// Default require for two way adapts one way executors, leaves two way executors as is.
 
 template<class InnerExecutor>
 class twoway_adapter
@@ -33,17 +33,17 @@ class twoway_adapter
 public:
   twoway_adapter(InnerExecutor ex) : inner_ex_(std::move(ex)) {}
 
-  twoway_adapter rebind(oneway_t) const & { return *this; }
-  twoway_adapter rebind(oneway_t) && { return std::move(*this); }
-  twoway_adapter rebind(twoway_t) const & { return *this; }
-  twoway_adapter rebind(twoway_t) && { return std::move(*this); }
+  twoway_adapter require(oneway_t) const & { return *this; }
+  twoway_adapter require(oneway_t) && { return std::move(*this); }
+  twoway_adapter require(twoway_t) const & { return *this; }
+  twoway_adapter require(twoway_t) && { return std::move(*this); }
 
-  template<class... T> auto rebind(T&&... t) const &
-    -> twoway_adapter<typename rebind_member_result<InnerExecutor, T...>::type>
-      { return { inner_ex_.rebind(std::forward<T>(t)...) }; }
-  template<class... T> auto rebind(T&&... t) &&
-    -> twoway_adapter<typename rebind_member_result<InnerExecutor&&, T...>::type>
-      { return { std::move(inner_ex_).rebind(std::forward<T>(t)...) }; }
+  template<class... T> auto require(T&&... t) const &
+    -> twoway_adapter<typename require_member_result<InnerExecutor, T...>::type>
+      { return { inner_ex_.require(std::forward<T>(t)...) }; }
+  template<class... T> auto require(T&&... t) &&
+    -> twoway_adapter<typename require_member_result<InnerExecutor&&, T...>::type>
+      { return { std::move(inner_ex_).require(std::forward<T>(t)...) }; }
 
   auto& context() const noexcept { return inner_ex_.context(); }
 
@@ -161,16 +161,16 @@ template<class Executor>
   typename std::enable_if<
     (is_oneway_executor<Executor>::value || is_bulk_oneway_executor<Executor>::value)
     && !(is_twoway_executor<Executor>::value || is_bulk_twoway_executor<Executor>::value)
-    && !has_rebind_member<Executor, twoway_t>::value, twoway_adapter<Executor>>::type
-      rebind(Executor ex, twoway_t) { return twoway_adapter<Executor>(std::move(ex)); }
+    && !has_require_member<Executor, twoway_t>::value, twoway_adapter<Executor>>::type
+      require(Executor ex, twoway_t) { return twoway_adapter<Executor>(std::move(ex)); }
 
 template<class Executor>
   constexpr typename std::enable_if<
     (is_twoway_executor<Executor>::value || is_bulk_twoway_executor<Executor>::value)
-    && !has_rebind_member<Executor, twoway_t>::value, Executor>::type
-      rebind(Executor ex, twoway_t) { return std::move(ex); }
+    && !has_require_member<Executor, twoway_t>::value, Executor>::type
+      require(Executor ex, twoway_t) { return std::move(ex); }
 
-// Default rebind for bulk adapts single executors, leaves bulk executors as is.
+// Default require for bulk adapts single executors, leaves bulk executors as is.
 
 template<class InnerExecutor>
 class bulk_adapter
@@ -182,17 +182,17 @@ class bulk_adapter
 public:
   bulk_adapter(InnerExecutor ex) : inner_ex_(std::move(ex)) {}
 
-  bulk_adapter rebind(single_t) const & { return *this; }
-  bulk_adapter rebind(single_t) && { return std::move(*this); }
-  bulk_adapter rebind(bulk_t) const & { return *this; }
-  bulk_adapter rebind(bulk_t) && { return std::move(*this); }
+  bulk_adapter require(single_t) const & { return *this; }
+  bulk_adapter require(single_t) && { return std::move(*this); }
+  bulk_adapter require(bulk_t) const & { return *this; }
+  bulk_adapter require(bulk_t) && { return std::move(*this); }
 
-  template<class... T> auto rebind(T&&... t) const &
-    -> bulk_adapter<typename rebind_member_result<InnerExecutor, T...>::type>
-      { return { inner_ex_.rebind(std::forward<T>(t)...) }; }
-  template<class... T> auto rebind(T&&... t) &&
-    -> bulk_adapter<typename rebind_member_result<InnerExecutor&&, T...>::type>
-      { return { std::move(inner_ex_).rebind(std::forward<T>(t)...) }; }
+  template<class... T> auto require(T&&... t) const &
+    -> bulk_adapter<typename require_member_result<InnerExecutor, T...>::type>
+      { return { inner_ex_.require(std::forward<T>(t)...) }; }
+  template<class... T> auto require(T&&... t) &&
+    -> bulk_adapter<typename require_member_result<InnerExecutor&&, T...>::type>
+      { return { std::move(inner_ex_).require(std::forward<T>(t)...) }; }
 
   auto& context() const noexcept { return inner_ex_.context(); }
 
@@ -311,16 +311,16 @@ public:
 template<class Executor>
   typename std::enable_if<is_oneway_executor<Executor>::value
     && !(is_bulk_oneway_executor<Executor>::value || is_bulk_twoway_executor<Executor>::value)
-    && !has_rebind_member<Executor, bulk_t>::value, bulk_adapter<Executor>>::type
-      rebind(Executor ex, bulk_t) { return bulk_adapter<Executor>(std::move(ex)); }
+    && !has_require_member<Executor, bulk_t>::value, bulk_adapter<Executor>>::type
+      require(Executor ex, bulk_t) { return bulk_adapter<Executor>(std::move(ex)); }
 
 template<class Executor>
   constexpr typename std::enable_if<
     (is_bulk_oneway_executor<Executor>::value || is_bulk_twoway_executor<Executor>::value)
-    && !has_rebind_member<Executor, bulk_t>::value, Executor>::type
-      rebind(Executor ex, bulk_t) { return std::move(ex); }
+    && !has_require_member<Executor, bulk_t>::value, Executor>::type
+      require(Executor ex, bulk_t) { return std::move(ex); }
 
-// Default rebind for always blocking adapts all executors.
+// Default require for always blocking adapts all executors.
 
 template<class InnerExecutor>
 class always_blocking_adapter
@@ -331,17 +331,17 @@ class always_blocking_adapter
 public:
   always_blocking_adapter(InnerExecutor ex) : inner_ex_(std::move(ex)) {}
 
-  always_blocking_adapter rebind(always_blocking_t) const & { return *this; }
-  always_blocking_adapter rebind(always_blocking_t) && { return std::move(*this); }
-  always_blocking_adapter rebind(possibly_blocking_t) const & { return *this; }
-  always_blocking_adapter rebind(possibly_blocking_t) && { return std::move(*this); }
+  always_blocking_adapter require(always_blocking_t) const & { return *this; }
+  always_blocking_adapter require(always_blocking_t) && { return std::move(*this); }
+  always_blocking_adapter require(possibly_blocking_t) const & { return *this; }
+  always_blocking_adapter require(possibly_blocking_t) && { return std::move(*this); }
 
-  template<class... T> auto rebind(T&&... t) const &
-    -> always_blocking_adapter<typename rebind_member_result<InnerExecutor, T...>::type>
-      { return { inner_ex_.rebind(std::forward<T>(t)...) }; }
-  template<class... T> auto rebind(T&&... t) &&
-    -> always_blocking_adapter<typename rebind_member_result<InnerExecutor&&, T...>::type>
-      { return { std::move(inner_ex_).rebind(std::forward<T>(t)...) }; }
+  template<class... T> auto require(T&&... t) const &
+    -> always_blocking_adapter<typename require_member_result<InnerExecutor, T...>::type>
+      { return { inner_ex_.require(std::forward<T>(t)...) }; }
+  template<class... T> auto require(T&&... t) &&
+    -> always_blocking_adapter<typename require_member_result<InnerExecutor&&, T...>::type>
+      { return { std::move(inner_ex_).require(std::forward<T>(t)...) }; }
 
   auto& context() const noexcept { return inner_ex_.context(); }
 
@@ -394,46 +394,46 @@ public:
 };
 
 template<class Executor>
-  constexpr typename std::enable_if<!has_rebind_member<Executor, always_blocking_t>::value,
+  constexpr typename std::enable_if<!has_require_member<Executor, always_blocking_t>::value,
     always_blocking_adapter<Executor>>::type
-      rebind(Executor ex, always_blocking_t) { return always_blocking_adapter<Executor>(std::move(ex)); }
+      require(Executor ex, always_blocking_t) { return always_blocking_adapter<Executor>(std::move(ex)); }
 
-// Default rebind for possibly blocking does no adaptation, as all executors are possibly blocking.
-
-template<class Executor>
-  constexpr typename std::enable_if<!has_rebind_member<Executor, possibly_blocking_t>::value, Executor>::type
-    rebind(Executor ex, possibly_blocking_t) { return std::move(ex); }
-
-// Default rebind for continuation mode does no adaptation.
+// Default require for possibly blocking does no adaptation, as all executors are possibly blocking.
 
 template<class Executor>
-  constexpr typename std::enable_if<!has_rebind_member<Executor, is_continuation_t>::value, Executor>::type
-    rebind(Executor ex, is_continuation_t) { return std::move(ex); }
+  constexpr typename std::enable_if<!has_require_member<Executor, possibly_blocking_t>::value, Executor>::type
+    require(Executor ex, possibly_blocking_t) { return std::move(ex); }
+
+// Default require for continuation mode does no adaptation.
 
 template<class Executor>
-  constexpr typename std::enable_if<!has_rebind_member<Executor, is_not_continuation_t>::value, Executor>::type
-    rebind(Executor ex, is_not_continuation_t) { return std::move(ex); }
-
-// Default rebind for work mode does no adaptation.
+  constexpr typename std::enable_if<!has_require_member<Executor, is_continuation_t>::value, Executor>::type
+    require(Executor ex, is_continuation_t) { return std::move(ex); }
 
 template<class Executor>
-  constexpr typename std::enable_if<!has_rebind_member<Executor, is_work_t>::value, Executor>::type
-    rebind(Executor ex, is_work_t) { return std::move(ex); }
+  constexpr typename std::enable_if<!has_require_member<Executor, is_not_continuation_t>::value, Executor>::type
+    require(Executor ex, is_not_continuation_t) { return std::move(ex); }
+
+// Default require for work mode does no adaptation.
 
 template<class Executor>
-  constexpr typename std::enable_if<!has_rebind_member<Executor, is_not_work_t>::value, Executor>::type
-    rebind(Executor ex, is_not_work_t) { return std::move(ex); }
+  constexpr typename std::enable_if<!has_require_member<Executor, is_work_t>::value, Executor>::type
+    require(Executor ex, is_work_t) { return std::move(ex); }
 
-// Default rebind for allocator does no adaptation.
+template<class Executor>
+  constexpr typename std::enable_if<!has_require_member<Executor, is_not_work_t>::value, Executor>::type
+    require(Executor ex, is_not_work_t) { return std::move(ex); }
+
+// Default require for allocator does no adaptation.
 
 template<class Executor, class ProtoAllocator>
-  constexpr typename std::enable_if<!has_rebind_member<Executor, std::allocator_arg_t, ProtoAllocator>::value, Executor>::type
-    rebind(Executor ex, std::allocator_arg_t, const ProtoAllocator&) { return std::move(ex); }
+  constexpr typename std::enable_if<!has_require_member<Executor, std::allocator_arg_t, ProtoAllocator>::value, Executor>::type
+    require(Executor ex, std::allocator_arg_t, const ProtoAllocator&) { return std::move(ex); }
 
-} // namespace rebind_impl
+} // namespace require_impl
 } // namespace execution
 } // inline namespace concurrency_v2
 } // namespace experimental
 } // namespace std
 
-#endif // STD_EXPERIMENTAL_BITS_REBIND_ADAPTATIONS_H
+#endif // STD_EXPERIMENTAL_BITS_REQUIRE_ADAPTATIONS_H

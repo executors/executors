@@ -91,7 +91,7 @@ public:
   friend void send(Message msg, actor_address from, actor_address to)
   {
     // Execute the message handler in the context of the target's executor.
-    std::experimental::execution::rebind(to->executor_,
+    std::experimental::execution::require(to->executor_,
       std::experimental::execution::never_blocking).execute(
         [=, msg=std::move(msg)]() mutable
         {
@@ -139,8 +139,8 @@ protected:
   void tail_send(Message msg, actor_address to)
   {
     // Execute the message handler in the context of the target's executor.
-    std::experimental::execution::rebind(
-      std::experimental::execution::rebind(to->executor_,
+    std::experimental::execution::prefer(
+      std::experimental::execution::require(to->executor_,
         std::experimental::execution::never_blocking),
           std::experimental::execution::is_continuation).execute(
             [=, msg=std::move(msg), from=this]() mutable

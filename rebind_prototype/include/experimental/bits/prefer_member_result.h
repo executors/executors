@@ -1,5 +1,5 @@
-#ifndef STD_EXPERIMENTAL_BITS_CAN_REBIND_H
-#define STD_EXPERIMENTAL_BITS_CAN_REBIND_H
+#ifndef STD_EXPERIMENTAL_BITS_PREFER_MEMBER_RESULT_H
+#define STD_EXPERIMENTAL_BITS_PREFER_MEMBER_RESULT_H
 
 #include <type_traits>
 #include <tuple>
@@ -9,7 +9,7 @@ namespace std {
 namespace experimental {
 inline namespace concurrency_v2 {
 namespace execution {
-namespace can_rebind_impl {
+namespace prefer_member_result_impl {
 
 template<class>
 struct type_check
@@ -18,22 +18,25 @@ struct type_check
 };
 
 template<class Executor, class Args, class = void>
-struct eval : std::false_type {};
+struct eval {};
 
 template<class Executor, class... Args>
 struct eval<Executor, std::tuple<Args...>,
   typename type_check<decltype(
-    ::std::experimental::concurrency_v2::execution::rebind(std::declval<Executor>(), std::declval<Args>()...)
-  )>::type> : std::true_type {};
+    std::declval<Executor>().prefer(std::declval<Args>()...)
+  )>::type>
+{
+  typedef decltype(std::declval<Executor>().prefer(std::declval<Args>()...)) type;
+};
 
-} // namespace can_rebind_impl
+} // namespace prefer_member_result_impl
 
 template<class Executor, class... Args>
-struct can_rebind : can_rebind_impl::eval<Executor, std::tuple<Args...>> {};
+struct prefer_member_result : prefer_member_result_impl::eval<Executor, std::tuple<Args...>> {};
 
 } // namespace execution
 } // inline namespace concurrency_v2
 } // namespace experimental
 } // namespace std
 
-#endif // STD_EXPERIMENTAL_BITS_CAN_REBIND_H
+#endif // STD_EXPERIMENTAL_BITS_PREFER_MEMBER_RESULT_H

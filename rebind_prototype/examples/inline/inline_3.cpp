@@ -26,12 +26,12 @@ public:
 };
 
 static_assert(execution::is_oneway_executor_v<inline_executor>, "one way executor requirements not met");
-static_assert(execution::is_twoway_executor_v<decltype(execution::rebind(inline_executor(), execution::twoway))>, "two way executor requirements not met");
+static_assert(execution::is_twoway_executor_v<decltype(execution::require(inline_executor(), execution::twoway))>, "two way executor requirements not met");
 
 int main()
 {
   inline_executor ex1;
-  auto ex2 = execution::rebind(ex1, execution::twoway);
+  auto ex2 = execution::require(ex1, execution::twoway);
   std::future<int> f = ex2.twoway_execute([]{ return 42; });
   std::cout << "result is " << f.get() << "\n";
 }

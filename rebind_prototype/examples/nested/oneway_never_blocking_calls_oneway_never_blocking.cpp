@@ -7,7 +7,7 @@ using std::experimental::static_thread_pool;
 int main()
 {
   static_thread_pool pool{1};
-  auto ex = pool.executor().rebind(execution::never_blocking);
+  auto ex = pool.executor().require(execution::never_blocking);
   std::cout << "before submission\n";
   ex.execute([ex]{
       std::cout << "outer starts\n";
