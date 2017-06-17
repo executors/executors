@@ -339,11 +339,11 @@ public:
   executor require(is_work_t) const { return context_.impl_ ? context_.impl_->executor_require(is_work) : context_.impl_->clone(); }
   executor require(is_not_work_t) const { return context_.impl_ ? context_.impl_->executor_require(is_not_work) : context_.impl_->clone(); }
   
-  template<class... Args> auto prefer(Args&&... args) const
-    -> decltype(this->require(std::forward<Args>(args)...))
-      { return this->require(std::forward<Args>(args)...); }
-  template<class... Args> auto prefer(Args&&...) const
-    -> typename std::enable_if<!execution::has_require_member<executor, Args...>::value, executor>::type
+  template<class Property, class... Args> auto prefer(const Property& p, Args&&... args) const
+    -> decltype(this->require(p, std::forward<Args>(args)...))
+      { return this->require(p, std::forward<Args>(args)...); }
+  template<class Property, class... Args> auto prefer(const Property&, Args&&...) const
+    -> typename std::enable_if<!execution::has_require_member<executor, Property, Args...>::value, executor>::type
       { return *this; }
 
   const context_type& context() const noexcept

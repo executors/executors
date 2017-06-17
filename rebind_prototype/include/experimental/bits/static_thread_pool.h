@@ -70,14 +70,14 @@ class static_thread_pool
       require(std::allocator_arg_t, const NewProtoAllocator& alloc) const { return {pool_, alloc}; };
 
     // Prefer uses require if available, otherwise returns *this.
-    template<class... Args> auto prefer(Args&&... args) const
-      -> decltype(this->require(std::forward<Args>(args)...))
+    template<class Property, class... Args> auto prefer(const Property& p, Args&&... args) const
+      -> decltype(this->require(p, std::forward<Args>(args)...))
     {
-      return this->require(std::forward<Args>(args)...);
+      return this->require(p, std::forward<Args>(args)...);
     }
 
-    template<class... Args> auto prefer(Args&&...) const
-      -> typename std::enable_if<!execution::has_require_member<executor_impl, Args...>::value, executor_impl>::type
+    template<class Property, class... Args> auto prefer(const Property&, Args&&...) const
+      -> typename std::enable_if<!execution::has_require_member<executor_impl, Property, Args...>::value, executor_impl>::type
     {
       return *this;
     }

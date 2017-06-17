@@ -35,18 +35,18 @@ public:
   logging_executor(const std::string& prefix, const InnerExecutor& ex)
     : prefix_(std::make_shared<std::string>(prefix)), inner_ex_(ex) {}
 
-  template <class... T> auto require(T&&... t) const &
-    -> logging_executor<execution::require_member_result_t<InnerExecutor, T...>>
-      { return { *prefix_, inner_ex_.require(std::forward<T>(t)...) }; }
-  template <class... T> auto require(T&&... t) &&
-    -> logging_executor<execution::require_member_result_t<InnerExecutor&&, T...>>
-      { return { *prefix_, std::move(inner_ex_).require(std::forward<T>(t)...) }; }
-  template <class... T> auto prefer(T&&... t) const &
-    -> logging_executor<execution::prefer_member_result_t<InnerExecutor, T...>>
-      { return { *prefix_, inner_ex_.prefer(std::forward<T>(t)...) }; }
-  template <class... T> auto prefer(T&&... t) &&
-    -> logging_executor<execution::prefer_member_result_t<InnerExecutor&&, T...>>
-      { return { *prefix_, std::move(inner_ex_).prefer(std::forward<T>(t)...) }; }
+  template <class Property, class... Args> auto require(const Property& p, Args&&... args) const &
+    -> logging_executor<execution::require_member_result_t<InnerExecutor, Property, Args...>>
+      { return { *prefix_, inner_ex_.require(p, std::forward<Args>(args)...) }; }
+  template <class Property, class... Args> auto require(const Property& p, Args&&... args) &&
+    -> logging_executor<execution::require_member_result_t<InnerExecutor, Property, Args...>>
+      { return { *prefix_, std::move(inner_ex_).require(p, std::forward<Args>(args)...) }; }
+  template <class Property, class... Args> auto prefer(const Property& p, Args&&... args) const &
+    -> logging_executor<execution::prefer_member_result_t<InnerExecutor, Property, Args...>>
+      { return { *prefix_, inner_ex_.prefer(p, std::forward<Args>(args)...) }; }
+  template <class Property, class... Args> auto prefer(const Property& p, Args&&... args) &&
+    -> logging_executor<execution::prefer_member_result_t<InnerExecutor, Property, Args...>>
+      { return { *prefix_, std::move(inner_ex_).prefer(p, std::forward<Args>(args)...) }; }
 
   auto& context() const noexcept { return inner_ex_.context(); }
 

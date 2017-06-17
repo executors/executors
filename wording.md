@@ -143,19 +143,23 @@ namespace execution {
 
   // Member detection type traits for properties:
 
-  template<class Executor, class... Args> struct has_require_member;
-  template<class Executor, class... Args> struct has_prefer_member;
+  template<class Executor, class Property, class... Args> struct has_require_member;
+  template<class Executor, class Property, class... Args> struct has_prefer_member;
 
-  template<class Executor, class... Args> constexpr bool has_require_member_v = has_require_member<Executor, Args...>::value;
-  template<class Executor, class... Args> constexpr bool has_prefer_member_v = has_prefer_member<Executor, Args...>::value;
+  template<class Executor, class Property, class... Args>
+    constexpr bool has_require_member_v = has_require_member<Executor, Property, Args...>::value;
+  template<class Executor, class Property, class... Args>
+    constexpr bool has_prefer_member_v = has_prefer_member<Executor, Property, Args...>::value;
 
   // Member return type traits for properties:
 
-  template<class Executor, class... Args> struct require_member_result;
-  template<class Executor, class... Args> struct prefer_member_result;
+  template<class Executor, class Property, class... Args> struct require_member_result;
+  template<class Executor, class Property, class... Args> struct prefer_member_result;
 
-  template<class Executor, class... Args> using require_member_result_t = typename require_member_result<Executor, Args...>::type;
-  template<class Executor, class... Args> using prefer_member_result_t = typename prefer_member_result<Executor, Args...>::type;
+  template<class Executor, class Property, class... Args>
+    using require_member_result_t = typename require_member_result<Executor, Property, Args...>::type;
+  template<class Executor, class Property, class... Args>
+    using prefer_member_result_t = typename prefer_member_result<Executor, Property, Args...>::type;
 
   // Customization points:
 
@@ -166,11 +170,13 @@ namespace execution {
 
   // Customization point type traits:
 
-  template<class Executor, class... Args> struct can_require;
-  template<class Executor, class... Args> struct can_prefer;
+  template<class Executor, class Property, class... Args> struct can_require;
+  template<class Executor, class Property, class... Args> struct can_prefer;
 
-  template<class Executor, class... Args> constexpr bool can_require_v = can_require<Executor, Args...>::value;
-  template<class Executor, class... Args> constexpr bool can_prefer_v = can_prefer<Executor, Args...>::value;
+  template<class Executor, class Property, class... Args>
+    constexpr bool can_require_v = can_require<Executor, Property, Args...>::value;
+  template<class Executor, class Property, class... Args>
+    constexpr bool can_prefer_v = can_prefer<Executor, Property, Args...>::value;
 
   // Polymorphic executor wrappers:
 
@@ -437,27 +443,27 @@ The type of `executor_future<Executor, T>::type` is determined as follows:
 
 ### Member detection type traits for properties
 
-    template<class Executor, class... Args> struct has_require_member;
-    template<class Executor, class... Args> struct has_prefer_member;
+    template<class Executor, class Property, class... Args> struct has_require_member;
+    template<class Executor, class Property, class... Args> struct has_prefer_member;
 
 This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
 
 | Template                   | Condition           | Preconditions  |
 |----------------------------|---------------------|----------------|
-| `template<class T>` <br/>`struct has_require_member` | The expression `declval<const Executor>().require( declval<Args>()...)` is well formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_prefer_member` | The expression `declval<const Executor>().prefer( declval<Args>()...)` is well formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_require_member` | The expression `declval<const Executor>().require( declval<Property(), declval<Args>()...)` is well formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_prefer_member` | The expression `declval<const Executor>().prefer( declval<Property(), declval<Args>()...)` is well formed. | `T` is a complete type. |
 
 ### Member return type traits for properties
 
-    template<class Executor, class... Args> struct require_member_result;
-    template<class Executor, class... Args> struct prefer_member_result;
+    template<class Executor, class Property, class... Args> struct require_member_result;
+    template<class Executor, class Property, class... Args> struct prefer_member_result;
 
 This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a TransformationTrait (C++Std [meta.rqmts]).
 
 | Template                   | Condition           | Comments  |
 |----------------------------|---------------------|-----------|
-| `template<class T>` <br/>`struct require_member_result` | The expression `declval<const Executor>().require( declval<Args>()...)` is well formed. | The member typedef `type` shall name the type of the expression `declval<const Executor>().require( declval<Args>()...)`. |
-| `template<class T>` <br/>`struct prefer_member_result` | The expression `declval<const Executor>().prefer( declval<Args>()...)` is well formed. | The member typedef `type` shall name the type of the expression `declval<const Executor>().prefer( declval<Args>()...)`. |
+| `template<class T>` <br/>`struct require_member_result` | The expression `declval<const Executor>().require( declval<Property(), declval<Args>()...)` is well formed. | The member typedef `type` shall name the type of the expression `declval<const Executor>().require( declval<Property(), declval<Args>()...)`. |
+| `template<class T>` <br/>`struct prefer_member_result` | The expression `declval<const Executor>().prefer( declval<Property(), declval<Args>()...)` is well formed. | The member typedef `type` shall name the type of the expression `declval<const Executor>().prefer( declval<Property(), declval<Args>()...)`. |
 
 ## Executor customization points
 
@@ -495,15 +501,15 @@ The name `prefer` denotes a customization point. The effect of the expression `s
 
 ### Customization point type traits
 
-    template<class Executor, class... Args> struct can_require;
-    template<class Executor, class... Args> struct can_prefer;
+    template<class Executor, class Property, class... Args> struct can_require;
+    template<class Executor, class Property, class... Args> struct can_prefer;
 
 This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
 
 | Template                   | Condition           | Preconditions  |
 |----------------------------|---------------------|----------------|
-| `template<class T>` <br/>`struct can_require` | The expression `std::experimental::concurrency_v2::execution::require( declval<const Executor>(), declval<Args>()...)` is well formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_prefer` | The expression `std::experimental::concurrency_v2::execution::prefer( declval<const Executor>(), declval<Args>()...)` is well formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_require` | The expression `std::experimental::concurrency_v2::execution::require( declval<const Executor>(), declval<Property>(), declval<Args>()...)` is well formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_prefer` | The expression `std::experimental::concurrency_v2::execution::prefer( declval<const Executor>(), declval<Property>(), declval<Args>()...)` is well formed. | `T` is a complete type. |
 
 ## Polymorphic executor wrappers
 
@@ -568,7 +574,6 @@ public:
   executor require(single_t) const;
   executor require(bulk_t) const;
   executor require(thread_execution_mapping_t) const;
-
   executor require(never_blocking_t p) const;
   executor require(possibly_blocking_t p) const;
   executor require(always_blocking_t p) const;
@@ -580,9 +585,9 @@ public:
   executor prefer(bulk_sequenced_execution_t p) const;
   executor prefer(bulk_parallel_execution_t p) const;
   executor prefer(bulk_unsequenced_execution_t p) const;
-  executor prefer(new_thread_execution_mapping p) const;
-
-  template <class... Args> executor prefer(Args&&...) const;
+  executor prefer(new_thread_execution_mapping_t p) const;
+  template <class Property, class... Args>
+    executor prefer(const Property&, Args&&...) const;
 
   template<class Function>
     void execute(Function&& f) const;
@@ -768,13 +773,14 @@ executor prefer(is_not_work_t) const;
 executor prefer(bulk_sequenced_execution_t) const;
 executor prefer(bulk_parallel_execution_t) const;
 executor prefer(bulk_unsequenced_execution_t) const;
-executor prefer(new_thread_execution_mapping) const;
+executor prefer(new_thread_execution_mapping_t) const;
 ```
 
 *Returns:* A polymorphic wrapper whose target is `execution::prefer(e, p)`, where `e` is the target object of `*this`.
 
 ```
-template <class... Args> executor prefer(Args&&...) const;
+template <class Property, class... Args>
+  executor prefer(const Property&, Args&&...) const;
 ```
 
 *Returns:* `*this`.

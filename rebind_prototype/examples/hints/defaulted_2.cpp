@@ -27,18 +27,18 @@ namespace custom_hints
     tracing_executor prefer(custom_hints::tracing_t, bool on) const { return { on, inner_ex_ }; }
 
     // Forward other kinds of require and prefer to the inner executor.
-    template <class... T> auto require(T&&... t) const &
-      -> tracing_executor<execution::require_member_result_t<InnerExecutor, T...>>
-        { return { tracing_, inner_ex_.require(std::forward<T>(t)...) }; }
-    template <class... T> auto require(T&&... t) &&
-      -> tracing_executor<execution::require_member_result_t<InnerExecutor&&, T...>>
-        { return { tracing_, std::move(inner_ex_).require(std::forward<T>(t)...) }; }
-    template <class... T> auto prefer(T&&... t) const &
-      -> tracing_executor<execution::prefer_member_result_t<InnerExecutor, T...>>
-        { return { tracing_, inner_ex_.prefer(std::forward<T>(t)...) }; }
-    template <class... T> auto prefer(T&&... t) &&
-      -> tracing_executor<execution::prefer_member_result_t<InnerExecutor&&, T...>>
-        { return { tracing_, std::move(inner_ex_).prefer(std::forward<T>(t)...) }; }
+    template <class Property, class... Args> auto require(const Property& p, Args&&... args) const &
+      -> tracing_executor<execution::require_member_result_t<InnerExecutor, Property, Args...>>
+        { return { tracing_, inner_ex_.require(p, std::forward<Args>(args)...) }; }
+    template <class Property, class... Args> auto require(const Property& p, Args&&... args) &&
+      -> tracing_executor<execution::require_member_result_t<InnerExecutor&&, Property, Args...>>
+        { return { tracing_, std::move(inner_ex_).require(p, std::forward<Args>(args)...) }; }
+    template <class Property, class... Args> auto prefer(const Property& p, Args&&... args) const &
+      -> tracing_executor<execution::prefer_member_result_t<InnerExecutor, Property, Args...>>
+        { return { tracing_, inner_ex_.prefer(p, std::forward<Args>(args)...) }; }
+    template <class Property, class... Args> auto prefer(const Property& p, Args&&... args) &&
+      -> tracing_executor<execution::prefer_member_result_t<InnerExecutor&&, Property, Args...>>
+        { return { tracing_, std::move(inner_ex_).prefer(p, std::forward<Args>(args)...) }; }
 
     auto& context() const noexcept { return inner_ex_.context(); }
 

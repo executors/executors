@@ -68,9 +68,9 @@ public:
   {
   }
 
-  template <class... T> auto require(T&&... t) const
-    -> strand<execution::require_member_result_t<Executor, T...>, Blocking>
-      { return { state_, ex_.require(std::forward<T>(t)...) }; }
+  template <class Property, class... Args> auto require(const Property& p, Args&&... args) const
+    -> strand<execution::require_member_result_t<Executor, Property, Args...>, Blocking>
+      { return { state_, ex_.require(p, std::forward<Args>(args)...) }; }
 
   auto require(execution::never_blocking_t) const
     -> strand<execution::require_member_result_t<Executor, execution::never_blocking_t>, execution::never_blocking_t>
@@ -86,9 +86,9 @@ public:
 
   void require(execution::always_blocking_t) const = delete;
 
-  template <class... T> auto prefer(T&&... t) const
-    -> strand<execution::prefer_member_result_t<Executor, T...>, Blocking>
-      { return { state_, ex_.prefer(std::forward<T>(t)...) }; }
+  template <class Property, class... Args> auto prefer(const Property& p, Args&&... args) const
+    -> strand<execution::prefer_member_result_t<Executor, Property, Args...>, Blocking>
+      { return { state_, ex_.prefer(p, std::forward<Args>(args)...) }; }
 
   auto prefer(execution::never_blocking_t) const
     -> strand<execution::prefer_member_result_t<Executor, execution::never_blocking_t>, execution::never_blocking_t>

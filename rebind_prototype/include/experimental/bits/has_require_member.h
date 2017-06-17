@@ -17,19 +17,19 @@ struct type_check
   typedef void type;
 };
 
-template<class Executor, class Args, class = void>
+template<class Executor, class Property, class Args, class = void>
 struct eval : std::false_type {};
 
-template<class Executor, class... Args>
-struct eval<Executor, std::tuple<Args...>,
+template<class Executor, class Property, class... Args>
+struct eval<Executor, Property, std::tuple<Args...>,
   typename type_check<decltype(
-    std::declval<Executor>().require(std::declval<Args>()...)
+    std::declval<Executor>().require(std::declval<Property>(), std::declval<Args>()...)
   )>::type> : std::true_type {};
 
 } // namespace has_require_member_impl
 
-template<class Executor, class... Args>
-struct has_require_member : has_require_member_impl::eval<Executor, std::tuple<Args...>> {};
+template<class Executor, class Property, class... Args>
+struct has_require_member : has_require_member_impl::eval<Executor, Property, std::tuple<Args...>> {};
 
 } // namespace execution
 } // inline namespace concurrency_v2

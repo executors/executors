@@ -17,22 +17,22 @@ struct type_check
   typedef void type;
 };
 
-template<class Executor, class Args, class = void>
+template<class Executor, class Property, class Args, class = void>
 struct eval {};
 
-template<class Executor, class... Args>
-struct eval<Executor, std::tuple<Args...>,
+template<class Executor, class Property, class... Args>
+struct eval<Executor, Property, std::tuple<Args...>,
   typename type_check<decltype(
-    std::declval<Executor>().prefer(std::declval<Args>()...)
+    std::declval<Executor>().prefer(std::declval<Property>(), std::declval<Args>()...)
   )>::type>
 {
-  typedef decltype(std::declval<Executor>().prefer(std::declval<Args>()...)) type;
+  typedef decltype(std::declval<Executor>().prefer(std::declval<Property>(), std::declval<Args>()...)) type;
 };
 
 } // namespace prefer_member_result_impl
 
-template<class Executor, class... Args>
-struct prefer_member_result : prefer_member_result_impl::eval<Executor, std::tuple<Args...>> {};
+template<class Executor, class Property, class... Args>
+struct prefer_member_result : prefer_member_result_impl::eval<Executor, Property, std::tuple<Args...>> {};
 
 } // namespace execution
 } // inline namespace concurrency_v2
