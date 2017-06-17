@@ -36,9 +36,9 @@ class system_thread_pool_bulk_executor
     }
 
     template<class Function, class ResultFactory, class SharedFactory>
-    auto bulk_async_execute(Function f, size_t n, ResultFactory rf, SharedFactory sf) const
+    auto bulk_twoway_execute(Function f, size_t n, ResultFactory rf, SharedFactory sf) const
     {
-      return system_thread_pool.executor().bulk_async_execute(std::move(f), n, std::move(rf), std::move(sf));
+      return system_thread_pool.executor().bulk_twoway_execute(std::move(f), n, std::move(rf), std::move(sf));
     }
 
     template<class Function, class SharedFactory>
@@ -115,9 +115,9 @@ void for_each(ExecutionPolicy&& policy, RandomAccessIterator first, RandomAccess
 {
   auto n = last - first;
 
-  auto two_way_bulk_exec = execution::rebind(execution::rebind(policy.executor(), execution::bulk), execution::two_way);
+  auto twoway_bulk_exec = execution::rebind(execution::rebind(policy.executor(), execution::bulk), execution::twoway);
 
-  two_way_bulk_exec.bulk_async_execute([=](size_t idx, impl::ignored&)
+  twoway_bulk_exec.bulk_twoway_execute([=](size_t idx, impl::ignored&)
   {
     f(first[idx]);
   },

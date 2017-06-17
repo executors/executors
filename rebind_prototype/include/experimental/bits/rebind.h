@@ -2,10 +2,10 @@
 #define STD_EXPERIMENTAL_BITS_REBIND_H
 
 #include <experimental/bits/has_rebind_member.h>
-#include <experimental/bits/is_two_way_executor.h>
-#include <experimental/bits/is_one_way_executor.h>
-#include <experimental/bits/is_bulk_one_way_executor.h>
-#include <experimental/bits/is_bulk_two_way_executor.h>
+#include <experimental/bits/is_twoway_executor.h>
+#include <experimental/bits/is_oneway_executor.h>
+#include <experimental/bits/is_bulk_oneway_executor.h>
+#include <experimental/bits/is_bulk_twoway_executor.h>
 #include <utility>
 
 namespace std {
@@ -13,8 +13,8 @@ namespace experimental {
 inline namespace concurrency_v2 {
 namespace execution {
 
-struct one_way_t;
-struct two_way_t;
+struct oneway_t;
+struct twoway_t;
 struct single_t;
 struct bulk_t;
 struct always_blocking_t;
@@ -36,30 +36,30 @@ constexpr auto rebind(Executor&& ex, Args&&... args)
 // Forward declare the default adaptations.
 template<class Executor>
   constexpr typename std::enable_if<
-    (is_one_way_executor<Executor>::value || is_bulk_one_way_executor<Executor>::value)
-    && !has_rebind_member<Executor, one_way_t>::value, Executor>::type
-      rebind(Executor ex, one_way_t);
-template<class Executor> class two_way_adapter;
+    (is_oneway_executor<Executor>::value || is_bulk_oneway_executor<Executor>::value)
+    && !has_rebind_member<Executor, oneway_t>::value, Executor>::type
+      rebind(Executor ex, oneway_t);
+template<class Executor> class twoway_adapter;
 template<class Executor>
   typename std::enable_if<
-    (is_one_way_executor<Executor>::value || is_bulk_one_way_executor<Executor>::value)
-    && !(is_two_way_executor<Executor>::value || is_bulk_two_way_executor<Executor>::value)
-    && !has_rebind_member<Executor, two_way_t>::value, two_way_adapter<Executor>>::type
-      rebind(Executor ex, two_way_t);
+    (is_oneway_executor<Executor>::value || is_bulk_oneway_executor<Executor>::value)
+    && !(is_twoway_executor<Executor>::value || is_bulk_twoway_executor<Executor>::value)
+    && !has_rebind_member<Executor, twoway_t>::value, twoway_adapter<Executor>>::type
+      rebind(Executor ex, twoway_t);
 template<class Executor> class bulk_adapter;
 template<class Executor>
   constexpr typename std::enable_if<
-    (is_two_way_executor<Executor>::value || is_bulk_two_way_executor<Executor>::value)
-    && !has_rebind_member<Executor, two_way_t>::value, Executor>::type
-      rebind(Executor ex, two_way_t);
+    (is_twoway_executor<Executor>::value || is_bulk_twoway_executor<Executor>::value)
+    && !has_rebind_member<Executor, twoway_t>::value, Executor>::type
+      rebind(Executor ex, twoway_t);
 template<class Executor>
-  typename std::enable_if<is_one_way_executor<Executor>::value
-    && !(is_bulk_one_way_executor<Executor>::value || is_bulk_two_way_executor<Executor>::value)
+  typename std::enable_if<is_oneway_executor<Executor>::value
+    && !(is_bulk_oneway_executor<Executor>::value || is_bulk_twoway_executor<Executor>::value)
     && !has_rebind_member<Executor, bulk_t>::value, bulk_adapter<Executor>>::type
       rebind(Executor ex, bulk_t);
 template<class Executor>
   constexpr typename std::enable_if<
-    (is_bulk_one_way_executor<Executor>::value || is_bulk_two_way_executor<Executor>::value)
+    (is_bulk_oneway_executor<Executor>::value || is_bulk_twoway_executor<Executor>::value)
     && !has_rebind_member<Executor, bulk_t>::value, Executor>::type
       rebind(Executor ex, bulk_t);
 template<class Executor> class always_blocking_adapter;

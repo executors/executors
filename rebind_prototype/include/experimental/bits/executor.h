@@ -278,7 +278,7 @@ public:
 
   template<class Executor> executor(Executor e)
   {
-    auto e2 = execution::rebind(execution::rebind(std::move(e), execution::bulk), execution::two_way);
+    auto e2 = execution::rebind(execution::rebind(std::move(e), execution::bulk), execution::twoway);
     context_.impl_ = new impl<decltype(e2)>(std::move(e2));
   }
 
@@ -351,7 +351,7 @@ public:
   }
 
 #if 0 // TODO implement single two-way support.
-  template<class Function> auto async_execute(Function f) const -> std::future<decltype(f())>;
+  template<class Function> auto twoway_execute(Function f) const -> std::future<decltype(f())>;
 #endif
 
   template<class Function, class SharedFactory> void bulk_execute(Function f, std::size_t n, SharedFactory sf) const
@@ -363,7 +363,7 @@ public:
 
 #if 0 // TODO implement bulk two-way support.
   template<class Function, class ResultFactory, class SharedFactory>
-    auto bulk_async_execute(Function f, std::size_t n, ResultFactory rf, SharedFactory sf) const -> std::future<decltype(rf())>;
+    auto bulk_twoway_execute(Function f, std::size_t n, ResultFactory rf, SharedFactory sf) const -> std::future<decltype(rf())>;
 #endif
 
   // polymorphic executor capacity:

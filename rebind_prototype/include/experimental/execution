@@ -9,8 +9,8 @@ inline namespace concurrency_v2 {
 namespace execution {
 
 // Directionality.
-constexpr struct one_way_t {} one_way;
-constexpr struct two_way_t {} two_way;
+constexpr struct oneway_t {} oneway;
+constexpr struct twoway_t {} twoway;
 
 // Cardinality.
 constexpr struct single_t {} single;
@@ -31,16 +31,16 @@ constexpr struct is_not_work_t {} is_not_work;
 
 // Type traits to determine conformance to executor type requirements.
 template<class Executor> struct is_executor;
-template<class Executor> struct is_one_way_executor;
-template<class Executor> struct is_two_way_executor;
-template<class Executor> struct is_bulk_one_way_executor;
-template<class Executor> struct is_bulk_two_way_executor;
+template<class Executor> struct is_oneway_executor;
+template<class Executor> struct is_twoway_executor;
+template<class Executor> struct is_bulk_oneway_executor;
+template<class Executor> struct is_bulk_twoway_executor;
 
 template<class Executor> constexpr bool is_executor_v = is_executor<Executor>::value;
-template<class Executor> constexpr bool is_one_way_executor_v = is_one_way_executor<Executor>::value;
-template<class Executor> constexpr bool is_two_way_executor_v = is_two_way_executor<Executor>::value;
-template<class Executor> constexpr bool is_bulk_one_way_executor_v = is_bulk_one_way_executor<Executor>::value;
-template<class Executor> constexpr bool is_bulk_two_way_executor_v = is_bulk_two_way_executor<Executor>::value;
+template<class Executor> constexpr bool is_oneway_executor_v = is_oneway_executor<Executor>::value;
+template<class Executor> constexpr bool is_twoway_executor_v = is_twoway_executor<Executor>::value;
+template<class Executor> constexpr bool is_bulk_oneway_executor_v = is_bulk_oneway_executor<Executor>::value;
+template<class Executor> constexpr bool is_bulk_twoway_executor_v = is_bulk_twoway_executor<Executor>::value;
 
 // Type trait to obtain an executor's associated context type.
 template<class Executor> struct executor_context;
@@ -98,10 +98,10 @@ class executor;
 } // namespace std
 
 #include <experimental/bits/is_executor.h>
-#include <experimental/bits/is_one_way_executor.h>
-#include <experimental/bits/is_two_way_executor.h>
-#include <experimental/bits/is_bulk_one_way_executor.h>
-#include <experimental/bits/is_bulk_two_way_executor.h>
+#include <experimental/bits/is_oneway_executor.h>
+#include <experimental/bits/is_twoway_executor.h>
+#include <experimental/bits/is_bulk_oneway_executor.h>
+#include <experimental/bits/is_bulk_twoway_executor.h>
 #include <experimental/bits/executor_context.h>
 #include <experimental/bits/executor_future.h>
 #include <experimental/bits/executor_shape.h>

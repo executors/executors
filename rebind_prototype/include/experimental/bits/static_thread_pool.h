@@ -37,8 +37,8 @@ class static_thread_pool
     ~executor_impl() { pool_->work_down(Work{}); }
 
     // Directionality. Both kinds supported, so rebinding does not change type.
-    executor_impl rebind(execution::one_way_t) const { return *this; }
-    executor_impl rebind(execution::two_way_t) const { return *this; }
+    executor_impl rebind(execution::oneway_t) const { return *this; }
+    executor_impl rebind(execution::twoway_t) const { return *this; }
 
     // Cardinality. Both kinds supported, so rebinding does not change type.
     executor_impl rebind(execution::single_t) const { return *this; }
@@ -88,9 +88,9 @@ class static_thread_pool
       pool_->execute(Blocking{}, Continuation{}, allocator_, std::move(f));
     }
 
-    template<class Function> auto async_execute(Function f) const -> std::future<decltype(f())>
+    template<class Function> auto twoway_execute(Function f) const -> std::future<decltype(f())>
     {
-      return pool_->async_execute(Blocking{}, Continuation{}, allocator_, std::move(f));
+      return pool_->twoway_execute(Blocking{}, Continuation{}, allocator_, std::move(f));
     }
 
     template<class Function, class SharedFactory> void bulk_execute(Function f, std::size_t n, SharedFactory sf) const
@@ -99,9 +99,9 @@ class static_thread_pool
     }
 
     template<class Function, class ResultFactory, class SharedFactory>
-    auto bulk_async_execute(Function f, std::size_t n, ResultFactory rf, SharedFactory sf) const -> std::future<decltype(rf())>
+    auto bulk_twoway_execute(Function f, std::size_t n, ResultFactory rf, SharedFactory sf) const -> std::future<decltype(rf())>
     {
-      return pool_->bulk_async_execute(Blocking{}, Continuation{}, allocator_, std::move(f), n, std::move(rf), std::move(sf));
+      return pool_->bulk_twoway_execute(Blocking{}, Continuation{}, allocator_, std::move(f), n, std::move(rf), std::move(sf));
     }
   };
 
@@ -316,7 +316,7 @@ private:
   }
 
   template<class Blocking, class Continuation, class ProtoAllocator, class Function>
-  auto async_execute(Blocking, Continuation, const ProtoAllocator& alloc, Function f) -> std::future<decltype(f())>
+  auto twoway_execute(Blocking, Continuation, const ProtoAllocator& alloc, Function f) -> std::future<decltype(f())>
   {
     std::packaged_task<decltype(f())()> task(std::move(f));
     std::future<decltype(f())> future = task.get_future();
@@ -381,7 +381,7 @@ private:
   }
 
   template<class Blocking, class Continuation, class ProtoAllocator, class Function, class ResultFactory, class SharedFactory>
-  auto bulk_async_execute(Blocking, Continuation, const ProtoAllocator& alloc, Function f, std::size_t n, ResultFactory rf, SharedFactory sf)
+  auto bulk_twoway_execute(Blocking, Continuation, const ProtoAllocator& alloc, Function f, std::size_t n, ResultFactory rf, SharedFactory sf)
     -> typename std::enable_if<is_same<decltype(rf()), void>::value, std::future<void>>::type
   {
     // Wrap the shared state so that we can capture and return the result.
@@ -422,7 +422,7 @@ private:
   }
 
   template<class Blocking, class Continuation, class ProtoAllocator, class Function, class ResultFactory, class SharedFactory>
-  auto bulk_async_execute(Blocking, Continuation, const ProtoAllocator& alloc, Function f, std::size_t n, ResultFactory rf, SharedFactory sf)
+  auto bulk_twoway_execute(Blocking, Continuation, const ProtoAllocator& alloc, Function f, std::size_t n, ResultFactory rf, SharedFactory sf)
     -> typename std::enable_if<!is_same<decltype(rf()), void>::value, std::future<decltype(rf())>>::type
   {
     // Wrap the shared state so that we can capture and return the result.
@@ -464,9 +464,9 @@ private:
   }
 
   template<class Blocking, class Continuation, class ProtoAllocator, class Function, class ResultFactory, class SharedFactory>
-  auto bulk_async_execute(execution::always_blocking_t, Continuation, const ProtoAllocator& alloc, Function f, std::size_t n, ResultFactory rf, SharedFactory sf)
+  auto bulk_twoway_execute(execution::always_blocking_t, Continuation, const ProtoAllocator& alloc, Function f, std::size_t n, ResultFactory rf, SharedFactory sf)
   {
-    auto future = this->bulk_async_execute(execution::never_blocking, Continuation{}, alloc, std::move(f), n, std::move(rf), std::move(sf));
+    auto future = this->bulk_twoway_execute(execution::never_blocking, Continuation{}, alloc, std::move(f), n, std::move(rf), std::move(sf));
     future.wait();
     return future;
   }

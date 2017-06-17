@@ -25,8 +25,8 @@ public:
   }
 };
 
-static_assert(execution::is_one_way_executor_v<inline_executor>, "one way executor requirements not met");
-static_assert(execution::is_bulk_one_way_executor_v<decltype(execution::rebind(inline_executor(), execution::bulk))>, "bulk one way executor requirements not met");
+static_assert(execution::is_oneway_executor_v<inline_executor>, "one way executor requirements not met");
+static_assert(execution::is_bulk_oneway_executor_v<decltype(execution::rebind(inline_executor(), execution::bulk))>, "bulk one way executor requirements not met");
 
 int main()
 {

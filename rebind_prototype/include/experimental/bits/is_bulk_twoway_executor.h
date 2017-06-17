@@ -1,5 +1,5 @@
-#ifndef STD_EXPERIMENTAL_BITS_IS_BULK_TWO_WAY_EXECUTOR_H
-#define STD_EXPERIMENTAL_BITS_IS_BULK_TWO_WAY_EXECUTOR_H
+#ifndef STD_EXPERIMENTAL_BITS_IS_BULK_TWOWAY_EXECUTOR_H
+#define STD_EXPERIMENTAL_BITS_IS_BULK_TWOWAY_EXECUTOR_H
 
 #include <experimental/bits/is_executor.h>
 
@@ -7,7 +7,7 @@ namespace std {
 namespace experimental {
 inline namespace concurrency_v2 {
 namespace execution {
-namespace is_bulk_two_way_executor_impl {
+namespace is_bulk_twoway_executor_impl {
 
 template<class...>
 struct type_check
@@ -40,24 +40,24 @@ struct eval : std::false_type {};
 template<class T>
 struct eval<T,
   typename type_check<
-    decltype(static_cast<const result&>(std::declval<const T&>().bulk_async_execute(std::declval<bulk_function>(),
+    decltype(static_cast<const result&>(std::declval<const T&>().bulk_twoway_execute(std::declval<bulk_function>(),
             1, std::declval<result_factory>(), std::declval<shared_factory>()).get())),
-    decltype(static_cast<const result&>(std::declval<const T&>().bulk_async_execute(std::declval<bulk_function&>(),
+    decltype(static_cast<const result&>(std::declval<const T&>().bulk_twoway_execute(std::declval<bulk_function&>(),
             1, std::declval<result_factory>(), std::declval<shared_factory>()).get())),
-    decltype(static_cast<const result&>(std::declval<const T&>().bulk_async_execute(std::declval<const bulk_function&>(),
+    decltype(static_cast<const result&>(std::declval<const T&>().bulk_twoway_execute(std::declval<const bulk_function&>(),
             1, std::declval<result_factory>(), std::declval<shared_factory>()).get())),
-    decltype(static_cast<const result&>(std::declval<const T&>().bulk_async_execute(std::declval<bulk_function&&>(),
+    decltype(static_cast<const result&>(std::declval<const T&>().bulk_twoway_execute(std::declval<bulk_function&&>(),
             1, std::declval<result_factory>(), std::declval<shared_factory>()).get()))
 	>::type> : is_executor<T> {};
 
-} // namespace is_bulk_two_way_executor_impl
+} // namespace is_bulk_twoway_executor_impl
 
 template<class Executor>
-struct is_bulk_two_way_executor : is_bulk_two_way_executor_impl::eval<Executor> {};
+struct is_bulk_twoway_executor : is_bulk_twoway_executor_impl::eval<Executor> {};
 
 } // namespace execution
 } // inline namespace concurrency_v2
 } // namespace experimental
 } // namespace std
 
-#endif // STD_EXPERIMENTAL_BITS_IS_BULK_TWO_WAY_EXECUTOR_H
+#endif // STD_EXPERIMENTAL_BITS_IS_BULK_TWOWAY_EXECUTOR_H

@@ -61,7 +61,7 @@ class strand
   }
 
 public:
-  static_assert(execution::is_one_way_executor_v<Executor>, "strand requires a one way executor");
+  static_assert(execution::is_oneway_executor_v<Executor>, "strand requires a one way executor");
 
   explicit strand(Executor ex)
     : state_(std::make_shared<strand_state>()), ex_(std::move(ex))
@@ -131,7 +131,7 @@ public:
   }
 };
 
-static_assert(execution::is_one_way_executor_v<
+static_assert(execution::is_oneway_executor_v<
   strand<static_thread_pool::executor_type>>,
     "one way executor requirements must be met");
 

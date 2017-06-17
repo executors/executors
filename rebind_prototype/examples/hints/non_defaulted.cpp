@@ -37,7 +37,7 @@ private:
   bool tracing_;
 };
 
-static_assert(execution::is_one_way_executor_v<inline_executor>, "one way executor requirements not met");
+static_assert(execution::is_oneway_executor_v<inline_executor>, "one way executor requirements not met");
 
 int main()
 {

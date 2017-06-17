@@ -1,5 +1,5 @@
-#ifndef STD_EXPERIMENTAL_BITS_IS_ONE_WAY_EXECUTOR_H
-#define STD_EXPERIMENTAL_BITS_IS_ONE_WAY_EXECUTOR_H
+#ifndef STD_EXPERIMENTAL_BITS_IS_ONEWAY_EXECUTOR_H
+#define STD_EXPERIMENTAL_BITS_IS_ONEWAY_EXECUTOR_H
 
 #include <experimental/bits/is_executor.h>
 
@@ -7,7 +7,7 @@ namespace std {
 namespace experimental {
 inline namespace concurrency_v2 {
 namespace execution {
-namespace is_one_way_executor_impl {
+namespace is_oneway_executor_impl {
 
 template<class...>
 struct type_check
@@ -32,14 +32,14 @@ struct eval<T,
     typename std::enable_if<std::is_same<void, decltype(std::declval<const T&>().execute(std::declval<nullary_function&&>()))>::value>::type
 	>::type> : is_executor<T> {};
 
-} // namespace is_one_way_executor_impl
+} // namespace is_oneway_executor_impl
 
 template<class Executor>
-struct is_one_way_executor : is_one_way_executor_impl::eval<Executor> {};
+struct is_oneway_executor : is_oneway_executor_impl::eval<Executor> {};
 
 } // namespace execution
 } // inline namespace concurrency_v2
 } // namespace experimental
 } // namespace std
 
-#endif // STD_EXPERIMENTAL_BITS_IS_ONE_WAY_EXECUTOR_H
+#endif // STD_EXPERIMENTAL_BITS_IS_ONEWAY_EXECUTOR_H

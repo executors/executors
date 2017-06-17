@@ -58,10 +58,10 @@ namespace custom_hints
     }
 
     template <class Function>
-    auto async_execute(Function f) const
-      -> decltype(inner_declval<Function>().async_execute(std::move(f)))
+    auto twoway_execute(Function f) const
+      -> decltype(inner_declval<Function>().twoway_execute(std::move(f)))
     {
-      return inner_ex_.async_execute(
+      return inner_ex_.twoway_execute(
           [tracing = tracing_, f = std::move(f)]() mutable
           {
             if (tracing) std::cout << "running function adapted\n";
@@ -103,8 +103,8 @@ private:
   bool tracing_;
 };
 
-static_assert(execution::is_one_way_executor_v<inline_executor>, "one way executor requirements not met");
-static_assert(execution::is_one_way_executor_v<custom_hints::tracing_executor<static_thread_pool::executor_type>>, "one way executor requirements not met");
+static_assert(execution::is_oneway_executor_v<inline_executor>, "one way executor requirements not met");
+static_assert(execution::is_oneway_executor_v<custom_hints::tracing_executor<static_thread_pool::executor_type>>, "one way executor requirements not met");
 
 int main()
 {

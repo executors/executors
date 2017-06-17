@@ -39,55 +39,55 @@ void static_thread_pool_executor_compile_test(Executor ex1)
 }
 
 template<class Executor>
-void static_thread_pool_one_way_executor_compile_test(Executor ex1)
+void static_thread_pool_oneway_executor_compile_test(Executor ex1)
 {
   static_thread_pool_executor_compile_test(ex1);
 
-  static_assert(execution::is_one_way_executor_v<Executor>, "is_one_way_executor must evaluate true");
+  static_assert(execution::is_oneway_executor_v<Executor>, "is_oneway_executor must evaluate true");
 
   const Executor& cex1 = ex1;
 
   cex1.execute([]{});
 
-  static_thread_pool_one_way_executor_compile_test(cex1.rebind(execution::never_blocking));
-  static_thread_pool_one_way_executor_compile_test(cex1.rebind(execution::possibly_blocking));
-  static_thread_pool_one_way_executor_compile_test(cex1.rebind(execution::always_blocking));
-  static_thread_pool_one_way_executor_compile_test(cex1.rebind(execution::is_continuation));
-  static_thread_pool_one_way_executor_compile_test(cex1.rebind(execution::is_not_continuation));
-  static_thread_pool_one_way_executor_compile_test(cex1.rebind(execution::is_work));
-  static_thread_pool_one_way_executor_compile_test(cex1.rebind(execution::is_not_work));
-  static_thread_pool_one_way_executor_compile_test(cex1.rebind(std::allocator_arg, std::allocator<void>()));
+  static_thread_pool_oneway_executor_compile_test(cex1.rebind(execution::never_blocking));
+  static_thread_pool_oneway_executor_compile_test(cex1.rebind(execution::possibly_blocking));
+  static_thread_pool_oneway_executor_compile_test(cex1.rebind(execution::always_blocking));
+  static_thread_pool_oneway_executor_compile_test(cex1.rebind(execution::is_continuation));
+  static_thread_pool_oneway_executor_compile_test(cex1.rebind(execution::is_not_continuation));
+  static_thread_pool_oneway_executor_compile_test(cex1.rebind(execution::is_work));
+  static_thread_pool_oneway_executor_compile_test(cex1.rebind(execution::is_not_work));
+  static_thread_pool_oneway_executor_compile_test(cex1.rebind(std::allocator_arg, std::allocator<void>()));
 }
 
 template<class Executor>
-void static_thread_pool_two_way_executor_compile_test(Executor ex1)
+void static_thread_pool_twoway_executor_compile_test(Executor ex1)
 {
   static_thread_pool_executor_compile_test(ex1);
 
-  static_assert(execution::is_two_way_executor_v<Executor>, "is_two_way_executor must evaluate true");
+  static_assert(execution::is_twoway_executor_v<Executor>, "is_twoway_executor must evaluate true");
 
   const Executor& cex1 = ex1;
 
-  execution::executor_future_t<Executor, int> f1 = cex1.async_execute([]{ return 42; });
+  execution::executor_future_t<Executor, int> f1 = cex1.twoway_execute([]{ return 42; });
   int r1 = static_cast<const int&>(f1.get());
   (void)r1;
 
-  static_thread_pool_two_way_executor_compile_test(cex1.rebind(execution::never_blocking));
-  static_thread_pool_two_way_executor_compile_test(cex1.rebind(execution::possibly_blocking));
-  static_thread_pool_two_way_executor_compile_test(cex1.rebind(execution::always_blocking));
-  static_thread_pool_two_way_executor_compile_test(cex1.rebind(execution::is_continuation));
-  static_thread_pool_two_way_executor_compile_test(cex1.rebind(execution::is_not_continuation));
-  static_thread_pool_two_way_executor_compile_test(cex1.rebind(execution::is_work));
-  static_thread_pool_two_way_executor_compile_test(cex1.rebind(execution::is_not_work));
-  static_thread_pool_two_way_executor_compile_test(cex1.rebind(std::allocator_arg, std::allocator<void>()));
+  static_thread_pool_twoway_executor_compile_test(cex1.rebind(execution::never_blocking));
+  static_thread_pool_twoway_executor_compile_test(cex1.rebind(execution::possibly_blocking));
+  static_thread_pool_twoway_executor_compile_test(cex1.rebind(execution::always_blocking));
+  static_thread_pool_twoway_executor_compile_test(cex1.rebind(execution::is_continuation));
+  static_thread_pool_twoway_executor_compile_test(cex1.rebind(execution::is_not_continuation));
+  static_thread_pool_twoway_executor_compile_test(cex1.rebind(execution::is_work));
+  static_thread_pool_twoway_executor_compile_test(cex1.rebind(execution::is_not_work));
+  static_thread_pool_twoway_executor_compile_test(cex1.rebind(std::allocator_arg, std::allocator<void>()));
 }
 
 template<class Executor>
-void static_thread_pool_bulk_one_way_executor_compile_test(Executor ex1)
+void static_thread_pool_bulk_oneway_executor_compile_test(Executor ex1)
 {
   static_thread_pool_executor_compile_test(ex1);
 
-  static_assert(execution::is_bulk_one_way_executor_v<Executor>, "is_bulk_one_way_executor must evaluate true");
+  static_assert(execution::is_bulk_oneway_executor_v<Executor>, "is_bulk_oneway_executor must evaluate true");
   static_assert(std::is_same<execution::executor_shape_t<Executor>, std::size_t>::value, "shape type must be size_t");
   static_assert(std::is_same<execution::executor_index_t<Executor>, std::size_t>::value, "index type must be size_t");
 
@@ -95,42 +95,42 @@ void static_thread_pool_bulk_one_way_executor_compile_test(Executor ex1)
 
   cex1.bulk_execute([](std::size_t, int&){}, 1, []{ return 42; });
 
-  static_thread_pool_bulk_one_way_executor_compile_test(cex1.rebind(execution::never_blocking));
-  static_thread_pool_bulk_one_way_executor_compile_test(cex1.rebind(execution::possibly_blocking));
-  static_thread_pool_bulk_one_way_executor_compile_test(cex1.rebind(execution::always_blocking));
-  static_thread_pool_bulk_one_way_executor_compile_test(cex1.rebind(execution::is_continuation));
-  static_thread_pool_bulk_one_way_executor_compile_test(cex1.rebind(execution::is_not_continuation));
-  static_thread_pool_bulk_one_way_executor_compile_test(cex1.rebind(execution::is_work));
-  static_thread_pool_bulk_one_way_executor_compile_test(cex1.rebind(execution::is_not_work));
-  static_thread_pool_bulk_one_way_executor_compile_test(cex1.rebind(std::allocator_arg, std::allocator<void>()));
+  static_thread_pool_bulk_oneway_executor_compile_test(cex1.rebind(execution::never_blocking));
+  static_thread_pool_bulk_oneway_executor_compile_test(cex1.rebind(execution::possibly_blocking));
+  static_thread_pool_bulk_oneway_executor_compile_test(cex1.rebind(execution::always_blocking));
+  static_thread_pool_bulk_oneway_executor_compile_test(cex1.rebind(execution::is_continuation));
+  static_thread_pool_bulk_oneway_executor_compile_test(cex1.rebind(execution::is_not_continuation));
+  static_thread_pool_bulk_oneway_executor_compile_test(cex1.rebind(execution::is_work));
+  static_thread_pool_bulk_oneway_executor_compile_test(cex1.rebind(execution::is_not_work));
+  static_thread_pool_bulk_oneway_executor_compile_test(cex1.rebind(std::allocator_arg, std::allocator<void>()));
 }
 
 template<class Executor>
-void static_thread_pool_bulk_two_way_executor_compile_test(Executor ex1)
+void static_thread_pool_bulk_twoway_executor_compile_test(Executor ex1)
 {
   static_thread_pool_executor_compile_test(ex1);
 
-  static_assert(execution::is_bulk_two_way_executor_v<Executor>, "is_bulk_two_way_executor must evaluate true");
+  static_assert(execution::is_bulk_twoway_executor_v<Executor>, "is_bulk_twoway_executor must evaluate true");
   static_assert(std::is_same<execution::executor_shape_t<Executor>, std::size_t>::value, "shape type must be size_t");
   static_assert(std::is_same<execution::executor_index_t<Executor>, std::size_t>::value, "index type must be size_t");
 
   const Executor& cex1 = ex1;
 
-  execution::executor_future_t<Executor, void> f1 = cex1.bulk_async_execute([](std::size_t, int&){}, 1, []{}, []{ return 42; });
+  execution::executor_future_t<Executor, void> f1 = cex1.bulk_twoway_execute([](std::size_t, int&){}, 1, []{}, []{ return 42; });
   f1.get();
 
-  execution::executor_future_t<Executor, int> f2 = cex1.bulk_async_execute([](std::size_t, int&, int&){}, 1, []{ return 0; }, []{ return 42; });
+  execution::executor_future_t<Executor, int> f2 = cex1.bulk_twoway_execute([](std::size_t, int&, int&){}, 1, []{ return 0; }, []{ return 42; });
   int r2 = static_cast<const int&>(f2.get());
   (void)r2;
 
-  static_thread_pool_bulk_two_way_executor_compile_test(cex1.rebind(execution::never_blocking));
-  static_thread_pool_bulk_two_way_executor_compile_test(cex1.rebind(execution::possibly_blocking));
-  static_thread_pool_bulk_two_way_executor_compile_test(cex1.rebind(execution::always_blocking));
-  static_thread_pool_bulk_two_way_executor_compile_test(cex1.rebind(execution::is_continuation));
-  static_thread_pool_bulk_two_way_executor_compile_test(cex1.rebind(execution::is_not_continuation));
-  static_thread_pool_bulk_two_way_executor_compile_test(cex1.rebind(execution::is_work));
-  static_thread_pool_bulk_two_way_executor_compile_test(cex1.rebind(execution::is_not_work));
-  static_thread_pool_bulk_two_way_executor_compile_test(cex1.rebind(std::allocator_arg, std::allocator<void>()));
+  static_thread_pool_bulk_twoway_executor_compile_test(cex1.rebind(execution::never_blocking));
+  static_thread_pool_bulk_twoway_executor_compile_test(cex1.rebind(execution::possibly_blocking));
+  static_thread_pool_bulk_twoway_executor_compile_test(cex1.rebind(execution::always_blocking));
+  static_thread_pool_bulk_twoway_executor_compile_test(cex1.rebind(execution::is_continuation));
+  static_thread_pool_bulk_twoway_executor_compile_test(cex1.rebind(execution::is_not_continuation));
+  static_thread_pool_bulk_twoway_executor_compile_test(cex1.rebind(execution::is_work));
+  static_thread_pool_bulk_twoway_executor_compile_test(cex1.rebind(execution::is_not_work));
+  static_thread_pool_bulk_twoway_executor_compile_test(cex1.rebind(std::allocator_arg, std::allocator<void>()));
 }
 
 void static_thread_pool_compile_test()
@@ -157,18 +157,18 @@ void static_thread_pool_compile_test()
   bool b2 = (cpool1 != cpool2);
   (void)b2;
 
-  static_thread_pool_one_way_executor_compile_test(pool1.executor());
-  static_thread_pool_one_way_executor_compile_test(pool1.executor().rebind(execution::one_way));
-  static_thread_pool_one_way_executor_compile_test(pool1.executor().rebind(execution::two_way).rebind(execution::one_way));
-  static_thread_pool_one_way_executor_compile_test(pool1.executor().rebind(execution::single));
-  static_thread_pool_one_way_executor_compile_test(pool1.executor().rebind(execution::bulk).rebind(execution::single));
-  static_thread_pool_two_way_executor_compile_test(pool1.executor());
-  static_thread_pool_two_way_executor_compile_test(pool1.executor().rebind(execution::two_way));
-  static_thread_pool_two_way_executor_compile_test(pool1.executor().rebind(execution::one_way).rebind(execution::two_way));
-  static_thread_pool_bulk_one_way_executor_compile_test(pool1.executor());
-  static_thread_pool_bulk_one_way_executor_compile_test(pool1.executor().rebind(execution::bulk));
-  static_thread_pool_bulk_two_way_executor_compile_test(pool1.executor());
-  static_thread_pool_bulk_two_way_executor_compile_test(pool1.executor().rebind(execution::bulk));
+  static_thread_pool_oneway_executor_compile_test(pool1.executor());
+  static_thread_pool_oneway_executor_compile_test(pool1.executor().rebind(execution::oneway));
+  static_thread_pool_oneway_executor_compile_test(pool1.executor().rebind(execution::twoway).rebind(execution::oneway));
+  static_thread_pool_oneway_executor_compile_test(pool1.executor().rebind(execution::single));
+  static_thread_pool_oneway_executor_compile_test(pool1.executor().rebind(execution::bulk).rebind(execution::single));
+  static_thread_pool_twoway_executor_compile_test(pool1.executor());
+  static_thread_pool_twoway_executor_compile_test(pool1.executor().rebind(execution::twoway));
+  static_thread_pool_twoway_executor_compile_test(pool1.executor().rebind(execution::oneway).rebind(execution::twoway));
+  static_thread_pool_bulk_oneway_executor_compile_test(pool1.executor());
+  static_thread_pool_bulk_oneway_executor_compile_test(pool1.executor().rebind(execution::bulk));
+  static_thread_pool_bulk_twoway_executor_compile_test(pool1.executor());
+  static_thread_pool_bulk_twoway_executor_compile_test(pool1.executor().rebind(execution::bulk));
 }
 
 int main()

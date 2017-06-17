@@ -62,17 +62,17 @@ public:
   }
 
   template <class Function>
-  auto async_execute(Function f) const
-    -> decltype(inner_declval<Function>().async_execute(std::move(f)))
+  auto twoway_execute(Function f) const
+    -> decltype(inner_declval<Function>().twoway_execute(std::move(f)))
   {
-    return inner_ex_.async_execute(this->wrap(std::move(f)));
+    return inner_ex_.twoway_execute(this->wrap(std::move(f)));
   }
 };
 
-static_assert(execution::is_one_way_executor_v<
+static_assert(execution::is_oneway_executor_v<
   logging_executor<static_thread_pool::executor_type>>,
     "one way executor requirements must be met");
-static_assert(execution::is_one_way_executor_v<
+static_assert(execution::is_oneway_executor_v<
   logging_executor<static_thread_pool::executor_type>>,
     "two way executor requirements must be met");
 
@@ -85,8 +85,8 @@ int main()
   ex2.execute([]{ std::cout << "we made it again\n"; });
   auto ex3 = ex2.rebind(execution::never_blocking).rebind(execution::is_continuation);
   ex3.execute([]{ std::cout << "and again\n"; });
-  auto ex4 = ex1.rebind(execution::two_way);
-  std::future<int> f = ex4.async_execute([]{ std::cout << "computing result\n"; return 42; });
+  auto ex4 = ex1.rebind(execution::twoway);
+  std::future<int> f = ex4.twoway_execute([]{ std::cout << "computing result\n"; return 42; });
   pool.wait();
   std::cout << "result is " << f.get() << "\n";
 }

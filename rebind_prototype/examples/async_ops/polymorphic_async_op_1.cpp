@@ -8,7 +8,7 @@ using std::experimental::static_thread_pool;
 
 // An operation that doubles a value asynchronously.
 template <class CompletionHandler>
-void my_async_operation_1(const execution::executor& tex, int n,
+void my_twoway_operation_1(const execution::executor& tex, int n,
     const execution::executor& cex, CompletionHandler h)
 {
   if (n == 0)
@@ -42,7 +42,7 @@ int main()
 {
   static_thread_pool task_pool{1};
   static_thread_pool completion_pool{1};
-  my_async_operation_1(task_pool.executor(), 21, completion_pool.executor(),
+  my_twoway_operation_1(task_pool.executor(), 21, completion_pool.executor(),
       [](int n){ std::cout << "the answer is " << n << "\n"; });
   completion_pool.wait();
 }

@@ -17,42 +17,42 @@ namespace rebind_impl {
 
 template<class Executor>
   constexpr typename std::enable_if<
-    (is_one_way_executor<Executor>::value || is_bulk_one_way_executor<Executor>::value)
-    && !has_rebind_member<Executor, one_way_t>::value, Executor>::type
-      rebind(Executor ex, one_way_t) { return std::move(ex); }
+    (is_oneway_executor<Executor>::value || is_bulk_oneway_executor<Executor>::value)
+    && !has_rebind_member<Executor, oneway_t>::value, Executor>::type
+      rebind(Executor ex, oneway_t) { return std::move(ex); }
 
 // Default rebind for two way adapts one way executors, leaves two way executors as is.
 
 template<class InnerExecutor>
-class two_way_adapter
+class twoway_adapter
 {
   InnerExecutor inner_ex_;
   template <class T> static auto inner_declval() -> decltype(std::declval<InnerExecutor>());
   template <class, class T> struct dependent_type { using type = T; };
 
 public:
-  two_way_adapter(InnerExecutor ex) : inner_ex_(std::move(ex)) {}
+  twoway_adapter(InnerExecutor ex) : inner_ex_(std::move(ex)) {}
 
-  two_way_adapter rebind(one_way_t) const & { return *this; }
-  two_way_adapter rebind(one_way_t) && { return std::move(*this); }
-  two_way_adapter rebind(two_way_t) const & { return *this; }
-  two_way_adapter rebind(two_way_t) && { return std::move(*this); }
+  twoway_adapter rebind(oneway_t) const & { return *this; }
+  twoway_adapter rebind(oneway_t) && { return std::move(*this); }
+  twoway_adapter rebind(twoway_t) const & { return *this; }
+  twoway_adapter rebind(twoway_t) && { return std::move(*this); }
 
   template<class... T> auto rebind(T&&... t) const &
-    -> two_way_adapter<typename rebind_member_result<InnerExecutor, T...>::type>
+    -> twoway_adapter<typename rebind_member_result<InnerExecutor, T...>::type>
       { return { inner_ex_.rebind(std::forward<T>(t)...) }; }
   template<class... T> auto rebind(T&&... t) &&
-    -> two_way_adapter<typename rebind_member_result<InnerExecutor&&, T...>::type>
+    -> twoway_adapter<typename rebind_member_result<InnerExecutor&&, T...>::type>
       { return { std::move(inner_ex_).rebind(std::forward<T>(t)...) }; }
 
   auto& context() const noexcept { return inner_ex_.context(); }
 
-  friend bool operator==(const two_way_adapter& a, const two_way_adapter& b) noexcept
+  friend bool operator==(const twoway_adapter& a, const twoway_adapter& b) noexcept
   {
     return a.inner_ex_ == b.inner_ex_;
   }
 
-  friend bool operator!=(const two_way_adapter& a, const two_way_adapter& b) noexcept
+  friend bool operator!=(const twoway_adapter& a, const twoway_adapter& b) noexcept
   {
     return !(a == b);
   }
@@ -64,7 +64,7 @@ public:
   }
 
   template<class Function>
-  auto async_execute(Function f) const -> typename dependent_type<
+  auto twoway_execute(Function f) const -> typename dependent_type<
       decltype(inner_declval<Function>().execute(std::move(f))),
       std::future<decltype(f())>>::type
   {
@@ -82,7 +82,7 @@ public:
   }
 
   template<class Function, class ResultFactory, class SharedFactory>
-  auto bulk_async_execute(Function f, std::size_t n, ResultFactory rf, SharedFactory sf) const -> typename dependent_type<
+  auto bulk_twoway_execute(Function f, std::size_t n, ResultFactory rf, SharedFactory sf) const -> typename dependent_type<
       decltype(inner_declval<Function>().bulk_execute(std::move(f), n, std::move(sf))),
       typename std::enable_if<is_same<decltype(rf()), void>::value, std::future<void>>::type>::type
   {
@@ -119,7 +119,7 @@ public:
   }
 
   template<class Function, class ResultFactory, class SharedFactory>
-  auto bulk_async_execute(Function f, std::size_t n, ResultFactory rf, SharedFactory sf) const -> typename dependent_type<
+  auto bulk_twoway_execute(Function f, std::size_t n, ResultFactory rf, SharedFactory sf) const -> typename dependent_type<
       decltype(inner_declval<Function>().bulk_execute(std::move(f), n, std::move(sf))),
       typename std::enable_if<!is_same<decltype(rf()), void>::value, std::future<decltype(rf())>>::type>::type
   {
@@ -159,16 +159,16 @@ public:
 
 template<class Executor>
   typename std::enable_if<
-    (is_one_way_executor<Executor>::value || is_bulk_one_way_executor<Executor>::value)
-    && !(is_two_way_executor<Executor>::value || is_bulk_two_way_executor<Executor>::value)
-    && !has_rebind_member<Executor, two_way_t>::value, two_way_adapter<Executor>>::type
-      rebind(Executor ex, two_way_t) { return two_way_adapter<Executor>(std::move(ex)); }
+    (is_oneway_executor<Executor>::value || is_bulk_oneway_executor<Executor>::value)
+    && !(is_twoway_executor<Executor>::value || is_bulk_twoway_executor<Executor>::value)
+    && !has_rebind_member<Executor, twoway_t>::value, twoway_adapter<Executor>>::type
+      rebind(Executor ex, twoway_t) { return twoway_adapter<Executor>(std::move(ex)); }
 
 template<class Executor>
   constexpr typename std::enable_if<
-    (is_two_way_executor<Executor>::value || is_bulk_two_way_executor<Executor>::value)
-    && !has_rebind_member<Executor, two_way_t>::value, Executor>::type
-      rebind(Executor ex, two_way_t) { return std::move(ex); }
+    (is_twoway_executor<Executor>::value || is_bulk_twoway_executor<Executor>::value)
+    && !has_rebind_member<Executor, twoway_t>::value, Executor>::type
+      rebind(Executor ex, twoway_t) { return std::move(ex); }
 
 // Default rebind for bulk adapts single executors, leaves bulk executors as is.
 
@@ -212,10 +212,10 @@ public:
   }
 
   template<class Function>
-  auto async_execute(Function f) const
-    -> decltype(inner_declval<Function>().async_execute(std::move(f)))
+  auto twoway_execute(Function f) const
+    -> decltype(inner_declval<Function>().twoway_execute(std::move(f)))
   {
-    return inner_ex_.async_execute(std::move(f));
+    return inner_ex_.twoway_execute(std::move(f));
   }
 
   template<class Function, class SharedFactory>
@@ -233,8 +233,8 @@ public:
   }
 
   template<class Function, class ResultFactory, class SharedFactory>
-  auto bulk_async_execute(Function f, std::size_t n, ResultFactory rf, SharedFactory sf) const -> typename dependent_type<
-      decltype(inner_declval<Function>().async_execute(std::move(rf))),
+  auto bulk_twoway_execute(Function f, std::size_t n, ResultFactory rf, SharedFactory sf) const -> typename dependent_type<
+      decltype(inner_declval<Function>().twoway_execute(std::move(rf))),
       typename std::enable_if<is_same<decltype(rf()), void>::value, std::future<void>>::type>::type
   {
     auto shared_state = std::make_shared<
@@ -270,8 +270,8 @@ public:
   }
 
   template<class Function, class ResultFactory, class SharedFactory>
-  auto bulk_async_execute(Function f, std::size_t n, ResultFactory rf, SharedFactory sf) const -> typename dependent_type<
-      decltype(inner_declval<Function>().async_execute(std::move(rf))),
+  auto bulk_twoway_execute(Function f, std::size_t n, ResultFactory rf, SharedFactory sf) const -> typename dependent_type<
+      decltype(inner_declval<Function>().twoway_execute(std::move(rf))),
       typename std::enable_if<!is_same<decltype(rf()), void>::value, std::future<decltype(rf())>>::type>::type
   {
     auto shared_state = std::make_shared<
@@ -309,14 +309,14 @@ public:
 };
 
 template<class Executor>
-  typename std::enable_if<is_one_way_executor<Executor>::value
-    && !(is_bulk_one_way_executor<Executor>::value || is_bulk_two_way_executor<Executor>::value)
+  typename std::enable_if<is_oneway_executor<Executor>::value
+    && !(is_bulk_oneway_executor<Executor>::value || is_bulk_twoway_executor<Executor>::value)
     && !has_rebind_member<Executor, bulk_t>::value, bulk_adapter<Executor>>::type
       rebind(Executor ex, bulk_t) { return bulk_adapter<Executor>(std::move(ex)); }
 
 template<class Executor>
   constexpr typename std::enable_if<
-    (is_bulk_one_way_executor<Executor>::value || is_bulk_two_way_executor<Executor>::value)
+    (is_bulk_oneway_executor<Executor>::value || is_bulk_twoway_executor<Executor>::value)
     && !has_rebind_member<Executor, bulk_t>::value, Executor>::type
       rebind(Executor ex, bulk_t) { return std::move(ex); }
 
@@ -365,10 +365,10 @@ public:
   }
 
   template<class Function>
-  auto async_execute(Function f) const
-    -> decltype(inner_declval<Function>().async_execute(std::move(f)))
+  auto twoway_execute(Function f) const
+    -> decltype(inner_declval<Function>().twoway_execute(std::move(f)))
   {
-    auto future = inner_ex_.async_execute(std::move(f));
+    auto future = inner_ex_.twoway_execute(std::move(f));
     future.wait();
     return future;
   }
@@ -384,10 +384,10 @@ public:
   }
 
   template<class Function, class ResultFactory, class SharedFactory>
-  auto bulk_async_execute(Function f, std::size_t n, ResultFactory rf, SharedFactory sf) const
-    -> decltype(inner_declval<Function>().bulk_async_execute(std::move(f), n, std::move(rf), std::move(sf)))
+  auto bulk_twoway_execute(Function f, std::size_t n, ResultFactory rf, SharedFactory sf) const
+    -> decltype(inner_declval<Function>().bulk_twoway_execute(std::move(f), n, std::move(rf), std::move(sf)))
   {
-    auto future = inner_ex_.bulk_async_execute(std::move(f), n, std::move(rf), std::move(sf));
+    auto future = inner_ex_.bulk_twoway_execute(std::move(f), n, std::move(rf), std::move(sf));
     future.wait();
     return future;
   }

@@ -8,8 +8,8 @@ using std::experimental::static_thread_pool;
 void executor_compile_test()
 {
   static_assert(execution::is_executor_v<executor>, "is_executor must evaluate true");
-  static_assert(execution::is_one_way_executor_v<executor>, "is_one_way_executor must evaluate true");
-  static_assert(!execution::is_two_way_executor_v<executor>, "is_two_way_executor must evaluate false");
+  static_assert(execution::is_oneway_executor_v<executor>, "is_oneway_executor must evaluate true");
+  static_assert(!execution::is_twoway_executor_v<executor>, "is_twoway_executor must evaluate false");
 
   static_thread_pool pool(0);
 
