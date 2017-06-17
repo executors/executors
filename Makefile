@@ -13,7 +13,8 @@ wording_html: wording.md
 	pandoc wording.md -o wording.html --number-sections -o D0443R2_A_Unified_Executors_Proposal.html
 
 PANDOC_FLAGS = -f markdown \
-	       --smart
+	       --smart \
+	       --variable urlcolor=cyan
 
 CITEPROC= --filter pandoc-citeproc \
 	  --csl=acm-sig-proceedings-long-author-list.csl
@@ -25,10 +26,10 @@ explanatory_html: explanatory.md explanatory_header.tex explanatory_metadata.yam
 	pandoc $(PANDOC_FLAGS) $(CITEPROC) -H explanatory_header.tex explanatory_metadata.yaml explanatory.md -o DXXXXR0_Executors_Explained.html
 
 simplification_pdf: simplification_proposal.md
-	pandoc $(PANDOC_FLAGS) $(CITEPROC) -H simplification_proposal_header.tex simplification_proposal.md -o D0676R0_simplification_proposal.pdf
+	pandoc $(PANDOC_FLAGS) $(CITEPROC) -H simplification_proposal_header.tex simplification_proposal_metadata.yaml simplification_proposal.md -o D0676R0_simplification_proposal.pdf
 
 simplification_html: simplification_proposal.md
-	pandoc $(PANDOC_FLAGS) $(CITEPROC) -H simplification_proposal_header.tex simplification_proposal.md -o D0676R0_simplification_proposal.html
+	pandoc $(PANDOC_FLAGS) $(CITEPROC) -H simplification_proposal_header.tex simplification_proposal_metadata.yaml simplification_proposal.md -o D0676R0_simplification_proposal.html
 
 clean:
 	rm -f D0443*.pdf DXXXX*.pdf D0443*.html DXXXX*.html D0676R0*.pdf D0676R0*.html
