@@ -6,7 +6,7 @@ C++. Our design, described in [P0443R1](https://wg21.link/P0443R1), was a
 unification of three independent proposals targeted at different use cases.
 Those use cases are the execution-creating interfaces of the Standard Library
 (e.g., `async`), as well as interfaces found in the Concurrency, Parallelism,
-and Networking Technical Specificationss. We believe the functionality
+and Networking Technical Specifications. We believe the functionality
 offered by P0443R1 is necessary to fulfill the requirements of those
 interfaces for interoperating with executors.
 
@@ -32,24 +32,81 @@ and several [example programs](https://github.com/executors/issaquah_2016/tree/r
 
 # Proposed Simplification
 
-Short summary of simplification:
+The complexity of P0443R1's design emanates from the execution functions
+comprising the fundamental API for creating work with executors. This set of
+functions is the result of the cross product of three sets of properties:
+blocking behavior (i.e., never-blocking, possibly-blocking, and
+    always-blocking), cardinality (i.e. single and bulk), and directionality
+(one-way and two-way). A partial cross product yields the set of sixteen
+execution functions identified by P0443R1. Rather than "hard-code" a set of
+arbitrary combinations into the possible executor behaviors, our proposed
+simplification allows the user to programmatically build an executor with the
+desired behavior.
 
-Note that the simplification is intended to preserve the functionality of P0443R1
-
-## Fundamental work submission functions
+## Execution Functions
 
 There should be four
 
+## User Requirements
+
+For example, suppose a user requires to create an execution agent with two-way,
+non-blocking execution. Under the API specified by P0443R1, this is
+accomplished by using the specific customization point tasked with implementing this combination of properties:
+
+    using namespace std::experimental::execution;
+    auto future = async_post(exec, task);
+
+In our proposed design, the user separately *requires* the properties of interest, and then calls an execution function:
+
+    using namespace std::experimental::execution;
+    auto future = require(exec, twoway).require(never_blocking).twoway_execute(task);
+
+The `require()` call returns a new executor adapting the given executor's
+native behavior to guarantee the required behavior. If the given executor's
+native behavior already provides the required guarantee, then `require()`
+behaves like the identify function and returns the executor unchanged. If it is
+not possible to satisfy a requirement, then it is a compile-time error.
+
+As another example, suppose a user requires to create an execution agent with
+one-way, blocking execution. This is not possible with P0443R1's API,
+because it does not specify an execution function for this combination of
+requirements. However, our new proposed design does permit this combination:
+
+    using namespace std::experimental::execution;
+    require(exec, oneway).require(always_blocking).oneway_execute(task);
+
+## User Requirements
+
+Some of the properties users desire of executors are not hard requirements.
+Instead, they are softer *preferences*. For example, suppose a user requires to
+create a one-way, never-blocking execution agent and for performance reasons,
+would prefer that the agent execute as a continuation of the calling
+thread. P0443R1 defines a special execution function named `defer()` for
+this purpose:
+
+    using namespace std::experimental::execution;
+    defer(exec, task);
+
+As described by P0443R1, `defer()`'s semantics are equivalent to `post()`'s.
+The distinction is that `defer()` acts as a hint to the executor to create the
+execution agent in a particular way. The presence of `defer()` in P0443R1 was controversial.
+
+Our new proposed design introduces `prefer()` as an avenue for communicating such hints:
+
+    using namespace std::experimental::execution;
+    require(exec, oneway).prefer(is_continuation).oneway_execute(task);
+
+Unlike requirements, executors are under no obligation to satisfy user
+preferences. If it is not possible to satisfy a preference, then it is not a
+compile-time error.
+
 ## Executor Properties
 
-list some important properties
-perhaps note that the old `defer` behavior is now a property
+list the ones we'd like to specify now to support the stdlib and TSes
+
+list desirable properties of properties, can take some text from ChrisK's issue about a hinting mechanism
 
 note how we distinguish properties from the fundamental work submission functions -- the submission functions have parameters with semantic meaning to the work being created
-
-## Requesting Properties
-
-`require()`vs `prefer()`
 
 # Usage Examples
 
@@ -62,6 +119,8 @@ nothing really changes compared to P0443R1
 Demonstrate the use of `require()` & `prefer()`
 
 Show what it looks like before & after the proposed simplification
+
+# Acknowledgements
 
 # Approximate Proposed Wording
 
