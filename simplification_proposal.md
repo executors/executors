@@ -20,13 +20,14 @@ complexity they bring could return tomorrow.
 
 Instead, we believe a successful approach will be to refactor P0443R1's
 functionality into a more manageable, factored form based on *executor
-properties*. Compared to P0443R1's design, we believe a property-based design will be easier both for
-executor clients to use and for executor authors to implement. Because our
-properties design is open-ended, it may be
-extended in a straightforward, scalable way by inventing new properties in the future.
-Finally, we believe that the specification required by this design will be much more compact
-compared to P0443R1. As a consequence, we have been able to quickly
-produce an [open source prototype](https://github.com/executors/issaquah_2016/tree/rebind-prototype/rebind_prototype)
+properties*, which are user-requestable behaviors which modify the way
+executors create execution. Compared to P0443R1's design, we believe a
+property-based design will be easier both for executor clients to use and for
+executor authors to implement. Because our properties design is open-ended, it
+may be extended in a straightforward, scalable way by inventing new properties
+in the future. Finally, we believe that the specification required by this
+design will be much more compact compared to P0443R1. As a consequence, we have
+been able to quickly produce an [open source prototype](https://github.com/executors/issaquah_2016/tree/rebind-prototype/rebind_prototype)
 and several [example programs](https://github.com/executors/issaquah_2016/tree/rebind-prototype/rebind_prototype/examples).
 
 # Proposed Simplification
@@ -43,6 +44,8 @@ There should be four
 
 list some important properties
 perhaps note that the old `defer` behavior is now a property
+
+note how we distinguish properties from the fundamental work submission functions -- the submission functions have parameters with semantic meaning to the work being created
 
 ## Requesting Properties
 
