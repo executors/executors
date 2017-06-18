@@ -45,7 +45,7 @@ desired behavior.
 
 ## Execution Functions
 
-There should be four
+There should be six of these: `oneway_execute`, `twoway_execute`, `then_execute`, `bulk_oneway_execute`, `bulk_twoway_execute`, and `bulk_then_execute`.
 
 ## User Requirements
 
