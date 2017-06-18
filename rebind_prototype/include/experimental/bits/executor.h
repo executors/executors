@@ -278,7 +278,7 @@ public:
 
   template<class Executor> executor(Executor e)
   {
-    auto e2 = execution::require(execution::require(std::move(e), execution::bulk), execution::twoway);
+    auto e2 = execution::require(std::move(e), execution::single, execution::bulk, execution::oneway, execution::twoway);
     context_.impl_ = new impl<decltype(e2)>(std::move(e2));
   }
 

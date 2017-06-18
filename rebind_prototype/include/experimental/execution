@@ -103,16 +103,16 @@ namespace
 }
 
 // Type trait to determine whether the require customization point is valid for the specified arguments.
-template<class Executor, class Property> struct can_require;
+template<class Executor, class... Properties> struct can_require;
 
-template<class Executor, class Property>
-  constexpr bool can_require_v = can_require<Executor, Property>::value;
+template<class Executor, class... Properties>
+  constexpr bool can_require_v = can_require<Executor, Properties...>::value;
 
 // Type trait to determine whether the prefer customization point is valid for the specified arguments.
-template<class Executor, class Property> struct can_prefer;
+template<class Executor, class... Properties> struct can_prefer;
 
-template<class Executor, class Property>
-  constexpr bool can_prefer_v = can_prefer<Executor, Property>::value;
+template<class Executor, class... Properties>
+  constexpr bool can_prefer_v = can_prefer<Executor, Properties...>::value;
 
 // Polymorphic wrappers.
 class bad_executor;

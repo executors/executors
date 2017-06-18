@@ -43,6 +43,14 @@ struct prefer_fn
   {
     return prefer(std::forward<Executor>(ex), std::forward<Property>(p));
   }
+
+  template<class Executor, class Property0, class Property1, class... PropertyN>
+  constexpr auto operator()(Executor&& ex, Property0&& p0, Property1&& p1, PropertyN&&... pn) const
+    noexcept(noexcept((*this)((*this)(std::forward<Executor>(ex), std::forward<Property0>(p0)), std::forward<Property1>(p1), std::forward<PropertyN>(pn)...)))
+    -> decltype((*this)((*this)(std::forward<Executor>(ex), std::forward<Property0>(p0)), std::forward<Property1>(p1), std::forward<PropertyN>(pn)...))
+  {
+    return (*this)((*this)(std::forward<Executor>(ex), std::forward<Property0>(p0)), std::forward<Property1>(p1), std::forward<PropertyN>(pn)...);
+  }
 };
 
 template<class T = prefer_fn> constexpr T customization_point{};

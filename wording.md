@@ -170,13 +170,13 @@ namespace execution {
 
   // Customization point type traits:
 
-  template<class Executor, class Property> struct can_require;
-  template<class Executor, class Property> struct can_prefer;
+  template<class Executor, class... Properties> struct can_require;
+  template<class Executor, class... Properties> struct can_prefer;
 
-  template<class Executor, class Property>
-    constexpr bool can_require_v = can_require<Executor, Property>::value;
-  template<class Executor, class Property>
-    constexpr bool can_prefer_v = can_prefer<Executor, Property>::value;
+  template<class Executor, class... Properties>
+    constexpr bool can_require_v = can_require<Executor, Properties>::value;
+  template<class Executor, class... Properties>
+    constexpr bool can_prefer_v = can_prefer<Executor, Properties>::value;
 
   // Polymorphic executor wrappers:
 
@@ -478,14 +478,31 @@ Whenever `std::experimental::concurrency_v2::execution::`*NAME*`(`*ARGS*`)` is a
 ### `require`
 
     namespace {
-      constexpr unspecified require = unspecified;
+      constexpr unspecified prefer = unspecified;
     }
 
-The name `require` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::require(E, P, A...)` for some expressions `E` and `F`, and where `A...` represents 0 or more expressions, is equivalent to:
+The name `require` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::require(E, P0, Pn...)` for some expressions `E` and `P0`, and where `Pn...` represents 0 or more expressions, is equivalent to:
 
-* `(E).require(F, P, A...)` if `has_require_member_v<decay_t<decltype(E)>, P, A...>` is true.
+* `(E).require(P0)` if `sizeof...(Pn) == 0` and `has_require_member_v<decay_t<decltype(E)>, decltype(P0)>` is true.
 
-* Otherwise, `std::experimental::concurrency_v2::execution::require(E, P, A...)` is ill-formed.
+* Otherwise, `require(E, P0)` if `sizeof...(Pn) == 0` and the expression is well formed.
+
+* Otherwise, `E` if `sizeof...(Pn) == 0` and:
+  * `is_same<decay_t<decltype(P0)>, oneway_t>` is true and `(is_oneway_executor_v<decay_t<decltype(E)>> || is_bulk_oneway_executor_v<decay_t<decltype(E)>>)` is true; or
+  * `is_same<decay_t<decltype(P0)>, twoway_t>` is true and `(is_twoway_executor_v<decay_t<decltype(E)>> || is_bulk_twoway_executor_v<decay_t<decltype(E)>>)` is true; or
+  * `is_same<decay_t<decltype(P0)>, single_t>` is true and `(is_oneway_executor_v<decay_t<decltype(E)>> || is_twoway_executor_v<decay_t<decltype(E)>>)` is true; or
+  * `is_same<decay_t<decltype(P0)>, bulk_t>` is true and `(is_bulk_oneway_executor_v<decay_t<decltype(E)>> || is_bulk_twoway_executor_v<decay_t<decltype(E)>>)` is true; or
+  * `is_same<decay_t<decltype(P0)>, possibly_blocking_t>` is true.
+
+* Otherwise, a value `E1` of unspecified type that holds a copy of `E` if `sizeof...(Pn) == 0` and `is_same<decay_t<decltype(P0)>, twoway_t>` is true. The type of `E1` satisfies the `BaseExecutor` requirements and provides member functions such that calls to `require`, `prefer`, `context`, `execute` and `bulk_execute` are forwarded to the corresponding member functions of the copy of `E`, if present. In addition, if `E` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `TwoWayExecutor` requirements by implementing `twoway_execute` in terms of `execute`. Similarly, if `E` satisfies the `BulkOneWayExecutor` requirements, `E1` shall satisfy the `BulkTwoWayExecutor` requirements by implementing `bulk_twoway_execute` in terms of `bulk_execute`. For some type `T`, the type yielded by `executor_future_t<decltype(E1), T>` is `std::experimental::future<T>`. `E1` has the same execution properties as `E`, except for the addition of the `twoway_t` property.
+
+* Otherwise, a value `E1` of unspecified type that holds a copy of `E` if `sizeof...(Pn) == 0` and `is_same<decay_t<decltype(P0)>, bulk_t>` is true. The type of `E1` satisfies the `BaseExecutor` requirements and provides member functions such that calls to `require`, `prefer`, `context`, `execute` and `twoway_execute` are forwarded to the corresponding member functions of the copy of `E`, if present. In addition, if `E` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `BulkExecutor` requirements by implementing `bulk_execute` in terms of `execute`. If `E` also satisfies the `TwoWayExecutor` requirements, `E1` shall satisfy the `BulkTwoWayExecutor` requirements by implementing `bulk_twoway_execute` in terms of `bulk_execute`. `E1` has the same execution properties as `E`, except for the addition of the `bulk_t` property.
+
+* Otherwise, a value `E1` of unspecified type that holds a copy of `E` if `sizeof...(Pn) == 0` and `is_same<decay_t<decltype(P0)>, always_blocking_t>` is true. The type of `E1` satisfies the `BaseExecutor` requirements and provides member functions such that calls to `require`, `prefer`, `context`, `execute`, `twoway_execute`, `bulk_execute`, and `bulk_twoway_execute` are forwarded to the corresponding member functions of the copy of `E`, if present. In addition, `E1` provides an overload of `require` that returns a copy of `E1`, and all functions `execute`, `twoway_execute`, `bulk_execute`, and `bulk_twoway_execute` shall block the calling thread until the submitted functions have finished execution. `E1` has the same execution properties as `E`, except for the addition of the `always_blocking_t` property, and removal of `never_blocking_t` and `possibly_blocking_t` properties if present.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::require( std::experimental::concurrency_v2::execution::require(E, P0), Pn...)` if `sizeof...(Pn) > 0` and the expression is well formed.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::require(E, P0, Pn...)` is ill-formed.
 
 ### `prefer`
 
@@ -493,23 +510,31 @@ The name `require` denotes a customization point. The effect of the expression `
       constexpr unspecified prefer = unspecified;
     }
 
-The name `prefer` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::prefer(E, P, A...)` for some expressions `E` and `F`, and where `A...` represents 0 or more expressions, is equivalent to:
+The name `prefer` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::prefer(E, P0, Pn...)` for some expressions `E` and `P0`, and where `Pn...` represents 0 or more expressions, is equivalent to:
 
-* `(E).prefer(F, P, A...)` if `has_prefer_member_v<decay_t<decltype(E)>, P, A...>` is true.
+* `(E).prefer(P0)` if `sizeof...(Pn) == 0` and `has_prefer_member_v<decay_t<decltype(E)>, decltype(P0)>` is true.
 
-* Otherwise, `std::experimental::concurrency_v2::execution::prefer(E, P, A...)` is ill-formed.
+* Otherwise, `(E).require(P0)` if `sizeof...(Pn) == 0` and `has_require_member_v<decay_t<decltype(E)>, decltype(P0)>` is true.
+
+* Otherwise, `prefer(E, P0)` if `sizeof...(Pn) == 0` and the expression is well formed.
+
+* Otherwise, `E` if `sizeof...(Pn) == 0`.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::prefer( std::experimental::concurrency_v2::execution::prefer(E, P0), Pn...)` if the expression is well formed.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::prefer(E, P0, Pn...)` is ill-formed.
 
 ### Customization point type traits
 
-    template<class Executor, class Property> struct can_require;
-    template<class Executor, class Property> struct can_prefer;
+    template<class Executor, class... Properties> struct can_require;
+    template<class Executor, class... Properties> struct can_prefer;
 
 This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
 
 | Template                   | Condition           | Preconditions  |
 |----------------------------|---------------------|----------------|
-| `template<class T>` <br/>`struct can_require` | The expression `std::experimental::concurrency_v2::execution::require( declval<const Executor>(), declval<Property>())` is well formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_prefer` | The expression `std::experimental::concurrency_v2::execution::prefer( declval<const Executor>(), declval<Property>())` is well formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_require` | The expression `std::experimental::concurrency_v2::execution::require( declval<const Executor>(), declval<Properties>()...)` is well formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_prefer` | The expression `std::experimental::concurrency_v2::execution::prefer( declval<const Executor>(), declval<Properties>()...)` is well formed. | `T` is a complete type. |
 
 ## Polymorphic executor wrappers
 
