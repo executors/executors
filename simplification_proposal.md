@@ -50,8 +50,9 @@ There should be four
 ## User Requirements
 
 For example, suppose a user requires to create an execution agent with two-way,
-non-blocking execution. Under the API specified by P0443R1, this is
-accomplished by using the specific customization point tasked with implementing this combination of properties:
+    non-blocking execution. Under the API specified by P0443R1, this is
+    accomplished by using the specific customization point tasked with
+    implementing this combination of properties:
 
     using namespace std::experimental::execution;
     auto future = async_post(exec, task);
@@ -59,10 +60,10 @@ accomplished by using the specific customization point tasked with implementing 
 In our proposed design, the user separately *requires* the properties of interest, and then calls an execution function:
 
     using namespace std::experimental::execution;
-    auto future = require(exec, twoway).require(never_blocking).twoway_execute(task);
+    auto future = require(exec, twoway, never_blocking).twoway_execute(task);
 
 The `require()` call returns a new executor adapting the given executor's
-native behavior to guarantee the required behavior. If the given executor's
+native behavior to guarantee the required behaviors. If the given executor's
 native behavior already provides the required guarantee, then `require()`
 behaves like the identify function and returns the executor unchanged. If it is
 not possible to satisfy a requirement, then it is a compile-time error.
@@ -73,7 +74,7 @@ because it does not specify an execution function for this combination of
 requirements. However, our new proposed design does permit this combination:
 
     using namespace std::experimental::execution;
-    require(exec, oneway).require(always_blocking).oneway_execute(task);
+    require(exec, oneway, always_blocking).oneway_execute(task);
 
 ## User Requirements
 
@@ -101,6 +102,11 @@ preferences. If it is not possible to satisfy a preference, then it is not a
 compile-time error.
 
 ## Executor Properties
+
+Our proposal includes eight sets of properties we have identified as necessary
+to supporting the needs of the Standard Library and other technical
+specifications. Two of these sets control the directionality and cardinality
+of execution member functions which create execution.
 
 list the ones we'd like to specify now to support the stdlib and TSes
 
