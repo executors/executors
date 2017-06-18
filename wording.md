@@ -1009,7 +1009,7 @@ correctness. *--end note.*]
 class static_thread_pool
 {
   public:
-    class executor_type;
+    using executor_type = see-below;
     
     // construction/destruction
     explicit static_thread_pool(std::size_t num_threads);
@@ -1044,9 +1044,9 @@ The class `static_thread_pool` satisfies the `ExecutionContext` requirements.
 For an object of type `static_thread_pool`, *outstanding work* is defined as the sum
 of:
 
-* the total number of calls to the `on_work_started` function that returned
-  `true`, less the total number of calls to the `on_work_finished` function, on
-  any executor associated with the `static_thread_pool`.
+* the number of existing executor objects associated with the
+  `static_thread_pool` for which the `execution::is_work_t` property is
+  established;
 
 * the number of function objects that have been added to the `static_thread_pool`
   via the `static_thread_pool` executor, but not yet executed; and
@@ -1054,10 +1054,18 @@ of:
 * the number of function objects that are currently being executed by the
   `static_thread_pool`.
 
-The `static_thread_pool` member functions `executor`, `attach`, `wait`, and `stop`,
-and the `static_thread_pool::executor_type` copy constructors and member functions, do
-not introduce data races as a result of concurrent calls to those functions
-from different threads of execution.
+The `static_thread_pool` member functions `executor`, `attach`, `wait`, and
+`stop`, and the associated executors' copy constructors and member functions,
+do not introduce data races as a result of concurrent calls to those
+functions from different threads of execution.
+
+#### Types
+
+```
+using executor_type = see-below;
+```
+
+An executor type conforming to the specification for `static_thread_pool` executor types described below.
 
 #### Construction and destruction
 
@@ -1075,16 +1083,16 @@ execution, as if by creating objects of type `std::thread`.
 *Effects:* Destroys an object of class `static_thread_pool`. Performs `stop()`
 followed by `wait()`.
 
-#### Worker Management
+#### Worker management
 
 ```
 void attach();
 ```
 
 *Effects:* Adds the calling thread to the pool such that this thread is used to
-execute submitted function objects. (Note: Threads created during thread pool
+execute submitted function objects. [*Note:* Threads created during thread pool
 construction, or previously attached to the pool, will continue to be used for
-function object execution. --end note) Blocks the calling thread until
+function object execution. *--end note*] Blocks the calling thread until
 signalled to complete by `stop()` or `wait()`, and then blocks until all the
 threads created during `static_thread_pool` object construction have completed.
 (NAMING: a possible alternate name for this function is `join()`.)
@@ -1112,14 +1120,23 @@ complete immediately.
 *Synchronization:* The completion of each thread in the pool synchronizes with
 (C++Std [intro.multithread]) the corresponding successful `wait()` return.
 
-#### Executor Creation
+#### Executor creation
 
 ```
 executor_type executor() noexcept;
 ```
 
 *Returns:* An executor that may be used to submit function objects to the
-thread pool.
+thread pool. The returned executor has the following properties already
+established:
+  * `execution::oneway_t`
+  * `execution::twoway_t`
+  * `execution::single_t`
+  * `execution::bulk_t`
+  * `execution::possibly_blocking_t`
+  * `execution::is_not_continuation_t`
+  * `execution::is_not_work_t`
+  * `execution::allocator_t<std::allocator<void>>`
 
 #### Comparisons
 
@@ -1135,72 +1152,84 @@ bool operator!=(const static_thread_pool& a, const static_thread_pool& b) noexce
 
 *Returns:* `!(a == b)`.
 
-### Class `static_thread_pool::executor_type`
+### `static_thread_pool` executor types
+
+All executor types accessible through `static_thread_pool::executor()`, and subsequent calls to the member functions `require` and `prefer`, conform to the following specification.
 
 ```
-class static_thread_pool::executor_type
+class C
 {
   public:
     // types:
-
-    typedef bulk_parallel_execution bulk_forward_progress_guarantee;
-    typedef possibly_blocking_execution blocking_guarantee;
 
     typedef std::size_t shape_type;
     typedef std::size_t index_type;
 
     // construct / copy / destroy:
 
-    executor_type(const executor_type& other) noexcept;
-    executor_type(executor_type&& other) noexcept;
+    C(const C& other) noexcept;
+    C(C&& other) noexcept;
 
-    executor_type& operator=(const executor_type& other) noexcept;
-    executor_type& operator=(executor_type&& other) noexcept;
+    C& operator=(const C& other) noexcept;
+    C& operator=(C&& other) noexcept;
 
     // executor operations:
+
+    C require(execution::oneway_t) const;
+    C require(execution::twoway_t) const;
+    C require(execution::single_t) const;
+    C require(execution::bulk_t) const;
+    C require(execution::bulk_parallel_execution_t) const;
+    C require(execution::thread_execution_mapping_t) const;
+    see-below require(execution::never_blocking_t) const;
+    see-below require(execution::possibly_blocking_t) const;
+    see-below require(execution::always_blocking_t) const;
+    see-below require(execution::is_continuation_t) const;
+    see-below require(execution::is_not_continuation_t) const;
+    see-below require(execution::is_work_t) const;
+    see-below require(execution::is_not_work_t) const;
+    template<class ProtoAllocator>
+      see-below require(const execution::allocator_t<ProtoAllocator>& a) const;
+
+    template<class Property> see-below prefer(const Property& p) const;
 
     bool running_in_this_thread() const noexcept;
 
     static_thread_pool& context() const noexcept;
 
-    bool on_work_started() const noexcept;
-    void on_work_finished() const noexcept;
+    template<class Function>
+      void execute(Function&& f) const;
+
+    template<class Function>
+      std::experimental::future<result_of_t<decay_t<F>()>>
+        twoway_execute(Function&& f) const
+
+    template<class Function, class SharedFactory>
+      void bulk_execute(Function&& f, size_t n, SharedFactory&& sf) const;
+
+    template<class Function, class ResultFactory, class SharedFactory>
+      std::experimental::future<result_of_t<decay_t<ResultFactory>()>>
+        void bulk_twoway_execute(Function&& f, size_t n, ResultFactory&& rf, SharedFactory&& sf) const;
 };
 
-bool operator==(const static_thread_pool::executor_type& a,
-                const static_thread_pool::executor_type& b) noexcept;
-bool operator!=(const static_thread_pool::executor_type& a,
-                const static_thread_pool::executor_type& b) noexcept;
+bool operator==(const C& a, const C& b) noexcept;
+bool operator!=(const C& a, const C& b) noexcept;
 ```
 
-`static_thread_pool::executor_type` is a type satisfying the `BaseExecutor` and
-`ExecutorWorkTracker` requirements. Objects of type
-`static_thread_pool::executor` are associated with a `static_thread_pool`.
-
-The customization points `execute`, `post`, `defer`, `sync_execute`,
-`async_execute`, `async_post`, `async_defer`, `then_execute`, `bulk_execute`,
-`bulk_post`, `bulk_defer`, `bulk_sync_execute`, `bulk_async_execute`,
-`bulk_async_post`, `bulk_async_defer`, and `bulk_then_execute` are well-formed
-for this executor. Function objects submitted using these customization points
-will be executed by the `static_thread_pool`.
-
-For the customization points `execute`, `sync_execute`, `async_execute`,
-`bulk_execute`, `bulk_sync_execute`, and `bulk_async_execute`, if
-`running_in_this_thread()` is `true`, calls at least one of the submitted
-function objects in the current thread prior to returning from the
-customization point. [*Note:* If this function object exits via an exception,
-the exception propagates to the caller. *--end note*]
+`C` is a type satisfying the `BaseExecutor`, `OneWayExecutor`,
+`TwoWayExecutor`, `BulkOneWayExecutor`, and `BulkTwoWayExecutor` requirements.
+Objects of type `C` are associated with a `static_thread_pool`.
 
 #### Constructors
 
 ```
-executor_type(const executor_type& other) noexcept;
+C(const C& other) noexcept;
 ```
 
 *Postconditions:* `*this == other`.
 
 ```
-executor_type(executor_type&& other) noexcept;
+C(C&& other) noexcept;
 ```
 
 *Postconditions:* `*this` is equal to the prior value of `other`.
@@ -1208,7 +1237,7 @@ executor_type(executor_type&& other) noexcept;
 #### Assignment
 
 ```
-executor_type& operator=(const executor_type& other) noexcept;
+C& operator=(const C& other) noexcept;
 ```
 
 *Postconditions:* `*this == other`.
@@ -1216,7 +1245,7 @@ executor_type& operator=(const executor_type& other) noexcept;
 *Returns:* `*this`.
 
 ```
-executor_type& operator=(executor_type&& other) noexcept;
+C& operator=(C&& other) noexcept;
 ```
 
 *Postconditions:* `*this` is equal to the prior value of `other`.
@@ -1224,6 +1253,52 @@ executor_type& operator=(executor_type&& other) noexcept;
 *Returns:* `*this`.
 
 #### Operations
+
+```
+C require(execution::oneway_t) const;
+C require(execution::twoway_t) const;
+C require(execution::single_t) const;
+C require(execution::bulk_t) const;
+C require(execution::bulk_parallel_execution_t) const;
+C require(execution::thread_execution_mapping_t) const;
+```
+
+*Returns:* `*this`.
+
+```
+see-below require(execution::never_blocking_t) const;
+see-below require(execution::possibly_blocking_t) const;
+see-below require(execution::always_blocking_t) const;
+see-below require(execution::is_continuation_t) const;
+see-below require(execution::is_not_continuation_t) const;
+see-below require(execution::is_work_t) const;
+see-below require(execution::is_not_work_t) const;
+```
+
+*Returns:* An executor object of an unspecified type conforming to these
+specifications, associated with the same thread pool as `*this`, and having the
+requested property established. When the requested property is part of a group
+that is defined as a mutually exclusive set, any other properties in the group
+are removed from the returned executor object. All other properties of the
+returned executor object are identical to those of `*this`.
+
+```
+template<class ProtoAllocator>
+  see-below require(const execution::allocator_t<ProtoAllocator>& a) const;
+```
+
+*Returns:* An executor object of an unspecified type conforming to these
+specifications, associated with the same thread pool as `*this`, with the
+`execution::allocator_t<ProtoAllocator>` property established such that
+allocation and deallocation associated with function submission will be
+performed using a copy of `a.alloc`. All other properties of the returned
+executor object are identical to those of `*this`.
+
+```
+template<class Property> see-below prefer(const Property& p) const;
+```
+
+*Returns:* `this->require(p)` if that expression is well formed, otherwise `*this`.
 
 ```
 bool running_in_this_thread() const noexcept;
@@ -1239,34 +1314,60 @@ static_thread_pool& context() const noexcept;
 *Returns:* A reference to the associated `static_thread_pool` object.
 
 ```
-bool on_work_started() const noexcept;
+template<class Function>
+  void execute(Function&& f) const;
 ```
 
-*Effects:* Increments the count of outstanding work associated with the
-`static_thread_pool`.
-
-*Returns:* `false` if there was a prior call to the `stop()` member function of
-the associated `static_thread_pool` object; otherwise `true`.
+*Effects:* Submits the function `f` for execution on the `static_thread_pool`
+according to the `OneWayExecutor` requirements and the properties established
+for `*this`. If the submitted function `f` exits via an exception, the
+`static_thread_pool` calls `std::terminate()`.
 
 ```
-void on_work_finished() const noexcept;
+template<class Function>
+  std::experimental::future<result_of_t<decay_t<F>()>>
+    twoway_execute(Function&& f) const
 ```
 
-*Effects:* Decrements the count of outstanding work associated with the
-`static_thread_pool`.
+*Effects:* Submits the function `f` for execution on the `static_thread_pool`
+according to the `TwoWayExecutor` requirements and the properties established
+for `*this`.
+
+*Returns:* A future with behavior as specified by the `TwoWayExecutor` requirements.
+
+```
+template<class Function, class SharedFactory>
+  void bulk_execute(Function&& f, size_t n, SharedFactory&& sf) const;
+```
+
+*Effects:* Submits the function `f` for bulk execution on the
+`static_thread_pool` according to the `BulkOneWayExecutor` requirements and the
+properties established for `*this`. If the submitted function `f` exits via an
+exception, the `static_thread_pool` calls `std::terminate()`.
+
+```
+template<class Function, class ResultFactory, class SharedFactory>
+  std::experimental::future<result_of_t<decay_t<ResultFactory>()>>
+    void bulk_twoway_execute(Function&& f, size_t n, ResultFactory&& rf, SharedFactory&& sf) const;
+```
+
+*Effects:* Submits the function `f` for bulk execution on the `static_thread_pool`
+according to the `BulkTwoWayExecutor` requirements and the properties established
+for `*this`.
+
+*Returns:* A future with behavior as specified by the `BulkTwoWayExecutor` requirements.
 
 #### Comparisons
 
 ```
-bool operator==(const static_thread_pool::executor_type& a,
-                const static_thread_pool::executor_type& b) noexcept;
+bool operator==(const C& a, const C& b) noexcept;
 ```
 
-*Returns:* `a.context() == b.context()`.
+*Returns:* `true` if `a.context() == b.context()` and `a` and `b` have identical
+properties, otherwise `false`.
 
 ```
-bool operator!=(const static_thread_pool::executor_type& a,
-                const static_thread_pool::executor_type& b) noexcept;
+bool operator!=(const C& a, const C& b) noexcept;
 ```
 
 *Returns:* `!(a == b)`.
