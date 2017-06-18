@@ -1,0 +1,135 @@
+#ifndef STD_EXPERIMENTAL_EXECUTION
+#define STD_EXPERIMENTAL_EXECUTION
+
+#include <experimental/bits/require.h>
+#include <experimental/bits/prefer.h>
+
+namespace std {
+namespace experimental {
+inline namespace concurrency_v2 {
+namespace execution {
+
+// Directionality.
+constexpr struct oneway_t {} oneway;
+constexpr struct twoway_t {} twoway;
+
+// Cardinality.
+constexpr struct single_t {} single;
+constexpr struct bulk_t {} bulk;
+
+// Blocking behaviour.
+constexpr struct never_blocking_t {} never_blocking;
+constexpr struct possibly_blocking_t {} possibly_blocking;
+constexpr struct always_blocking_t {} always_blocking;
+
+// Whether submitted tasks represent a continuation.
+constexpr struct is_continuation_t {} is_continuation;
+constexpr struct is_not_continuation_t {} is_not_continuation;
+
+// Whether there is outstanding work, i.e. an indication of likely task submission in the future.
+constexpr struct is_work_t {} is_work;
+constexpr struct is_not_work_t {} is_not_work;
+
+// Type traits to determine conformance to executor type requirements.
+template<class Executor> struct is_executor;
+template<class Executor> struct is_oneway_executor;
+template<class Executor> struct is_twoway_executor;
+template<class Executor> struct is_bulk_oneway_executor;
+template<class Executor> struct is_bulk_twoway_executor;
+
+template<class Executor> constexpr bool is_executor_v = is_executor<Executor>::value;
+template<class Executor> constexpr bool is_oneway_executor_v = is_oneway_executor<Executor>::value;
+template<class Executor> constexpr bool is_twoway_executor_v = is_twoway_executor<Executor>::value;
+template<class Executor> constexpr bool is_bulk_oneway_executor_v = is_bulk_oneway_executor<Executor>::value;
+template<class Executor> constexpr bool is_bulk_twoway_executor_v = is_bulk_twoway_executor<Executor>::value;
+
+// Type trait to obtain an executor's associated context type.
+template<class Executor> struct executor_context;
+
+template<class Executor> using executor_context_t = typename executor_context<Executor>::type;
+
+// Type trait to obtain a two way executor's future type.
+template<class Executor, class T> struct executor_future;
+
+template<class Executor, class T> using executor_future_t = typename executor_future<Executor, T>::type;
+
+// Type traits to obtain a bulk executor's shape and index types.
+template<class Executor> struct executor_shape;
+template<class Executor> struct executor_index;
+
+template<class Executor> using executor_shape_t = typename executor_shape<Executor>::type;
+template<class Executor> using executor_index_t = typename executor_index<Executor>::type;
+
+// Bulk forward progress.
+// XXX consider exposing these similar to the blocking guarantees et. al
+struct bulk_sequenced_execution {};
+struct bulk_parallel_execution {};
+struct bulk_unsequenced_execution {};
+
+// Type trait to obtain a bulk executor's bulk forward progress guarantee.
+template<class Executor> struct executor_bulk_forward_progress_guarantee;
+
+template<class Executor> using executor_bulk_forward_progress_guarantee_t = typename executor_bulk_forward_progress_guarantee<Executor>::type;
+
+// Type traits to determine whether a require member invocation is valid, and what its result is.
+template<class Executor, class... Args> struct has_require_member;
+template<class Executor, class... Args> struct require_member_result;
+
+template<class Executor, class... Args> constexpr bool has_require_member_v = has_require_member<Executor, Args...>::value;
+template<class Executor, class... Args> using require_member_result_t = typename require_member_result<Executor, Args...>::type;
+
+// Type traits to determine whether a prefer member invocation is valid, and what its result is.
+template<class Executor, class... Args> struct has_prefer_member;
+template<class Executor, class... Args> struct prefer_member_result;
+
+template<class Executor, class... Args> constexpr bool has_prefer_member_v = has_prefer_member<Executor, Args...>::value;
+template<class Executor, class... Args> using prefer_member_result_t = typename prefer_member_result<Executor, Args...>::type;
+
+namespace
+{
+  // Require customization point.
+  constexpr const auto& require = require_impl::customization_point<>;
+
+  // Prefer customization point.
+  constexpr const auto& prefer = prefer_impl::customization_point<>;
+}
+
+// Type trait to determine whether the require customization point is valid for the specified arguments.
+template<class Executor, class... Args> struct can_require;
+
+template<class Executor, class... Args> constexpr bool can_require_v = can_require<Executor, Args...>::value;
+
+// Type trait to determine whether the prefer customization point is valid for the specified arguments.
+template<class Executor, class... Args> struct can_prefer;
+
+template<class Executor, class... Args> constexpr bool can_prefer_v = can_prefer<Executor, Args...>::value;
+
+// Polymorphic wrappers.
+class bad_executor;
+class executor;
+
+} // namespace execution
+} // inline namespace concurrency_v2
+} // namespace experimental
+} // namespace std
+
+#include <experimental/bits/is_executor.h>
+#include <experimental/bits/is_oneway_executor.h>
+#include <experimental/bits/is_twoway_executor.h>
+#include <experimental/bits/is_bulk_oneway_executor.h>
+#include <experimental/bits/is_bulk_twoway_executor.h>
+#include <experimental/bits/executor_context.h>
+#include <experimental/bits/executor_future.h>
+#include <experimental/bits/executor_shape.h>
+#include <experimental/bits/executor_index.h>
+#include <experimental/bits/executor_bulk_forward_progress_guarantee.h>
+#include <experimental/bits/has_require_member.h>
+#include <experimental/bits/has_prefer_member.h>
+#include <experimental/bits/require_member_result.h>
+#include <experimental/bits/require_adaptations.h>
+#include <experimental/bits/prefer_member_result.h>
+#include <experimental/bits/can_require.h>
+#include <experimental/bits/can_prefer.h>
+#include <experimental/bits/executor.h>
+
+#endif // STD_EXPERIMENTAL_EXECUTION
