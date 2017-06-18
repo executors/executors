@@ -377,7 +377,7 @@ An executor's properties are modified by calling the `require` or `prefer` funct
 | Property | Requirements |
 |----------|--------------|
 | `oneway` | The executor type satisfies the `OneWayExecutor` or `BulkOneWayExecutor` requirements. |
-| `twoway` | The executor type satisfies the `TwoWayExecutor` or `TwoWayExecutor` requirements. |
+| `twoway` | The executor type satisfies the `TwoWayExecutor` or `BulkTwoWayExecutor` requirements. |
 | `then` | The executor type satisfies the `ThenExecutor` or `BulkThenExecutor` requirements. |
 
 ### Cardinality properties
