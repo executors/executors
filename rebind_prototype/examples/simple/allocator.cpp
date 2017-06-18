@@ -29,7 +29,7 @@ public:
 int main()
 {
   static_thread_pool pool{1};
-  auto ex = pool.executor().require(std::allocator_arg, tracing_allocator<char>{});
+  auto ex = pool.executor().require(execution::allocator(tracing_allocator<char>{}));
   ex.execute([]{ std::cout << "we made it\n"; });
   pool.wait();
 }

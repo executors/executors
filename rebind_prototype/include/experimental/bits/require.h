@@ -19,18 +19,19 @@ struct single_t;
 struct bulk_t;
 struct always_blocking_t;
 struct possibly_blocking_t;
-struct is_continuation_t;
-struct is_not_continuation_t;
-struct is_work_t;
-struct is_not_work_t;
+struct continuation_t;
+struct not_continuation_t;
+struct outstanding_work_t;
+struct not_outstanding_work_t;
+template<class> struct allocator_t;
 
 namespace require_impl {
 
-template<class Executor, class... Args>
-constexpr auto require(Executor&& ex, Args&&... args)
-  -> decltype(std::forward<Executor>(ex).require(std::forward<Args>(args)...))
+template<class Executor, class Property>
+constexpr auto require(Executor&& ex, Property&& p)
+  -> decltype(std::forward<Executor>(ex).require(std::forward<Property>(p)))
 {
-  return std::forward<Executor>(ex).require(std::forward<Args>(args)...);
+  return std::forward<Executor>(ex).require(std::forward<Property>(p));
 }
 
 // Forward declare the default adaptations.
@@ -70,30 +71,23 @@ template<class Executor>
 template<class Executor>
   constexpr typename std::enable_if<!has_require_member<Executor, possibly_blocking_t>::value, Executor>::type
     require(Executor ex, possibly_blocking_t);
-template<class Executor>
-  constexpr typename std::enable_if<!has_require_member<Executor, is_continuation_t>::value, Executor>::type
-    require(Executor ex, is_continuation_t);
-template<class Executor>
-  constexpr typename std::enable_if<!has_require_member<Executor, is_not_continuation_t>::value, Executor>::type
-    require(Executor ex, is_not_continuation_t);
-template<class Executor>
-  constexpr typename std::enable_if<!has_require_member<Executor, is_work_t>::value, Executor>::type
-    require(Executor ex, is_work_t);
-template<class Executor>
-  constexpr typename std::enable_if<!has_require_member<Executor, is_not_work_t>::value, Executor>::type
-    require(Executor ex, is_not_work_t);
-template<class Executor, class ProtoAllocator>
-  constexpr typename std::enable_if<!has_require_member<Executor, std::allocator_arg_t, ProtoAllocator>::value, Executor>::type
-    require(Executor ex, std::allocator_arg_t, const ProtoAllocator&);
 
 struct require_fn
 {
-  template<class Executor, class... Args>
-  constexpr auto operator()(Executor&& ex, Args&&... args) const
-    noexcept(noexcept(require(std::forward<Executor>(ex), std::forward<Args>(args)...)))
-    -> decltype(require(std::forward<Executor>(ex), std::forward<Args>(args)...))
+  template<class Executor, class Property>
+  constexpr auto operator()(Executor&& ex, Property&& p) const
+    noexcept(noexcept(require(std::forward<Executor>(ex), std::forward<Property>(p))))
+    -> decltype(require(std::forward<Executor>(ex), std::forward<Property>(p)))
   {
-    return require(std::forward<Executor>(ex), std::forward<Args>(args)...);
+    return require(std::forward<Executor>(ex), std::forward<Property>(p));
+  }
+
+  template<class Executor, class Property0, class Property1, class... PropertyN>
+  constexpr auto operator()(Executor&& ex, Property0&& p0, Property1&& p1, PropertyN&&... pn) const
+    noexcept(noexcept((*this)((*this)(std::forward<Executor>(ex), std::forward<Property0>(p0)), std::forward<Property1>(p1), std::forward<PropertyN>(pn)...)))
+    -> decltype((*this)((*this)(std::forward<Executor>(ex), std::forward<Property0>(p0)), std::forward<Property1>(p1), std::forward<PropertyN>(pn)...))
+  {
+    return (*this)((*this)(std::forward<Executor>(ex), std::forward<Property0>(p0)), std::forward<Property1>(p1), std::forward<PropertyN>(pn)...);
   }
 };
 

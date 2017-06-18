@@ -25,7 +25,7 @@ void my_twoway_operation_1(const TaskExecutor& tex, int n,
   {
     // Simulate an asynchronous operation.
     tex.require(execution::never_blocking).execute(
-        [n, cex = cex.prefer(execution::is_work), h = std::move(h)]() mutable
+        [n, cex = cex.prefer(execution::outstanding_work), h = std::move(h)]() mutable
         {
           int result = n * 2;
           std::this_thread::sleep_for(std::chrono::seconds(1)); // Simulate long running work.
@@ -68,10 +68,10 @@ void my_twoway_operation_2(const TaskExecutor& tex, int n, int m,
   // Intermediate steps of the composed operation are always continuations,
   // so we save the stored executors with that attribute rebound in.
   my_twoway_operation_1(tex, n, cex,
-    my_twoway_operation_2_impl<decltype(tex.prefer(execution::is_continuation)),
-      decltype(cex.prefer(execution::is_continuation)), CompletionHandler>{
-        tex.prefer(execution::is_continuation), 0, m,
-        cex.prefer(execution::is_continuation), std::move(h)});
+    my_twoway_operation_2_impl<decltype(tex.prefer(execution::continuation)),
+      decltype(cex.prefer(execution::continuation)), CompletionHandler>{
+        tex.prefer(execution::continuation), 0, m,
+        cex.prefer(execution::continuation), std::move(h)});
 }
 
 int main()

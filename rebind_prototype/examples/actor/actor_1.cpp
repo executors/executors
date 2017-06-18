@@ -142,7 +142,7 @@ protected:
     std::experimental::execution::prefer(
       std::experimental::execution::require(to->executor_,
         std::experimental::execution::never_blocking),
-          std::experimental::execution::is_continuation).execute(
+          std::experimental::execution::continuation).execute(
             [=, msg=std::move(msg), from=this]() mutable
             {
               to->call_handler(std::move(msg), from);

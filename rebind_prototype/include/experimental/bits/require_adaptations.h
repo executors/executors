@@ -404,32 +404,6 @@ template<class Executor>
   constexpr typename std::enable_if<!has_require_member<Executor, possibly_blocking_t>::value, Executor>::type
     require(Executor ex, possibly_blocking_t) { return std::move(ex); }
 
-// Default require for continuation mode does no adaptation.
-
-template<class Executor>
-  constexpr typename std::enable_if<!has_require_member<Executor, is_continuation_t>::value, Executor>::type
-    require(Executor ex, is_continuation_t) { return std::move(ex); }
-
-template<class Executor>
-  constexpr typename std::enable_if<!has_require_member<Executor, is_not_continuation_t>::value, Executor>::type
-    require(Executor ex, is_not_continuation_t) { return std::move(ex); }
-
-// Default require for work mode does no adaptation.
-
-template<class Executor>
-  constexpr typename std::enable_if<!has_require_member<Executor, is_work_t>::value, Executor>::type
-    require(Executor ex, is_work_t) { return std::move(ex); }
-
-template<class Executor>
-  constexpr typename std::enable_if<!has_require_member<Executor, is_not_work_t>::value, Executor>::type
-    require(Executor ex, is_not_work_t) { return std::move(ex); }
-
-// Default require for allocator does no adaptation.
-
-template<class Executor, class ProtoAllocator>
-  constexpr typename std::enable_if<!has_require_member<Executor, std::allocator_arg_t, ProtoAllocator>::value, Executor>::type
-    require(Executor ex, std::allocator_arg_t, const ProtoAllocator&) { return std::move(ex); }
-
 } // namespace require_impl
 } // namespace execution
 } // inline namespace concurrency_v2

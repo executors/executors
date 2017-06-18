@@ -35,18 +35,18 @@ public:
   logging_executor(const std::string& prefix, const InnerExecutor& ex)
     : prefix_(std::make_shared<std::string>(prefix)), inner_ex_(ex) {}
 
-  template <class... T> auto require(T&&... t) const &
-    -> logging_executor<execution::require_member_result_t<InnerExecutor, T...>>
-      { return { *prefix_, inner_ex_.require(std::forward<T>(t)...) }; }
-  template <class... T> auto require(T&&... t) &&
-    -> logging_executor<execution::require_member_result_t<InnerExecutor&&, T...>>
-      { return { *prefix_, std::move(inner_ex_).require(std::forward<T>(t)...) }; }
-  template <class... T> auto prefer(T&&... t) const &
-    -> logging_executor<execution::prefer_member_result_t<InnerExecutor, T...>>
-      { return { *prefix_, inner_ex_.prefer(std::forward<T>(t)...) }; }
-  template <class... T> auto prefer(T&&... t) &&
-    -> logging_executor<execution::prefer_member_result_t<InnerExecutor&&, T...>>
-      { return { *prefix_, std::move(inner_ex_).prefer(std::forward<T>(t)...) }; }
+  template <class Property> auto require(const Property& p) const &
+    -> logging_executor<execution::require_member_result_t<InnerExecutor, Property>>
+      { return { *prefix_, inner_ex_.require(p) }; }
+  template <class Property> auto require(const Property& p) &&
+    -> logging_executor<execution::require_member_result_t<InnerExecutor, Property>>
+      { return { *prefix_, std::move(inner_ex_).require(p) }; }
+  template <class Property> auto prefer(const Property& p) const &
+    -> logging_executor<execution::prefer_member_result_t<InnerExecutor, Property>>
+      { return { *prefix_, inner_ex_.prefer(p) }; }
+  template <class Property> auto prefer(const Property& p) &&
+    -> logging_executor<execution::prefer_member_result_t<InnerExecutor, Property>>
+      { return { *prefix_, std::move(inner_ex_).prefer(p) }; }
 
   auto& context() const noexcept { return inner_ex_.context(); }
 
@@ -89,7 +89,7 @@ int main()
   ex1.execute([]{ std::cout << "we made it\n"; });
   auto ex2 = ex1.require(execution::always_blocking);
   ex2.execute([]{ std::cout << "we made it again\n"; });
-  auto ex3 = ex2.require(execution::never_blocking).require(execution::is_continuation);
+  auto ex3 = ex2.require(execution::never_blocking).require(execution::continuation);
   ex3.execute([]{ std::cout << "and again\n"; });
   auto ex4 = ex1.require(execution::twoway);
   std::future<int> f = ex4.twoway_execute([]{ std::cout << "computing result\n"; return 42; });

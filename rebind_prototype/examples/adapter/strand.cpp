@@ -68,9 +68,9 @@ public:
   {
   }
 
-  template <class... T> auto require(T&&... t) const
-    -> strand<execution::require_member_result_t<Executor, T...>, Blocking>
-      { return { state_, ex_.require(std::forward<T>(t)...) }; }
+  template <class Property> auto require(const Property& p) const
+    -> strand<execution::require_member_result_t<Executor, Property>, Blocking>
+      { return { state_, ex_.require(p) }; }
 
   auto require(execution::never_blocking_t) const
     -> strand<execution::require_member_result_t<Executor, execution::never_blocking_t>, execution::never_blocking_t>
@@ -86,9 +86,9 @@ public:
 
   void require(execution::always_blocking_t) const = delete;
 
-  template <class... T> auto prefer(T&&... t) const
-    -> strand<execution::prefer_member_result_t<Executor, T...>, Blocking>
-      { return { state_, ex_.prefer(std::forward<T>(t)...) }; }
+  template <class Property> auto prefer(const Property& p) const
+    -> strand<execution::prefer_member_result_t<Executor, Property>, Blocking>
+      { return { state_, ex_.prefer(p) }; }
 
   auto prefer(execution::never_blocking_t) const
     -> strand<execution::prefer_member_result_t<Executor, execution::never_blocking_t>, execution::never_blocking_t>
@@ -145,7 +145,7 @@ public:
     lock.unlock();
 
     // Need to schedule the strand to run the queued items.
-    ex_.execute([s = this->require(execution::never_blocking).require(execution::is_continuation)]() mutable
+    ex_.execute([s = this->require(execution::never_blocking).require(execution::continuation)]() mutable
         {
           s.run_first_item();
         });

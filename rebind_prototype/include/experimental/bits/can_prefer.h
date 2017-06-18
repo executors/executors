@@ -17,19 +17,19 @@ struct type_check
   typedef void type;
 };
 
-template<class Executor, class Args, class = void>
+template<class Executor, class Properties, class = void>
 struct eval : std::false_type {};
 
-template<class Executor, class... Args>
-struct eval<Executor, std::tuple<Args...>,
+template<class Executor, class... Properties>
+struct eval<Executor, std::tuple<Properties...>,
   typename type_check<decltype(
-    ::std::experimental::concurrency_v2::execution::prefer(std::declval<Executor>(), std::declval<Args>()...)
+    ::std::experimental::concurrency_v2::execution::prefer(std::declval<Executor>(), std::declval<Properties>()...)
   )>::type> : std::true_type {};
 
 } // namespace can_prefer_impl
 
-template<class Executor, class... Args>
-struct can_prefer : can_prefer_impl::eval<Executor, std::tuple<Args...>> {};
+template<class Executor, class... Properties>
+struct can_prefer : can_prefer_impl::eval<Executor, std::tuple<Properties...>> {};
 
 } // namespace execution
 } // inline namespace concurrency_v2
