@@ -1323,6 +1323,7 @@ class C
 
     C require(execution::oneway_t) const;
     C require(execution::twoway_t) const;
+    C require(execution::then_t) const;
     C require(execution::single_t) const;
     C require(execution::bulk_t) const;
     C require(execution::bulk_parallel_execution_t) const;
@@ -1407,6 +1408,7 @@ C& operator=(C&& other) noexcept;
 ```
 C require(execution::oneway_t) const;
 C require(execution::twoway_t) const;
+C require(execution::then_t) const;
 C require(execution::single_t) const;
 C require(execution::bulk_t) const;
 C require(execution::bulk_parallel_execution_t) const;
