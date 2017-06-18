@@ -53,20 +53,20 @@ class static_thread_pool
       require(execution::always_blocking_t) const { return {pool_, allocator_}; };
 
     // Continuation hint.
-    executor_impl<Blocking, execution::is_continuation_t, Work, ProtoAllocator>
-      require(execution::is_continuation_t) const { return {pool_, allocator_}; };
-    executor_impl<Blocking, execution::is_not_continuation_t, Work, ProtoAllocator>
-      require(execution::is_not_continuation_t) const { return {pool_, allocator_}; };
+    executor_impl<Blocking, execution::continuation_t, Work, ProtoAllocator>
+      require(execution::continuation_t) const { return {pool_, allocator_}; };
+    executor_impl<Blocking, execution::not_continuation_t, Work, ProtoAllocator>
+      require(execution::not_continuation_t) const { return {pool_, allocator_}; };
 
     // Work tracking.
-    executor_impl<Blocking, Continuation, execution::is_work_t, ProtoAllocator>
-      require(execution::is_work_t) const { return {pool_, allocator_}; };
-    executor_impl<Blocking, Continuation, execution::is_not_work_t, ProtoAllocator>
-      require(execution::is_not_work_t) const { return {pool_, allocator_}; };
+    executor_impl<Blocking, Continuation, execution::outstanding_work_t, ProtoAllocator>
+      require(execution::outstanding_work_t) const { return {pool_, allocator_}; };
+    executor_impl<Blocking, Continuation, execution::not_outstanding_work_t, ProtoAllocator>
+      require(execution::not_outstanding_work_t) const { return {pool_, allocator_}; };
 
     // Allocator.
     template<class NewProtoAllocator>
-    executor_impl<Blocking, Continuation, execution::is_not_work_t, NewProtoAllocator>
+    executor_impl<Blocking, Continuation, execution::not_outstanding_work_t, NewProtoAllocator>
       require(const execution::allocator_t<NewProtoAllocator>& a) const { return {pool_, a.alloc}; };
 
     // Prefer uses require if available, otherwise returns *this.
@@ -119,7 +119,7 @@ class static_thread_pool
   };
 
 public:
-  using executor_type = executor_impl<execution::possibly_blocking_t, execution::is_not_continuation_t, execution::is_not_work_t, std::allocator<void>>;
+  using executor_type = executor_impl<execution::possibly_blocking_t, execution::not_continuation_t, execution::not_outstanding_work_t, std::allocator<void>>;
 
   explicit static_thread_pool(std::size_t threads)
   {
@@ -287,7 +287,7 @@ private:
 
     func_base::pointer fp(func<Function, ProtoAllocator>::create(std::move(f), alloc));
 
-    if (std::is_same<Continuation, execution::is_continuation_t>::value)
+    if (std::is_same<Continuation, execution::continuation_t>::value)
     {
       // Push to thread-private queue if available.
       if (thread_private_state* private_state = thread_private_state::instance())
@@ -361,7 +361,7 @@ private:
       tail = &(*tail)->next_;
     }
 
-    if (std::is_same<Continuation, execution::is_continuation_t>::value)
+    if (std::is_same<Continuation, execution::continuation_t>::value)
     {
       // Push to thread-private queue if available.
       if (thread_private_state* private_state = thread_private_state::instance())
@@ -484,21 +484,21 @@ private:
     return future;
   }
 
-  void work_up(execution::is_work_t) noexcept
+  void work_up(execution::outstanding_work_t) noexcept
   {
     std::unique_lock<std::mutex> lock(mutex_);
     ++work_;
   }
 
-  void work_down(execution::is_work_t) noexcept
+  void work_down(execution::outstanding_work_t) noexcept
   {
     std::unique_lock<std::mutex> lock(mutex_);
     if (--work_ == 0)
       condition_.notify_all();
   }
 
-  void work_up(execution::is_not_work_t) noexcept {}
-  void work_down(execution::is_not_work_t) noexcept {}
+  void work_up(execution::not_outstanding_work_t) noexcept {}
+  void work_down(execution::not_outstanding_work_t) noexcept {}
 
   std::mutex mutex_;
   std::condition_variable condition_;

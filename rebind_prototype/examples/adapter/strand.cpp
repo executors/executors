@@ -145,7 +145,7 @@ public:
     lock.unlock();
 
     // Need to schedule the strand to run the queued items.
-    ex_.execute([s = this->require(execution::never_blocking).require(execution::is_continuation)]() mutable
+    ex_.execute([s = this->require(execution::never_blocking).require(execution::continuation)]() mutable
         {
           s.run_first_item();
         });

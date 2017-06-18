@@ -98,13 +98,13 @@ namespace execution {
 
   // Properties to indicate if submitted tasks represent continuations:
 
-  constexpr struct is_continuation_t {} is_continuation;
-  constexpr struct is_not_continuation_t {} is_not_continuation;
+  constexpr struct continuation_t {} continuation;
+  constexpr struct not_continuation_t {} not_continuation;
 
   // Properties to indicate likely task submission in the future:
 
-  constexpr struct is_work_t {} is_work;
-  constexpr struct is_not_work_t {} is_not_work;
+  constexpr struct outstanding_work_t {} outstanding_work;
+  constexpr struct not_outstanding_work_t {} not_outstanding_work;
 
   // Properties for bulk execution forward progress guarantees:
 
@@ -334,13 +334,13 @@ In the Table below,
 
 #### Properties to indicate if submitted tasks represent continuations
 
-    constexpr struct is_continuation_t {} is_continuation;
-    constexpr struct is_not_continuation_t {} is_not_continuation;
+    constexpr struct continuation_t {} continuation;
+    constexpr struct not_continuation_t {} not_continuation;
 
 ### Properties to indicate likely task submission in the future
 
-    constexpr struct is_work_t {} is_work;
-    constexpr struct is_not_work_t {} is_not_work;
+    constexpr struct outstanding_work_t {} outstanding_work;
+    constexpr struct not_outstanding_work_t {} not_outstanding_work;
 
 ### Properties for bulk execution forward progress guarantees
 
@@ -578,10 +578,10 @@ public:
   executor require(possibly_blocking_t p) const;
   executor require(always_blocking_t p) const;
 
-  executor prefer(is_continuation_t p) const;
-  executor prefer(is_not_continuation_t p) const;
-  executor prefer(is_work_t p) const;
-  executor prefer(is_not_work_t p) const;
+  executor prefer(continuation_t p) const;
+  executor prefer(not_continuation_t p) const;
+  executor prefer(outstanding_work_t p) const;
+  executor prefer(not_outstanding_work_t p) const;
   executor prefer(bulk_sequenced_execution_t p) const;
   executor prefer(bulk_parallel_execution_t p) const;
   executor prefer(bulk_unsequenced_execution_t p) const;
@@ -672,10 +672,10 @@ template<class Executor> executor(Executor e);
   * `can_require_v<Executor, never_blocking>`
   * `can_require_v<Executor, possibly_blocking>`
   * `can_require_v<Executor, always_blocking>`
-  * `can_prefer_v<Executor, is_continuation>`
-  * `can_prefer_v<Executor, is_not_continuation>`
-  * `can_prefer_v<Executor, is_work>`
-  * `can_prefer_v<Executor, is_not_work>`
+  * `can_prefer_v<Executor, continuation>`
+  * `can_prefer_v<Executor, not_continuation>`
+  * `can_prefer_v<Executor, outstanding_work>`
+  * `can_prefer_v<Executor, not_outstanding_work>`
   * `can_prefer_v<Executor, bulk_sequenced_execution>`
   * `can_prefer_v<Executor, bulk_parallel_execution>`
   * `can_prefer_v<Executor, bulk_unsequenced_execution>`
@@ -765,10 +765,10 @@ executor require(always_blocking_t p) const;
 *Returns:* A polymorphic wrapper whose target is `execution::require(e, p)`, where `e` is the target object of `*this`.
 
 ```
-executor prefer(is_continuation_t) const;
-executor prefer(is_not_continuation_t) const;
-executor prefer(is_work_t) const;
-executor prefer(is_not_work_t) const;
+executor prefer(continuation_t) const;
+executor prefer(not_continuation_t) const;
+executor prefer(outstanding_work_t) const;
+executor prefer(not_outstanding_work_t) const;
 executor prefer(bulk_sequenced_execution_t) const;
 executor prefer(bulk_parallel_execution_t) const;
 executor prefer(bulk_unsequenced_execution_t) const;
@@ -1045,7 +1045,7 @@ For an object of type `static_thread_pool`, *outstanding work* is defined as the
 of:
 
 * the number of existing executor objects associated with the
-  `static_thread_pool` for which the `execution::is_work_t` property is
+  `static_thread_pool` for which the `execution::outstanding_work_t` property is
   established;
 
 * the number of function objects that have been added to the `static_thread_pool`
@@ -1134,8 +1134,8 @@ established:
   * `execution::single_t`
   * `execution::bulk_t`
   * `execution::possibly_blocking_t`
-  * `execution::is_not_continuation_t`
-  * `execution::is_not_work_t`
+  * `execution::not_continuation_t`
+  * `execution::not_outstanding_work_t`
   * `execution::allocator_t<std::allocator<void>>`
 
 #### Comparisons
@@ -1184,10 +1184,10 @@ class C
     see-below require(execution::never_blocking_t) const;
     see-below require(execution::possibly_blocking_t) const;
     see-below require(execution::always_blocking_t) const;
-    see-below require(execution::is_continuation_t) const;
-    see-below require(execution::is_not_continuation_t) const;
-    see-below require(execution::is_work_t) const;
-    see-below require(execution::is_not_work_t) const;
+    see-below require(execution::continuation_t) const;
+    see-below require(execution::not_continuation_t) const;
+    see-below require(execution::outstanding_work_t) const;
+    see-below require(execution::not_outstanding_work_t) const;
     template<class ProtoAllocator>
       see-below require(const execution::allocator_t<ProtoAllocator>& a) const;
 
@@ -1269,10 +1269,10 @@ C require(execution::thread_execution_mapping_t) const;
 see-below require(execution::never_blocking_t) const;
 see-below require(execution::possibly_blocking_t) const;
 see-below require(execution::always_blocking_t) const;
-see-below require(execution::is_continuation_t) const;
-see-below require(execution::is_not_continuation_t) const;
-see-below require(execution::is_work_t) const;
-see-below require(execution::is_not_work_t) const;
+see-below require(execution::continuation_t) const;
+see-below require(execution::not_continuation_t) const;
+see-below require(execution::outstanding_work_t) const;
+see-below require(execution::not_outstanding_work_t) const;
 ```
 
 *Returns:* An executor object of an unspecified type conforming to these

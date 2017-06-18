@@ -19,10 +19,10 @@ struct single_t;
 struct bulk_t;
 struct always_blocking_t;
 struct possibly_blocking_t;
-struct is_continuation_t;
-struct is_not_continuation_t;
-struct is_work_t;
-struct is_not_work_t;
+struct continuation_t;
+struct not_continuation_t;
+struct outstanding_work_t;
+struct not_outstanding_work_t;
 template<class> struct allocator_t;
 
 namespace require_impl {
@@ -72,17 +72,17 @@ template<class Executor>
   constexpr typename std::enable_if<!has_require_member<Executor, possibly_blocking_t>::value, Executor>::type
     require(Executor ex, possibly_blocking_t);
 template<class Executor>
-  constexpr typename std::enable_if<!has_require_member<Executor, is_continuation_t>::value, Executor>::type
-    require(Executor ex, is_continuation_t);
+  constexpr typename std::enable_if<!has_require_member<Executor, continuation_t>::value, Executor>::type
+    require(Executor ex, continuation_t);
 template<class Executor>
-  constexpr typename std::enable_if<!has_require_member<Executor, is_not_continuation_t>::value, Executor>::type
-    require(Executor ex, is_not_continuation_t);
+  constexpr typename std::enable_if<!has_require_member<Executor, not_continuation_t>::value, Executor>::type
+    require(Executor ex, not_continuation_t);
 template<class Executor>
-  constexpr typename std::enable_if<!has_require_member<Executor, is_work_t>::value, Executor>::type
-    require(Executor ex, is_work_t);
+  constexpr typename std::enable_if<!has_require_member<Executor, outstanding_work_t>::value, Executor>::type
+    require(Executor ex, outstanding_work_t);
 template<class Executor>
-  constexpr typename std::enable_if<!has_require_member<Executor, is_not_work_t>::value, Executor>::type
-    require(Executor ex, is_not_work_t);
+  constexpr typename std::enable_if<!has_require_member<Executor, not_outstanding_work_t>::value, Executor>::type
+    require(Executor ex, not_outstanding_work_t);
 template<class Executor, class ProtoAllocator>
   constexpr typename std::enable_if<!has_require_member<Executor, allocator_t<ProtoAllocator>>::value, Executor>::type
     require(Executor ex, const allocator_t<ProtoAllocator>&);

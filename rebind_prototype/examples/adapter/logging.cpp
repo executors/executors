@@ -89,7 +89,7 @@ int main()
   ex1.execute([]{ std::cout << "we made it\n"; });
   auto ex2 = ex1.require(execution::always_blocking);
   ex2.execute([]{ std::cout << "we made it again\n"; });
-  auto ex3 = ex2.require(execution::never_blocking).require(execution::is_continuation);
+  auto ex3 = ex2.require(execution::never_blocking).require(execution::continuation);
   ex3.execute([]{ std::cout << "and again\n"; });
   auto ex4 = ex1.require(execution::twoway);
   std::future<int> f = ex4.twoway_execute([]{ std::cout << "computing result\n"; return 42; });

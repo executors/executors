@@ -50,18 +50,18 @@ void executor_compile_test()
   ex1 = cex1.require(execution::never_blocking);
   ex1 = cex1.require(execution::possibly_blocking);
   ex1 = cex1.require(execution::always_blocking);
-  ex1 = cex1.require(execution::is_continuation);
-  ex1 = cex1.require(execution::is_not_continuation);
-  ex1 = cex1.require(execution::is_work);
-  ex1 = cex1.require(execution::is_not_work);
+  ex1 = cex1.require(execution::continuation);
+  ex1 = cex1.require(execution::not_continuation);
+  ex1 = cex1.require(execution::outstanding_work);
+  ex1 = cex1.require(execution::not_outstanding_work);
 
   ex1 = cex1.prefer(execution::never_blocking);
   ex1 = cex1.prefer(execution::possibly_blocking);
   ex1 = cex1.prefer(execution::always_blocking);
-  ex1 = cex1.prefer(execution::is_continuation);
-  ex1 = cex1.prefer(execution::is_not_continuation);
-  ex1 = cex1.prefer(execution::is_work);
-  ex1 = cex1.prefer(execution::is_not_work);
+  ex1 = cex1.prefer(execution::continuation);
+  ex1 = cex1.prefer(execution::not_continuation);
+  ex1 = cex1.prefer(execution::outstanding_work);
+  ex1 = cex1.prefer(execution::not_outstanding_work);
 
   const context_type& context = cex1.context();
   (void)context;

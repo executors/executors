@@ -87,10 +87,10 @@ class executor
     virtual impl_base* executor_require(never_blocking_t) const = 0;
     virtual impl_base* executor_require(possibly_blocking_t) const = 0;
     virtual impl_base* executor_require(always_blocking_t) const = 0;
-    virtual impl_base* executor_require(is_continuation_t) const = 0;
-    virtual impl_base* executor_require(is_not_continuation_t) const = 0;
-    virtual impl_base* executor_require(is_work_t) const = 0;
-    virtual impl_base* executor_require(is_not_work_t) const = 0;
+    virtual impl_base* executor_require(continuation_t) const = 0;
+    virtual impl_base* executor_require(not_continuation_t) const = 0;
+    virtual impl_base* executor_require(outstanding_work_t) const = 0;
+    virtual impl_base* executor_require(not_outstanding_work_t) const = 0;
     virtual const type_info& context_target_type() const = 0;
     virtual const void* context_target() const = 0;
     virtual bool context_equals(const impl_base* e) const noexcept = 0;
@@ -168,24 +168,24 @@ class executor
       return new impl<decltype(execution::require(executor_, always_blocking))>(execution::require(executor_, always_blocking));
     }
 
-    virtual impl_base* executor_require(is_continuation_t) const
+    virtual impl_base* executor_require(continuation_t) const
     {
-      return new impl<decltype(execution::require(executor_, is_continuation))>(execution::require(executor_, is_continuation));
+      return new impl<decltype(execution::require(executor_, continuation))>(execution::require(executor_, continuation));
     }
 
-    virtual impl_base* executor_require(is_not_continuation_t) const
+    virtual impl_base* executor_require(not_continuation_t) const
     {
-      return new impl<decltype(execution::require(executor_, is_not_continuation))>(execution::require(executor_, is_not_continuation));
+      return new impl<decltype(execution::require(executor_, not_continuation))>(execution::require(executor_, not_continuation));
     }
 
-    virtual impl_base* executor_require(is_work_t) const
+    virtual impl_base* executor_require(outstanding_work_t) const
     {
-      return new impl<decltype(execution::require(executor_, is_work))>(execution::require(executor_, is_work));
+      return new impl<decltype(execution::require(executor_, outstanding_work))>(execution::require(executor_, outstanding_work));
     }
 
-    virtual impl_base* executor_require(is_not_work_t) const
+    virtual impl_base* executor_require(not_outstanding_work_t) const
     {
-      return new impl<decltype(execution::require(executor_, is_not_work))>(execution::require(executor_, is_not_work));
+      return new impl<decltype(execution::require(executor_, not_outstanding_work))>(execution::require(executor_, not_outstanding_work));
     }
 
     virtual const type_info& context_target_type() const
@@ -334,10 +334,10 @@ public:
   executor require(never_blocking_t) const { return context_.impl_ ? context_.impl_->executor_require(never_blocking) : context_.impl_->clone(); }
   executor require(possibly_blocking_t) const { return context_.impl_ ? context_.impl_->executor_require(possibly_blocking) : context_.impl_->clone(); }
   executor require(always_blocking_t) const { return context_.impl_ ? context_.impl_->executor_require(always_blocking) : context_.impl_->clone(); }
-  executor require(is_continuation_t) const { return context_.impl_ ? context_.impl_->executor_require(is_continuation) : context_.impl_->clone(); }
-  executor require(is_not_continuation_t) const { return context_.impl_ ? context_.impl_->executor_require(is_not_continuation) : context_.impl_->clone(); }
-  executor require(is_work_t) const { return context_.impl_ ? context_.impl_->executor_require(is_work) : context_.impl_->clone(); }
-  executor require(is_not_work_t) const { return context_.impl_ ? context_.impl_->executor_require(is_not_work) : context_.impl_->clone(); }
+  executor require(continuation_t) const { return context_.impl_ ? context_.impl_->executor_require(continuation) : context_.impl_->clone(); }
+  executor require(not_continuation_t) const { return context_.impl_ ? context_.impl_->executor_require(not_continuation) : context_.impl_->clone(); }
+  executor require(outstanding_work_t) const { return context_.impl_ ? context_.impl_->executor_require(outstanding_work) : context_.impl_->clone(); }
+  executor require(not_outstanding_work_t) const { return context_.impl_ ? context_.impl_->executor_require(not_outstanding_work) : context_.impl_->clone(); }
   
   template<class Property> auto prefer(const Property& p) const
     -> decltype(this->require(p))

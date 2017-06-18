@@ -23,12 +23,12 @@ constexpr struct possibly_blocking_t {} possibly_blocking;
 constexpr struct always_blocking_t {} always_blocking;
 
 // Whether submitted tasks represent a continuation.
-constexpr struct is_continuation_t {} is_continuation;
-constexpr struct is_not_continuation_t {} is_not_continuation;
+constexpr struct continuation_t {} continuation;
+constexpr struct not_continuation_t {} not_continuation;
 
 // Whether there is outstanding work, i.e. an indication of likely task submission in the future.
-constexpr struct is_work_t {} is_work;
-constexpr struct is_not_work_t {} is_not_work;
+constexpr struct outstanding_work_t {} outstanding_work;
+constexpr struct not_outstanding_work_t {} not_outstanding_work;
 
 // Memory allocations.
 template<class ProtoAllocator> struct allocator_t { ProtoAllocator alloc; };
