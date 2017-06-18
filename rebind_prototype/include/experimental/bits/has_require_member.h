@@ -2,7 +2,6 @@
 #define STD_EXPERIMENTAL_BITS_HAS_REQUIRE_MEMBER_H
 
 #include <type_traits>
-#include <tuple>
 #include <utility>
 
 namespace std {
@@ -17,19 +16,19 @@ struct type_check
   typedef void type;
 };
 
-template<class Executor, class Property, class Args, class = void>
+template<class Executor, class Property, class = void>
 struct eval : std::false_type {};
 
-template<class Executor, class Property, class... Args>
-struct eval<Executor, Property, std::tuple<Args...>,
+template<class Executor, class Property>
+struct eval<Executor, Property,
   typename type_check<decltype(
-    std::declval<Executor>().require(std::declval<Property>(), std::declval<Args>()...)
+    std::declval<Executor>().require(std::declval<Property>())
   )>::type> : std::true_type {};
 
 } // namespace has_require_member_impl
 
-template<class Executor, class Property, class... Args>
-struct has_require_member : has_require_member_impl::eval<Executor, Property, std::tuple<Args...>> {};
+template<class Executor, class Property>
+struct has_require_member : has_require_member_impl::eval<Executor, Property> {};
 
 } // namespace execution
 } // inline namespace concurrency_v2

@@ -35,18 +35,18 @@ public:
   logging_executor(const std::string& prefix, const InnerExecutor& ex)
     : prefix_(std::make_shared<std::string>(prefix)), inner_ex_(ex) {}
 
-  template <class Property, class... Args> auto require(const Property& p, Args&&... args) const &
-    -> logging_executor<execution::require_member_result_t<InnerExecutor, Property, Args...>>
-      { return { *prefix_, inner_ex_.require(p, std::forward<Args>(args)...) }; }
-  template <class Property, class... Args> auto require(const Property& p, Args&&... args) &&
-    -> logging_executor<execution::require_member_result_t<InnerExecutor, Property, Args...>>
-      { return { *prefix_, std::move(inner_ex_).require(p, std::forward<Args>(args)...) }; }
-  template <class Property, class... Args> auto prefer(const Property& p, Args&&... args) const &
-    -> logging_executor<execution::prefer_member_result_t<InnerExecutor, Property, Args...>>
-      { return { *prefix_, inner_ex_.prefer(p, std::forward<Args>(args)...) }; }
-  template <class Property, class... Args> auto prefer(const Property& p, Args&&... args) &&
-    -> logging_executor<execution::prefer_member_result_t<InnerExecutor, Property, Args...>>
-      { return { *prefix_, std::move(inner_ex_).prefer(p, std::forward<Args>(args)...) }; }
+  template <class Property> auto require(const Property& p) const &
+    -> logging_executor<execution::require_member_result_t<InnerExecutor, Property>>
+      { return { *prefix_, inner_ex_.require(p) }; }
+  template <class Property> auto require(const Property& p) &&
+    -> logging_executor<execution::require_member_result_t<InnerExecutor, Property>>
+      { return { *prefix_, std::move(inner_ex_).require(p) }; }
+  template <class Property> auto prefer(const Property& p) const &
+    -> logging_executor<execution::prefer_member_result_t<InnerExecutor, Property>>
+      { return { *prefix_, inner_ex_.prefer(p) }; }
+  template <class Property> auto prefer(const Property& p) &&
+    -> logging_executor<execution::prefer_member_result_t<InnerExecutor, Property>>
+      { return { *prefix_, std::move(inner_ex_).prefer(p) }; }
 
   auto& context() const noexcept { return inner_ex_.context(); }
 

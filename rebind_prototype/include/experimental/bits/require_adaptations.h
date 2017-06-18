@@ -427,8 +427,8 @@ template<class Executor>
 // Default require for allocator does no adaptation.
 
 template<class Executor, class ProtoAllocator>
-  constexpr typename std::enable_if<!has_require_member<Executor, std::allocator_arg_t, ProtoAllocator>::value, Executor>::type
-    require(Executor ex, std::allocator_arg_t, const ProtoAllocator&) { return std::move(ex); }
+  constexpr typename std::enable_if<!has_require_member<Executor, allocator_t<ProtoAllocator>>::value, Executor>::type
+    require(Executor ex, const allocator_t<ProtoAllocator>&) { return std::move(ex); }
 
 } // namespace require_impl
 } // namespace execution

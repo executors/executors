@@ -6,18 +6,18 @@ using std::experimental::static_thread_pool;
 
 namespace custom_hints
 {
-  constexpr struct tracing_t {} tracing;
+  struct tracing { bool on; };
 
   // Default hint implementation drops it.
   template <class Executor>
-    std::enable_if_t<!execution::has_require_member_v<Executor, tracing_t, bool>, Executor>
-      require(Executor ex, tracing_t, bool) { return std::move(ex); }
+    std::enable_if_t<!execution::has_require_member_v<Executor, tracing>, Executor>
+      require(Executor ex, tracing) { return std::move(ex); }
 };
 
 class inline_executor
 {
 public:
-  inline_executor require(custom_hints::tracing_t, bool on) const { inline_executor tmp(*this); tmp.tracing_ = on; return tmp; }
+  inline_executor require(custom_hints::tracing t) const { inline_executor tmp(*this); tmp.tracing_ = t.on; return tmp; }
 
   auto& context() const noexcept { return *this; }
 
@@ -48,10 +48,10 @@ int main()
 {
   static_thread_pool pool{1};
 
-  auto ex1 = execution::require(inline_executor(), custom_hints::tracing, true);
+  auto ex1 = execution::require(inline_executor(), custom_hints::tracing{true});
   ex1.execute([]{ std::cout << "we made it\n"; });
 
-  auto ex2 = execution::require(pool.executor(), custom_hints::tracing, true);
+  auto ex2 = execution::require(pool.executor(), custom_hints::tracing{true});
   ex2.execute([]{ std::cout << "we made it again\n"; });
 
   pool.wait();

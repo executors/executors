@@ -23,14 +23,15 @@ struct is_continuation_t;
 struct is_not_continuation_t;
 struct is_work_t;
 struct is_not_work_t;
+template<class> struct allocator_t;
 
 namespace require_impl {
 
-template<class Executor, class Property, class... Args>
-constexpr auto require(Executor&& ex, Property&& p, Args&&... args)
-  -> decltype(std::forward<Executor>(ex).require(std::forward<Property>(p), std::forward<Args>(args)...))
+template<class Executor, class Property>
+constexpr auto require(Executor&& ex, Property&& p)
+  -> decltype(std::forward<Executor>(ex).require(std::forward<Property>(p)))
 {
-  return std::forward<Executor>(ex).require(std::forward<Property>(p), std::forward<Args>(args)...);
+  return std::forward<Executor>(ex).require(std::forward<Property>(p));
 }
 
 // Forward declare the default adaptations.
@@ -83,17 +84,17 @@ template<class Executor>
   constexpr typename std::enable_if<!has_require_member<Executor, is_not_work_t>::value, Executor>::type
     require(Executor ex, is_not_work_t);
 template<class Executor, class ProtoAllocator>
-  constexpr typename std::enable_if<!has_require_member<Executor, std::allocator_arg_t, ProtoAllocator>::value, Executor>::type
-    require(Executor ex, std::allocator_arg_t, const ProtoAllocator&);
+  constexpr typename std::enable_if<!has_require_member<Executor, allocator_t<ProtoAllocator>>::value, Executor>::type
+    require(Executor ex, const allocator_t<ProtoAllocator>&);
 
 struct require_fn
 {
-  template<class Executor, class Property, class... Args>
-  constexpr auto operator()(Executor&& ex, Property&& p, Args&&... args) const
-    noexcept(noexcept(require(std::forward<Executor>(ex), std::forward<Property>(p), std::forward<Args>(args)...)))
-    -> decltype(require(std::forward<Executor>(ex), std::forward<Property>(p), std::forward<Args>(args)...))
+  template<class Executor, class Property>
+  constexpr auto operator()(Executor&& ex, Property&& p) const
+    noexcept(noexcept(require(std::forward<Executor>(ex), std::forward<Property>(p))))
+    -> decltype(require(std::forward<Executor>(ex), std::forward<Property>(p)))
   {
-    return require(std::forward<Executor>(ex), std::forward<Property>(p), std::forward<Args>(args)...);
+    return require(std::forward<Executor>(ex), std::forward<Property>(p));
   }
 };
 

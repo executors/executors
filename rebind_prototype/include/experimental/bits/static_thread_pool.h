@@ -67,17 +67,17 @@ class static_thread_pool
     // Allocator.
     template<class NewProtoAllocator>
     executor_impl<Blocking, Continuation, execution::is_not_work_t, NewProtoAllocator>
-      require(std::allocator_arg_t, const NewProtoAllocator& alloc) const { return {pool_, alloc}; };
+      require(const execution::allocator_t<NewProtoAllocator>& a) const { return {pool_, a.alloc}; };
 
     // Prefer uses require if available, otherwise returns *this.
-    template<class Property, class... Args> auto prefer(const Property& p, Args&&... args) const
-      -> decltype(this->require(p, std::forward<Args>(args)...))
+    template<class Property> auto prefer(const Property& p) const
+      -> decltype(this->require(p))
     {
-      return this->require(p, std::forward<Args>(args)...);
+      return this->require(p);
     }
 
-    template<class Property, class... Args> auto prefer(const Property&, Args&&...) const
-      -> typename std::enable_if<!execution::has_require_member<executor_impl, Property, Args...>::value, executor_impl>::type
+    template<class Property> auto prefer(const Property&) const
+      -> typename std::enable_if<!execution::has_require_member<executor_impl, Property>::value, executor_impl>::type
     {
       return *this;
     }

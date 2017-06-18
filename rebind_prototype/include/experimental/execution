@@ -30,6 +30,10 @@ constexpr struct is_not_continuation_t {} is_not_continuation;
 constexpr struct is_work_t {} is_work;
 constexpr struct is_not_work_t {} is_not_work;
 
+// Memory allocations.
+template<class ProtoAllocator> struct allocator_t { ProtoAllocator alloc; };
+template<class ProtoAllocator> constexpr allocator_t<ProtoAllocator> allocator(const ProtoAllocator& a) { return {a}; }
+
 // Type traits to determine conformance to executor type requirements.
 template<class Executor> struct is_executor;
 template<class Executor> struct is_oneway_executor;
@@ -72,22 +76,22 @@ template<class Executor> struct executor_bulk_forward_progress_guarantee;
 template<class Executor> using executor_bulk_forward_progress_guarantee_t = typename executor_bulk_forward_progress_guarantee<Executor>::type;
 
 // Type traits to determine whether a require member invocation is valid, and what its result is.
-template<class Executor, class Property, class... Args> struct has_require_member;
-template<class Executor, class Property, class... Args> struct require_member_result;
+template<class Executor, class Property> struct has_require_member;
+template<class Executor, class Property> struct require_member_result;
 
-template<class Executor, class Property, class... Args>
-  constexpr bool has_require_member_v = has_require_member<Executor, Property, Args...>::value;
-template<class Executor, class Property, class... Args>
-  using require_member_result_t = typename require_member_result<Executor, Property, Args...>::type;
+template<class Executor, class Property>
+  constexpr bool has_require_member_v = has_require_member<Executor, Property>::value;
+template<class Executor, class Property>
+  using require_member_result_t = typename require_member_result<Executor, Property>::type;
 
 // Type traits to determine whether a prefer member invocation is valid, and what its result is.
-template<class Executor, class Property, class... Args> struct has_prefer_member;
-template<class Executor, class Property, class... Args> struct prefer_member_result;
+template<class Executor, class Property> struct has_prefer_member;
+template<class Executor, class Property> struct prefer_member_result;
 
-template<class Executor, class Property, class... Args>
-  constexpr bool has_prefer_member_v = has_prefer_member<Executor, Property, Args...>::value;
-template<class Executor, class Property, class... Args>
-  using prefer_member_result_t = typename prefer_member_result<Executor, Property, Args...>::type;
+template<class Executor, class Property>
+  constexpr bool has_prefer_member_v = has_prefer_member<Executor, Property>::value;
+template<class Executor, class Property>
+  using prefer_member_result_t = typename prefer_member_result<Executor, Property>::type;
 
 namespace
 {
@@ -99,16 +103,16 @@ namespace
 }
 
 // Type trait to determine whether the require customization point is valid for the specified arguments.
-template<class Executor, class Property, class... Args> struct can_require;
+template<class Executor, class Property> struct can_require;
 
-template<class Executor, class Property, class... Args>
-  constexpr bool can_require_v = can_require<Executor, Property, Args...>::value;
+template<class Executor, class Property>
+  constexpr bool can_require_v = can_require<Executor, Property>::value;
 
 // Type trait to determine whether the prefer customization point is valid for the specified arguments.
-template<class Executor, class Property, class... Args> struct can_prefer;
+template<class Executor, class Property> struct can_prefer;
 
-template<class Executor, class Property, class... Args>
-  constexpr bool can_prefer_v = can_prefer<Executor, Property, Args...>::value;
+template<class Executor, class Property>
+  constexpr bool can_prefer_v = can_prefer<Executor, Property>::value;
 
 // Polymorphic wrappers.
 class bad_executor;

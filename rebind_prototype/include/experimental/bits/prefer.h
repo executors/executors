@@ -11,37 +11,37 @@ namespace execution {
 
 namespace prefer_impl {
 
-template<class Executor, class Property, class... Args>
-constexpr auto prefer(Executor&& ex, Property&& p, Args&&... args)
-  -> decltype(std::forward<Executor>(ex).prefer(std::forward<Property>(p), std::forward<Args>(args)...))
+template<class Executor, class Property>
+constexpr auto prefer(Executor&& ex, Property&& p)
+  -> decltype(std::forward<Executor>(ex).prefer(std::forward<Property>(p)))
 {
-  return std::forward<Executor>(ex).prefer(std::forward<Property>(p), std::forward<Args>(args)...);
+  return std::forward<Executor>(ex).prefer(std::forward<Property>(p));
 }
 
-template<class Executor, class...Args>
-constexpr auto prefer(Executor ex, Args&&... args)
-  -> typename std::enable_if<!has_prefer_member<Executor, Args...>::value,
-    decltype(std::forward<Executor>(ex).require(std::forward<Args>(args)...))>::type
+template<class Executor, class Property>
+constexpr auto prefer(Executor ex, Property&& p)
+  -> typename std::enable_if<!has_prefer_member<Executor, Property>::value,
+    decltype(std::forward<Executor>(ex).require(std::forward<Property>(p)))>::type
 {
-  return std::forward<Executor>(ex).require(std::forward<Args>(args)...);
+  return std::forward<Executor>(ex).require(std::forward<Property>(p));
 }
 
-template<class Executor, class...Args>
-constexpr auto prefer(Executor ex, Args&&...)
-  -> typename std::enable_if<!has_prefer_member<Executor, Args...>::value
-    && !has_require_member<Executor, Args...>::value, Executor>::type
+template<class Executor, class Property>
+constexpr auto prefer(Executor ex, Property&&)
+  -> typename std::enable_if<!has_prefer_member<Executor, Property>::value
+    && !has_require_member<Executor, Property>::value, Executor>::type
 {
   return ex;
 }
 
 struct prefer_fn
 {
-  template<class Executor, class Property, class... Args>
-  constexpr auto operator()(Executor&& ex, Property&& p, Args&&... args) const
-    noexcept(noexcept(prefer(std::forward<Executor>(ex), std::forward<Property>(p), std::forward<Args>(args)...)))
-    -> decltype(prefer(std::forward<Executor>(ex), std::forward<Property>(p), std::forward<Args>(args)...))
+  template<class Executor, class Property>
+  constexpr auto operator()(Executor&& ex, Property&& p) const
+    noexcept(noexcept(prefer(std::forward<Executor>(ex), std::forward<Property>(p))))
+    -> decltype(prefer(std::forward<Executor>(ex), std::forward<Property>(p)))
   {
-    return prefer(std::forward<Executor>(ex), std::forward<Property>(p), std::forward<Args>(args)...);
+    return prefer(std::forward<Executor>(ex), std::forward<Property>(p));
   }
 };
 

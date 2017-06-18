@@ -2,7 +2,6 @@
 #define STD_EXPERIMENTAL_BITS_REQUIRE_MEMBER_RESULT_H
 
 #include <type_traits>
-#include <tuple>
 #include <utility>
 
 namespace std {
@@ -17,22 +16,22 @@ struct type_check
   typedef void type;
 };
 
-template<class Executor, class Property, class Args, class = void>
+template<class Executor, class Property, class = void>
 struct eval {};
 
-template<class Executor, class Property, class... Args>
-struct eval<Executor, Property, std::tuple<Args...>,
+template<class Executor, class Property>
+struct eval<Executor, Property,
   typename type_check<decltype(
-    std::declval<Executor>().require(std::declval<Property>(), std::declval<Args>()...)
+    std::declval<Executor>().require(std::declval<Property>())
   )>::type>
 {
-  typedef decltype(std::declval<Executor>().require(std::declval<Property>(), std::declval<Args>()...)) type;
+  typedef decltype(std::declval<Executor>().require(std::declval<Property>())) type;
 };
 
 } // namespace require_member_result_impl
 
-template<class Executor, class Property, class... Args>
-struct require_member_result : require_member_result_impl::eval<Executor, Property, std::tuple<Args...>> {};
+template<class Executor, class Property>
+struct require_member_result : require_member_result_impl::eval<Executor, Property> {};
 
 } // namespace execution
 } // inline namespace concurrency_v2

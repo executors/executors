@@ -6,7 +6,7 @@ using std::experimental::static_thread_pool;
 
 namespace custom_hints
 {
-  constexpr struct tracing_t {} tracing;
+  struct tracing { bool on; };
 
   // Default hint implementation creates an adapter.
 
@@ -23,22 +23,22 @@ namespace custom_hints
       : tracing_(on), inner_ex_(ex) {}
 
     // Intercept require and prefer requests for tracing.
-    tracing_executor require(custom_hints::tracing_t, bool on) const { return { on, inner_ex_ }; }
-    tracing_executor prefer(custom_hints::tracing_t, bool on) const { return { on, inner_ex_ }; }
+    tracing_executor require(custom_hints::tracing t) const { return { t.on, inner_ex_ }; }
+    tracing_executor prefer(custom_hints::tracing t) const { return { t.on, inner_ex_ }; }
 
     // Forward other kinds of require and prefer to the inner executor.
-    template <class Property, class... Args> auto require(const Property& p, Args&&... args) const &
-      -> tracing_executor<execution::require_member_result_t<InnerExecutor, Property, Args...>>
-        { return { tracing_, inner_ex_.require(p, std::forward<Args>(args)...) }; }
-    template <class Property, class... Args> auto require(const Property& p, Args&&... args) &&
-      -> tracing_executor<execution::require_member_result_t<InnerExecutor&&, Property, Args...>>
-        { return { tracing_, std::move(inner_ex_).require(p, std::forward<Args>(args)...) }; }
-    template <class Property, class... Args> auto prefer(const Property& p, Args&&... args) const &
-      -> tracing_executor<execution::prefer_member_result_t<InnerExecutor, Property, Args...>>
-        { return { tracing_, inner_ex_.prefer(p, std::forward<Args>(args)...) }; }
-    template <class Property, class... Args> auto prefer(const Property& p, Args&&... args) &&
-      -> tracing_executor<execution::prefer_member_result_t<InnerExecutor&&, Property, Args...>>
-        { return { tracing_, std::move(inner_ex_).prefer(p, std::forward<Args>(args)...) }; }
+    template <class Property> auto require(const Property& p) const &
+      -> tracing_executor<execution::require_member_result_t<InnerExecutor, Property>>
+        { return { tracing_, inner_ex_.require(p) }; }
+    template <class Property> auto require(const Property& p) &&
+      -> tracing_executor<execution::require_member_result_t<InnerExecutor&&, Property>>
+        { return { tracing_, std::move(inner_ex_).require(p) }; }
+    template <class Property> auto prefer(const Property& p) const &
+      -> tracing_executor<execution::prefer_member_result_t<InnerExecutor, Property>>
+        { return { tracing_, inner_ex_.prefer(p) }; }
+    template <class Property> auto prefer(const Property& p) &&
+      -> tracing_executor<execution::prefer_member_result_t<InnerExecutor&&, Property>>
+        { return { tracing_, std::move(inner_ex_).prefer(p) }; }
 
     auto& context() const noexcept { return inner_ex_.context(); }
 
@@ -78,15 +78,15 @@ namespace custom_hints
   };
 
   template <class Executor>
-    std::enable_if_t<!execution::has_require_member_v<Executor, tracing_t, bool>, tracing_executor<Executor>>
-      require(Executor ex, tracing_t, bool on) { return { on, std::move(ex) }; }
+    std::enable_if_t<!execution::has_require_member_v<Executor, tracing>, tracing_executor<Executor>>
+      require(Executor ex, tracing t) { return { t.on, std::move(ex) }; }
 };
 
 class inline_executor
 {
 public:
-  inline_executor require(custom_hints::tracing_t, bool on) const { inline_executor tmp(*this); tmp.tracing_ = on; return tmp; }
-  inline_executor prefer(custom_hints::tracing_t t, bool on) const { return require(t, on); }
+  inline_executor require(custom_hints::tracing t) const { inline_executor tmp(*this); tmp.tracing_ = t.on; return tmp; }
+  inline_executor prefer(custom_hints::tracing t) const { return require(t); }
 
   auto& context() const noexcept { return *this; }
 
@@ -118,24 +118,24 @@ int main()
 {
   static_thread_pool pool{1};
 
-  auto ex1 = execution::require(inline_executor(), custom_hints::tracing, true);
+  auto ex1 = execution::require(inline_executor(), custom_hints::tracing{true});
   ex1.execute([]{ std::cout << "we made it\n"; });
 
-  auto ex2 = execution::prefer(inline_executor(), custom_hints::tracing, true);
+  auto ex2 = execution::prefer(inline_executor(), custom_hints::tracing{true});
   ex2.execute([]{ std::cout << "we made it with a preference\n"; });
 
-  auto ex3 = execution::require(pool.executor(), custom_hints::tracing, true);
+  auto ex3 = execution::require(pool.executor(), custom_hints::tracing{true});
   ex3.execute([]{ std::cout << "we made it again\n"; });
 
-  auto ex4 = execution::prefer(pool.executor(), custom_hints::tracing, true);
+  auto ex4 = execution::prefer(pool.executor(), custom_hints::tracing{true});
   ex4.execute([]{ std::cout << "we made it again with a preference\n"; });
 
   execution::executor ex5 = pool.executor();
-  auto ex6 = execution::require(ex5, custom_hints::tracing, true);
+  auto ex6 = execution::require(ex5, custom_hints::tracing{true});
   ex6.execute([]{ std::cout << "and again\n"; });
 
   execution::executor ex7 = pool.executor();
-  auto ex8 = execution::prefer(ex7, custom_hints::tracing, true);
+  auto ex8 = execution::prefer(ex7, custom_hints::tracing{true});
   ex8.execute([]{ std::cout << "and again with a preference\n"; });
 
   pool.wait();
