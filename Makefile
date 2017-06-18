@@ -20,17 +20,17 @@ CITEPROC= --filter pandoc-citeproc \
 	  --csl=acm-sig-proceedings-long-author-list.csl
 
 explanatory_pdf: explanatory.md explanatory_header.tex explanatory_metadata.yaml
-	pandoc $(PANDOC_FLAGS) $(CITEPROC) -H explanatory_header.tex explanatory_metadata.yaml explanatory.md -o DXXXXR0_Executors_Explained.pdf
+	pandoc $(PANDOC_FLAGS) $(CITEPROC) -H explanatory_header.tex explanatory_metadata.yaml explanatory.md -o D0676R0_Executors_Explained.pdf
 
 explanatory_html: explanatory.md explanatory_header.tex explanatory_metadata.yaml
-	pandoc $(PANDOC_FLAGS) $(CITEPROC) -H explanatory_header.tex explanatory_metadata.yaml explanatory.md -o DXXXXR0_Executors_Explained.html
+	pandoc $(PANDOC_FLAGS) $(CITEPROC) -H explanatory_header.tex explanatory_metadata.yaml explanatory.md -o D0676R0_Executors_Explained.html
 
 simplification_pdf: simplification_proposal.md
-	pandoc $(PANDOC_FLAGS) $(CITEPROC) -H simplification_proposal_header.tex simplification_proposal_metadata.yaml simplification_proposal.md -o D0676R0_simplification_proposal.pdf
+	pandoc $(PANDOC_FLAGS) $(CITEPROC) -H simplification_proposal_header.tex simplification_proposal_metadata.yaml simplification_proposal.md -o D0688R0_simplification_proposal.pdf
 
 simplification_html: simplification_proposal.md
-	pandoc $(PANDOC_FLAGS) $(CITEPROC) -H simplification_proposal_header.tex simplification_proposal_metadata.yaml simplification_proposal.md -o D0676R0_simplification_proposal.html
+	pandoc $(PANDOC_FLAGS) $(CITEPROC) -H simplification_proposal_header.tex simplification_proposal_metadata.yaml simplification_proposal.md -o D0688R0_simplification_proposal.html
 
 clean:
-	rm -f D0443*.pdf DXXXX*.pdf D0443*.html DXXXX*.html D0676R0*.pdf D0676R0*.html
+	rm -f D0443*.pdf D0676*.pdf D0443*.html D0676*.html D0688*.pdf D0688*.html
 
