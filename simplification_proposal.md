@@ -1,14 +1,11 @@
-\textcolor{red}{This outline is just off the top of my head, edit freely}
-
 At the Kona meeting of the ISO C++ Standards Committee, we presented a design
 for executors, which we envision to be components for creating execution in
 C++. Our design, described in [P0443R1](https://wg21.link/P0443R1), was a
 unification of three independent proposals targeted at different use cases.
 Those use cases are the execution-creating interfaces of the Standard Library
 (e.g., `async`), as well as interfaces found in the Concurrency, Parallelism,
-and Networking Technical Specifications. We believe the functionality
-offered by P0443R1 is necessary to fulfill the requirements of those
-interfaces for interoperating with executors.
+and Networking Technical Specifications. We believe P0443R1's functionality
+is necessary to support them.
 
 Discussion in Kona made it clear that the design of P0443R1 was too complex. We
 agree, and have considered possible simplifications. One approach toward
@@ -22,13 +19,35 @@ Instead, we believe a successful approach will be to refactor P0443R1's
 functionality into a more manageable, factored form based on *executor
 properties*, which are user-requestable behaviors which modify the way
 executors create execution. Compared to P0443R1's design, we believe a
-property-based design will be easier both for executor clients to use and for
+property-based design will be simpler both for executor clients to use and for
 executor authors to implement. Because our properties design is open-ended, it
-may be extended in a straightforward, scalable way by inventing new properties
-in the future. Finally, we believe that the specification required by this
-design will be much more compact compared to P0443R1. As a consequence, we have
-been able to quickly produce an [open source prototype](https://github.com/executors/issaquah_2016/tree/rebind-prototype/rebind_prototype)
-and several [example programs](https://github.com/executors/issaquah_2016/tree/rebind-prototype/rebind_prototype/examples).
+may be extended with new properties. Finally, this design's specification is
+much more compact than P0443R1. As a consequence, we have been able to
+quickly produce an [open source prototype](https://github.com/executors/issaquah_2016/tree/rebind-prototype/rebind_prototype)
+and [several example programs](https://github.com/executors/issaquah_2016/tree/rebind-prototype/rebind_prototype/examples).
+
+**Introductory examples.** To briefly summarize by example, higher-level, indirect use of executors through control structures remains the same as with P0443R1:
+
+    // execute an async on an executor:
+    auto future = std::async(my_executor, task1);
+
+    // execute a parallel for_each on an executor:
+    std::for_each(std::execution::par.on(my_executor), data.begin(), data.end(), task2);
+
+Lower-level, direct use of executors through execution functions changes to use requirements and preferences:
+ 
+    // make require(), prefer(), and properties available
+    using namespace std::experimental::execution;
+
+    // execute a non-blocking, fire-and-forget task on an executor:
+    require(my_executor, oneway, never_blocking).execute(task1);
+
+    // execute a non-blocking, two-way task on an executor. prefer to execute as a continuation:
+    auto future2 = prefer(require(my_executor, twoway), continuation).twoway_execute(task2);
+
+    // when future is ready, execute a possibly-blocking 10-agent task
+    auto bulk_exec = require(my_executor, possibly_blocking, bulk, then);
+    auto future3 = bulk_exec.bulk_then_execute(task3, 10, future2, result_factory, shared_factory);
 
 # Proposed Simplification
 
