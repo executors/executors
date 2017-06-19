@@ -560,8 +560,8 @@ This sub-clause contains templates that may be used to query the properties of a
 
 | Template                   | Condition           | Preconditions  |
 |----------------------------|---------------------|----------------|
-| `template<class T>` <br/>`struct has_require_member` | The expression `declval<const Executor>().require( declval<Property())` is well formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_prefer_member` | The expression `declval<const Executor>().prefer( declval<Property())` is well formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_require_member` | The expression `declval<const Executor>().require( declval<Property>())` is well formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_prefer_member` | The expression `declval<const Executor>().prefer( declval<Property>())` is well formed. | `T` is a complete type. |
 
 ### Member return type traits for properties
 
@@ -572,8 +572,8 @@ This sub-clause contains templates that may be used to query the properties of a
 
 | Template                   | Condition           | Comments  |
 |----------------------------|---------------------|-----------|
-| `template<class T>` <br/>`struct require_member_result` | The expression `declval<const Executor>().require( declval<Property())` is well formed. | The member typedef `type` shall name the type of the expression `declval<const Executor>().require( declval<Property())`. |
-| `template<class T>` <br/>`struct prefer_member_result` | The expression `declval<const Executor>().prefer( declval<Property())` is well formed. | The member typedef `type` shall name the type of the expression `declval<const Executor>().prefer( declval<Property())`. |
+| `template<class T>` <br/>`struct require_member_result` | The expression `declval<const Executor>().require( declval<Property>())` is well formed. | The member typedef `type` shall name the type of the expression `declval<const Executor>().require( declval<Property())`. |
+| `template<class T>` <br/>`struct prefer_member_result` | The expression `declval<const Executor>().prefer( declval<Property>())` is well formed. | The member typedef `type` shall name the type of the expression `declval<const Executor>().prefer( declval<Property())`. |
 
 ## Executor customization points
 
