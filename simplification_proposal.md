@@ -166,9 +166,9 @@ strongly or weakly reassociate a property with a given executor. Such
 reassociations may transform the executor's type in the process.  We believe a
 design for executor properties should have the following characteristics.
 
-*Extensibilility.* The design should permit the creation of new properties, by both user code and future additions to the standard.
+**Extensible.** The design should permit the creation of new properties, by both user code and future additions to the standard.
 
-*Forwardability.* A control structure may pass an executor directly to another control structure. For example:
+**Forwardable.** A control structure may pass an executor directly to another control structure. For example:
 
     template<class Executor, class Function>
     void my_control_structure(const Executor& ex, Function f)
@@ -180,7 +180,7 @@ design for executor properties should have the following characteristics.
 
 The properties associated with `ex` should still be available to `my_other_control_structure`.
 
-*Overridable.* A control structure may introduce properties to an executor
+**Overridable.** A control structure may introduce properties to an executor
 before passing it to another. The first control structure may
 be aware of certain properties and wish to override them:
 
@@ -278,6 +278,3 @@ Lelbach, Hartmut Kaiser, Gor Nishanov, Billy O'Neal, Torvald Riegel, Thomas
 Rodgers, and Michael Wong.
 
 # Approximate Proposed Wording
-
-Insert the stuff in wording.md here
-
