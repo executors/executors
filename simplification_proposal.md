@@ -67,7 +67,7 @@ In our proposed design, the user separately *requires* the properties of interes
 The `require()` call returns a new executor adapting the given executor's
 native behavior to guarantee the required behaviors. If the given executor's
 native behavior already provides the required guarantee, then `require()`
-behaves like the identify function and returns the executor unchanged. If it is
+behaves like the identity function and returns the executor unchanged. If it is
 not possible to satisfy a requirement, then it is a compile-time error.
 
 As another example, suppose a user requires to create an execution agent with
