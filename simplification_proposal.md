@@ -45,7 +45,7 @@ desired behavior.
 
 ## Execution Functions
 
-TODO: There are six of these: `oneway_execute`, `twoway_execute`, `then_execute`, `bulk_oneway_execute`, `bulk_twoway_execute`, and `bulk_then_execute`.
+TODO: There are six of these: `execute`, `twoway_execute`, `then_execute`, `bulk_execute`, `bulk_twoway_execute`, and `bulk_then_execute`.
 
 explain that these retain their original meanings from P0443R1
 
@@ -76,7 +76,7 @@ because it does not specify an execution function for this combination of
 requirements. However, our new proposed design does permit this combination:
 
     using namespace std::experimental::execution;
-    require(exec, oneway, always_blocking).oneway_execute(task);
+    require(exec, oneway, always_blocking).execute(task);
 
 ## User Preferences
 
@@ -97,7 +97,7 @@ execution agent in a particular way. The presence of `defer()` in P0443R1 was co
 Our new proposed design introduces `prefer()` as an avenue for communicating such hints:
 
     using namespace std::experimental::execution;
-    require(exec, oneway).prefer(is_continuation).oneway_execute(task);
+    require(exec, oneway).prefer(is_continuation).execute(task);
 
 Unlike requirements, executors are under no obligation to satisfy user
 preferences. If it is not possible to satisfy a preference, then it is not a
@@ -138,7 +138,7 @@ a single executor type to have both kinds of execution functions.
 `never_blocking`, `possibly_blocking`, and `always_blocking`. Unlike the
 directionality and cardinality properties, which imply the existence of certain
 execution functions, the blocking properties instead guarantee the blocking
-behavior of those member functions. For example, when `.oneway_execute(task)`
+behavior of those member functions. For example, when `.execute(task)`
 is called on an executor whose blocking property is `never_blocking`, then the
 forward progress of the calling thread will never be blocked pending the
 completion of the execution agent created by the call. The same guarantee holds
