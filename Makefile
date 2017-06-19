@@ -6,11 +6,11 @@ explanatory: explanatory_pdf explanatory_html
 
 simplification: simplification_pdf simplification_html
 
-wording_pdf: wording.md
-	pandoc wording.md -o wording.pdf -H header.tex --number-sections -o D0443R2_A_Unified_Executors_Proposal.pdf
+wording_pdf: wording_front_matter.md wording.md
+	pandoc wording_front_matter.md wording.md -o wording.pdf -H header.tex --number-sections -o D0443R2_A_Unified_Executors_Proposal.pdf
 
 wording_html: wording.md
-	pandoc wording.md -o wording.html --number-sections -o D0443R2_A_Unified_Executors_Proposal.html
+	pandoc wording_front_matter.md wording.md -o wording.html --number-sections -o D0443R2_A_Unified_Executors_Proposal.html
 
 PANDOC_FLAGS = -f markdown \
 	       --variable urlcolor=cyan
