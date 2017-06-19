@@ -66,9 +66,9 @@ Lower-level, direct use of executors through execution functions changes to use 
     // execute a non-blocking, two-way task on an executor. prefer to execute as a continuation:
     auto future2 = prefer(require(my_executor, twoway), continuation).twoway_execute(task2);
 
-    // when future is ready, execute a possibly-blocking 10-agent task
+    // when future is ready, execute a possibly-blocking billion-agent task
     auto bulk_exec = require(my_executor, possibly_blocking, bulk, then);
-    auto future3 = bulk_exec.bulk_then_execute(task3, 10, future2, result_factory, shared_factory);
+    auto future3 = bulk_exec.bulk_then_execute(task3, 1<<30, future2, result_factory, shared_factory);
 
 # Proposed Simplification
 
