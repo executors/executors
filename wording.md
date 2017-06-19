@@ -128,8 +128,10 @@ namespace execution {
   template<class Executor> struct is_executor;
   template<class Executor> struct is_oneway_executor;
   template<class Executor> struct is_twoway_executor;
+  template<class Executor> struct is_then_executor;
   template<class Executor> struct is_bulk_oneway_executor;
   template<class Executor> struct is_bulk_twoway_executor;
+  template<class Executor> struct is_bulk_then_executor;
 
   template<class Executor> constexpr bool is_executor_v = is_executor<Executor>::value;
   template<class Executor> constexpr bool is_oneway_executor_v = is_oneway_executor<Executor>::value;
