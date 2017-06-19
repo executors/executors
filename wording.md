@@ -391,8 +391,8 @@ An executor's properties are modified by calling the `require` or `prefer` funct
 
 | Property | Requirements |
 |----------|--------------|
-| `single` | The executor type satisfies the `OneWayExecutor` or `TwoWayExecutor` requirements. |
-| `bulk` | The executor type satisfies the `BulkOneWayExecutor` or `BulkTwoWayExecutor` requirements. |
+| `single` | The executor type satisfies the `OneWayExecutor`, `TwoWayExecutor`, or `ThenExecutor` requirements. |
+| `bulk` | The executor type satisfies the `BulkOneWayExecutor`, `BulkTwoWayExecutor`, or `BulkThenExecutor` requirements. |
 
 ### Blocking properties
 
