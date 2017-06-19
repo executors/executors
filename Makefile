@@ -13,7 +13,6 @@ wording_html: wording.md
 	pandoc wording.md -o wording.html --number-sections -o D0443R2_A_Unified_Executors_Proposal.html
 
 PANDOC_FLAGS = -f markdown \
-	       --smart \
 	       --variable urlcolor=cyan
 
 CITEPROC= --filter pandoc-citeproc \
