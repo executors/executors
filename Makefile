@@ -25,11 +25,11 @@ explanatory_html: explanatory.md explanatory_header.tex explanatory_metadata.yam
 	pandoc $(PANDOC_FLAGS) $(CITEPROC) -H explanatory_header.tex explanatory_metadata.yaml explanatory.md -o D0676R0_Executors_Explained.html
 
 simplification_pdf: simplification_proposal.md
-	pandoc $(PANDOC_FLAGS) $(CITEPROC) -H simplification_proposal_header.tex simplification_proposal.md wording.md -o P0688R0_simplification_proposal.pdf
+	pandoc $(PANDOC_FLAGS) $(CITEPROC) -H simplification_proposal_header.tex simplification_proposal.md wording.md -o P0688R0_A_Proposal_to_Simplify_the_Unified_Executors_Design.pdf
 
 simplification_html: simplification_proposal.md
-	pandoc $(PANDOC_FLAGS) $(CITEPROC) --number-sections simplification_proposal.md wording.md -o P0688R0_simplification_proposal.html
+	pandoc $(PANDOC_FLAGS) $(CITEPROC) --number-sections simplification_proposal.md wording.md -o P0688R0_A_Proposal_to_Simplify_the_Unified_Executors_Design.html
 
 clean:
-	rm -f D0443*.pdf *0676*.pdf D0443*.html *0676*.html D0688*.pdf D0688*.html
+	rm -f D0443*.pdf *0676*.pdf D0443*.html *0676*.html *0688*.pdf *0688*.html
 
