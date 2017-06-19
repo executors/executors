@@ -160,7 +160,37 @@ compile-time error.
 
 ## Executor Properties
 
-first: list desirable properties of properties, can take some text from ChrisK's issue about a hinting mechanism
+In our proposed design, executor properties are objects associated with an
+executor. Through calls to `require()` and `prefer()`, users may either
+strongly or weakly reassociate a property with a given executor. Such
+reassociations may transform the executor's type in the process.  We believe a
+design for executor properties should have the following characteristics.
+
+*Extensibilility.* The design should permit the creation of new properties, by both user code and future additions to the standard.
+
+*Forwardability.* A control structure may pass an executor directly to another control structure. For example:
+
+    template<class Executor, class Function>
+    void my_control_structure(const Executor& ex, Function f)
+    {
+      // add the oneway property
+      oneway_ex = execution::require(ex, execution::oneway).execute(f);
+      my_other_control_structure(oneway_ex, f);
+    }
+
+The properties associated with `ex` should still be available to `my_other_control_structure`.
+
+*Overridable.* A control structure may introduce properties to an executor
+before passing it to another. The first control structure may
+be aware of certain properties and wish to override them:
+
+    template<class Executor, class Function>
+    void my_control_structure(const Executor& ex, Function f)
+    {
+      // override the blocking property
+      never_blocking_ex = execution::require(ex, execution::never_blocking);
+      my_other_control_structure(never_blocking_ex, f);
+    }
 
 ### Proposed Properties
 
@@ -189,19 +219,21 @@ agents in bulk from a single call. Like the directionality properties, the
 cardinality properties are not mutually exclusive, because it is possible for
 a single executor type to have both kinds of execution functions.
 
+Unlike the directionality and cardinality properties, which imply the existence
+of certain execution functions, other properties modify the behavior of those
+functions.
+
 **Blocking.** There are three mutually-exclusive blocking properties :
-`never_blocking`, `possibly_blocking`, and `always_blocking`. Unlike the
-directionality and cardinality properties, which imply the existence of certain
-execution functions, the blocking properties instead guarantee the blocking
-behavior of those member functions. For example, when `.execute(task)`
-is called on an executor whose blocking property is `never_blocking`, then the
-forward progress of the calling thread will never be blocked pending the
-completion of the execution agent created by the call. The same guarantee holds
-for every other execution function of that executor. The net effect is that,
-unlike in P0443R1, the blocking behavior of execution functions is
-completely a property of the executor type. However, that property can be
-changed at will by transforming the executor into a different type through
-a call to `require()`.
+`never_blocking`, `possibly_blocking`, and `always_blocking`. The blocking
+properties guarantee the blocking behavior of an executor's execution
+functions. For example, when `.execute(task)` is called on an executor whose
+blocking property is `never_blocking`, then the forward progress of the calling
+thread will never be blocked pending the completion of the execution agent
+created by the call. The same guarantee holds for every other execution
+function of that executor. The net effect is that, unlike in P0443R1, the
+blocking behavior of execution functions is completely a property of the
+executor type. However, that property can be changed at will by transforming
+the executor into a different type through a call to `require()`.
 
 **Continuations.** There are two mutually-exclusive properties for indicate that a task submitted
 to an executor represents a continuation of the calling thread: `continuation`
