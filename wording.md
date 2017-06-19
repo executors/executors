@@ -510,18 +510,8 @@ This sub-clause contains templates that may be used to query the properties of a
     template<class Executor, class T>
     struct executor_future
     {
-      using type = see below;
+      using type = decltype(execution::require(declval<const Executor&>(), execution::twoway).twoway_execute(declval<T(*)()>()));
     };
-    
-The type of `executor_future<Executor, T>::type` is determined as follows:
-
-* if `is_twoway_executor<Executor>` is true, `decltype(declval<const Executor&>().twoway_execute( declval<T(*)()>())`;
-
-* otherwise, if `is_oneway_executor<Executor>` is true, `std::experimental::future<T>`;
-
-* otherwise, the program is ill formed.
-
-[*Note:* The effect of this specification is that all execute functions of an executor that satisfies the `TwoWayExecutor`, `NeverBlockingTwoWayExecutor`, or `BulkTwoWayExecutor` requirements must utilize the same future type, and that this future type is determined by `async_execute`. Programs may specialize this trait for user-defined `Executor` types. *--end note*]
 
 ### Associated shape type
 
@@ -535,7 +525,7 @@ The type of `executor_future<Executor, T>::type` is determined as follows:
     
       public:
         using type = std::experimental::detected_or_t<
-          size_t, helper, Executor
+          size_t, helper, decltype(execution::require(declval<const Executor&>(), execution::bulk))
         >;
 
         // exposition only
@@ -554,7 +544,7 @@ The type of `executor_future<Executor, T>::type` is determined as follows:
 
       public:
         using type = std::experimental::detected_or_t<
-          executor_shape_t<Executor>, helper, Executor
+          executor_shape_t<Executor>, helper, decltype(execution::require(declval<const Executor&>(), execution::bulk))
         >;
 
         // exposition only
