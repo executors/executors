@@ -60,7 +60,7 @@ blocking behavior (i.e., never-blocking, possibly-blocking, and
 execution functions identified by P0443R1. Rather than "hard-code" a set of
 arbitrary combinations into the possible executor behaviors, our proposed
 simplification allows the user to programmatically build an executor with the
-desired behavior.
+desired behavior. This refactoring allows us to reduce the set of execution functions.
 
 ## Execution Functions
 
@@ -173,13 +173,32 @@ and `not_continuation`. A client may use the `continuation` property to
 indicate that a program may execute more efficiently when tasks are
 executed as continuations.
 
-**Future task submission.** TODO
+**Future task submission.** There are two mutually-exclusive properties to
+indicate the likelihood of additional task submission in the future. The
+`outstanding_work` work property indicates to an executor that additional task
+submission is likely. Likewise, the `not_outstanding_work` property indicates
+that no outstanding work remains.
 
-**Bulk forward progress guarantees.** TODO
+**Bulk forward progress guarantees.** There are three mutually exclusive
+properties which describe the forward progress guarantees of execution agents
+created in bulk. These describe the forward progress of an agent with respect
+to the other agents created in the same submission. These are
+`bulk_sequenced_execution`, `bulk_parallel_execution`, and
+`bulk_unsequenced_execution`, and they correspond to the three standard
+execution policies.
 
-**Thread execution mapping guarantees.** TODO
+**Thread execution mapping guarantees.** There are two mutually exclusive
+properties for describing the way in which execution agents are mapped onto
+threads. `thread_execution_mapping` guarantees that execution agents are mapped
+onto threads of execution, while `new_thread_execution_mapping` extends that
+guarantee by guaranteeing that each execution agent will be executed on a
+newly-created individual thread. These guarantees may be used by the client to
+reason about the existence and sharing of thread-local storage over an
+execution agent's lifetime.
 
-**Allocators.** TODO
+**Allocators.** A final property, `allocator`, associates an allocator with an
+executor. A client may use this property to require the use of a preferred
+allocator when allocating storage necessary to create execution.
 
 # Usage Examples
 
