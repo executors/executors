@@ -858,6 +858,7 @@ template<class Function>
 ```
 
 *Effects:* Performs `e2.execute(f2)`, where:
+
   * `e1` is the target object of `*this`;
   * `e2` is the result of `require(require(e1, single), oneway)`;
   * `f1` is the result of `DECAY_COPY(std::forward<Function>(f))`;
@@ -870,6 +871,7 @@ template<class Function>
 ```
 
 *Effects:* Performs `e2.twoway_execute(f2)`, where:
+
   * `e1` is the target object of `*this`;
   * `e2` is the result of `require(require(e1, single), twoway)`;
   * `f1` is the result of `DECAY_COPY(std::forward<Function>(f))`;
@@ -884,6 +886,7 @@ template<class Function, class SharedFactory>
 ```
 
 *Effects:* Performs `e2.bulk_execute(f2, n, sf2)`, where:
+
   * `e1` is the target object of `*this`;
   * `e2` is the result of `require(require(e1, bulk), oneway)`;
   * `sf1` is the result of `DECAY_COPY(std::forward<SharedFactory>(sf))`;
@@ -900,6 +903,7 @@ template<class Function, class ResultFactory, class SharedFactory>
 ```
 
 *Effects:* Performs `e.bulk_twoway_execute(f2, n, rf2, sf2)`, where:
+
   * `e1` is the target object of `*this`;
   * `e2` is the result of `require(require(e1, bulk), twoway)`;
   * `rf1` is the result of `DECAY_COPY(std::forward<ResultFactory>(rf))`;
@@ -1198,6 +1202,7 @@ executor_type executor() noexcept;
 *Returns:* An executor that may be used to submit function objects to the
 thread pool. The returned executor has the following properties already
 established:
+
   * `execution::oneway`
   * `execution::twoway`
   * `execution::then`
