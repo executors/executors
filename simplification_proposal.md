@@ -45,7 +45,9 @@ desired behavior.
 
 ## Execution Functions
 
-There should be six of these: `oneway_execute`, `twoway_execute`, `then_execute`, `bulk_oneway_execute`, `bulk_twoway_execute`, and `bulk_then_execute`.
+TODO: There are six of these: `oneway_execute`, `twoway_execute`, `then_execute`, `bulk_oneway_execute`, `bulk_twoway_execute`, and `bulk_then_execute`.
+
+explain that these retain their original meanings from P0443R1
 
 ## User Requirements
 
@@ -76,7 +78,7 @@ requirements. However, our new proposed design does permit this combination:
     using namespace std::experimental::execution;
     require(exec, oneway, always_blocking).oneway_execute(task);
 
-## User Requirements
+## User Preferences
 
 Some of the properties users desire of executors are not hard requirements.
 Instead, they are softer *preferences*. For example, suppose a user requires to
@@ -103,16 +105,62 @@ compile-time error.
 
 ## Executor Properties
 
+first: list desirable properties of properties, can take some text from ChrisK's issue about a hinting mechanism
+
+### Proposed Properties
+
 Our proposal includes eight sets of properties we have identified as necessary
 to supporting the needs of the Standard Library and other technical
-specifications. Two of these sets control the directionality and cardinality
-of execution member functions which create execution.
+specifications. Two of these sets describe the directionality and cardinality
+of execution member functions which create execution. When a user requests
+these properties, they are implicitly requesting an executor which provides the
+execution functions implied by the request.
 
-list the ones we'd like to specify now to support the stdlib and TSes
+**Directionality.** The directionality properties we propose are `oneway`, `twoway`, and `then`. An
+executor with the `oneway` property has either or both of the one-way execution
+functions: `.execute()` or `.bulk_execute()`. An executor with the `twoway`
+property has either or both of the two-way execution functions:
+`.twoway_execute()` or `.bulk_twoway_execute()`. An executor with the `then`
+property has either or both of the `then_` execution functions:
+`then_execute()` or `bulk_then_execute()`. Because a single executor type can
+have one or more of these member functions all at once, these properties are
+not mutually exclusive.
 
-list desirable properties of properties, can take some text from ChrisK's issue about a hinting mechanism
+**Cardinality.** There are two cardinality properties: `single` and `bulk`. An executor with the
+`single` property has at least one execution function which creates a single
+execution agent from a single call. Likewise, an executor with the `bulk`
+property has at least one execution function which creates multiple execution
+agents in bulk from a single call. Like the directionality properties, the
+cardinality properties are not mutually exclusive, because it is possible for
+a single executor type to have both kinds of execution functions.
 
-note how we distinguish properties from the fundamental work submission functions -- the submission functions have parameters with semantic meaning to the work being created
+**Blocking.** There are three mutually-exclusive blocking properties :
+`never_blocking`, `possibly_blocking`, and `always_blocking`. Unlike the
+directionality and cardinality properties, which imply the existence of certain
+execution functions, the blocking properties instead guarantee the blocking
+behavior of those member functions. For example, when `.oneway_execute(task)`
+is called on an executor whose blocking property is `never_blocking`, then the
+forward progress of the calling thread will never be blocked pending the
+completion of the execution agent created by the call. The same guarantee holds
+for every other execution function of that executor. The net effect is that,
+unlike in P0443R1, the blocking behavior of execution functions is
+completely a property of the executor type. However, that property can be
+changed at will by transforming the executor into a different type through
+a call to `require()`.
+
+**Continuations.** There are two mutually-exclusive properties for indicate that a task submitted
+to an executor represents a continuation of the calling thread: `continuation`
+and `not_continuation`. A client may use the `continuation` property to
+indicate that a program may execute more efficiently when tasks are
+executed as continuations.
+
+**Future task submission.** TODO
+
+**Bulk forward progress guarantees.** TODO
+
+**Thread execution mapping guarantees.** TODO
+
+**Allocators.** TODO
 
 # Usage Examples
 
