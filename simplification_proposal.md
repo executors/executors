@@ -9,7 +9,7 @@ Authors:            Chris Kohlhoff, chris@kohlhoff.com
 
                     Gordon Brown, gordon@codeplay.com
 
-Document Number:    D0676R0
+Document Number:    N0676R0
 
 Date:               2017-06-19
 
@@ -279,5 +279,5 @@ Rodgers, and Michael Wong.
 
 # Approximate Proposed Wording
 
-What ChrisK is working on goes here
+Insert the stuff in wording.md here
 
