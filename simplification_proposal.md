@@ -1,3 +1,24 @@
+----------------    -------------------------------------
+Title:              A Proposal to Simplify the Unified Executors Design
+
+Authors:            Chris Kohlhoff, chris@kohlhoff.com
+
+                    Jared Hoberock, jhoberock@nvidia.com
+
+                    Chris Mysen, mysen@google.com
+
+                    Gordon Brown, gordon@codeplay.com
+
+Document Number:    D0676R0
+
+Date:               2017-06-19
+
+Audience:           SG1 - Concurrency and Parallelism
+
+Reply-to:           sg1-exec@googlegroups.com
+
+------------------------------------------------------
+
 At the Kona meeting of the ISO C++ Standards Committee in 2017, we presented a design
 for executors, which we envision to be components for creating execution in
 C++. Our design, described in [P0443R1](https://wg21.link/P0443R1), was a
@@ -72,7 +93,7 @@ always executor member functions and they do not have corresponding customizatio
 Otherwise, these execution functions retain their original meanings from P0443R1.
 
 P0443R1 defined a suite of customization points which adapt an executor's
-native behavior to provide the semantics of the customization point. The
+native behavior to provide the execution semantics of the customization point. The
 intention was to provide a uniform user experience regardless of the native
 behavior of the executor. Because execution functions are no longer
 customization points, this adaptation must be performed through other means.
