@@ -1,4 +1,4 @@
-At the Kona meeting of the ISO C++ Standards Committee, we presented a design
+At the Kona meeting of the ISO C++ Standards Committee in 2017, we presented a design
 for executors, which we envision to be components for creating execution in
 C++. Our design, described in [P0443R1](https://wg21.link/P0443R1), was a
 unification of three independent proposals targeted at different use cases.
@@ -64,9 +64,22 @@ desired behavior. This refactoring allows us to reduce the set of execution func
 
 ## Execution Functions
 
-TODO: There are six of these: `execute`, `twoway_execute`, `then_execute`, `bulk_execute`, `bulk_twoway_execute`, and `bulk_then_execute`.
+Our simplified design defines six fundamental execution functions: `execute`,
+`twoway_execute`, `then_execute`, `bulk_execute`, `bulk_twoway_execute`,
+and `bulk_then_execute`. Each of these functions has a unique signature
+distinguishing them. Unlike P0443R1's design, execution functions are
+always executor member functions and they do not have corresponding customization points.
+Otherwise, these execution functions retain their original meanings from P0443R1.
 
-explain that these retain their original meanings from P0443R1
+P0443R1 defined a suite of customization points which adapt an executor's
+native behavior to provide the semantics of the customization point. The
+intention was to provide a uniform user experience regardless of the native
+behavior of the executor. Because execution functions are no longer
+customization points, this adaptation must be performed through other means.
+The mechanism we propose to perform this adaptation is instead provided by two
+new customization points: `execution::require()` and `execution::prefer()`.
+These customization points provide a path to state user requirements and
+preferences separately from calling a fundamental execution function.
 
 ## User Requirements
 
@@ -121,6 +134,8 @@ Our new proposed design introduces `prefer()` as an avenue for communicating suc
 Unlike requirements, executors are under no obligation to satisfy user
 preferences. If it is not possible to satisfy a preference, then it is not a
 compile-time error.
+
+`execution::require()` and `execution::prefer()` are both customization points, and they are the only two customization points in our design.
 
 ## Executor Properties
 
@@ -198,21 +213,16 @@ execution agent's lifetime.
 
 **Allocators.** A final property, `allocator`, associates an allocator with an
 executor. A client may use this property to require the use of a preferred
-allocator when allocating storage necessary to create execution.
-
-# Usage Examples
-
-## Using executors with control structures
-
-nothing really changes compared to P0443R1
-
-## Implementing control structures
-
-Demonstrate the use of `require()` & `prefer()`
-
-Show what it looks like before & after the proposed simplification
+allocator when allocating storage necessary to create execution. Of the
+properties we propose to introduce, `allocator(alloc)` is the only one which takes an
+additional parameter; namely, the desired allocator to use.
 
 # Acknowledgements
+
+This proposal's design benefited greatly from feedback provided by Hans Boehm, Carter
+Edwards, Michael Garland, Thomas Heller, David Hollman, Lee Howes, Bryce
+Lelbach, Hartmut Kaiser, Gor Nishanov, Billy O'Neal, Torvald Riegel, Thomas
+Rodgers, and Michael Wong.
 
 # Approximate Proposed Wording
 
