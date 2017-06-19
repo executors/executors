@@ -198,7 +198,9 @@ execution agent's lifetime.
 
 **Allocators.** A final property, `allocator`, associates an allocator with an
 executor. A client may use this property to require the use of a preferred
-allocator when allocating storage necessary to create execution.
+allocator when allocating storage necessary to create execution. Of the
+properties we propose to introduce, `allocator(alloc)` is the only one which takes an
+additional parameter; namely, the desired allocator to use.
 
 # Usage Examples
 
