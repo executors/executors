@@ -358,7 +358,7 @@ public:
   }
 
 #if 0 // TODO implement single two-way support.
-  template<class Function> auto twoway_execute(Function f) const -> std::future<decltype(f())>;
+  template<class Function> auto twoway_execute(Function f) const -> future<decltype(f())>;
 #endif
 
   template<class Function, class SharedFactory> void bulk_execute(Function f, std::size_t n, SharedFactory sf) const
@@ -370,7 +370,7 @@ public:
 
 #if 0 // TODO implement bulk two-way support.
   template<class Function, class ResultFactory, class SharedFactory>
-    auto bulk_twoway_execute(Function f, std::size_t n, ResultFactory rf, SharedFactory sf) const -> std::future<decltype(rf())>;
+    auto bulk_twoway_execute(Function f, std::size_t n, ResultFactory rf, SharedFactory sf) const -> future<decltype(rf())>;
 #endif
 
   // polymorphic executor capacity:

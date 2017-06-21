@@ -5,6 +5,7 @@
 
 namespace execution = std::experimental::execution;
 using std::experimental::static_thread_pool;
+using std::experimental::concurrency_v2::future;
 
 template <class InnerExecutor>
 class logging_executor
@@ -92,7 +93,7 @@ int main()
   auto ex3 = ex2.require(execution::never_blocking).require(execution::continuation);
   ex3.execute([]{ std::cout << "and again\n"; });
   auto ex4 = ex1.require(execution::twoway);
-  std::future<int> f = ex4.twoway_execute([]{ std::cout << "computing result\n"; return 42; });
+  future<int> f = ex4.twoway_execute([]{ std::cout << "computing result\n"; return 42; });
   pool.wait();
   std::cout << "result is " << f.get() << "\n";
 }

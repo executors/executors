@@ -4,7 +4,7 @@
 #include <atomic>
 #include <condition_variable>
 #include <cstddef>
-#include <future>
+#include <experimental/future>
 #include <list>
 #include <memory>
 #include <mutex>
@@ -101,7 +101,7 @@ class static_thread_pool
       pool_->execute(Blocking{}, Continuation{}, allocator_, std::move(f));
     }
 
-    template<class Function> auto twoway_execute(Function f) const -> std::future<decltype(f())>
+    template<class Function> auto twoway_execute(Function f) const -> future<decltype(f())>
     {
       return pool_->twoway_execute(Blocking{}, Continuation{}, allocator_, std::move(f));
     }
@@ -112,7 +112,7 @@ class static_thread_pool
     }
 
     template<class Function, class ResultFactory, class SharedFactory>
-    auto bulk_twoway_execute(Function f, std::size_t n, ResultFactory rf, SharedFactory sf) const -> std::future<decltype(rf())>
+    auto bulk_twoway_execute(Function f, std::size_t n, ResultFactory rf, SharedFactory sf) const -> future<decltype(rf())>
     {
       return pool_->bulk_twoway_execute(Blocking{}, Continuation{}, allocator_, std::move(f), n, std::move(rf), std::move(sf));
     }
@@ -322,17 +322,17 @@ private:
     }
 
     // Otherwise, wrap the function with a promise that, when broken, will signal that the function is complete.
-    std::promise<void> promise;
-    std::future<void> future = promise.get_future();
+    promise<void> promise;
+    future<void> future = promise.get_future();
     this->execute(execution::never_blocking, Continuation{}, alloc, [f = std::move(f), p = std::move(promise)]() mutable { f(); });
     future.wait();
   }
 
   template<class Blocking, class Continuation, class ProtoAllocator, class Function>
-  auto twoway_execute(Blocking, Continuation, const ProtoAllocator& alloc, Function f) -> std::future<decltype(f())>
+  auto twoway_execute(Blocking, Continuation, const ProtoAllocator& alloc, Function f) -> future<decltype(f())>
   {
-    std::packaged_task<decltype(f())()> task(std::move(f));
-    std::future<decltype(f())> future = task.get_future();
+    packaged_task<decltype(f())()> task(std::move(f));
+    future<decltype(f())> future = task.get_future();
     this->execute(Blocking{}, Continuation{}, alloc, std::move(task));
     return future;
   }
@@ -386,8 +386,8 @@ private:
   void bulk_execute(execution::always_blocking_t, Continuation, const ProtoAllocator& alloc, Function f, std::size_t n, SharedFactory sf)
   {
     // Wrap the function with a promise that, when broken, will signal that the function is complete.
-    std::promise<void> promise;
-    std::future<void> future = promise.get_future();
+    promise<void> promise;
+    future<void> future = promise.get_future();
     auto wrapped_f = [f = std::move(f), p = std::move(promise)](std::size_t n, auto& s) mutable { f(n, s); };
     this->bulk_execute(execution::never_blocking, Continuation{}, alloc, std::move(wrapped_f), n, std::move(sf));
     future.wait();
@@ -395,7 +395,7 @@ private:
 
   template<class Blocking, class Continuation, class ProtoAllocator, class Function, class ResultFactory, class SharedFactory>
   auto bulk_twoway_execute(Blocking, Continuation, const ProtoAllocator& alloc, Function f, std::size_t n, ResultFactory rf, SharedFactory sf)
-    -> typename std::enable_if<is_same<decltype(rf()), void>::value, std::future<void>>::type
+    -> typename std::enable_if<is_same<decltype(rf()), void>::value, future<void>>::type
   {
     // Wrap the shared state so that we can capture and return the result.
     typename std::allocator_traits<ProtoAllocator>::template rebind_alloc<char> alloc2(alloc);
@@ -405,9 +405,9 @@ private:
           decltype(sf()), // Underlying shared state.
           std::atomic<std::size_t>, // Number of exceptions raised.
           std::exception_ptr, // First exception raised.
-          std::promise<void> // Promise to receive result
-        >>(alloc2, n, sf(), 0, nullptr, std::promise<void>());
-    std::future<void> future = std::get<4>(*shared_state).get_future();
+          promise<void> // Promise to receive result
+        >>(alloc2, n, sf(), 0, nullptr, promise<void>());
+    future<void> future = std::get<4>(*shared_state).get_future();
 
     // Convert to a one way bulk operation.
     this->bulk_execute(Blocking{}, Continuation{}, alloc,
@@ -436,7 +436,7 @@ private:
 
   template<class Blocking, class Continuation, class ProtoAllocator, class Function, class ResultFactory, class SharedFactory>
   auto bulk_twoway_execute(Blocking, Continuation, const ProtoAllocator& alloc, Function f, std::size_t n, ResultFactory rf, SharedFactory sf)
-    -> typename std::enable_if<!is_same<decltype(rf()), void>::value, std::future<decltype(rf())>>::type
+    -> typename std::enable_if<!is_same<decltype(rf()), void>::value, future<decltype(rf())>>::type
   {
     // Wrap the shared state so that we can capture and return the result.
     typename std::allocator_traits<ProtoAllocator>::template rebind_alloc<char> alloc2(alloc);
@@ -447,9 +447,9 @@ private:
           decltype(sf()), // Underlying shared state.
           std::atomic<std::size_t>, // Number of exceptions raised.
           std::exception_ptr, // First exception raised.
-          std::promise<decltype(rf())> // Promise to receive result
-        >>(alloc2, n, rf(), sf(), 0, nullptr, std::promise<decltype(rf())>());
-    std::future<decltype(rf())> future = std::get<5>(*shared_state).get_future();
+          promise<decltype(rf())> // Promise to receive result
+        >>(alloc2, n, rf(), sf(), 0, nullptr, promise<decltype(rf())>());
+    future<decltype(rf())> future = std::get<5>(*shared_state).get_future();
 
     // Convert to a one way bulk operation.
     this->bulk_execute(Blocking{}, Continuation{}, alloc,
