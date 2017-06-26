@@ -47,14 +47,20 @@ void executor_compile_test()
 
   ex1.assign(pool.executor());
 
+  ex1 = cex1.require(execution::oneway);
+  ex1 = cex1.require(execution::twoway);
+  ex1 = cex1.require(execution::single);
+  ex1 = cex1.require(execution::bulk);
+  ex1 = cex1.require(execution::thread_execution_mapping);
   ex1 = cex1.require(execution::never_blocking);
   ex1 = cex1.require(execution::possibly_blocking);
   ex1 = cex1.require(execution::always_blocking);
-  ex1 = cex1.require(execution::continuation);
-  ex1 = cex1.require(execution::not_continuation);
-  ex1 = cex1.require(execution::outstanding_work);
-  ex1 = cex1.require(execution::not_outstanding_work);
 
+  ex1 = cex1.prefer(execution::oneway);
+  ex1 = cex1.prefer(execution::twoway);
+  ex1 = cex1.prefer(execution::single);
+  ex1 = cex1.prefer(execution::bulk);
+  ex1 = cex1.prefer(execution::thread_execution_mapping);
   ex1 = cex1.prefer(execution::never_blocking);
   ex1 = cex1.prefer(execution::possibly_blocking);
   ex1 = cex1.prefer(execution::always_blocking);
@@ -62,6 +68,10 @@ void executor_compile_test()
   ex1 = cex1.prefer(execution::not_continuation);
   ex1 = cex1.prefer(execution::outstanding_work);
   ex1 = cex1.prefer(execution::not_outstanding_work);
+  ex1 = cex1.prefer(execution::bulk_sequenced_execution);
+  ex1 = cex1.prefer(execution::bulk_parallel_execution);
+  ex1 = cex1.prefer(execution::bulk_unsequenced_execution);
+  ex1 = cex1.prefer(execution::new_thread_execution_mapping);
 
   const context_type& context = cex1.context();
   (void)context;

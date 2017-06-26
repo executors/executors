@@ -3,6 +3,7 @@
 
 namespace execution = std::experimental::execution;
 using std::experimental::static_thread_pool;
+using std::experimental::concurrency_v2::future;
 
 int main()
 {
@@ -13,7 +14,7 @@ int main()
   ex.execute([]{ std::cout << "we made it\n"; });
 
   // Two way, single.
-  std::future<int> f1 = ex.twoway_execute([]{ return 42; });
+  future<int> f1 = ex.twoway_execute([]{ return 42; });
   f1.wait();
   std::cout << "result is " << f1.get() << "\n";
 
@@ -21,7 +22,7 @@ int main()
   ex.bulk_execute([](int n, int&){ std::cout << "part " << n << "\n"; }, 8, []{ return 0; });
 
   // Two way, bulk, void result.
-  std::future<void> f2 = ex.bulk_twoway_execute(
+  future<void> f2 = ex.bulk_twoway_execute(
       [](int n, int&)
       {
         std::cout << "async part " << n << "\n";
@@ -30,7 +31,7 @@ int main()
   std::cout << "bulk result available\n";
 
   // Two way, bulk, non-void result.
-  std::future<double> f3 = ex.bulk_twoway_execute(
+  future<double> f3 = ex.bulk_twoway_execute(
       [](int n, double&, int&)
       {
         std::cout << "async part " << n << "\n";

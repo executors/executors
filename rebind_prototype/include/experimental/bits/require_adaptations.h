@@ -66,10 +66,10 @@ public:
   template<class Function>
   auto twoway_execute(Function f) const -> typename dependent_type<
       decltype(inner_declval<Function>().execute(std::move(f))),
-      std::future<decltype(f())>>::type
+      future<decltype(f())>>::type
   {
-    std::packaged_task<decltype(f())()> task(std::move(f));
-    std::future<decltype(f())> future = task.get_future();
+    packaged_task<decltype(f())()> task(std::move(f));
+    future<decltype(f())> future = task.get_future();
     inner_ex_.execute(std::move(task));
     return future;
   }
@@ -84,7 +84,7 @@ public:
   template<class Function, class ResultFactory, class SharedFactory>
   auto bulk_twoway_execute(Function f, std::size_t n, ResultFactory rf, SharedFactory sf) const -> typename dependent_type<
       decltype(inner_declval<Function>().bulk_execute(std::move(f), n, std::move(sf))),
-      typename std::enable_if<is_same<decltype(rf()), void>::value, std::future<void>>::type>::type
+      typename std::enable_if<is_same<decltype(rf()), void>::value, future<void>>::type>::type
   {
     auto shared_state = std::make_shared<
         std::tuple<
@@ -92,9 +92,9 @@ public:
           decltype(sf()), // Underlying shared state.
           std::atomic<std::size_t>, // Number of exceptions raised.
           std::exception_ptr, // First exception raised.
-          std::promise<void> // Promise to receive result
-        >>(n, sf(), 0, nullptr, std::promise<void>());
-    std::future<void> future = std::get<4>(*shared_state).get_future();
+          promise<void> // Promise to receive result
+        >>(n, sf(), 0, nullptr, promise<void>());
+    future<void> future = std::get<4>(*shared_state).get_future();
     inner_ex_.bulk_execute(
         [f = std::move(f)](auto i, auto& s) mutable
         {
@@ -121,7 +121,7 @@ public:
   template<class Function, class ResultFactory, class SharedFactory>
   auto bulk_twoway_execute(Function f, std::size_t n, ResultFactory rf, SharedFactory sf) const -> typename dependent_type<
       decltype(inner_declval<Function>().bulk_execute(std::move(f), n, std::move(sf))),
-      typename std::enable_if<!is_same<decltype(rf()), void>::value, std::future<decltype(rf())>>::type>::type
+      typename std::enable_if<!is_same<decltype(rf()), void>::value, future<decltype(rf())>>::type>::type
   {
     auto shared_state = std::make_shared<
         std::tuple<
@@ -130,9 +130,9 @@ public:
           decltype(sf()), // Underlying shared state.
           std::atomic<std::size_t>, // Number of exceptions raised.
           std::exception_ptr, // First exception raised.
-          std::promise<decltype(rf())> // Promise to receive result
-        >>(n, rf(), sf(), 0, nullptr, std::promise<decltype(rf())>());
-    std::future<decltype(rf())> future = std::get<5>(*shared_state).get_future();
+          promise<decltype(rf())> // Promise to receive result
+        >>(n, rf(), sf(), 0, nullptr, promise<decltype(rf())>());
+    future<decltype(rf())> future = std::get<5>(*shared_state).get_future();
     inner_ex_.bulk_execute(
         [f = std::move(f)](auto i, auto& s) mutable
         {
@@ -235,7 +235,7 @@ public:
   template<class Function, class ResultFactory, class SharedFactory>
   auto bulk_twoway_execute(Function f, std::size_t n, ResultFactory rf, SharedFactory sf) const -> typename dependent_type<
       decltype(inner_declval<Function>().twoway_execute(std::move(rf))),
-      typename std::enable_if<is_same<decltype(rf()), void>::value, std::future<void>>::type>::type
+      typename std::enable_if<is_same<decltype(rf()), void>::value, future<void>>::type>::type
   {
     auto shared_state = std::make_shared<
         std::tuple<
@@ -243,9 +243,9 @@ public:
           decltype(sf()), // Underlying shared state.
           std::atomic<std::size_t>, // Number of exceptions raised.
           std::exception_ptr, // First exception raised.
-          std::promise<void> // Promise to receive result
-        >>(n, sf(), 0, nullptr, std::promise<void>());
-    std::future<void> future = std::get<4>(*shared_state).get_future();
+          promise<void> // Promise to receive result
+        >>(n, sf(), 0, nullptr, promise<void>());
+    future<void> future = std::get<4>(*shared_state).get_future();
     this->bulk_execute(
         [f = std::move(f)](auto i, auto& s) mutable
         {
@@ -272,7 +272,7 @@ public:
   template<class Function, class ResultFactory, class SharedFactory>
   auto bulk_twoway_execute(Function f, std::size_t n, ResultFactory rf, SharedFactory sf) const -> typename dependent_type<
       decltype(inner_declval<Function>().twoway_execute(std::move(rf))),
-      typename std::enable_if<!is_same<decltype(rf()), void>::value, std::future<decltype(rf())>>::type>::type
+      typename std::enable_if<!is_same<decltype(rf()), void>::value, future<decltype(rf())>>::type>::type
   {
     auto shared_state = std::make_shared<
         std::tuple<
@@ -281,9 +281,9 @@ public:
           decltype(sf()), // Underlying shared state.
           std::atomic<std::size_t>, // Number of exceptions raised.
           std::exception_ptr, // First exception raised.
-          std::promise<decltype(rf())> // Promise to receive result
-        >>(n, rf(), sf(), 0, nullptr, std::promise<decltype(rf())>());
-    std::future<decltype(rf())> future = std::get<5>(*shared_state).get_future();
+          promise<decltype(rf())> // Promise to receive result
+        >>(n, rf(), sf(), 0, nullptr, promise<decltype(rf())>());
+    future<decltype(rf())> future = std::get<5>(*shared_state).get_future();
     this->bulk_execute(
         [f = std::move(f)](auto i, auto& s) mutable
         {
@@ -358,8 +358,8 @@ public:
   template<class Function> auto execute(Function f) const
     -> decltype(inner_declval<Function>().execute(std::move(f)))
   {
-    std::promise<void> promise;
-    std::future<void> future = promise.get_future();
+    promise<void> promise;
+    future<void> future = promise.get_future();
     inner_ex_.execute([f = std::move(f), p = std::move(promise)]() mutable { f(); });
     future.wait();
   }
@@ -377,8 +377,8 @@ public:
   auto bulk_execute(Function f, std::size_t n, SharedFactory sf) const
     -> decltype(inner_declval<Function>().bulk_execute(std::move(f), n, std::move(sf)))
   {
-    std::promise<void> promise;
-    std::future<void> future = promise.get_future();
+    promise<void> promise;
+    future<void> future = promise.get_future();
     inner_ex_.bulk_execute([f = std::move(f), p = std::move(promise)](auto i, auto& s) mutable { f(i, s); }, n, std::move(sf));
     future.wait();
   }
