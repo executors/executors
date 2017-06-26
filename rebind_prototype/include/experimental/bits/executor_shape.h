@@ -24,7 +24,7 @@ struct eval
 template<class Executor>
 struct eval<Executor, typename type_check<typename Executor::shape_type>::type>
 {
-  using type = typename Executor::shape_type;
+  using type = typename decltype(execution::require(std::declval<const Executor&>(), execution::bulk))::shape_type;
 };
 
 } // namespace executor_shape_impl
