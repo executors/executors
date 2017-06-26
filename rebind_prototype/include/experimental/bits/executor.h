@@ -87,10 +87,14 @@ class executor
     virtual impl_base* executor_require(never_blocking_t) const = 0;
     virtual impl_base* executor_require(possibly_blocking_t) const = 0;
     virtual impl_base* executor_require(always_blocking_t) const = 0;
-    virtual impl_base* executor_require(continuation_t) const = 0;
-    virtual impl_base* executor_require(not_continuation_t) const = 0;
-    virtual impl_base* executor_require(outstanding_work_t) const = 0;
-    virtual impl_base* executor_require(not_outstanding_work_t) const = 0;
+    virtual impl_base* executor_prefer(continuation_t) const = 0;
+    virtual impl_base* executor_prefer(not_continuation_t) const = 0;
+    virtual impl_base* executor_prefer(outstanding_work_t) const = 0;
+    virtual impl_base* executor_prefer(not_outstanding_work_t) const = 0;
+    virtual impl_base* executor_prefer(bulk_sequenced_execution_t) const = 0;
+    virtual impl_base* executor_prefer(bulk_parallel_execution_t) const = 0;
+    virtual impl_base* executor_prefer(bulk_unsequenced_execution_t) const = 0;
+    virtual impl_base* executor_prefer(new_thread_execution_mapping_t) const = 0;
     virtual const type_info& context_target_type() const = 0;
     virtual const void* context_target() const = 0;
     virtual bool context_equals(const impl_base* e) const noexcept = 0;
@@ -168,24 +172,44 @@ class executor
       return new impl<decltype(execution::require(executor_, always_blocking))>(execution::require(executor_, always_blocking));
     }
 
-    virtual impl_base* executor_require(continuation_t) const
+    virtual impl_base* executor_prefer(continuation_t) const
     {
-      return new impl<decltype(execution::require(executor_, continuation))>(execution::require(executor_, continuation));
+      return new impl<decltype(execution::prefer(executor_, continuation))>(execution::prefer(executor_, continuation));
     }
 
-    virtual impl_base* executor_require(not_continuation_t) const
+    virtual impl_base* executor_prefer(not_continuation_t) const
     {
-      return new impl<decltype(execution::require(executor_, not_continuation))>(execution::require(executor_, not_continuation));
+      return new impl<decltype(execution::prefer(executor_, not_continuation))>(execution::prefer(executor_, not_continuation));
     }
 
-    virtual impl_base* executor_require(outstanding_work_t) const
+    virtual impl_base* executor_prefer(outstanding_work_t) const
     {
-      return new impl<decltype(execution::require(executor_, outstanding_work))>(execution::require(executor_, outstanding_work));
+      return new impl<decltype(execution::prefer(executor_, outstanding_work))>(execution::prefer(executor_, outstanding_work));
     }
 
-    virtual impl_base* executor_require(not_outstanding_work_t) const
+    virtual impl_base* executor_prefer(not_outstanding_work_t) const
     {
-      return new impl<decltype(execution::require(executor_, not_outstanding_work))>(execution::require(executor_, not_outstanding_work));
+      return new impl<decltype(execution::prefer(executor_, not_outstanding_work))>(execution::prefer(executor_, not_outstanding_work));
+    }
+
+    virtual impl_base* executor_prefer(bulk_sequenced_execution_t) const
+    {
+      return new impl<decltype(execution::prefer(executor_, bulk_sequenced_execution))>(execution::prefer(executor_, bulk_sequenced_execution));
+    }
+
+    virtual impl_base* executor_prefer(bulk_parallel_execution_t) const
+    {
+      return new impl<decltype(execution::prefer(executor_, bulk_parallel_execution))>(execution::prefer(executor_, bulk_parallel_execution));
+    }
+
+    virtual impl_base* executor_prefer(bulk_unsequenced_execution_t) const
+    {
+      return new impl<decltype(execution::prefer(executor_, bulk_unsequenced_execution))>(execution::prefer(executor_, bulk_unsequenced_execution));
+    }
+
+    virtual impl_base* executor_prefer(new_thread_execution_mapping_t) const
+    {
+      return new impl<decltype(execution::prefer(executor_, new_thread_execution_mapping))>(execution::prefer(executor_, new_thread_execution_mapping));
     }
 
     virtual const type_info& context_target_type() const
@@ -331,16 +355,27 @@ public:
 
   // executor operations:
 
+  executor require(oneway_t) const { return *this; }
+  executor require(twoway_t) const { return *this; }
+  executor require(single_t) const { return *this; }
+  executor require(bulk_t) const { return *this; }
+  executor require(thread_execution_mapping_t) const { return *this; }
+
   executor require(never_blocking_t) const { return context_.impl_ ? context_.impl_->executor_require(never_blocking) : context_.impl_->clone(); }
   executor require(possibly_blocking_t) const { return context_.impl_ ? context_.impl_->executor_require(possibly_blocking) : context_.impl_->clone(); }
   executor require(always_blocking_t) const { return context_.impl_ ? context_.impl_->executor_require(always_blocking) : context_.impl_->clone(); }
-  executor require(continuation_t) const { return context_.impl_ ? context_.impl_->executor_require(continuation) : context_.impl_->clone(); }
-  executor require(not_continuation_t) const { return context_.impl_ ? context_.impl_->executor_require(not_continuation) : context_.impl_->clone(); }
-  executor require(outstanding_work_t) const { return context_.impl_ ? context_.impl_->executor_require(outstanding_work) : context_.impl_->clone(); }
-  executor require(not_outstanding_work_t) const { return context_.impl_ ? context_.impl_->executor_require(not_outstanding_work) : context_.impl_->clone(); }
+
+  executor prefer(continuation_t) const { return context_.impl_ ? context_.impl_->executor_prefer(continuation) : context_.impl_->clone(); }
+  executor prefer(not_continuation_t) const { return context_.impl_ ? context_.impl_->executor_prefer(not_continuation) : context_.impl_->clone(); }
+  executor prefer(outstanding_work_t) const { return context_.impl_ ? context_.impl_->executor_prefer(outstanding_work) : context_.impl_->clone(); }
+  executor prefer(not_outstanding_work_t) const { return context_.impl_ ? context_.impl_->executor_prefer(not_outstanding_work) : context_.impl_->clone(); }
+  executor prefer(bulk_sequenced_execution_t) const { return context_.impl_ ? context_.impl_->executor_prefer(bulk_sequenced_execution) : context_.impl_->clone(); }
+  executor prefer(bulk_parallel_execution_t) const { return context_.impl_ ? context_.impl_->executor_prefer(bulk_parallel_execution) : context_.impl_->clone(); }
+  executor prefer(bulk_unsequenced_execution_t) const { return context_.impl_ ? context_.impl_->executor_prefer(bulk_unsequenced_execution) : context_.impl_->clone(); }
+  executor prefer(new_thread_execution_mapping_t) const { return context_.impl_ ? context_.impl_->executor_prefer(new_thread_execution_mapping) : context_.impl_->clone(); }
   
   template<class Property> auto prefer(const Property& p) const
-    -> decltype(this->require(p))
+    -> typename std::enable_if<execution::has_require_member<executor, Property>::value, executor>::type
       { return this->require(p); }
   template<class Property> auto prefer(const Property&) const
     -> typename std::enable_if<!execution::has_require_member<executor, Property>::value, executor>::type
