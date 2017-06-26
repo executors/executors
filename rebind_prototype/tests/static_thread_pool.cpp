@@ -56,6 +56,8 @@ void static_thread_pool_oneway_executor_compile_test(Executor ex1)
   static_thread_pool_oneway_executor_compile_test(cex1.require(execution::not_continuation));
   static_thread_pool_oneway_executor_compile_test(cex1.require(execution::outstanding_work));
   static_thread_pool_oneway_executor_compile_test(cex1.require(execution::not_outstanding_work));
+  static_thread_pool_oneway_executor_compile_test(cex1.require(execution::bulk_parallel_execution));
+  static_thread_pool_oneway_executor_compile_test(cex1.require(execution::thread_execution_mapping));
   static_thread_pool_oneway_executor_compile_test(cex1.require(execution::allocator(std::allocator<void>())));
 
   static_thread_pool_oneway_executor_compile_test(cex1.prefer(execution::never_blocking));
@@ -65,6 +67,11 @@ void static_thread_pool_oneway_executor_compile_test(Executor ex1)
   static_thread_pool_oneway_executor_compile_test(cex1.prefer(execution::not_continuation));
   static_thread_pool_oneway_executor_compile_test(cex1.prefer(execution::outstanding_work));
   static_thread_pool_oneway_executor_compile_test(cex1.prefer(execution::not_outstanding_work));
+  static_thread_pool_oneway_executor_compile_test(cex1.prefer(execution::bulk_sequenced_execution));
+  static_thread_pool_oneway_executor_compile_test(cex1.prefer(execution::bulk_parallel_execution));
+  static_thread_pool_oneway_executor_compile_test(cex1.prefer(execution::bulk_unsequenced_execution));
+  static_thread_pool_oneway_executor_compile_test(cex1.prefer(execution::thread_execution_mapping));
+  static_thread_pool_oneway_executor_compile_test(cex1.prefer(execution::new_thread_execution_mapping));
   static_thread_pool_oneway_executor_compile_test(cex1.prefer(execution::allocator(std::allocator<void>())));
 }
 
@@ -88,6 +95,8 @@ void static_thread_pool_twoway_executor_compile_test(Executor ex1)
   static_thread_pool_twoway_executor_compile_test(cex1.require(execution::not_continuation));
   static_thread_pool_twoway_executor_compile_test(cex1.require(execution::outstanding_work));
   static_thread_pool_twoway_executor_compile_test(cex1.require(execution::not_outstanding_work));
+  static_thread_pool_twoway_executor_compile_test(cex1.require(execution::bulk_parallel_execution));
+  static_thread_pool_twoway_executor_compile_test(cex1.require(execution::thread_execution_mapping));
   static_thread_pool_twoway_executor_compile_test(cex1.require(execution::allocator(std::allocator<void>())));
 
   static_thread_pool_twoway_executor_compile_test(cex1.prefer(execution::never_blocking));
@@ -97,6 +106,11 @@ void static_thread_pool_twoway_executor_compile_test(Executor ex1)
   static_thread_pool_twoway_executor_compile_test(cex1.prefer(execution::not_continuation));
   static_thread_pool_twoway_executor_compile_test(cex1.prefer(execution::outstanding_work));
   static_thread_pool_twoway_executor_compile_test(cex1.prefer(execution::not_outstanding_work));
+  static_thread_pool_twoway_executor_compile_test(cex1.prefer(execution::bulk_sequenced_execution));
+  static_thread_pool_twoway_executor_compile_test(cex1.prefer(execution::bulk_parallel_execution));
+  static_thread_pool_twoway_executor_compile_test(cex1.prefer(execution::bulk_unsequenced_execution));
+  static_thread_pool_twoway_executor_compile_test(cex1.prefer(execution::thread_execution_mapping));
+  static_thread_pool_twoway_executor_compile_test(cex1.prefer(execution::new_thread_execution_mapping));
   static_thread_pool_twoway_executor_compile_test(cex1.prefer(execution::allocator(std::allocator<void>())));
 }
 
@@ -120,6 +134,8 @@ void static_thread_pool_bulk_oneway_executor_compile_test(Executor ex1)
   static_thread_pool_bulk_oneway_executor_compile_test(cex1.require(execution::not_continuation));
   static_thread_pool_bulk_oneway_executor_compile_test(cex1.require(execution::outstanding_work));
   static_thread_pool_bulk_oneway_executor_compile_test(cex1.require(execution::not_outstanding_work));
+  static_thread_pool_bulk_oneway_executor_compile_test(cex1.require(execution::bulk_parallel_execution));
+  static_thread_pool_bulk_oneway_executor_compile_test(cex1.require(execution::thread_execution_mapping));
   static_thread_pool_bulk_oneway_executor_compile_test(cex1.require(execution::allocator(std::allocator<void>())));
 
   static_thread_pool_bulk_oneway_executor_compile_test(cex1.prefer(execution::never_blocking));
@@ -129,6 +145,11 @@ void static_thread_pool_bulk_oneway_executor_compile_test(Executor ex1)
   static_thread_pool_bulk_oneway_executor_compile_test(cex1.prefer(execution::not_continuation));
   static_thread_pool_bulk_oneway_executor_compile_test(cex1.prefer(execution::outstanding_work));
   static_thread_pool_bulk_oneway_executor_compile_test(cex1.prefer(execution::not_outstanding_work));
+  static_thread_pool_bulk_oneway_executor_compile_test(cex1.prefer(execution::bulk_sequenced_execution));
+  static_thread_pool_bulk_oneway_executor_compile_test(cex1.prefer(execution::bulk_parallel_execution));
+  static_thread_pool_bulk_oneway_executor_compile_test(cex1.prefer(execution::bulk_unsequenced_execution));
+  static_thread_pool_bulk_oneway_executor_compile_test(cex1.prefer(execution::thread_execution_mapping));
+  static_thread_pool_bulk_oneway_executor_compile_test(cex1.prefer(execution::new_thread_execution_mapping));
   static_thread_pool_bulk_oneway_executor_compile_test(cex1.prefer(execution::allocator(std::allocator<void>())));
 }
 
@@ -157,6 +178,8 @@ void static_thread_pool_bulk_twoway_executor_compile_test(Executor ex1)
   static_thread_pool_bulk_twoway_executor_compile_test(cex1.require(execution::not_continuation));
   static_thread_pool_bulk_twoway_executor_compile_test(cex1.require(execution::outstanding_work));
   static_thread_pool_bulk_twoway_executor_compile_test(cex1.require(execution::not_outstanding_work));
+  static_thread_pool_bulk_twoway_executor_compile_test(cex1.require(execution::bulk_parallel_execution));
+  static_thread_pool_bulk_twoway_executor_compile_test(cex1.require(execution::thread_execution_mapping));
   static_thread_pool_bulk_twoway_executor_compile_test(cex1.require(execution::allocator(std::allocator<void>())));
 
   static_thread_pool_bulk_twoway_executor_compile_test(cex1.prefer(execution::never_blocking));
@@ -166,6 +189,11 @@ void static_thread_pool_bulk_twoway_executor_compile_test(Executor ex1)
   static_thread_pool_bulk_twoway_executor_compile_test(cex1.prefer(execution::not_continuation));
   static_thread_pool_bulk_twoway_executor_compile_test(cex1.prefer(execution::outstanding_work));
   static_thread_pool_bulk_twoway_executor_compile_test(cex1.prefer(execution::not_outstanding_work));
+  static_thread_pool_bulk_twoway_executor_compile_test(cex1.prefer(execution::bulk_sequenced_execution));
+  static_thread_pool_bulk_twoway_executor_compile_test(cex1.prefer(execution::bulk_parallel_execution));
+  static_thread_pool_bulk_twoway_executor_compile_test(cex1.prefer(execution::bulk_unsequenced_execution));
+  static_thread_pool_bulk_twoway_executor_compile_test(cex1.prefer(execution::thread_execution_mapping));
+  static_thread_pool_bulk_twoway_executor_compile_test(cex1.prefer(execution::new_thread_execution_mapping));
   static_thread_pool_bulk_twoway_executor_compile_test(cex1.prefer(execution::allocator(std::allocator<void>())));
 }
 

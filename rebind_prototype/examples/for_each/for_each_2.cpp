@@ -16,7 +16,6 @@ static_thread_pool system_thread_pool{std::max(1u,std::thread::hardware_concurre
 class system_thread_pool_bulk_executor
 {
   public:
-    using bulk_forward_progress_guarantee = execution::executor_bulk_forward_progress_guarantee_t<static_thread_pool::executor_type>;
     using shape_type = execution::executor_shape_t<static_thread_pool::executor_type>;
     using index_type = execution::executor_index_t<static_thread_pool::executor_type>;
 
@@ -34,6 +33,8 @@ class system_thread_pool_bulk_executor
     {
       return false;
     }
+
+    system_thread_pool_bulk_executor require(execution::bulk_parallel_execution_t) const { return *this; }
 
     template<class Function, class ResultFactory, class SharedFactory>
     auto bulk_twoway_execute(Function f, size_t n, ResultFactory rf, SharedFactory sf) const
@@ -84,7 +85,8 @@ class basic_execution_policy
             >
     basic_execution_policy<BulkForwardProgressRequirement,OtherExecutor> on(OtherExecutor&& exec) const
     {
-      return basic_execution_policy<BulkForwardProgressRequirement,OtherExecutor>(std::forward<OtherExecutor>(exec));
+      return basic_execution_policy<BulkForwardProgressRequirement,OtherExecutor>(
+          execution::require(std::forward<OtherExecutor>(exec), BulkForwardProgressRequirement{}));
     }
 
     executor_type executor() const
@@ -100,9 +102,9 @@ constexpr struct ignored {} ignore;
 
 } // end impl
 
-class parallel_policy : public impl::basic_execution_policy<execution::bulk_parallel_execution, impl::system_thread_pool_bulk_executor>
+class parallel_policy : public impl::basic_execution_policy<execution::bulk_parallel_execution_t, impl::system_thread_pool_bulk_executor>
 {
-  using super_t = impl::basic_execution_policy<execution::bulk_parallel_execution, impl::system_thread_pool_bulk_executor>;
+  using super_t = impl::basic_execution_policy<execution::bulk_parallel_execution_t, impl::system_thread_pool_bulk_executor>;
 
   public:
     using super_t::super_t;

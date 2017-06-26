@@ -30,6 +30,15 @@ constexpr struct not_continuation_t {} not_continuation;
 constexpr struct outstanding_work_t {} outstanding_work;
 constexpr struct not_outstanding_work_t {} not_outstanding_work;
 
+// Properties for bulk execution forward progress guarantees.
+constexpr struct bulk_sequenced_execution_t {} bulk_sequenced_execution;
+constexpr struct bulk_parallel_execution_t {} bulk_parallel_execution;
+constexpr struct bulk_unsequenced_execution_t {} bulk_unsequenced_execution;
+
+// Properties for mapping of execution on to threads.
+constexpr struct thread_execution_mapping_t {} thread_execution_mapping;
+constexpr struct new_thread_execution_mapping_t {} new_thread_execution_mapping;
+
 // Memory allocations.
 template<class ProtoAllocator> struct allocator_t { ProtoAllocator alloc; };
 template<class ProtoAllocator> constexpr allocator_t<ProtoAllocator> allocator(const ProtoAllocator& a) { return {a}; }
@@ -63,17 +72,6 @@ template<class Executor> struct executor_index;
 
 template<class Executor> using executor_shape_t = typename executor_shape<Executor>::type;
 template<class Executor> using executor_index_t = typename executor_index<Executor>::type;
-
-// Bulk forward progress.
-// XXX consider exposing these similar to the blocking guarantees et. al
-struct bulk_sequenced_execution {};
-struct bulk_parallel_execution {};
-struct bulk_unsequenced_execution {};
-
-// Type trait to obtain a bulk executor's bulk forward progress guarantee.
-template<class Executor> struct executor_bulk_forward_progress_guarantee;
-
-template<class Executor> using executor_bulk_forward_progress_guarantee_t = typename executor_bulk_forward_progress_guarantee<Executor>::type;
 
 // Type traits to determine whether a require member invocation is valid, and what its result is.
 template<class Executor, class Property> struct has_require_member;
@@ -132,7 +130,6 @@ class executor;
 #include <experimental/bits/executor_future.h>
 #include <experimental/bits/executor_shape.h>
 #include <experimental/bits/executor_index.h>
-#include <experimental/bits/executor_bulk_forward_progress_guarantee.h>
 #include <experimental/bits/has_require_member.h>
 #include <experimental/bits/has_prefer_member.h>
 #include <experimental/bits/require_member_result.h>

@@ -36,11 +36,11 @@ class static_thread_pool
     executor_impl(const executor_impl& other) noexcept : pool_(other.pool_) { pool_->work_up(Work{}); }
     ~executor_impl() { pool_->work_down(Work{}); }
 
-    // Directionality. Both kinds supported, so requireing does not change type.
+    // Directionality. Both kinds supported, so requiring does not change type.
     executor_impl require(execution::oneway_t) const { return *this; }
     executor_impl require(execution::twoway_t) const { return *this; }
 
-    // Cardinality. Both kinds supported, so requireing does not change type.
+    // Cardinality. Both kinds supported, so requiring does not change type.
     executor_impl require(execution::single_t) const { return *this; }
     executor_impl require(execution::bulk_t) const { return *this; }
 
@@ -63,6 +63,12 @@ class static_thread_pool
       require(execution::outstanding_work_t) const { return {pool_, allocator_}; };
     executor_impl<Blocking, Continuation, execution::not_outstanding_work_t, ProtoAllocator>
       require(execution::not_outstanding_work_t) const { return {pool_, allocator_}; };
+
+    // Bulk forward progress.
+    executor_impl require(execution::bulk_parallel_execution_t) const { return *this; }
+
+    // Mapping of execution on to threads.
+    executor_impl require(execution::thread_execution_mapping_t) const { return *this; }
 
     // Allocator.
     template<class NewProtoAllocator>
