@@ -3,6 +3,7 @@
 
 #include <atomic>
 #include <experimental/bits/bad_executor.h>
+#include <experimental/future>
 #include <memory>
 #include <utility>
 
@@ -13,72 +14,71 @@ namespace execution {
 
 class executor
 {
-  struct func_base
+  template<class R, class... Args>
+  struct single_use_func_base
   {
-    virtual ~func_base() {}
-    virtual void call() = 0;
+    virtual ~single_use_func_base() {}
+    virtual R call(Args...) = 0;
   };
 
-  template<class Function>
-  struct func : func_base
+  template<class Function, class R, class... Args>
+  struct single_use_func : single_use_func_base<R, Args...>
   {
     Function function_;
 
-    explicit func(Function f) : function_(std::move(f)) {}
+    explicit single_use_func(Function f) : function_(std::move(f)) {}
 
-    virtual void call()
+    virtual R call(Args... args)
     {
-      std::unique_ptr<func> fp(this);
+      std::unique_ptr<single_use_func> fp(this);
       Function f(std::move(function_));
       fp.reset();
-      f();
+      return f(std::forward<Args>(args)...);
     }
   };
 
-  struct shared_factory_base
+  template<class R, class... Args>
+  struct multi_use_func_base
   {
-    virtual ~shared_factory_base() {}
-    virtual std::shared_ptr<void> call() = 0;
+    virtual ~multi_use_func_base() {}
+    virtual R call(Args...) = 0;
   };
 
-  template<class SharedFactory>
-  struct shared_factory : shared_factory_base
-  {
-    SharedFactory factory_;
-
-    explicit shared_factory(SharedFactory sf) : factory_(std::move(sf)) {}
-
-    virtual std::shared_ptr<void> call()
-    {
-      return std::make_shared<decltype(factory_())>(factory_());
-    }
-  };
-
-  struct bulk_func_base
-  {
-    virtual ~bulk_func_base() {}
-    virtual void call(std::size_t i, std::shared_ptr<void>& s) = 0;
-  };
-
-  template<class Function, class SharedState>
-  struct bulk_func : bulk_func_base
+  template<class Function, class R, class... Args>
+  struct multi_use_func : multi_use_func_base<R, Args...>
   {
     Function function_;
 
-    explicit bulk_func(Function f) : function_(std::move(f)) {}
+    explicit multi_use_func(Function f) : function_(std::move(f)) {}
 
-    virtual void call(std::size_t i, std::shared_ptr<void>& s)
+    virtual R call(Args... args)
     {
-      function_(i, *std::static_pointer_cast<SharedState>(s));
+      return function_(std::forward<Args>(args)...);
     }
   };
+
+  using oneway_func_base = single_use_func_base<void>;
+  template<class Function> using oneway_func = single_use_func<Function, void>;
+
+  using shared_factory_base = multi_use_func_base<std::shared_ptr<void>>;
+  template<class SharedFactory> using shared_factory = multi_use_func<SharedFactory, std::shared_ptr<void>>;
+
+  using bulk_func_base = multi_use_func_base<void, std::size_t, std::shared_ptr<void>&>;
+  template<class Function> using bulk_func = multi_use_func<Function, void, std::size_t, std::shared_ptr<void>&>;
+
+  using twoway_func_base = single_use_func_base<std::shared_ptr<void>>;
+  template<class Function> using twoway_func = single_use_func<Function, std::shared_ptr<void>>;
+
+  using twoway_then_func_base = single_use_func_base<void, std::shared_ptr<void>, std::exception_ptr>;
+  template<class Function> using twoway_then_func = single_use_func<Function, void, std::shared_ptr<void>, std::exception_ptr>;
 
   struct impl_base
   {
     virtual ~impl_base() {}
     virtual impl_base* clone() const noexcept = 0;
     virtual void destroy() noexcept = 0;
-    virtual void executor_execute(std::unique_ptr<func_base> f) = 0;
+    virtual void executor_execute(std::unique_ptr<oneway_func_base> f) = 0;
+    virtual void executor_twoway_execute(std::unique_ptr<twoway_func_base> f, std::unique_ptr<twoway_then_func_base> then) = 0;
     virtual void executor_bulk_execute(std::unique_ptr<bulk_func_base> f, std::size_t n, std::shared_ptr<shared_factory_base> sf) = 0;
     virtual const type_info& executor_target_type() const = 0;
     virtual void* executor_target() = 0;
@@ -121,9 +121,26 @@ class executor
         delete this;
     }
 
-    virtual void executor_execute(std::unique_ptr<func_base> f)
+    virtual void executor_execute(std::unique_ptr<oneway_func_base> f)
     {
       executor_.execute([f = std::move(f)]() mutable { f.release()->call(); });
+    }
+
+    virtual void executor_twoway_execute(std::unique_ptr<twoway_func_base> f, std::unique_ptr<twoway_then_func_base> then)
+    {
+      executor_.twoway_execute(
+          [f = std::move(f)]() mutable
+          {
+            return f.release()->call();
+          })
+      .then(
+          [then = std::move(then)](auto fut) mutable
+          {
+            std::shared_ptr<void> result;
+            std::exception_ptr excep;
+            try { result = fut.get(); } catch (...) { excep = std::current_exception(); }
+            then.release()->call(result, excep);
+          });
     }
 
     virtual void executor_bulk_execute(std::unique_ptr<bulk_func_base> f, std::size_t n, std::shared_ptr<shared_factory_base> sf)
@@ -388,18 +405,77 @@ public:
 
   template<class Function> void execute(Function f) const
   {
-    std::unique_ptr<func_base> fp(new func<Function>(std::move(f)));
+    std::unique_ptr<oneway_func_base> fp(new oneway_func<Function>(std::move(f)));
     context_.impl_ ? context_.impl_->executor_execute(std::move(fp)) : throw bad_executor();
   }
 
-#if 0 // TODO implement single two-way support.
-  template<class Function> auto twoway_execute(Function f) const -> future<decltype(f())>;
-#endif
+  template<class Function> auto twoway_execute(Function f) const
+    -> typename std::enable_if<std::is_same<decltype(f()), void>::value, future<void>>::type
+  {
+    promise<void> prom;
+    future<void> fut(prom.get_future());
+
+    auto f_wrap = [f = std::move(f)]() mutable
+    {
+      f();
+      return std::shared_ptr<void>();
+    };
+
+    auto then = [prom = std::move(prom)](std::shared_ptr<void>, std::exception_ptr excep) mutable
+    {
+      if (excep)
+        prom.set_exception(excep);
+      else
+        prom.set_value();
+    };
+
+    std::unique_ptr<twoway_func_base> fp(new twoway_func<decltype(f_wrap)>(std::move(f_wrap)));
+    std::unique_ptr<twoway_then_func_base> tp(new twoway_then_func<decltype(then)>(std::move(then)));
+    context_.impl_ ? context_.impl_->executor_twoway_execute(std::move(fp), std::move(tp)) : throw bad_executor();
+
+    return fut;
+  }
+
+  template<class Function> auto twoway_execute(Function f) const
+    -> typename std::enable_if<!std::is_same<decltype(f()), void>::value, future<decltype(f())>>::type
+  {
+    promise<decltype(f())> prom;
+    future<decltype(f())> fut(prom.get_future());
+
+    auto f_wrap = [f = std::move(f)]() mutable
+    {
+      return std::make_shared<decltype(f())>(f());
+    };
+
+    auto then = [prom = std::move(prom)](std::shared_ptr<void> result, std::exception_ptr excep) mutable
+    {
+      if (excep)
+        prom.set_exception(excep);
+      else
+        prom.set_value(std::move(*std::static_pointer_cast<decltype(f())>(result)));
+    };
+
+    std::unique_ptr<twoway_func_base> fp(new twoway_func<decltype(f_wrap)>(std::move(f_wrap)));
+    std::unique_ptr<twoway_then_func_base> tp(new twoway_then_func<decltype(then)>(std::move(then)));
+    context_.impl_ ? context_.impl_->executor_twoway_execute(std::move(fp), std::move(tp)) : throw bad_executor();
+
+    return fut;
+  }
 
   template<class Function, class SharedFactory> void bulk_execute(Function f, std::size_t n, SharedFactory sf) const
   {
-    std::unique_ptr<bulk_func_base> fp(new bulk_func<Function, decltype(sf())>(std::move(f)));
-    std::shared_ptr<shared_factory_base> sfp(new shared_factory<SharedFactory>(std::move(sf)));
+    auto f_wrap = [f = std::move(f)](std::size_t i, std::shared_ptr<void>& ss) mutable
+    {
+      f(i, *std::static_pointer_cast<decltype(sf())>(ss));
+    };
+
+    auto sf_wrap = [sf = std::move(sf)]() mutable
+    {
+      return std::make_shared<decltype(sf())>(sf());
+    };
+
+    std::unique_ptr<bulk_func_base> fp(new bulk_func<decltype(f_wrap)>(std::move(f_wrap)));
+    std::shared_ptr<shared_factory_base> sfp(new shared_factory<decltype(sf_wrap)>(std::move(sf_wrap)));
     context_.impl_ ? context_.impl_->executor_bulk_execute(std::move(fp), n, std::move(sfp)) : throw bad_executor();
   }
 
