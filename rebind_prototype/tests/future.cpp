@@ -59,7 +59,7 @@ void future_compile_test()
   future<move_only> f4 = std::move(f3);
 
   promise<future<move_only>> p2;
-  //future<move_only> f5(p2.get_future());
+  future<move_only> f5(p2.get_future());
 
   f1 = std::move(f4);
 

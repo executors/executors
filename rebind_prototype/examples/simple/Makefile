@@ -11,14 +11,17 @@ EXAMPLES = \
 	oneway_never_blocking \
 	oneway_never_blocking_continuation \
 	oneway_possibly_blocking \
+	polymorphic_bulk_oneway_always_blocking \
+	polymorphic_bulk_oneway_never_blocking \
+	polymorphic_bulk_oneway_possibly_blocking \
 	polymorphic_default \
 	polymorphic_oneway_always_blocking \
 	polymorphic_oneway_never_blocking \
 	polymorphic_oneway_never_blocking_continuation \
 	polymorphic_oneway_possibly_blocking \
-	polymorphic_bulk_oneway_always_blocking \
-	polymorphic_bulk_oneway_never_blocking \
-	polymorphic_bulk_oneway_possibly_blocking \
+	polymorphic_twoway_always_blocking \
+	polymorphic_twoway_never_blocking \
+	polymorphic_twoway_possibly_blocking \
 	twoway_always_blocking \
 	twoway_never_blocking \
 	twoway_possibly_blocking
