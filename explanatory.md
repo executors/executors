@@ -103,8 +103,8 @@ of threads.
 
 A program may require creating execution on multiple different kinds of
 execution resources, and these resources may have significantly different
-capabilities. For example, callable function objects invoked on a thread of
-execution have the repertoire of a Standard C++ program, including access to
+capabilities. For example, callable function objects invoked on a `std::thread`
+have the repertoire of a Standard C++ program, including access to
 the facilities of the operating system, file system, network, and similar. By
 contrast, GPUs do not create standard threads of execution, and the callable
 function objects they execute may have limited access to these facilities.
@@ -129,12 +129,12 @@ collection of execution resources and the **execution agents** that exist
 within those resources. In our model, execution agents are units of execution,
 and a 1-to-1 mapping exists between an execution agent and an 
 invocation of a callable function object. An agent is bound[^bound_footnote] to an
-execution context, and hence to one or more of the resources that context represents.
+execution context, and hence to one or more of the resources that the context represents.
 
 [^bound_footnote]: An execution agent is bound to an execution context and thus is restricted to execute only on the associated specific collection of execution resources.  For example, if a context includes multiple threads then the agent may execute on any of those threads, or migrate among those threads.
 
 Typical examples of an execution context are a thread pool or a distributed or
-heteroegeneous runtime.
+heterogeneous runtime.
 
 An **execution agent** is a unit of execution of a specific execution context
 that is mapped to a single execution of a callable function on an execution
@@ -171,7 +171,7 @@ Some functions, like `std::async`, will receive executors as parameters directly
 
 This use of `std::async` has semantics similar to legacy uses of `std::async`,
 but there are at least two important differences. First, instead of
-creating a new thread of execution, this overload of `std::async` uses
+creating a new (internal) `std::thread`, this overload of `std::async` uses
 `my_executor` to create an **execution agent** to execute the lambda
 function. In this programming model, execution agents act as units of
 execution, and every use of an executor to create execution creates one or
@@ -1201,7 +1201,7 @@ can be used to wait for execution to complete containing the result of
 `std::forward<Function>(func)(i, r, s)`, where `i` is of type
 `executor_index_t<Executor>`, `r` is a function object returned from
 `return_factory` and `s` is a shared object returned from `shared_factory`.
-`bulk_then_execute` may or may not the caller until execution completes,
+`bulk_then_execute` may or may not block the caller until execution completes,
 depending on the value of `executor_execute_blocking_guarantee_t<Executor>`.
 
 `bulk_then_execute` is the most general execution function we have identified
