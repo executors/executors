@@ -486,7 +486,7 @@ Addionally, note that SG5 Transactional Memory is also studying how proposed TM 
 integrated with executors. As TM constructs are compound statements of the form `atomic_noexcept  | atomic_commit | atomic_cancel  {<compound-statement> }` and `synchronized  {<compound-statement> }`, it seems they can also apply with executors.
 
 
-## Fundamental Interactions with Executors via Customization Points
+## Fundamental Interactions with Executors via Execution Functions
 
 Some control structures (e.g., `solve`) will simply forward the executor to
 other lower-level control structures (`invert` and `multiply`) to create
@@ -501,24 +501,148 @@ async(const Executor& exec, Function&& f, Args&&... args) {
   // bind together f with its arguments
   auto g = bind(forward<Function>(f), forward<Args>(args)...);
 
-  // implement with executor customization point async_execute
-  return execution::async_execute(exec, g);
+  // introduce single-agent, two-way execution requirements
+  auto new_exec = execution::require(exec, execution::single, execution::twoway);
+
+  // implement with execution function twoway_execute
+  return new_exec.twoway_execute(g);
 }
 ```
 
-In this implementation, `std::async`'s only job is to package `f` with its
-arguments and forward this package along with the executor to an **executor
-customization point**. Executor customization points are functions for
-performing fundamental interactions with all types of
-executors[^customization_point_note]. In this case, that customization point is
-`execution::async_execute`, which uses the executor to create a single
-execution agent to invoke a function. The agent's execution is asynchronous,
-          and `execution::async_execute` returns a future corresponding to its
-          completion.
+The implementation proceeds in three steps. First, we package `f` along with
+its arguments into a nullary function, `g`.  Next, using the customization
+point `execution::require`, we introduce requirements for single-agent, two-way
+**properties**. This step uses `exec` to produce a new executor, `new_exec`
+which encapsulates these requirements. Finally, we call an **execution
+function**. Execution functions are the fundamental executor interactions
+which create execution. In this case, that execution functions is
+`.twoway_execute`, which creates a single execution agent to invoke a nullary
+function. The agent's execution is asynchronous, and `.twoway_execute` returns
+a future corresponding to its completion.
 
-[^customization_point_note]: The model for our design the one suggested by Niebler[-@Niebler15:N4381].
+Before describing the precise semantics of execution functions in detail, we
+will first describe executor properties which affect the way they behave.
 
-## Properties of Customization Points
+## Executor Properties
+
+Executor properties are objects associated with an executor. Through calls to
+`execution::require` and `execution::prefer`, users may either strongly or
+weakly reassociate a property with a given executor. Such reassociations may
+transform the executor's type in the process. For example, in our [example
+implementation of `std::async`](#example:async_implementation), we use
+`execution::require` to strongly require the `single` and `twoway` properties
+from `exec`. This operation produces `new_exec`, whose type may be
+different from the type of the original executor, `exec`.
+
+### Standard Properties
+
+Our design includes eight sets of properties we have identified as necessary to
+supporting the immediate needs of the Standard Library and other technical
+specifications. Two of these sets describe the directionality and cardinality
+of executor member functions which create execution. When a user requests these
+properties, they are implicitly requesting an executor which provides the execution functions
+implied by the request.
+
+**Directionality.** Some execution functions return a future object
+corresponding to the eventual completion of the created execution. Other
+execution functions allow clients to "fire-and-forget" their execution and
+return `void`. We refer to fire-and-forgetful execution functions as "one-way"
+while those that return a future are "two-way"[^directionality_caveat]. Two-way
+execution functions allow executors to participate directly in synchronization
+rather than require inefficient synchronization out-of-band. On the other hand,
+when synchronization is not required, one-way execution functions avoid
+the cost of a future object.
+
+The directionality properties are `execution::oneway`, `execution::twoway`, and
+`execution::then`. An executor with the `execution::oneway` property has either
+or both of the one-way execution functions: `.execute()` or `.bulk_execute()`.
+An executor with the `execution::twoway` property has either or both of the
+two-way execution functions: `.twoway_execute()` or `.bulk_twoway_execute()`.
+An executor with the `execution::then` property has either or both of the
+`then_` execution functions: `then_execute()` or `bulk_then_execute()`. Because
+a single executor type can have one or more of these member functions all at
+once, these properties are not mutually exclusive.
+
+[^directionality_caveat]: We think that the names "one-way" and "two-way" should be improved.
+
+**Cardinality.** Cardinality describes how many execution agents the use of an
+execution function creates, whether it be a single agent or multiple agents.
+We include bulk agent creation in our design to enable executors to amortize
+the cost of execution agent creation over multiple agents. By the same token,
+support for single-agent creation enables executors to apply optimizations
+to the important special case of a single agent.
+
+There are two cardinality properties: `execution::single` and
+`execution::bulk`. An executor with the `execution::single` property has at
+least one execution function which creates a single execution agent from a
+single call: `.execute()`, `twoway_execute()`, or `then_execute()`. Likewise,
+an executor with the `execution::bulk` property has at least one
+execution function which creates multiple execution agents in bulk from
+a single call: `.bulk_execute()`, `bulk_twoway_execute()`, or
+`.bulk_then_execute`(). Like the directionality properties, the
+cardinality properties are not mutually exclusive, because it is
+possible for a single executor type to have both kinds of execution
+functions.
+
+Unlike the directionality and cardinality properties, which imply the existence
+of certain execution functions, other properties modify the behavior of those
+execution functions. Moreover, those properties modify the behavior of *all*
+of an executor's execution functions.
+
+**Blocking.** An executor's execution functions may or may not block their client's execution
+pending the completion of the execution they create. Depending on the relationship between client
+and executed task, blocking guarantees may be critical to either program correctness or performance.
+An executor may guarantee that its execution functions never block, possibly block, or always block
+their clients.
+
+There are three mutually-exclusive blocking properties :
+`execution::never_blocking`, `execution::possibly_blocking`, and
+`execution::always_blocking`. The blocking properties guarantee the blocking
+behavior of all of an executor's execution functions. For example, when
+`.execute(task)` is called on an executor whose blocking property is
+`execution::never_blocking`, then the forward progress of the calling thread
+will never be blocked pending the completion of the execution agent created by
+the call. The same guarantee holds for every other execution function of that
+executor. The net effect is that the blocking behavior of execution functions
+is completely a property of the executor type. However, that property can be
+changed at will by transforming the executor into a different type through a
+call to `require()`.
+
+**Continuations.** There are two mutually-exclusive properties to indicate that
+a task submitted to an executor represents a continuation of the calling
+thread: `execution::continuation` and `execution::not_continuation`. A client
+may use the `execution::continuation` property to indicate that a program may
+execute more efficiently when tasks are executed as continuations of the
+client's calling thread.
+
+**Future task submission.** There are two mutually-exclusive properties to
+indicate the likelihood of additional task submission in the future.  The
+`execution::outstanding_work` property indicates to an executor that additional task
+submission is likely. Likewise, the `execution::not_outstanding_work` property indicates
+that no outstanding work remains.
+
+**Bulk forward progress guarantees.** There are three mutually-exclusive
+properties which describe the forward progress guarantees of execution agents
+created in bulk. These describe the forward progress of an agent with respect
+to the other agents created in the same submission. These are
+`execution::bulk_sequenced_execution`, `execution::bulk_parallel_execution`,
+and `execution::bulk_unsequenced_execution`, and they correspond to the three
+standard execution policies.
+
+**Thread execution mapping guarantees.** There are two mutually-exclusive
+properties for describing the way in which execution agents are mapped onto
+threads. `thread_execution_mapping` guarantees that execution agents are mapped
+onto threads of execution, while `new_thread_execution_mapping` extends that
+guarantee by guaranteeing that each execution agent will be individually
+executed on a newly-created thread of execution. These guarantees may be used
+by the client to reason about the availability and sharing of thread-local
+storage over an execution agent's lifetime.
+
+**Allocators.** A final property, `allocator`, associates an allocator with an
+executor. A client may use this property to suggest the use of a preferred
+allocator when allocating storage necessary to create execution. Of the
+properties we have described, `allocator(alloc)` is the only one which takes an
+additional parameter; namely, the desired allocator to use.
 
 The properties of execution created by fundamental executor interactions vary
 along three dimensions we have identified as critical to an interaction's
@@ -526,46 +650,9 @@ correctness and efficiency. The combination of these properties determines the
 customization point's semantics and name, which is assembled by concatenating a
 prefix, infix, and suffix.
 
-**Cardinality.** Cardinality describes how many execution agents the use of a
-customization point creates, whether it be a single agent or multiple agents.
-We include bulk agent creation in our design to enable executors to amortize
-the cost of execution agent creation over multiple agents. By the same token,
-support for single-agent creation enables executors to apply optimizations
-to the important special case of a single agent. Customization points which
-create multiple agents in bulk have names prefixed with `bulk_`;
-single-agent customization points have no prefix. 
+### User-Defined Properties
 
-**Directionality.** Some executor customization points return a channel back to
-the client for synchronizing with the result of execution. For asynchronous
-customization points, this channel is a future object corresponding to an
-eventual result. For synchronous customization points, this channel is simply
-the result itself. Other customization points allow clients to
-"fire-and-forget" their execution and return no such channel. We refer to
-fire-and-forgetful customization points as "one-way" while those that provide a
-synchronization channel are "two-way"[^directionality_caveat]. Two-way
-customization points allow executors to participate directly in synchronization rather
-than require inefficient synchronization out-of-band. On the other hand, when
-synchronization is not required, one-way customization points avoid the cost of
-a synchronization channel. The names of two-way customization points names are
-infixed with `sync_`, `async_`, or `then_`.  One-way customization points have
-no infix.
-
-[^directionality_caveat]: We think that the names "one-way" and "two-way" should be improved.
-
-**Blocking semantics.** Executor customization points may or may not block
-their client's execution pending the completion of the execution they create.
-Depending on the relationship between client and executed task, blocking
-guarantees may be critical to either program correctness or performance. A
-customization point may guarantee to always block, possibly block, or never
-block its client. Customization points which may possibly block its client are
-suffixed with `execute`. The exception to this rule are customization points
-infixed with `sync_`. Because they always return the result of execution to
-their client as a value, there is no way for `sync_` customization points to
-execute without blocking their client. Customization points which will never
-block its client are suffixed with `post` or `defer`. `defer` indicates a
-preference to treat the created execution as a continuation of the client while
-`post` indicates no such preference. A futher discussion of blocking guarantees
-can be found in the ongoing discussions section later in the paper.
+TODO
 
 ## The Customization Points Provided by Our Design
 
