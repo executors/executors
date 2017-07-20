@@ -652,7 +652,89 @@ prefix, infix, and suffix.
 
 ### User-Defined Properties
 
-TODO
+In addition to the standard properties enumerated by the previous section, our
+design also allows user-defined properties. A programmer may introduce a
+user-defined executor property by defining a property type and specializing
+either the `require` or `prefer` customization points. When
+`execution::require` (respectively, `execution::prefer`) is used with an
+executor and the user's property, the user's specialization of `require`
+(`prefer`) may introduce the property to the executor.
+
+As an example, consider the task of adding logging to an executor.  We wish to
+note every time the executor creates work through `.execute` by printing a
+message. First, we create a user-defined property and a "fancy" executor
+adaptor which wraps another executor, printing a message each time the wrapped
+executor creates work:
+
+    // a user-defined property for logging
+    struct logging { bool on; };
+
+    // an adaptor executor which introduces logging
+    template<class Ex>
+    struct logging_executor
+    {
+      bool on;
+      Ex wrapped;
+
+      auto context() const { return wrapped.context(); }
+      bool operator==(const logging_executor& other) { return wrapped == other.wrapped; }
+      bool operator!=(const logging_executor& other) { return wrapped != other.wrapped; }
+
+      template<class Function>
+      void execute(Function f)
+      {
+        if(on) std::cout << ".execute() called" << std::endl;
+        wrapped.execute(f);
+      }
+
+      // intercept require & prefer requests for logging
+      logging_executor require(logging l) const { return { l.on, wrapped }; }
+      logging_executor prefer(logging l) const { return { l.on, wrapped }; }
+
+      // forward other kinds of properties to the wrapped executor
+      template<class Property>
+      auto require(const Property& p) const
+        -> logging_executor<execution::require_member_result_t<Ex, Property>>
+      {
+        return { on, wrapped.require(p) };
+      }
+
+      template<class Property>
+      auto prefer(const Property& p) const
+        -> logging_executor<execution::prefer_member_result_t<Ex, Property>>
+      {
+        return { on, wrapped.prefer(p) };
+      }
+    };
+
+In addition to the typical executor member functions, our `logging_executor`
+also provides implementations of `.require` and `.prefer`. The first of these
+are overloads which intercept our special `logging` property, and their
+implementations return a copy of the `logging_executor` with logging enabled or
+disabled, as indicated by the state of the `logging` parameter. The last two
+members of `logging_executor` intercept "foreign" executor properties and
+forward them to the wrapped executor. Their result is a new `logging_executor`
+which wraps the type of executor returned by `wrapped.require(p)`, or
+`wrapped.prefer(p)`, respectively. This type is given by the type traits
+`execution::require_member_result_t` and `execution::prefer_member_result_t`.
+
+The final task is to provide a free function overload of `require` to introduce
+a `logging_executor` when the provided executor does not have the `logging`
+property:
+
+    template<class Ex>
+    std::enable_if_t<!execution::has_require_member_v<Ex, logging>, logging_executor<Ex>>
+    require(Ex ex, logging l)
+    {
+      return { l.on, std::move(ex) };
+    }
+
+This overload of `require` is only enabled when the given executor type cannot
+natively introduce logging through a call to `.require(logging)`. Note that
+because our `logging_executor` does provide such a member function, this
+overload of `require` is disabled for `logging_executor`s. This policy prevents
+redundantly nested instantiations of the form
+`logging_executor<logging_executor<...>>`.
 
 ## The Customization Points Provided by Our Design
 
