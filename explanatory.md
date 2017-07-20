@@ -457,7 +457,7 @@ We do not believe this is an exhaustive list of executor sources. Like other
 adaptable, user-defined types ubiquitous to C++, sources of executors will be
 diverse.
 
-# Building Control Structures via Customization Points
+# Building Control Structures
 
 The previous section's examples illustrate that for the vast majority of
 programmers, executors will be opaque objects that merely act as abstract
@@ -523,7 +523,7 @@ a future corresponding to its completion.
 Before describing the precise semantics of execution functions in detail, we
 will first describe executor properties which affect the way they behave.
 
-## Executor Properties
+### Executor Properties
 
 Executor properties are objects associated with an executor. Through calls to
 `execution::require` and `execution::prefer`, users may either strongly or
@@ -534,7 +534,7 @@ implementation of `std::async`](#example:async_implementation), we use
 from `exec`. This operation produces `new_exec`, whose type may be
 different from the type of the original executor, `exec`.
 
-### Standard Properties
+#### Standard Properties
 
 Our design includes eight sets of properties we have identified as necessary to
 supporting the immediate needs of the Standard Library and other technical
@@ -650,7 +650,7 @@ correctness and efficiency. The combination of these properties determines the
 customization point's semantics and name, which is assembled by concatenating a
 prefix, infix, and suffix.
 
-### User-Defined Properties
+#### User-Defined Properties
 
 In addition to the standard properties enumerated by the previous section, our
 design also allows user-defined properties. A programmer may introduce a
@@ -736,114 +736,107 @@ overload of `require` is disabled for `logging_executor`s. This policy prevents
 redundantly nested instantiations of the form
 `logging_executor<logging_executor<...>>`.
 
-## The Customization Points Provided by Our Design
+### Execution Functions
 
-Combining these properties results in customization points with names like
-`execute` and `bulk_async_execute`. One goal of the naming scheme is to allow
-readers to understand, at a glance, the gross properties of the execution
-created by a call to a customization point. For example, `execute` is the
-customization point which creates a single execution agent and provides the
-least guarantees about the agent it creates. `execute` provides no way to
-synchronize with the created execution, and this execution may or may not block
-the caller. On the other hand, `bulk_sync_execute` creates a group of execution
-agents in bulk, and these execution agents clearly synchronize with the caller.
+Once a user has introduced any requirements or preferences, they use the
+resulting executor's **execution functions** to actually create execution.
+There are six of these, resulting from the cross product of the cardinality and
+directionality properties:
 
-Combining these three sets of properties yields the following table of customization points.
+| Name                    | Cardinality | Directionality |
+|-------------------------|-------------|----------------|
+| `execute`               | single      | oneway         |
+| `twoway_execute`        | single      | twoway         |
+| `then_execute`          | single      | then           |
+| `bulk_execute`          | bulk        | oneway         |
+| `bulk_twoway_execute`   | bulk        | twoway         |
+| `bulk_then_execute`     | bulk        | then           |
 
-| Name           | Cardinality | Directionality | Blocking |
-|----------------|-------------|----------------|----------|
-| `execute`      | single      | one-way        | possibly |
-| `post`         | single      | one-way        | no       |
-| `defer`        | single      | one-way        | no       |
-| `async_execute`| single      | two-way        | possibly |
-| `then_execute` | single      | two-way        | possibly |
-| `sync_execute` | single      | two-way        | yes      |
-| `async_post`   | single      | two-way        | no       |
-| `async_defer`  | single      | two-way        | no       |
-| `bulk_execute` | bulk        | one-way        | possibly |
-| `bulk_post`    | bulk        | one-way        | no       |
-| `bulk_defer`   | bulk        | one-way        | no       |
-| `bulk_async_execute` | bulk   | two-way        | possibly |
-| `bulk_then_execute`  | bulk   | two-way        | possibly |
-| `bulk_sync_execute`  | bulk   | two-way        | yes      |
-| `bulk_async_post`    | bulk   | two-way        | no       |
-| `bulk_async_defer`   | bulk   | two-way        | no       |
+In a concrete context, the type of the executor, and therefore its suite of
+member functions, is known a priori. In such cases, execution functions may be
+called safely without the use of `execution::require`:
 
-Note that the entire cross product of the three sets of properties is not
-represented in this table. For example, `then_post` does not exist. When
-selecting customization points, we have made a trade-off between expressivity
-and minimalism guided by their usefulness to the Standard Library and the
-technical specifications we initially wish to target.
-
-## Customization Point Interfaces
-
-Customization points are customization point objects as described by the
-Ranges TS [@Niebler17:RangesTS] and are provided in the `execution` namespace.
-
-### Single-Agent Interfaces
-
-First we describe single-agent customization points. For example, `execution::async_execute`: 
-
-    namespace execution {
-
-    template<class Executor, class Function>
-    executor_future_t<Executor,std::invoke_result_t<std::decay_t<Function>>
-    async_execute(const Executor& exec, Function&& f);
-
+    void concrete_context(const my_oneway_single_executor& ex)
+    {
+      auto task = ...;
+      ex.execute(task);
     }
 
-The first parameter of each customization point is the executor object used to
-create execution, and the second parameter is a callable object encapsulating
-the task of the created execution. The executor is received by `const`
-reference because executors act as shallow-`const` "views" of execution
-contexts. Creating execution does not mutate the view. Single-agent
-customization points receive the callable as a forwarding reference.
+In a generic context, the programmer should use `execution::require` to ensure
+that the necessary execution function is available.
+
+    template<class Executor>
+    void generic_context(const Executor& ex)
+    {
+      auto task = ...;
+
+      // ensure .execute() is available with execution::require()
+      execution::require(ex, execution::single, execution::oneway).execute(task);
+    }
+
+In any case, each execution function has a unique semantic meaning corresponding to a particular use case.
+
+#### Single-Cardinality Execution Functions
+
+First we describe the general semantics of single-cardinality execution functions. For example, `.twoway_execute`: 
+
+    template<class Function>
+    executor_future_t<Executor, std::invoke_result_t<std::decay_t<Function>>
+    twoway_execute(Function&& f) const;
+
+In the descriptions that follow, let `Executor` be the type of `*this`; that
+is, the type of the executor. The only parameter of `.twoway_execute` is a
+callable object encapsulating the task of the created execution. The member
+function is `const` because executors act as shallow-`const` "views" of
+execution contexts. Creating execution does not mutate the view. Single-agent
+execution functions receive the callable as a forwarding reference.
 Single-agent, two-way customization points return the result of the callable
-object either directly, or through a future as shown above. One-way
-customization points always return `void`.
+object through a future as shown above. One-way customization points return
+`void`.
 
-For `then_execute`, the third parameter is a future which is the predecessor dependency for the execution:
+For `.then_execute`, the second parameter is a future which is the predecessor dependency for the execution:
 
-    template<class Executor, class Function, class Future>
+    template<class Function, class Future>
     executor_future_t<Executor,std::invoke_result_t<std::decay_t<Function>,U&>>
-    then_execute(const Executor& exec, Function&& f, Future& predecessor_future);
+    then_execute(Function&& f, Future& predecessor_future) const;
 
 Let `U` be the type of `Future`'s result object. The callable object `f` is
 invoked with a reference to the result object of the predecessor future (or
     without a parameter if a `void` future). By design, this is inconsistent
-with the interface of the Concurrency TS's `future::then` which invokes its
-continuation with a copy of the predecessor future. Our design avoids the
-composability issues of `future::then` [@Executors16:Issue96] and is consistent
-with `bulk_then_execute`, discussed below. Note that the type of `Future` is
+with the interface of the Concurrency TS's
+`std::experimental::v1::future::then` which invokes its continuation with a
+copy of the predecessor future. Our design avoids the composability issues of
+`std::experimental::v1::future::then` [@Executors16:Issue96] and is consistent
+with `.bulk_then_execute`, discussed below. Note that the type of `Future` is
 allowed to differ from `executor_future_t<Executor,U>`, enabling
 interoperability between executors and foreign or new future types.
 
-Note that customization points do not receive a parameter pack of arguments for
-`f`. This is a deliberate design to embue all customization point parameters
-with a semantic meaning which may be exploited by the executor. Generic
-parameters for `f` would have no special meaning. We expect most clients to
-manipulate executors through higher-level control structures which are better
-positioned to provide conveniences like variadic parameter packing. Otherwise,
-a client may use `std::bind` if an appropriate control structure is
-unavailable.
+Note that execution functions do not receive a parameter pack of arguments for
+`f`. This is a deliberate design intended to embue all customization point
+parameters with a semantic meaning which may be exploited by the executor.
+Generic parameters for `f` would have no special meaning to the execution
+function. We expect most clients to manipulate executors through higher-level
+control structures which are better positioned to provide conveniences like
+variadic parameter packing. Otherwise, a client may use `std::bind` if an
+appropriate control structure is unavailable.
 
-### Bulk Interfaces
+#### Bulk-Cardinality Execution Functions
 
-Bulk customization points create a group of execution agents as a unit, and
+Bulk-cardinality execution functions create a group of execution agents as a unit, and
 each of these execution agents calls an individual invocation of the given
 callable function object. The forward progress ordering guarantees of these invocations are
 given by `std::execution::executor_bulk_forward_progress_guarantee_t`. Because they create
-multiple agents, bulk customization points introduce ownership and lifetime
-issues avoided by single-agent customization points and they include additional
+multiple agents, bulk execution functions introduce ownership and lifetime
+issues avoided by single-cardinality customization points and they include additional
 parameters to address these issues. For example, consider
-`execution::bulk_async_execute`:
+`.bulk_twoway_execute`:
 
-    template<class Executor, class Function, class Factory1, class Factory2>
+    template<class Function, class Factory1, class Factory2>
     executor_future_t<Executor,std::invoke_result_t<Factory1>>
-    bulk_async_execute(const Executor& exec, Function f, executor_shape_t<Executor> shape,
-                       Factory1 result_factory, Factory2 shared_parameter_factory);
+    bulk_twoway_execute(Function f, executor_shape_t<Executor> shape,
+                        Factory1 result_factory, Factory2 shared_parameter_factory) const;
 
-**Bulk results.** The first difference is that `bulk_async_execute` returns the
+**Bulk results.** The first difference is that `.bulk_twoway_execute` returns the
 result of a **factory** rather than the result of `f`. Because bulk
 customization points create a group of execution agents which invoke multiple
 invocations of `f`, the result of execution is ambiguous. For example, all
@@ -903,14 +896,14 @@ storage and sharing schemes.
 
 [^factory_footnote]: This envisioned allocator support is why we refer to these callable objects as "factories" rather than simply "functions" or "callable objects".
 
-**Bulk continuations.** Like `then_execute`, `bulk_then_execute` introduces a
+**Bulk continuations.** Like `.then_execute`, `.bulk_then_execute` introduces a
 predecessor future upon which the bulk continuation depends:
 
-    template<class Executor, class Function, class Future, class Factory1, class Factory2>
+    template<class Function, class Future, class Factory1, class Factory2>
     executor_future_t<Executor,std::invoke_result_t<Factory1>>
-    bulk_then_execute(const Executor& exec, Function f, executor_shape_t<Executor> shape,
+    bulk_then_execute(Function f, executor_shape_t<Executor> shape,
                       Future& predecessor_future,
-                      Factory1 result_factory, Factory2 shared_factory);
+                      Factory1 result_factory, Factory2 shared_factory) const;
 
 If the predecessor future's result object is not `void`, a reference to the
 predecessor object is passed to `f`'s invocation. Like the result and shared
@@ -924,81 +917,70 @@ the same order as the corresponding parameters of the customization point. The
 agent index is always the first parameter, followed by the parameters emanating
 from `predecessor_future`, `result_factory`, and `shared_factory`.
 
-**Allocator parameters** can be optionally passed to all single cardinality
-execution functions. If an allocator is not provided the execution function will
-default to `std::allocator<void>`. The allocator parameter can be used by an
-executor to allocate the memory required to store the function object.
-
 ## Customization Points Adapt An Executor's Native Functionality
 
-Our [`std::async` implementation example](#example:async_implementation)
-illustrated that the control structure does not interact with the executor
-directly through a member function. Our design interposes customization
-points between control structures and executors to create a uniform interface
-for control structures to target. Recall that we have identified a set of
-possible fundamental executor interactions and we expect that this set may
-grow in the future. Since it would be too burdensome for a single executor to
-natively support this entire growing set of possible interactions, our design
-allows executors to select a subset for native support. At the same time, for
-any given executor, control structures need access to the largest possible
-set of fundamental interactions. Control structures gain access to the entire
-set[^adaptation_caveat] of fundamental interactions via adaptation. When an
-executor natively supports the requested fundamental interaction, the
-customization point simply calls that native function. When native support is
-unavailable, the executor's native interactions are adapted to fulfill the
-requested interaction's requirements.
+Our [`std::async` implementation example](#example:async_implementation) did
+not interact with the executor directly through a member function. Our design
+allows the user to interpose the `execution::require` and `execution::prefer`
+customization points between control structures and executors to create a
+uniform interface to target. Recall that we have identified a set of six
+execution functions and we expect that this set may grow in the
+future. Since it would be too burdensome for a single executor to natively
+support this entire growing set of possible interactions, our design allows
+executors to select a subset for native support. At the same time, for any
+given executor, control structures need access to the largest possible set of
+fundamental interactions. Control structures gain access to the entire
+set[^adaptation_caveat] of execution functions via adaptation. When an
+executor natively supports the execution function requested through `execution::require`, the
+`execution::require` acts like the identity function and returns the executor unchanged. When the requested execution function is
+unavailable, the executor's native execution functions are adapted to fulfill the
+requested requirement.
 
 [^adaptation_caveat]: In certain cases, some interactions are impossible
 because their requirements are inherently incompatible with a particular
 executor's provided functionality. For example, a requirement for never-blocking
 execution from an executor which always executes "inline".
 
-As a simple example, consider the adaptation performed by
-`execution::sync_execute` when a given executor provides no native support:
+As a simple example, consider a possible adaptation performed by
+`execution::require(ex, execution::always_blocking)` when `ex` does not
+natively guarantee always-blocking execution:
 
-    template<class Executor, class Function>
-    std::invoke_result_t<std::decay_t<Function>>
-    sync_execute(const Executor& exec, Function&& f)
+    template<class Executor>
+    struct always_blocking_adaptor
     {
-      auto future = execution::async_execute(exec, std::forward<Function>(f));
-      return future.get();
-    }
+      Executor wrapped;
 
-In this case, `execution::sync_execute` creates asynchronous execution via
-`execution::async_execute` and receives a future object, which is immediately
-waited on. Even though `exec` does not provide a native version of
-`sync_execute`, its client may use it as if it does.
+      template<class Function>
+      executor_future_t<Executor, std::invoke_result_t<std::decay_t<Function>>
+      twoway_execute(Function&& f) const
+      {
+        // create twoway execution through the wrapped executor
+        auto future = wrapped.twoway_execute(std::forward<Function>(f));
 
-**Predicting adaptations.** Other customization points may apply more complex
-adaptations than the simple one applied by `sync_execute`. Indeed, there may be
-a variety of ways to adapt a particular executor given the native interactions
-it offers. Some of these adaptations imply greater costs than others. Our
-proposal specifies these adaptations in detail and provides compile-time tools
-to allow clients who wish to do so the ability to predict what adaptations will
-be applied, if any, to an executor when used with a specific customization
-point.
+        // make the resulting future ready
+        // note that this always blocks the caller
+        future.wait();
 
-For example in order to predict whether the above adaptation is possible the type
-trait to query the executor:
+        // return the future
+        return future;
+      }
 
-    template<class T> struct can_sync_execute;
+      ...
+    };
 
-**Invariant preservation.** There are limits to the kinds of adaptations that
-customization points may apply, and these limits preserve executor invariants.
-The rationale is that a customization point should not introduce surprising
-behavior when adapting an executor's native functionality. During adaptation,
-         the basic invariant-preserving rule we apply is that only the
-         executor's native functionality creates execution agents. As a
-         corollary, an adaptation never introduces new threads into a program
-         unless the executor itself introduces those threads as an effect of
-         creating execution agents. Additionally, this rule implies that a
-         customization point never weakens guarantees made by an executor. For
-         example, given a never-blocking executor, a customization point
-         never[^invariant_caveat] blocks its client's execution.  Moreover, a
-         customization point never weakens the group execution ordering
-         guarantee provided by a bulk executor.
+In this case, `execution::require(ex, execution::always_blocking)` can return a
+copy of `ex` wrapped inside `always_blocking_adaptor` if `ex` does not natively
+provide always-blocking execution. Even if `ex` does not natively provide
+always-blocking execution, its client may use it as if it does.
 
-[^invariant_caveat]: Except in the case of `sync_execute`, as previously mentioned. 
+**Property preservation.** There are limits to the kinds of adaptations that
+`execution::require` and `execution::prefer` may apply, and these limits
+preserve executor properties. The rationale is that a customization point
+should not introduce surprising behavior when adapting an executor's native
+functionality. During adaptation, the basic rule we apply is that only the
+properties requested through a call to either `execution::require` or
+`execution::prefer` may be changed. The resulting executor must retain all the
+other properties of the original executor which were not named by the call.
 
 # Implementing Executors
 
