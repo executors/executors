@@ -1537,40 +1537,6 @@ design as a foundation.
 Much of our design for executors is well-established. However, some aspects of the
 design remain the subject of ongoing discussion.
 
-### `post` and `defer`
-
-Execution functions named `post` and `defer` have identical semantics.
-Specifically this means that, in generic code (i.e. code where the executor
-    type is a template parameter), calls to `post` and `defer` may be interchanged
-without altering program semantics or correctness. Where `post` and `defer` differ
-is in the information conveyed to the executor about the caller's intent: the
-use of `defer` indicates that the submitted function object represents a
-continuation of the caller.
-
-Concrete executor implementations can use this information to optimize
-performance. For example, a simple static thread pool can halve the
-synchronization performed per submitted function object (e.g. reducing the cost
-per function from 55ns to 26ns on recent x86-64 CPUs running Linux) when these
-function objects are chained. For applications that consist of long
-chains of short continuations, this represents a significant improvement in
-throughput and latency.
-
-// TODO: provide reference to this data
-
-However, all other execution function names represent distinct semantic
-guarantees; `post` and `defer` are the exceptions. To address this
-inconsistency, we may consider providing only one of these functions (i.e.
-`post`) and to introduce a hinting mechanism to convey the additional
-information to an executor. Ideally, this mechanism would be extensible to
-allow other hints to be introduced in the future (e.g. a hint to indicate that
-a submitted function object benefits from CPU affinity).
-
-As an example of established practice, the Boost.Asio library uses an ADL
-customization point, named `asio_handler_is_continuation` to provide
-functionality equivalent to `defer`. The library's executors apply this
-function to all submitted function objects to determine when the optimization
-may be applied.
-
 ### Relationship with Thread Local Storage
 
 By design, our executors model provides no explicit support for creating
@@ -1594,32 +1560,6 @@ execution agent and the client thread which requested the creation of that
 agent. Similarly, our programming model does not describe how executors would
 make such guarantees. Incorporating a model of *boost blocking* into our design
 could be one option.
-
-### Blocking Guarantees
-
-The blocking guarantee is not
-  applied uniformly. It is both a holistic property of the executor type and
-  also a property of individual customization points in a few exceptional
-  cases. This design is currently controversial. The reason that we chose for
-  blocking to be a property of the executor type was to avoid the combinatorial
-  explosion of three versions of each customization point: always-blocking,
-  never-blocking, and possibly-blocking. An alternative design could avoid
-  explosively versioning customization points but would also require a way to
-  introspect the blocking guarantee of individual customization points. A
-  design which discarded the ability to introspect blocking guarantees is
-  undesirable. It seemed simpler to the designers to understand and introspect
-  a blocking guarantee as a holistic property of the executor type, rather than
-  at the granularity of individual customization points.
-
-There are exceptions to this rule where blocking guarantees are provided at the
-granularity of individual customization points. The two-way `sync_` functions
-are exceptions because it is impossible to return the result of execution in a
-way that does not block the client which created that execution. The `post` and
-`defer` functions are exceptions to the executor's blocking trait because we
-desire the ability for a single executor to provide an always-blocking or
-possibly-blocking `execute` as well as the unconditionally never-blocking
-customization points `post` and `defer`. In such a situation, all three of
-these customization points have different semantics.
 
 ## Envisioned Extensions
 
