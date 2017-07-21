@@ -1238,21 +1238,11 @@ a copy of the executor.
 ## Execution Agent Creation via Execution Functions
 
 Executors expose their native support for execution agent creation through
-**execution functions** which are either member or free functions whose first
-parameter is an executor. Member functions are preferred, but free functions
-allow programmers to retrofit non-modifiable legacy types into executors. When
-it exists, an executor customization point simply calls the execution function
-sharing its same name without adaptation. When both a member and free function
-with the same name exist, customization points prefer the member function. This
-scheme is consistent with the precedent set by the Ranges TS
-[@Niebler17:RangesTS] which ensures that a third party cannot "hijack" an
-executor's native behavior by introducing a rogue free function.
-
-In this section, we describe the suite of execution functions we have
-identified as key to the needs of the Standard Library and TSes we have chosen
-to target. Without loss of generality, we discuss the free function form of
-each execution function in order of decreasing support each had within SG1 at
-the 2017 Kona standardization committee meeting.
+**execution functions** which are executor member functions. In this section,
+we describe the suite of execution functions we have identified as key to the
+needs of the Standard Library and TSes we have chosen to target. In the
+discussion that follows, let `Executor` be the type of the executor whose
+execution function is being described.
 
 ## Two-Way Bulk-Agent Functions
 
@@ -1262,26 +1252,21 @@ functionally special case.
 
 ### `bulk_then_execute`
 
-    template<class Executor, class Future, class Function, class ResultFactory,
-             class SharedFactory>
+    template<class Future, class Function, class ResultFactory, class SharedFactory>
     executor_future_t<Executor, std::invoke_result_t<std::decay_t<Function>,
-                     decltype(std::declval<Future>().get())&>>
-    bulk_then_execute(const Executor& exec, Function&& func, Future& pred,
+                      decltype(std::declval<Future>().get())&>>
+    bulk_then_execute(Function&& func, Future& pred,
                       executor_shape_t<Executor> shape,
                       ResultFactory result_factory,
-                      SharedFactory shared_factory);
+                      SharedFactory shared_factory) const;
 
-`bulk_then_execute` asynchronously creates a group of execution agents of shape
-`shape` with forward progress guarantees of
-`executor_execution_mapping_guarantee_t<Executor>`, bound to the executor `exec`
-whose execution begins after the completion of `pred` and returns a future that
-can be used to wait for execution to complete containing the result of
-`result_factory`. Each created execution agent calls
-`std::forward<Function>(func)(i, r, s)`, where `i` is of type
-`executor_index_t<Executor>`, `r` is a function object returned from
+`bulk_then_execute` creates a group of execution agents of shape
+`shape` and these agents begin execution after `pred` becomes ready.
+`bulk_then_execute` returns a future that can be used to wait for execution to
+complete, and this future contains the result of `result_factory`. Each created
+execution agent calls `std::forward<Function>(func)(i, r, s)`, where `i` is of
+type `executor_index_t<Executor>`, `r` is a function object returned from
 `return_factory` and `s` is a shared object returned from `shared_factory`.
-`bulk_then_execute` may or may not block the caller until execution completes,
-depending on the value of `executor_execute_blocking_guarantee_t<Executor>`.
 
 `bulk_then_execute` is the most general execution function we have identified
 because it may be used to implement any other execution function without having
@@ -1292,57 +1277,51 @@ optimizations which would not be possible had that information been discarded
 through backchannels.
 
 For example, suppose the only available execution function was
-`bulk_sync_execute`. It would be possible to implement `bulk_then_execute`'s
-functionality by making a call to `bulk_sync_execute` inside a continuation
+`bulk_twoway_execute`. It would be possible to implement `.bulk_then_execute`'s
+functionality by making a call to `bulk_twoway_execute` inside a continuation
 created by `predecessor_future.then`:
 
     predecessor_future.then([=] {
-      return exec.bulk_sync_execute(exec, f, shape, result_factory, shared_factory);
+      return exec.bulk_twoway_execute(exec, f, shape, result_factory, shared_factory).get();
     });
 
 Note that this implementation creates `1 + shape` execution agents: one agent
-created by `then` along with `shape` agents created by `bulk_sync_execute`.
+created by `then` along with `shape` agents created by `bulk_twoway_execute`.
 Depending on the relative cost of agents created by `then` and
-`bulk_sync_execute`, the overhead of introducing that extra agent may be
+`bulk_twoway_execute`, the overhead of introducing that extra agent may be
 significant. Moreover, because the `then` operation occurs separately from
-`bulk_sync_execute`, the continuation is invisible to `exec` and this precludes
+`bulk_twoway_execute`, the continuation is invisible to `exec` and this precludes
 `exec`'s participation in scheduling. Because we wish to allow executors to
 abstract sophisticated task-scheduling runtimes, this shortcoming is
 unacceptable.
 
-### `bulk_async_execute`
+### `bulk_twoway_execute`
 
-    template<class Executor, class Function, class ResultFactory,
+    template<lass Function, class ResultFactory,
              class SharedFactory>
     executor_future_t<std::invoke_result_t<std::decay_t<ResultFactory>>>
-    bulk_async_execute(const Executor& exec, Function&& func,
-                       executor_shape_t<Executor> shape,
-                       ResultFactory result_factory,
-                       SharedFactory shared_factory);
+    bulk_twoway_execute(Function&& func,
+                        executor_shape_t<Executor> shape,
+                        ResultFactory result_factory,
+                        SharedFactory shared_factory) const;
 
-`bulk_async_execute` asynchronously creates a group of execution agents of shape
-`shape` with forward progress guarantees of
-`executor_execution_mapping_guarantee_t<Executor>`, bound to the executor `exec`
-whose execution may begin immediately and returns a future that can be used to
-wait for execution to complete containing the result of `result_factory`. Each
-created execution agent calls `std::forward<Function>(func)(i, r, s)`, where
-`i` is of type `executor_index_t<Executor>`, `r` is a function object returned
-from `return_factory` and `s` is a shared object returned from `shared_factory`.
-`bulk_async_execute` may or may not block the caller until execution completes,
-depending on the value of `executor_execute_blocking_guarantee_t<Executor>`.
+`bulk_twoway_execute` creates a group of execution agents of shape `shape` and
+returns a future that can be used to wait for execution to complete. This
+future contains the result of `result_factory`. Each created execution agent
+calls `std::forward<Function>(func)(i, r, s)`, where `i` is of type
+`executor_index_t<Executor>`, `r` is a function object returned from
+`return_factory` and `s` is a shared object returned from `shared_factory`.
 
-
-Like `bulk_then_execute`, `bulk_async_execute`
-returns a future corresponding to the result of the asynchronous group of
-execution agents it creates. Due to these similarities, `bulk_async_execute` is
-functionally equivalent to calling `bulk_then_execute` with a ready `void`
-future:
+Like `bulk_then_execute`, `bulk_twoway_execute` returns a future corresponding
+to the result of the asynchronous group of execution agents it creates. Due to
+these similarities, `bulk_twoway_execute` is functionally equivalent to calling
+`bulk_then_execute` with a ready `void` future:
 
     future<void> no_predecessor = make_ready_future();
     exec.bulk_then_execute(func, shape, no_predecessor, result_factory,
                            shared_factory);
 
-We include `bulk_async_execute` because the equivalent path through
+We include `bulk_twoway_execute` because the equivalent path through
 `bulk_then_execute` via a ready future may incur overhead. The cost of the
 future itself may be significant, especially if any sort of
 dynamically-allocated asynchronous state is associated with that future.
@@ -1355,104 +1334,6 @@ Moreover, common types of executor may not naturally create execution in terms
 of continuations on futures as expected by `bulk_then_execute`.
 `bulk_async_execute` is a better match for these cases because it does not
 require accommodating a predecessor dependency.
-
-### `bulk_async_post`
-
-    template<class Executor, class Function, class ResultFactory,
-             class SharedFactory>
-    executor_future_t<std::invoke_result_t<std::decay_t<ResultFactory>>>
-    bulk_async_post(const Executor& exec, Function&& func,
-                    executor_shape_t<Executor> shape,
-                    ResultFactory result_factory,
-                    SharedFactory shared_factory);
-
-`bulk_async_post` asynchronously creates a group of execution agents of shape
-`shape` with forward progress guarantees of
-`executor_execution_mapping_guarantee_t<Executor>`, bound to the executor `exec`
-whose execution may begin immediately and returns a future that can be used to
-wait for execution to complete containing the result of `result_factory`. Each
-created execution agent calls `std::forward<Function>(func)(i, r, s)`, where
-`i` is of type `executor_index_t<Executor>`, `r` is a function object returned
-from `return_factory` and `s` is a shared object returned from
-`shared_factory`. `bulk_async_post` does not block the caller, regardless of
-the value of `executor_execute_blocking_guarantee_t<Executor>`.
-
-`bulk_async_post` is equivalent to `bulk_async_execute` except that it makes an
-additional guarantee not to block the client's execution. Some executors will
-not be able to provide such a guarantee and could not be adapted to this
-functionality when `bulk_async_post` is absent. For example, an implementation
-of `bulk_async_post` which simply forwards its arguments directly to
-`bulk_async_execute` is possible only if
-`executor_execute_blocking_guarantee_t<Executor>` is `never_blocking_execution`.
-
-### `bulk_async_defer`
-
-    template<class Executor, class Function, class ResultFactory,
-             class SharedFactory>
-    executor_future_t<std::invoke_result_t<std::decay_t<ResultFactory>>>
-    bulk_async_defer(const Executor& exec, Function&& func,
-                     executor_shape_t<Executor> shape,
-                     ResultFactory result_factory,
-                     SharedFactory shared_factory);
-
-`bulk_async_defer` asynchronously creates a group of execution agents of shape
-`shape` with forward progress guarantees of
-`executor_execution_mapping_guarantee_t<Executor>`, bound to the executor `exec`
-whose execution may begin immediately and returns a future that can be used to
-wait for execution to complete containing the result of `result_factory`. Each
-created execution agent calls `std::forward<Function>(func)(i, r, s)`, where `i`
-is of type `executor_index_t<Executor>`, `r` is a function object returned from
-`return_factory` and `s` is a shared object returned from `shared_factory`.
-`bulk_async_defer` does not block the caller,
-regardless of the value of `executor_execute_blocking_guarantee_t<Executor>`.
-
-`bulk_async_defer` is equivalent to `bulk_async_execute` except that it makes an
-additional guarantee not to block the client's execution. Some executors will
-not be able to provide such a guarantee and could not be adapted to this
-functionality when `bulk_async_defer` is absent. For example, an implementation
-of `bulk_async_defer` which simply forwards its arguments directly to
-`bulk_async_execute` is possible only if
-`executor_execute_blocking_guarantee_t<Executor>` is `never_blocking_execution`.
-
-**Comparison to bulk_async_post.** The behavior of `bulk_async_defer` is
-semantically equivalent to `bulk_async_post` and is primarily to indicate an
-ordering of work which allows for additional performance optimizations within
-the executor implementation.
-
-### `bulk_sync_execute`
-
-    template<class Executor, class Function, class ResultFactory,
-             class SharedFactory>
-    std::invoke_result_t<std::decay_t<Function>>
-    bulk_sync_execute(const Executor& exec, Function&& func,
-                      executor_shape_t<Executor> shape,
-                      ResultFactory result_factory,
-                      SharedFactory shared_factory);
-
-`bulk_sync_execute` asynchronously creates a group of execution agents of shape
-`shape` with forward progress guarantees of
-`executor_execution_mapping_guarantee_t<Executor>`, bound to the executor `exec`
-whose execution may begin immediately and returns the result of
-`result_factory`. Each created execution agent calls
-`std::forward<Function>(func)(i, r, s)`, where `i` is of type
-`executor_index_t<Executor>`, `r` is a function object retured from
-`return_factory` and `s` is a shared object returned from `shared_factory`.
-`bulk_sync_execute` always blocks the caller until execution completes,
-regardless of the value of `executor_execute_blocking_guarantee_t<Executor>`.
-
-`bulk_sync_execute` is equivalent to `bulk_async_execute` except that it blocks
-its client until the result of execution is complete. It returns this result
-directly as a value, rather than indirectly via a future object.
-Correspondingly, it may be implemented by calling `bulk_async_execute` and
-getting the future's result:
-
-    auto future = exec.bulk_async_execute(f, shape, result_factory, shared_factory);
-    return future.get();
-
-Like `bulk_async_execute`, we include `bulk_sync_execute` to avoid overhead
-incurred by introducing a temporary future object. This overhead is likely to
-be significant for executors whose cost of execution agent creation is very
-small. A hypothetical `simd_executor` or `inline_executor` are examples.
 
 ## Two-Way Single-Agent Functions
 
@@ -1489,24 +1370,17 @@ executor "natively" supports single-agent execution (e.g. the
 
 ### `then_execute`
 
-    template<class Executor, class Function, class Future,
-             class Allocator = std::allocator<void>>
+    template<class Function, class Future>
     executor_future_t<Executor, std::invoke_result_t<std::decay_t<Function>,
                       decltype(std::declval<Future>().get())&>>
-    then_execute(const Executor& exec, Function&& func, Future& pred,
-                 Allocator& alloc = Allocator());
+    then_execute(Function&& func, Future& pred) const;
 
-`then_execute` asynchronously creates a single execution agent bound to the
-executor `exec` whose execution begins after the completion of `pred` and
-returns a future that can be used to wait for execution to complete containing
-the result of `func`. The created execution agent calls
-`std::forward<Function>(func)()`. `then_execute` may or may not the caller until
-execution completes, depending on the value of
-`executor_execute_blocking_guarantee_t<Executor>`. The allocator `alloc` can be
-used to allocate memory for `func`.
+`then_execute` creates a single execution agent and this agent begins execution
+after `pred` becomes ready. `then_execute` returns a future that can be used to
+wait for execution to complete, and this future contains the result of `func`.
+The created execution agent calls `std::forward<Function>(func)()`.
 
-`then_execute` creates an asynchronous execution agent. It may be implemented
-by using `bulk_then_execute` to create a group with a single agent:
+`then_execute` may be implemented by using `bulk_then_execute` to create a group with a single agent:
 
     using result_t = std::invoke_result_t<Function>;
     using predecessor_t = decltype(predecessor_future.get());
@@ -1540,31 +1414,25 @@ The sample implementation passes both the function to invoke and its result
 indirectly via factories. The result of these factories are shared across the
 group of agents created by `bulk_then_execute`. However, this group has only
 one agent and no sharing actually occurs. The cost of this unnecessary sharing
-may be significant and can be avoided if an executor specializes `then_execute`.
+may be significant and can be avoided if an executor natively provides `then_execute`.
 
-### `async_execute`
+### `twoway_execute`
 
-    template<class Executor, class Function,
-             class Allocator = std::allocator<void>>
-    executor_future_t<std::invoke_result_t<std::decay_t<Function>>>
-    async_execute(const Executor& exec, Function&& func,
-                  Allocator& alloc = Allocator());
+    template<class Function>
+    executor_future_t<Executor, std::invoke_result_t<std::decay_t<Function>>>
+    twoway_execute(Function&& func) const;
 
-`async_execute` asynchronously creates a single execution agent bound to the
-executor `exec` whose execution may begin immediately and returns a future that
-can be used to wait for execution to complete containing the result of `func`.
+`twoway_execute` creates a single execution agent and returns a future that
+can be used to wait for execution to complete. This future contains the result of `func`.
 The created execution agent calls `std::forward<Function>(func)()`.
-`async_execute` may or may not the caller until execution completes, depending
-on the value of `executor_execute_blocking_guarantee_t<Executor>`. The allocator
-`alloc` can be used to allocate memory for `func`.
 
-`async_execute`  may be implemented by using `then_execute` with a ready `void` future:
+`twoway_execute`  may be implemented by using `then_execute` with a ready `void` future:
 
     std::experimental::future<void> ready_future = std::experimental::make_ready_future();
     return exec.then_execute(std::forward<Function>(f), ready_future);
 
-Alternatively, `bulk_async_execute` could be used, analogously to the use of
-`bulk_then_execute` in `then_execute`'s implementation.
+Alternatively, `bulk_twoway_execute` could be used, analogously to the use of
+`bulk_then_execute` in the example implementation of `then_execute`.
 
 The cost of a superfluous immediately-ready future object could be significant
 compared to the cost of agent creation. For example, the future object's
@@ -1585,196 +1453,25 @@ recognize this case and take special action for `always_ready_future`.
 
 Because of the opportunity for efficient specialization of a common use case, and to avoid
 requiring executors to explicitly support continuations with `then_execute`, including
-`async_execute` as an execution function is worthwhile.
-
-### `async_post`
-
-    template<class Executor, class Function,
-             class Allocator = std::allocator<void>>
-    executor_future_t<std::invoke_result_t<std::decay_t<Function>>>
-    async_post(const Executor& exec, Function&& func,
-               Allocator& alloc = Allocator());
-
-`async_post` asynchronously creates a single execution agent bound to the
-executor `exec` whose execution may begin immediately and returns a future that
-can be used to wait for execution to complete containing the result of `func`.
-The created execution agent calls `std::forward<Function>(func)()`.
-`async_post` does not block the caller, regardless of the value of
-`executor_execute_blocking_category_t<Executor>`. The allocator `alloc` can be
-used to allocate memory for `func`.
-
-`async_post` is equivalent to `async_execute` except that it makes an
-additional guarantee not to block the client's execution. Some executors will
-not be able to provide such a guarantee and could not be adapted to this
-functionality when `async_post` is absent. For example, an implementation of
-`async_post` which simply forwards its arguments directly to `async_post` is
-possible only if `executor_execute_blocking_guarantee_t<Executor>` is
-`never_blocking_execution`.
-
-### `async_defer`
-
-    template<class Executor, class Function,
-             class Allocator = std::allocator<void>>
-    executor_future_t<std::invoke_result_t<std::decay_t<Function>>>
-    async_defer(const Executor& exec, Function&& func,
-                Allocator& alloc = Allocator());
-
-`async_defer` asynchronously creates a single execution agent bound to the
-executor `exec` whose execution may begin immediately and returns a future that
-can be used to wait for execution to complete containing the result of `func`.
-The created execution agent calls `std::forward<Function>(func)()`.
-`async_defer` does not block the caller, regardless of the value of
-`executor_execute_blocking_category_t<Executor>`. The allocator `alloc` can be
-used to allocate memory for `func`.
-
-`async_defer` is equivalent to `async_execute` except that it makes an
-additional guarantee not to block the client's execution. Some executors will
-not be able to provide such a guarantee and could not be adapted to this
-functionality when `async_defer` is absent. For example, an implementation of
-`async_defer` which simply forwards its arguments directly to `async_defer` is
-possible only if `executor_execute_blocking_guarantee_t<Executor>` is
-`never_blocking_execution`.
-
-**Comparison to async_post.** `async_defer`'s semantics are identical to
-`async_post`. That is, they may be used interchangeably without effecting a
-program's correctness. `async_defer` indicates that `func` represents a
-continuation of the caller which allows for additional performance
-optimizations within the executor implementation.
-
-### `sync_execute`
-
-    template<class Executor, class Function,
-             class Allocator = std::allocator<void>>
-    std::invoke_result_t<std::decay_t<Function>>
-    sync_execute(const Executor& exec, Function&& func,
-                 Allocator& alloc = Allocator());
-
-`sync_execute` asynchronously creates a single execution agent bound to the
-executor `exec` whose execution may begin immediately and returns the result of
-`func`. The created execution agent calls `std::forward<Function>(func)()`.
-`sync_execute` blocks the caller until execution completes. The allocator
-`alloc` can be used to allocate memory for `func`.
-
-`sync_execute` is equivalent to `async_execute` except that it blocks its
-client until the result of execution is complete. It returns this result
-directly as a value, rather than indirectly via a future object.
-Correspondingly, it may be implemented by calling `async_execute` and getting the future's result:
-
-    auto future = exec.async_execute(std::forward<Function>(f));
-    return future.get();
-
-Like `async_execute`, we include `sync_execute` to avoid overhead incurred by
-introducing a temporary future object. This overhead is likely to be
-significant for executors whose cost of execution agent creation is very small.
-A hypothetical `simd_executor` or `inline_executor` are examples.
-
-We believe it is possible to make the cost of the future arbitrarily small in
-very special cases. For example, if the executor's associated future is a
-hypothetical `always_ready_future`, then a path through `async_execute` is
-unlikely to incur any penalty:
-
-    template<class T>
-    class always_ready_future {
-      private:
-        T value_;
-
-      public:
-        T get() { return value_; }
-
-      ...
-    };
-
-    ...
-
-    using result_type = std::invoke_result_t<std::decay_t<Function>>;
-    always_ready_future<result_type> future = exec.async_execute(std::forward<Function>(f));
-
-However, this efficient implementation depends on `always_ready_future` being
-the executor's associated future type. Moreover, it requires the executor to
-treat `async_execute` as `sync_execute`'s moral equivalent by returning an
-immediately ready result which always blocks the client.
-
-Because most executors will not return ready future objects from their two-way
-asynchronous execution functions, they will incur the overhead of this
-`async_execute`-based implementation. Therefore, `sync_execute` is worth
-including.
+`twoway_execute` as an execution function is worthwhile.
 
 ## One-Way Bulk-Agent Functions
 
-### `bulk_post`
-
-    template<class Executor, class Function, class SharedFactory>
-    void bulk_post(const Executor& exec, Function&& func,
-                   executor_shape_t<Executor> shape,
-                   SharedFactory shared_factory);
-
-`bulk_post` asynchronously creates a group of execution agents of shape `shape`
-with forward progress guarantees of
-`executor_execution_mapping_guarantee_t<Executor>`, bound to the executor `exec`
-whose execution may begin immediately and does not return a value. Each created
-execution agent calls `std::forward<Function>(func)(i, s)`, where `i` is of
-type `executor_index_t<Executor>` and `s` is a shared object returned from
-`shared_factory`. `bulk_post` does not block the caller, regardless of the
-value of `executor_execute_blocking_category_t<Executor>`.
-
-`bulk_post` is equivalent to `bulk_execute` except that it makes an additional
-guarantee not to block the client's execution. Some executors will not be able
-to provide such a guarantee and could not be adapted to this functionality when
-`bulk_post` is absent. For example, an implementation of `bulk_post` which
-simply forwards its arguments directly to `bulk_execute` is possible only if
-`executor_execute_blocking_guarantee_t<Executor>` is
-`never_blocking_execution`.
-
-### `bulk_defer`
-
-    template<class Executor, class Function, class SharedFactory>
-    void bulk_defer(const Executor& exec, Function&& func,
-                    executor_shape_t<Executor> shape,
-                    SharedFactory shared_factory);
-
-
-`bulk_defer` asynchronously creates a group of execution agents of shape
-`shape` with forward progress guarantees of
-`executor_execution_mapping_guarantee_t<Executor>`, bound to the executor `exec`
-whose execution may begin immediately and does not return a value. Each created
-execution agent calls `std::forward<Function>(func)(i, s)`, where `i` is of
-type `executor_index_t<Executor>` and `s` is a shared object returned from
-`shared_factory`. `bulk_defer` does not block the caller, regardless of the
-value of `executor_execute_blocking_category_t<Executor>`.
-
-`bulk_defer` is equivalent to `bulk_execute` except that it makes an additional
-guarantee not to block the client's execution. Some executors will not be able
-to provide such a guarantee and could not be adapted to this functionality when
-`bulk_defer` is absent. For example, an implementation of `bulk_defer` which
-simply forwards its arguments directly to `bulk_execute` is possible only if
-`executor_execute_blocking_guarantee_t<Executor>` is
-`never_blocking_execution`.
-
-**Comparison to bulk_post.** `bulk_defer`'s semantics are identical to
-`bulk_post`. That is, they may be used interchangeably without effecting a
-program's correctness. `bulk_defer` indicates that `func` represents a bulk
-continuation of the caller which allows for additional performance
-optimizations within the executor implementation.
-
 ### `bulk_execute`
 
-    template<class Executor, class Function, class SharedFactory>
+    template<class Function, class SharedFactory>
     void bulk_execute(const Executor& exec, Function&& func,
                       executor_shape_t<Executor> shape,
-                      SharedFactory shared_factory);
+                      SharedFactory shared_factory) const;
 
-`bulk_execute` asynchronously creates a group of execution agents of shape
-`shape` with forward progress guarantees of
-`executor_execution_mapping_guarantee_t<Executor>`, bound to the executor `exec`
-whose execution may begin immediately and does not return a value. Each created
-execution agent calls `std::forward<Function>(func)(i, s)`, where `i` is of type
+`bulk_execute` creates a group of execution agents of shape `shape` and does
+not return a result. Each created execution agent calls
+`std::forward<Function>(func)(i, s)`, where `i` is of type
 `executor_index_t<Executor>` and `s` is a shared object returned from
-`shared_factory`. `bulk_execute` may or may not the caller until execution
-completes, depending on the value of
-`executor_execute_blocking_guarantee_t<Executor>`.
+`shared_factory`. 
 
 `bulk_execute` is equivalent to `execute` except that it creates a single
-execution agent rather than a group of execution agents.
+execution agent rather than a group of execution agents. Consider an example implementation:
 
     // create shared object
     auto shared = shared_factory;
@@ -1800,67 +1497,19 @@ created by `execute`.
 
 ## One-Way Single-Agent Functions
 
-### `post`
-
-    template<class Executor, class Function, class Allocator = std::allocator<void>>
-    void post(const Executor& exec, Function&& func, Allocator& alloc = Allocator());
-
-`post` asynchronously creates a single execution agent bound to the executor
-`exec` whose execution may begin immediately and does not return a value. The
-created execution agent calls `std::forward<Function>(func)()`. `post` does not
-block the caller, regardless of the value of
-`executor_execute_blocking_category_t<Executor>`. The allocator `alloc` can be
-used to allocate memory for `func`.
-
-`post` is equivalent to `execute` except that it makes an additional guarantee
-not to block the client's execution. Some executors will not be able to provide
-such a guarantee and could not be adapted to this functionality when `post` is
-absent. For example, an implementation of `post` which simply forwards its
-arguments directly to `execute` is possible only if
-`executor_execute_blocking_guarantee_t<Executor>` is `never_blocking_execution`.
-
-### `defer`
-
-    template<class Executor, class Function, class Allocator = std::allocator<void>>
-    void defer(const Executor& exec, Function&& func, Allocator& alloc = Allocator());
-
-`defer` asynchronously creates a single execution agent bound to the executor
-`exec` whose execution may begin immediately and does not return a value. The
-created execution agent calls `std::forward<Function>(func)()`. `defer` does
-not block the caller, regardless of the value of
-`executor_execute_blocking_category_t<Executor>`. The allocator `alloc` can be
-used to allocate memory for `func`.
-
-`defer` is equivalent to `execute` except that it makes an additional guarantee
-not to block the client's execution. Some executors will not be able to provide
-such a guarantee and could not be adapted to this functionality when `defer` is
-absent. For example, an implementation of `defer` which simply forwards its
-arguments directly to `execute` is possible only if
-`executor_execute_blocking_guarantee_t<Executor>` is `never_blocking_execution`.
-
-**Comparison to post.** `defer`'s semantics are identical to `post`. That is,
-they may be used interchangeably without effecting a program's correctness.
-`defer` indicates that `func` represents a continuation of the caller which
-allows for additional performance optimizations within the executor
-implementation.
-
 ### `execute`
 
-    template<class Executor, class Function, class Allocator = std::allocator<void>>
-    void execute(const Executor& exec, Function&& func, Allocator& alloc = Allocator());
+    template<class Function>
+    void execute(Function&& func) const;
 
-`execute` asynchronously creates a single execution agent bound to the executor
-`exec` whose execution may begin immediately and does not return a value. The
-created execution agent calls `std::forward<Function>(func)()`. `execute` may or
-may not the caller until execution completes, depending on the value of
-`executor_execute_blocking_guarantee_t<Executor>`. The allocator `alloc` can be
-used to allocate memory for `func`.
+`execute` asynchronously creates a single execution agent and does not return a
+result. The created execution agent calls `std::forward<Function>(func)()`. 
 
 `execute` is equivalent to `bulk_execute` except that it creates a group of
 execution agents rather than a single execution agent. This means that an
-executor that provides `bulk_execute` could be adapted to make the semantic
+executor that provides `bulk_execute` could be adapted to provide the semantic
 guarantees of `execute` if it were absent, by creating a group with a single
-execution agent.
+execution agent. Consider an example implementation:
 
     // pass func as a shared parameter to account for move-only functions
     auto shared_factory = [func = std::forward<Function>(f)]{ return func; };
@@ -1875,9 +1524,10 @@ execution agent.
       shared_factory
     );
 
-As with the adaptation of `then_execute` described earlier this group has only
-one agent and no sharing actually occurs. The cost of this unnecessary sharing
-may be significant and can be avoided if an executor specializes `then_execute`.
+As with our example implementation of `then_execute` described earlier, this
+group has only one agent and no sharing actually occurs. The cost of this
+unnecessary sharing may be significant and can be avoided by an executor
+providing `execute`.
 
 # Future Work
 
