@@ -989,27 +989,32 @@ requirements of the executor interface. The simplest possible example may be an
 executor which always creates execution "inline":
 
     struct inline_executor {
-      bool operator==(const inline_executor&) const {
+      bool operator==(const inline_executor&) const noexcept {
         return true;
       }
 
-      bool operator!=(const inline_executor&) const {
+      bool operator!=(const inline_executor&) const noexcept {
         return false;
       }
 
-      const inline_executor& context() const {
+      const inline_executor& context() const noexcept {
+        return *this;
+      }
+
+      inline_executor require(execution::always_blocking) const noexcept
+      {
         return *this;
       }
 
       template<class Function>
-      auto sync_execute(Function&& f) const {
-        return std::forward<Function>(f)();
+      void execute(Function&& f) const noexcept {
+        std::forward<Function>(f)();
       }
     };
 
 First, all executor types must be `CopyConstructible`, which our
 `inline_executor` implicitly satisfies. Other requirements are satisfied by
-explicitly defining various member types and functions for introspection and
+explicitly defining various member types and functions for introspection, property requests, and
 execution agent creation.
 
 ## Introspection
@@ -1082,6 +1087,8 @@ object. Consider a `thread_pool_executor`:
         const thread_pool& context() const {
           return pool_;
         }
+
+        ...
 
         template<class Function>
         void execute(Function&& f) const {
@@ -1219,6 +1226,14 @@ associated future type, which is the type of object returned by asynchronous,
 [^future_footnote]: For now, the only type which satisfies `Future` is
 `std::experimental::future`, specified by the Concurrency TS. We expect the
 requirements of `Future` to be elaborated by a separate proposal.
+
+## Property Requests via `.require` and `.prefer`
+
+Executors may optionally implement the member functions `.require` or `.prefer`
+to receive property requests from clients. In the case of our `inline_executor`
+example, `.require` can receive requests for always-blocking execution, which
+all `inline_executor`s natively provide. The result of this function is simply
+a copy of the executor.
 
 ## Execution Agent Creation via Execution Functions
 
