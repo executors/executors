@@ -482,10 +482,6 @@ and technical specifications.
 
 Table: The control structures we propose to introduce.
 
-Addionally, note that SG5 Transactional Memory is also studying how proposed TM constructs in the Transactional Memory TS can be
-integrated with executors. As TM constructs are compound statements of the form `atomic_noexcept  | atomic_commit | atomic_cancel  {<compound-statement> }` and `synchronized  {<compound-statement> }`, it seems they can also apply with executors.
-
-
 ## Fundamental Interactions with Executors via Execution Functions
 
 Some control structures (e.g., `solve`) will simply forward the executor to
@@ -1670,7 +1666,7 @@ correct thread count for the use case. As a result, it assumes a pre-determined
 sizing and does not automatically resize itself and has no default size.
 
 There exist heuristics for right-sizing a thread pool (both statically
-determined like 2*hardware_concurrency, as well as dynamically adjusted), but
+determined like `2*hardware_concurrency`, as well as dynamically adjusted), but
 these are considered to be out of scope of this proposal as a reasonable size
 pool is specific to the application and hardware.
 
@@ -1738,6 +1734,15 @@ shape of each of these groups. Instead of receiving a single factory to create
 the shared state for a single group, the interface receives a different factory
 for each level of the hierarchy. Each group's shared parameter originates from
 the corresponding factory in this variadic list.
+
+### Transactional Memory
+
+SG5 Transactional Memory is studying how proposed TM constructs in the
+Transactional Memory TS can be integrated with executors. As TM constructs are
+compound statements of the form `atomic_noexcept  | atomic_commit |
+atomic_cancel  {<compound-statement> }` and `synchronized
+{<compound-statement> }`, it seems they can also apply with executors.
+
 
 # References
 
