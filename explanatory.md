@@ -1,3 +1,33 @@
+----------------    -------------------------------------
+Title:              Executors Design Document
+
+Document Number:    P0676R0
+
+Authors:            Jared Hoberock, jhoberock@nvidia.com
+
+                    Michael Garland, mgarland@nvidia.com
+
+                    Chris Kohlhoff, chris@kohlhoff.com
+
+                    Chris Mysen, mysen@google.com
+
+                    Carter Edwards, hcedwar@sandia.gov
+
+                    Gordon Brown, gordon@codeplay.com
+
+                    Michael Wong, michael@codeplay.com
+
+Date:               2017-07-31
+
+Audience:           SG1 - Concurrency and Parallelism
+
+Reply-to:           sg1-exec@googlegroups.com
+
+Abstract:           This paper is a companion to [P0443](http://wg21.link/P0443) and describes the executors programming model it specifies. This paper is directed toward readers who want to understand in detail the mechanics of P0443's programming model, and the rationale underpinning the choices of that model's design.
+
+------------------------------------------------------
+
+
 # Introduction
 
 Execution is a fundamental concern of C++ programmers. Every piece of every
