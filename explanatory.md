@@ -1,7 +1,7 @@
 ----------------    -------------------------------------
 Title:              Executors Design Document
 
-Document Number:    P0676R0
+Document Number:    PXXXXR0
 
 Authors:            Jared Hoberock, jhoberock@nvidia.com
 
@@ -629,7 +629,7 @@ An executor may guarantee that its execution functions never block, possibly blo
 their clients.
 
 There are three mutually-exclusive blocking properties :
-`execution::never_blocking`, `execution::possibly_blocking`, and
+`execution::never_blocking`, `execution::possibly-` `_blocking`, and
 `execution::always_blocking`. The blocking properties guarantee the blocking
 behavior of all of an executor's execution functions. For example, when
 `.execute(task)` is called on an executor whose blocking property is
@@ -1495,21 +1495,18 @@ design as a foundation.
 Much of our design for executors is well-established. However, some aspects of the
 design remain the subject of ongoing discussion.
 
-### Relationship with Thread Local Storage
+**Relationship with Thread Local Storage.** By design, our executors model
+provides no explicit support for creating thread-local storage. Instead, our
+design provides programmers with tools to reason about the relationship of
+programmer-defined `thread_local` variables and execution agents created by
+executors. For example, the executor properties `thread_execution_mapping` and
+`new_thread_execution_mapping` describe how execution agents are mapped onto
+threads, and consequently how the lifetimes of those agents relate to the
+lifetimes of `thread_local` variables. It is unclear whether these tools are
+sufficient or if more fine-grained control over thread local storage is
+warranted.
 
-By design, our executors model provides no explicit support for creating
-thread-local storage. Instead, our design provides programmers with tools to
-reason about the relationship of programmer-defined `thread_local` variables
-and execution agents created by executors. For example, the executor properties
-`thread_execution_mapping` and `new_thread_execution_mapping` describe how
-execution agents are mapped onto threads, and consequently how the lifetimes of
-those agents relate to the lifetimes of `thread_local` variables. It is unclear
-whether these tools are sufficient or if more fine-grained control over thread
-local storage is warranted.
-
-### Forward Progress Guarantees and Boost Blocking
-
-Our executor programming model prescribes a way for bulk executors to advertise
+**Forward Progress Guarantees and Boost Blocking.** Our executor programming model prescribes a way for bulk executors to advertise
 the forward progress guarantees of execution agents created in bulk. This
 guarantee describes an agent's forward progress with respect to other agents
 within the same group as that agent. However, our model prescribes no analogous
@@ -1525,9 +1522,7 @@ we conclude with a brief survey of future work extending our proposal. Some of
 this work has already begun and there are others which we believe ought to be
 investigated.
 
-### `Future` Concept
-
-Our proposal depends upon the ability of executors to create future objects
+**`Future` Concept.** Our proposal depends upon the ability of executors to create future objects
 whose types differ from `std::future`. Such user-defined `std::future`-like
 objects will allow interoperation with resources whose asynchronous execution
 is undesirable or impossible to track through standard means. For example,
@@ -1542,15 +1537,13 @@ primitives of full-fledged `std::future` objects. We envision that a
 separate effort will propose a `Future` concept which would introduce
 requirements for these user-defined `std::future`-like types.
 
-### Thread Pool Variations
-
-Our proposal specifies a single thread pool type, `static_thread_pool`, which
+**Thread Pool Variations.** Our proposal specifies a single thread pool type, `static_thread_pool`, which
 represents a simple thread pool which assumes that the creator knows the
 correct thread count for the use case. As a result, it assumes a pre-determined
 sizing and does not automatically resize itself and has no default size.
 
 There exist heuristics for right-sizing a thread pool (both statically
-determined like `2*hardware_concurrency`, as well as dynamically adjusted), but
+determined like `2*std::thread::hardware` `-_concurrency()`, as well as dynamically adjusted), but
 these are considered to be out of scope of this proposal as a reasonable size
 pool is specific to the application and hardware.
 
@@ -1560,9 +1553,7 @@ separate effort which will propose an additional thread pool type,
 `dynamic_thread_pool`, and we expect this type of thread pool to be both
 dynamically and automatically resizable.
 
-### Execution Resources
-
-Our executors model describes execution agents as bound to *execution
+**Execution Resources.** Our executors model describes execution agents as bound to *execution
 resources*, which we imagine as the physical hardware and software facilities
 upon which execution happens. However, our design does not incorporate a
 programming model for execution resources. We expect that future proposals will
@@ -1570,9 +1561,7 @@ extend our work by describing a programming model for programming tasks such as
 enumerating the resources of a system and querying the underlying resources of
 a particular execution context.
 
-### Heterogeneity
-
-Contemporary execution resources are heterogeneous. CPU cores, lightweight CPU
+**Heterogeneity.** Contemporary execution resources are heterogeneous. CPU cores, lightweight CPU
 cores, SIMD units, GPU cores, operating system runtimes, embedded runtimes, and
 database runtimes are examples. Heterogeneity of resources often manifests in
 non-standard C++ programming models as programmer-visible versioned functions
@@ -1591,9 +1580,7 @@ compilation, reflection, serialization, and others. A separate
 effort should characterize the programming problems posed by
 heterogeneity and suggest solutions.
 
-### Bulk Execution Extensions
-
-Our current proposal's model of bulk execution is flat and one-dimensional.
+**Bulk Execution Extensions.** Our current proposal's model of bulk execution is flat and one-dimensional.
 Each bulk execution function creates a single group of execution agents, and
 the indices of those agents are integers. We envision extending this simple
 model to allow executors to organize agents into hierarchical groups and assign
@@ -1607,10 +1594,10 @@ The organization of such a hierarchy would induce groups of groups (of groups...
 execution agents and would introduce a different piece of shared state for each non-terminal node of this
 hierarchy. The interface to such an execution function would look like:
 
-    template<class Executor, class Function, class ResultFactory, class... SharedFactories>
-    std::invoke_result_t<ResultFactory()>
-    bulk_sync_execute(const Executor& exec, Function f, executor_shape_t<Executor> shape,
-                      ResultFactory result_factory, SharedFactories... shared_factories);
+    template<class Function, class ResultFactory, class... SharedFactories>
+    execution::executor_future_t<Executor, std::invoke_result_t<ResultFactory()>>
+    bulk_twoway_execute(Function f, executor_shape_t<Executor> shape,
+                        ResultFactory result_factory, SharedFactories... shared_factories);
 
 In this interface, the `shape` parameter simultaneously describes the hierarchy
 of groups created by this execution function as well as the multidimensional
@@ -1619,9 +1606,7 @@ the shared state for a single group, the interface receives a different factory
 for each level of the hierarchy. Each group's shared parameter originates from
 the corresponding factory in this variadic list.
 
-### Transactional Memory
-
-SG5 Transactional Memory is studying how proposed TM constructs in the
+**Transactional Memory.** SG5 Transactional Memory is studying how proposed TM constructs in the
 Transactional Memory TS can be integrated with executors. As TM constructs are
 compound statements of the form `atomic_noexcept  | atomic_commit |
 atomic_cancel  {<compound-statement> }` and `synchronized
