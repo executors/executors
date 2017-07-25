@@ -137,7 +137,7 @@ Typical examples of an execution context are a thread pool or a distributed or
 heterogeneous runtime.
 
 An **execution agent** is a unit of execution of a specific execution context
-that is mapped to a single execution of a callable function on an execution
+that is mapped to a single invocation of a callable function on an execution
 resource. An execution agent can too have different semantics which are derived
 from the execution context.
 
@@ -159,7 +159,7 @@ a client.
 
 ## Using Executors with the Standard Library
 
-Some functions, like `std::async`, will receive executors as parameters directly:
+Some functions, like a new executor-aware overload of `std::async`, will receive executors as parameters directly:
 
     // get an executor through some means
     my_executor_type my_executor = ...
@@ -451,7 +451,7 @@ other type of base executor. For example, consider a hypothetical logging
 executor which prints output to a log when the base executor is used to create
 execution:
 
-    // get an executor from the thread pool
+    // get an executor from a thread pool
     auto exec = pool.executor();
 
     // wrap the thread pool's executor in a logging_executor
@@ -482,7 +482,7 @@ and technical specifications.
 | Standard Library    | Concurrency TS        | Parallelism TS                     | Networking TS           |
 |---------------------|-----------------------|------------------------------------|-------------------------|
 | `invoke`            | `future::then`        | `define_task_block`                | `post`                  |
-| `async`             | `shared_future::then` | `define_task_block_restore_thread` | `dispatch`              |
+| `async`             | `shared_future::then` | `define_task_block-` `_restore_thread` | `dispatch`              |
 | parallel algorithms |                       | `task_block::run`                  | `defer`                 |
 |                     |                       |                                    | asynchronous operations |
 |                     |                       |                                    | `strand<>` (N.B. although an executor itself, a `strand` acts as a control structure over other executors in order to guarantee non-concurrent execution) |
@@ -513,15 +513,15 @@ async(const Executor& exec, Function&& f, Args&&... args) {
 ```
 
 The implementation proceeds in three steps. First, we package `f` along with
-its arguments into a nullary function, `g`.  Next, using the customization
-point `execution::require`, we introduce requirements for single-agent, two-way
-**properties**. This step uses `exec` to produce a new executor, `new_exec`
-which encapsulates these requirements. Finally, we call an **execution
-function**. Execution functions are the fundamental executor interactions
-which create execution. In this case, that execution functions is
-`.twoway_execute`, which creates a single execution agent to invoke a nullary
-function. The agent's execution is asynchronous, and `.twoway_execute` returns
-a future corresponding to its completion.
+its arguments into a nullary function, `g`.  Next, using `execution::require`, we
+introduce requirements for single-agent, two-way executor **properties**. This step uses
+`exec` to produce a new executor, `new_exec` which encapsulates these
+requirements. Finally, we call an **execution function**. Execution functions
+are the fundamental executor interactions which create execution. In this case,
+that execution functions is `.twoway_execute`, which creates a single
+execution agent to invoke a nullary function. The agent's execution is
+asynchronous, and `.twoway_execute` returns a future corresponding to its
+completion.
 
 Before describing the precise semantics of execution functions in detail, we
 will first describe executor properties which affect the way they behave.
@@ -530,7 +530,7 @@ will first describe executor properties which affect the way they behave.
 
 Executor properties are objects associated with an executor. Through calls to
 `execution::require` and `execution::prefer`, users may either strongly or
-weakly reassociate a property with a given executor. Such reassociations may
+weakly associate a property with a given executor. Such reassociations may
 transform the executor's type in the process. For example, in our [example
 implementation of `std::async`](#example:async_implementation), we use
 `execution::require` to strongly require the `single` and `twoway` properties
@@ -923,21 +923,23 @@ from `predecessor_future`, `result_factory`, and `shared_factory`.
 ## Customization Points Adapt An Executor's Native Functionality
 
 Our [`std::async` implementation example](#example:async_implementation) did
-not interact with the executor directly through a member function. Our design
-allows the user to interpose the `execution::require` and `execution::prefer`
-customization points between control structures and executors to create a
-uniform interface to target. Recall that we have identified a set of six
-execution functions and we expect that this set may grow in the
-future. Since it would be too burdensome for a single executor to natively
-support this entire growing set of possible interactions, our design allows
-executors to select a subset for native support. At the same time, for any
-given executor, control structures need access to the largest possible set of
-fundamental interactions. Control structures gain access to the entire
-set[^adaptation_caveat] of execution functions via adaptation. When an
-executor natively supports the execution function requested through `execution::require`, the
-`execution::require` acts like the identity function and returns the executor unchanged. When the requested execution function is
-unavailable, the executor's native execution functions are adapted to fulfill the
-requested requirement.
+not interact with the incoming executor directly through a member function. Our
+design allows the user to interpose the `execution::require` and
+`execution::prefer` customization points between control structures and
+executors to create a uniform interface to target. Recall that we have
+identified a set of six execution functions and we expect that this set may
+grow in the future. Since it would be too burdensome for every type of executor to
+natively support this entire growing set of possible interactions, our design
+allows executors to select a subset for native support.
+
+At the same time, for any given executor, control structures need access to the
+largest possible set of fundamental interactions. Control structures gain
+access to the entire set[^adaptation_caveat] of execution functions via
+adaptation. When an executor natively supports the execution function requested
+through `execution::require`, `execution::require` acts like the identity
+function and returns the executor unchanged. When the requested execution
+function is unavailable, the executor's native execution functions are adapted
+to fulfill the requested requirement.
 
 [^adaptation_caveat]: In certain cases, some interactions are impossible
 because their requirements are inherently incompatible with a particular
@@ -974,7 +976,7 @@ natively guarantee always-blocking execution:
 In this case, `execution::require(ex, execution::always_blocking)` can return a
 copy of `ex` wrapped inside `always_blocking_adaptor` if `ex` does not natively
 provide always-blocking execution. Even if `ex` does not natively provide
-always-blocking execution, its client may use it as if it does.
+always-blocking execution, its client may use `ex` as if it does.
 
 **Property preservation.** There are limits to the kinds of adaptations that
 `execution::require` and `execution::prefer` may apply, and these limits
@@ -988,7 +990,7 @@ other properties of the original executor which were not named by the call.
 # Implementing Executors
 
 A programmer implements an executor by defining a type which satisfies the
-requirements of the executor interface. The simplest possible example may be an
+requirements of the executor interface. The simplest possible example is an
 executor which always creates execution "inline":
 
     struct inline_executor {
@@ -1030,7 +1032,7 @@ through executor-specific type traits.
 **Executor identity.** All executors are required to be `EqualityComparable` in
 order for clients to reason about their identity. If two executors are
 equivalent, then they may be used interchangably to produce the same side
-effects. For example, because `inline_executor::sync_execute` simply invokes
+effects. For example, because `inline_executor::execute` simply invokes
 its function inline, all instances of `inline_executor` produce the same side
 effects and are therefore equivalent.
 
