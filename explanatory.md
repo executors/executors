@@ -1597,5 +1597,9 @@ compound statements of the form `atomic_noexcept  | atomic_commit |
 atomic_cancel  {<compound-statement> }` and `synchronized
 {<compound-statement> }`, it seems they can also apply with executors.
 
+# Acknowledgements
+
+We appreciate the feedback on this document provided by Billy O'Neal and Torvald Riegel.
+
 # References
 
