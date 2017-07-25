@@ -281,7 +281,7 @@ original executor `ex`:
 
     auto never_blocking_ex = std::execution::require(ex, std::execution::never_blocking);
 
-    ex.execute(
+    never_blocking_ex.execute(
         [h = std::move(completion_handler), my_result]() mutable
         {
           h(my_result);
@@ -295,7 +295,7 @@ invokes the completion handler using a possibly-blocking executor:
 
     auto possibly_blocking_ex = std::execution::require(ex, std::execution::possibly_blocking);
 
-    ex.execute(
+    possibly_blocking_ex.execute(
         [h = std::move(completion_handler), my_result]() mutable
         {
           h(my_result);
