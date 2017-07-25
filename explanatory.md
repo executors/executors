@@ -276,22 +276,26 @@ the operation is complete. This object automatically calls the executor's
 
 If an asynchronous operation completes immediately (that is, within the
 asynchronous operation's initiating function), the completion handler is
-scheduled for invocation using the executor's `post` customization point:
+scheduled for invocation using a never-blocking executor created from the
+original executor `ex`:
 
-    std::execution::post(ex,
+    auto never_blocking_ex = std::execution::require(ex, std::execution::never_blocking);
+
+    ex.execute(
         [h = std::move(completion_handler), my_result]() mutable
         {
           h(my_result);
         }
       );
 
-A never-blocking execution function is used above to ensure that operations that
+A never-blocking executor is used above to ensure that operations that
 always complete immediately do not lead to deadlock or stack exhaustion. On the
 other hand, if the operation completes later then the asynchronous operation
-invokes the completion handler using the possibly-blocking execution
-function:
+invokes the completion handler using a possibly-blocking executor:
 
-    std::execution::execute(ex,
+    auto possibly_blocking_ex = std::execution::require(ex, std::execution::possibly_blocking);
+
+    ex.execute(
         [h = std::move(completion_handler), my_result]() mutable
         {
           h(my_result);
@@ -303,9 +307,12 @@ latency.
 
 Finally, if an asynchronous operation consists of multiple intermediate steps,
 these steps may be scheduled using the defer execution function:
+these steps may be scheduled using an executor which may execute as continuations of the calling thread:
+
+    auto continuation_ex = std::execution::prefer(ex, std::execution::continuation);
 
     // asynchronous operation consists of multiple steps
-    std::execution::defer(my_intermediate_complete_handler)
+    continuation_ex.execute(my_intermediate_complete_handler);
 
 This informs the executor of the relationship between the intermediate
 completion handlers, and allows it to optimize the scheduling and invocation
