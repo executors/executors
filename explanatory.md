@@ -1123,98 +1123,6 @@ the corresponding name (sans prefix), the value of these traits have a default.
 This default conveys semantics that make the fewest assumptions about the
 executor's behavior.
 
-**Execution mapping.** When executors create execution agents, they are
-*mapped* onto execution resources. The properties of this mapping may be of
-interest to some clients. For example, the relationship between an execution
-agent and the lifetime of `thread_local` variables may be inferred by
-inspecting the mapping of the agent onto its thread of execution (if any). In
-our model, such mappings are represented as empty tag types and they are
-introspected through the `executor_execution_mapping_guarantee` type trait.
-Currently, this trait returns one of three values:
-
-  1. `other_execution_mapping`: The executor maps agents onto non-standard execution resources.
-  2. `thread_execution_mapping`: The executor maps agents onto threads of execution.
-  3. `new_thread_execution_mapping`: The executor maps each agent onto a new thread of execution, and that thread of execution does not change over the agent's lifetime.
-
-The first mapping type is intended to represent mappings onto resources
-which are not standard threads of execution. The abilities of such agents may
-be subject to executor-defined limitations. The next two types indicate
-that agents execute on standard threads of execution as normal.
-`thread_execution_mapping` guarantees that agents execute on threads, but
-makes no additional guarantee about the identification between agent and
-thread. `new_thread_execution_mapping` does make an additional
-guarantee; each agent executes on a newly-created thread. We envision that
-this set of mapping types may grow in the future.
-
-The default value of `executor_execution_mapping_guarantee` is `thread_execution_mapping`.
-
-**Blocking guarantee.** When a client uses an executor to create execution
-agents, the execution of that client may be blocked pending the completion of
-those execution agents. The `executor_execute_blocking_guarantee` trait
-describes the way in which these agents are guaranteed to block their client.
-
-When executors create execution agents, those agents
-possibly block the client's execution pending the completion of those agents.
-This guarantee is given by `executor_execute_blocking_guarantee`, which
-returns one of three values:
-
-  1. `always_blocking_execution`: The agents' execution blocks the client.
-  2. `possibly_blocking_execution`: The agents' execution possibly blocks the client.
-  3. `never_blocking_execution`: The agents' execution does not block the client.
-
-The guarantee provided by `executor_execute_blocking_guarantee` only applies to
-those customization points whose name is suffixed with `execute`. Exceptions
-are the `sync_` customization points, which must always block their client by
-definition. When the agents created by an executor possibly block its client,
-  it's conceivable that the executor could provide dynamic runtime facilities
-  for querying its actual blocking behavior. However, our design prescribes no
-  interface for doing so.
-
-The default value of `executor_execute_blocking_guarantee` is `possibly_blocking_execution`.
-
-**Bulk forward progress guarantee.** When an executor creates a group of execution
-agents, their bulk forward progress obeys certain semantics. For example, a group of
-agents may invoke the user-provided function sequentially, or they may be
-invoked in parallel. Any guarantee the executor makes of these semantics is
-conveyed by the `executor_bulk_forward_progress_guarantee_t` trait, which takes one one of
-three values:
-
-  1. `bulk_sequenced_execution`: The invocations of the user-provided callable function object are sequenced in lexicographical order of their indices.
-  2. `bulk_parallel_execution`: The invocations of the user-provided callable function object are unsequenced when invoked on separate threads, and indeterminately sequenced when invoked on the same thread.
-  3. `bulk_unsequenced_execution`: The invocations of the user-provided callable function object are not guaranteed to be sequenced, even when those invocations are executed within the same thread.
-
-These guarantees agree with those made by the corresponding standard execution
-policies, and indeed these guarantees are intended to be used by execution
-policies to describe the invocations of element access functions during
-parallel algorithm execution. One difference between these guarantees and the
-standard execution policies is that, unlike `std::execution::sequenced_policy`,
-`bulk_sequenced_execution` does not imply that execution happens on the
-client's thread[^seq_footnote]. Instead, `executor_execution_mapping_guarantee`
-captures such guarantees.
-
-We expect this list to grow in the future. For example, guarantees of
-concurrent or vectorized execution among a group of agents would be obvious
-additions.
-
-The default value of `executor_bulk_forward_progress_guarantee` is `bulk_unsequenced_execution`.
-
-[^seq_footnote]: We might want to introduce something like `this_thread_execution_mapping` to capture the needs of `std::execution::seq`, which requires algorithms to execute on the current thread.
-
-These describe the types of parameters involved in bulk customization points
-
-**Executor shape type.** When an executor creates a group of execution agents
-in bulk, the index space of those agents is described by a *shape*. Our current
-proposal is limited to one-dimensional shapes representable by an integral
-type, but we envision generalization to multiple dimensions. The type of an
-executor's shape is given by `executor_shape`, and its default value is
-`std::size_t`.
-
-**Executor index type.** Execution agents within a group are uniquely
-identified within their group's index space by an *index*. In addition to
-sharing the dimensionality of the shape, these indices have a lexicographic
-ordering. Like `executor_shape`, the type of an executor's index is given by
-`executor_index`, and its default value is `std::size_t`.
-
 **Execution context type.** `executor_context` simply names the type of an
 executor's execution context by decaying the result of its member function
 `.context`. This default cannot be overriden by a member type because
@@ -1231,6 +1139,19 @@ associated future type, which is the type of object returned by asynchronous,
 [^future_footnote]: For now, the only type which satisfies `Future` is
 `std::experimental::future`, specified by the Concurrency TS. We expect the
 requirements of `Future` to be elaborated by a separate proposal.
+
+**Executor shape type.** When an executor creates a group of execution agents
+in bulk, the index space of those agents is described by a *shape*. Our current
+proposal is limited to one-dimensional shapes representable by an integral
+type, but we envision generalization to multiple dimensions. The type of an
+executor's shape is given by `executor_shape`, and its default value is
+`std::size_t`.
+
+**Executor index type.** Execution agents within a group are uniquely
+identified within their group's index space by an *index*. In addition to
+sharing the dimensionality of the shape, these indices have a lexicographic
+ordering. Like `executor_shape`, the type of an executor's index is given by
+`executor_index`, and its default value is `std::size_t`.
 
 ## Property Requests via `.require` and `.prefer`
 
@@ -1249,13 +1170,13 @@ needs of the Standard Library and TSes we have chosen to target. In the
 discussion that follows, let `Executor` be the type of the executor whose
 execution function is being described.
 
-## Two-Way Bulk-Agent Functions
+### Two-Way Bulk-Agent Functions
 
 We begin by discussing the execution functions which create groups of execution
 agents in bulk, because the corresponding single-agent functions are each a
 functionally special case.
 
-### `bulk_then_execute`
+#### `bulk_then_execute`
 
     template<class Future, class Function, class ResultFactory, class SharedFactory>
     executor_future_t<Executor, std::invoke_result_t<std::decay_t<Function>,
@@ -1300,7 +1221,7 @@ significant. Moreover, because the `then` operation occurs separately from
 abstract sophisticated task-scheduling runtimes, this shortcoming is
 unacceptable.
 
-### `bulk_twoway_execute`
+#### `bulk_twoway_execute`
 
     template<lass Function, class ResultFactory,
              class SharedFactory>
@@ -1340,9 +1261,7 @@ of continuations on futures as expected by `bulk_then_execute`.
 `bulk_async_execute` is a better match for these cases because it does not
 require accommodating a predecessor dependency.
 
-## Two-Way Single-Agent Functions
-
-### Single vs Bulk Execution Functions
+### Two-Way Single-Agent Functions
 
 Conceptually, single-agent execution functions are special cases of their bulk
 counterparts. However, we expect single-agent creation to be an important
@@ -1373,7 +1292,7 @@ lose the ability to perform a compile time test to determine whether an
 executor "natively" supports single-agent execution (e.g. the
 `has_executor_member` trait included in this proposal).
 
-### `then_execute`
+#### `then_execute`
 
     template<class Function, class Future>
     executor_future_t<Executor, std::invoke_result_t<std::decay_t<Function>,
@@ -1421,7 +1340,7 @@ group of agents created by `bulk_then_execute`. However, this group has only
 one agent and no sharing actually occurs. The cost of this unnecessary sharing
 may be significant and can be avoided if an executor natively provides `then_execute`.
 
-### `twoway_execute`
+#### `twoway_execute`
 
     template<class Function>
     executor_future_t<Executor, std::invoke_result_t<std::decay_t<Function>>>
@@ -1460,9 +1379,9 @@ Because of the opportunity for efficient specialization of a common use case, an
 requiring executors to explicitly support continuations with `then_execute`, including
 `twoway_execute` as an execution function is worthwhile.
 
-## One-Way Bulk-Agent Functions
+### One-Way Bulk-Agent Functions
 
-### `bulk_execute`
+#### `bulk_execute`
 
     template<class Function, class SharedFactory>
     void bulk_execute(const Executor& exec, Function&& func,
@@ -1500,9 +1419,9 @@ for loop at the point of submission would incur overhead and would not be able
 to guarantee correct forward progress guarantees between each execution agent
 created by `execute`.
 
-## One-Way Single-Agent Functions
+### One-Way Single-Agent Functions
 
-### `execute`
+#### `execute`
 
     template<class Function>
     void execute(Function&& func) const;
@@ -1551,12 +1470,12 @@ design remain the subject of ongoing discussion.
 By design, our executors model provides no explicit support for creating
 thread-local storage. Instead, our design provides programmers with tools to
 reason about the relationship of programmer-defined `thread_local` variables
-and execution agents created by executors. For example, the executor type trait
-`executor_execution_mapping_guarantee` describes how execution agents are mapped
-onto threads, and consequently how the lifetimes of those agents relate to the
-lifetimes of `thread_local` variables. It is unclear whether these tools are
-sufficient or if more fine-grained control over thread local storage is
-warranted.
+and execution agents created by executors. For example, the executor properties
+`thread_execution_mapping` and `new_thread_execution_mapping` describe how
+execution agents are mapped onto threads, and consequently how the lifetimes of
+those agents relate to the lifetimes of `thread_local` variables. It is unclear
+whether these tools are sufficient or if more fine-grained control over thread
+local storage is warranted.
 
 ### Forward Progress Guarantees and Boost Blocking
 
@@ -1572,7 +1491,7 @@ could be one option.
 
 ## Envisioned Extensions
 
-we conclude with a brief survey of future work extending our proposal. some of
+we conclude with a brief survey of future work extending our proposal. Some of
 this work has already begun and there are others which we believe ought to be
 investigated.
 
@@ -1592,20 +1511,6 @@ results do not require expensive dynamic allocation or synchronization
 primitives of full-fledged `std::future` objects. We envision that a
 separate effort will propose a `Future` concept which would introduce
 requirements for these user-defined `std::future`-like types.
-
-### Error Handling
-
-Our proposal prescribes no mechanism for execution functions to communicate
-exceptional behavior back to their clients. For our purposes, exceptional
-behavior includes exceptions thrown by the callable functions invoked by
-execution agents and failures to create those execution agents due to resource
-exhaustion. In most cases, resource exhaustion can be reported immediately
-similar to `std::async`'s behavior. Reporting exceptions encountered by
-execution agents can also be generalized from `std::async`. We envision that
-asynchronous two-way functions will report errors through an exceptional future
-object, and synchronous two-way functions will simply throw any exceptions they
-encounter as normal. However, it is not clear what mechanism, if any, one-way
-execution functions should use for error reporting.
 
 ### Thread Pool Variations
 
@@ -1691,7 +1596,6 @@ Transactional Memory TS can be integrated with executors. As TM constructs are
 compound statements of the form `atomic_noexcept  | atomic_commit |
 atomic_cancel  {<compound-statement> }` and `synchronized
 {<compound-statement> }`, it seems they can also apply with executors.
-
 
 # References
 
