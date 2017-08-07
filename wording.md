@@ -33,6 +33,12 @@ namespace execution {
   constexpr struct outstanding_work_t {} outstanding_work;
   constexpr struct not_outstanding_work_t {} not_outstanding_work;
 
+  // Properties for caller execution forward progress guarantess:
+
+  constexpr struct caller_sequenced_execution_t {} caller_sequenced_execution;
+  constexpr struct caller_parallel_execution_t {} caller_parallel_execution;
+  constexpr struct caller_unsequenced_execution_t {} caller_unsequenced_execution;
+
   // Properties for bulk execution forward progress guarantees:
 
   constexpr struct bulk_sequenced_execution_t {} bulk_sequenced_execution;
@@ -357,6 +363,27 @@ The `continuation` and `not_continuation` properties are mutually exclusive.
 | `not_outstanding_work` | The existence of the executor object does not indicate any likely future submission of a function object. |
 
 The `outstanding_work` and `not_outstanding_work` properties are mutually exclusive.
+
+### Properties for execution forward progress guarantees with caller
+
+These properties communicate the forward progress and ordering guarantees of execution agent(s) with respect to the caller.
+
+    constexpr struct caller_sequenced_execution_t {} caller_sequenced_execution;
+    constexpr struct caller_parallel_execution_t {} caller_parallel_execution;
+    constexpr struct caller_unsequenced_execution_t {} caller_unsequenced_execution;
+
+| Property | Requirements |
+|----------|--------------|
+| `caller_sequenced_execution` | |
+| `caller_parallel_execution` | |
+| `caller_unsequenced_execution` | |
+
+TODO: *The meanings and relative "strength" of these categores are to be defined.
+Most of the wording for `caller_sequenced_execution`, `caller_parallel_execution`,
+and `caller_unsequenced_execution` can be migrated from S 25.2.3 p2, p3, and
+p4, respectively.*
+
+The `caller_sequenced_execution`, `caller_parallel_execution`, and `caller_unsequenced_execution` properties are mutually exclusive.
 
 ### Properties for bulk execution forward progress guarantees
 
