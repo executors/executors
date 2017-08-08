@@ -297,13 +297,6 @@ the completion handler by calling the `get_associated_executor` function:
 
     auto ex = std::experimental::net::get_associated_executor(completion_handler)
 
-To inform the executor that there is a pending operation, the asynchronous
-operation creates an `executor_work_guard` object and keeps a copy of it until
-the operation is complete. This object automatically calls the executor's
-`on_work_started` and `on_work_finished` member functions.
-
-    auto work = std::experimental::net::make_work_guard(ex);
-
 If an asynchronous operation completes immediately (that is, within the
 asynchronous operation's initiating function), the completion handler is
 scheduled for invocation using a never-blocking executor created from the
@@ -318,12 +311,22 @@ original executor `ex`:
         }
       );
 
-A never-blocking executor is used above to ensure that operations that
-always complete immediately do not lead to deadlock or stack exhaustion. On the
-other hand, if the operation completes later then the asynchronous operation
-invokes the completion handler using a possibly-blocking executor:
+A never-blocking executor is required to ensure that operations that always
+complete immediately do not lead to deadlock or stack exhaustion.
 
-    auto possibly_blocking_ex = std::execution::require(ex, std::execution::possibly_blocking);
+Otherwise, to inform the executor that there is now a pending operation, the
+asynchronous operation specifies that `execution::outstanding_work` is a
+preferred property of the executor.
+
+    auto work_ex = std::execution::prefer(ex, std::execution::outstanding_work);
+
+The asynchronous operation keeps a copy of this executor until the operation is
+complete.
+
+When the asynchronous operation completes some time later, it invokes the
+completion handler using a (preferably) possibly-blocking executor:
+
+    auto possibly_blocking_ex = std::execution::prefer(work_ex, std::execution::possibly_blocking);
 
     possibly_blocking_ex.execute(
         [h = std::move(completion_handler), my_result]() mutable
@@ -336,10 +339,10 @@ This allows the result to be delivered to the application code with minimal
 latency.
 
 Finally, if an asynchronous operation consists of multiple intermediate steps,
-these steps may be scheduled using the defer execution function:
-these steps may be scheduled using an executor which may execute as continuations of the calling thread:
+these steps may be scheduled using an executor which may execute submitted
+tasks as continuations of the calling execution agent:
 
-    auto continuation_ex = std::execution::prefer(ex, std::execution::continuation);
+    auto continuation_ex = std::execution::prefer(work_ex, std::execution::continuation);
 
     // asynchronous operation consists of multiple steps
     continuation_ex.execute(my_intermediate_complete_handler);
