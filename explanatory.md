@@ -709,12 +709,12 @@ executor creates work:
       bool on;
       Ex wrapped;
 
-      auto context() const { return wrapped.context(); }
-      bool operator==(const logging_executor& other) { return wrapped == other.wrapped; }
-      bool operator!=(const logging_executor& other) { return wrapped != other.wrapped; }
+      auto context() const noexcept { return wrapped.context(); }
+      bool operator==(const logging_executor& other) const noexcept { return wrapped == other.wrapped; }
+      bool operator!=(const logging_executor& other) const noexcept { return wrapped != other.wrapped; }
 
       template<class Function>
-      void execute(Function f)
+      void execute(Function f) const
       {
         if(on) std::cout << ".execute() called" << std::endl;
         wrapped.execute(f);
@@ -1111,15 +1111,15 @@ object. Consider a `thread_pool_executor`:
       public:
         thread_pool_executor(thread_pool& pool) : pool_(pool) {}
 
-        bool operator==(const thread_pool& other) const {
+        bool operator==(const thread_pool& other) const noexcept {
           return pool_ == other.pool_;
         }
 
-        bool operator!=(const thread_pool& other) const {
+        bool operator!=(const thread_pool& other) const noexcept {
           return pool_ != other.pool_;
         }
 
-        const thread_pool& context() const {
+        const thread_pool& context() const noexcept {
           return pool_;
         }
 
