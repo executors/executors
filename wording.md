@@ -41,6 +41,7 @@ namespace execution {
 
   // Properties for mapping of execution on to threads:
 
+  constexpr struct default_execution_mapping_t {} default_execution_mapping;
   constexpr struct thread_execution_mapping_t {} thread_execution_mapping;
   constexpr struct new_thread_execution_mapping_t {} new_thread_execution_mapping;
 
@@ -48,6 +49,7 @@ namespace execution {
 
   template<class ProtoAllocator> struct allocator_t { ProtoAllocator alloc; };
   template<class ProtoAllocator> constexpr allocator_t<ProtoAllocator> allocator(const ProtoAllocator& a) { return {a}; }
+  struct default_allocator_t {} deault_allocator;
 
   // Executor type traits:
 
@@ -310,6 +312,8 @@ An executor's properties are modified by calling the `require` or `prefer` funct
 | `twoway` | The executor type satisfies the `TwoWayExecutor` or `BulkTwoWayExecutor` requirements. |
 | `then` | The executor type satisfies the `ThenExecutor` or `BulkThenExecutor` requirements. |
 
+The `oneway`, `twoway` and `then` properties are accumulative.
+
 ### Cardinality properties
 
     constexpr struct single_t {} single;
@@ -319,6 +323,8 @@ An executor's properties are modified by calling the `require` or `prefer` funct
 |----------|--------------|
 | `single` | The executor type satisfies the `OneWayExecutor`, `TwoWayExecutor`, or `ThenExecutor` requirements. |
 | `bulk` | The executor type satisfies the `BulkOneWayExecutor`, `BulkTwoWayExecutor`, or `BulkThenExecutor` requirements. |
+
+The `single` and `bulk` properties are accumulative.
 
 ### Blocking properties
 
@@ -343,6 +349,7 @@ The `never_blocking`, `possibly_blocking`, and `always_blocking` properties are 
 |----------|--------------|
 | `continuation` | Function objects submitted through the executor represent continuations of the caller. If the caller is a lightweight execution agent managed by the executor or its associated execution context, the execution of the submitted function object may be deferred until the caller completes. |
 | `not_continuation` | Function objects submitted through the executor do not represent continuations of the caller. |
+| `possibly_continuation` | Function objects submitted through the executor may or may not represent continuations of the caller. |
 
 The `continuation` and `not_continuation` properties are mutually exclusive.
 
@@ -383,13 +390,15 @@ The `bulk_sequenced_execution`, `bulk_parallel_execution`, and `bulk_unsequenced
 
     constexpr struct thread_execution_mapping_t {} thread_execution_mapping;
     constexpr struct new_thread_execution_mapping_t {} new_thread_execution_mapping;
+    constexpr struct default_execution_mapping_t {} default_execution_mapping;
 
 | Property | Requirements |
 |----------|--------------|
 | `thread_execution_mapping` | Execution agents created by the executor are mapped onto threads of execution. |
 | `new_thread_execution_mapping` | Each execution agent created by the executor is mapped onto a new thread of execution. |
+| `default_execution_mapping` | Mapping of each execution agent created by the executor is implementation defined. |
 
-The `thread_execution_mapping` and `new_thread_execution_mapping` properties are mutually exclusive.
+The `thread_execution_mapping`, `new_thread_execution_mapping` and `default_execution_mapping` properties are mutually exclusive.
 
 [*Note:* A mapping of an execution agent onto a thread of execution implies the
 agent executes as-if on a `std::thread`. Therefore, the facilities provided by
@@ -402,10 +411,14 @@ agents. *--end note*]
 
     template<class ProtoAllocator> struct allocator_t { ProtoAllocator alloc; };
     template<class ProtoAllocator> constexpr allocator_t<ProtoAllocator> allocator(const ProtoAllocator& a) { return {a}; }
+    struct default_allocator_t {} deault_allocator;
 
 | Property | Requirements |
 |----------|--------------|
-| `allocator` | Executor implementations shall use the supplied allocator to allocate any memory required to store the submitted function object. |
+| `allocator(ProtoAllocator)` | Executor implementations shall use the supplied allocator to allocate any memory required to store the submitted function object. |
+| `default_allocator` | Executor implementations shall use a default implmentation defined allocator to allocate any memory required to store the submitted function object. |
+
+The `allocator(ProtoAllocator)` and `default_allocator` properties are mutually exclusive.
 
 ## Executor type traits
 
