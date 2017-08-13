@@ -349,7 +349,6 @@ The `never_blocking`, `possibly_blocking`, and `always_blocking` properties are 
 |----------|--------------|
 | `continuation` | Function objects submitted through the executor represent continuations of the caller. If the caller is a lightweight execution agent managed by the executor or its associated execution context, the execution of the submitted function object may be deferred until the caller completes. |
 | `not_continuation` | Function objects submitted through the executor do not represent continuations of the caller. |
-| `possibly_continuation` | Function objects submitted through the executor may or may not represent continuations of the caller. |
 
 The `continuation` and `not_continuation` properties are mutually exclusive.
 
