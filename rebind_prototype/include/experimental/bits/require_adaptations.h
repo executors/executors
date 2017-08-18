@@ -161,6 +161,7 @@ template<class Executor>
   typename std::enable_if<
     (is_oneway_executor<Executor>::value || is_bulk_oneway_executor<Executor>::value)
     && !(is_twoway_executor<Executor>::value || is_bulk_twoway_executor<Executor>::value)
+    && has_require_member<Executor, unsafe_mode_t>::value
     && !has_require_member<Executor, twoway_t>::value, twoway_adapter<Executor>>::type
       require(Executor ex, twoway_t) { return twoway_adapter<Executor>(std::move(ex)); }
 
@@ -169,6 +170,74 @@ template<class Executor>
     (is_twoway_executor<Executor>::value || is_bulk_twoway_executor<Executor>::value)
     && !has_require_member<Executor, twoway_t>::value, Executor>::type
       require(Executor ex, twoway_t) { return std::move(ex); }
+
+// Default adapter for unsafe mode adds the unsafe mode property.
+
+template<class InnerExecutor>
+class unsafe_mode_adapter
+{
+  InnerExecutor inner_ex_;
+  template <class T> static auto inner_declval() -> decltype(std::declval<InnerExecutor>());
+
+public:
+  unsafe_mode_adapter(InnerExecutor ex) : inner_ex_(std::move(ex)) {}
+
+  unsafe_mode_adapter require(unsafe_mode_t) const & { return *this; }
+  unsafe_mode_adapter require(unsafe_mode_t) && { return std::move(*this); }
+  InnerExecutor require(safe_mode_t) const & { return inner_ex_; }
+  InnerExecutor require(safe_mode_t) && { return std::move(inner_ex_); }
+
+  template<class... T> auto require(T&&... t) const &
+    -> unsafe_mode_adapter<typename require_member_result<InnerExecutor, T...>::type>
+      { return { inner_ex_.require(std::forward<T>(t)...) }; }
+  template<class... T> auto require(T&&... t) &&
+    -> unsafe_mode_adapter<typename require_member_result<InnerExecutor&&, T...>::type>
+      { return { std::move(inner_ex_).require(std::forward<T>(t)...) }; }
+
+  auto& context() const noexcept { return inner_ex_.context(); }
+
+  friend bool operator==(const unsafe_mode_adapter& a, const unsafe_mode_adapter& b) noexcept
+  {
+    return a.inner_ex_ == b.inner_ex_;
+  }
+
+  friend bool operator!=(const unsafe_mode_adapter& a, const unsafe_mode_adapter& b) noexcept
+  {
+    return !(a == b);
+  }
+
+  template<class Function> auto execute(Function f) const
+    -> decltype(inner_declval<Function>().execute(std::move(f)))
+  {
+    return inner_ex_.execute(std::move(f));
+  }
+
+  template<class Function>
+  auto twoway_execute(Function f) const
+    -> decltype(inner_declval<Function>().twoway_execute(std::move(f)))
+  {
+    return inner_ex_.twoway_execute(std::move(f));
+  }
+
+  template<class Function, class SharedFactory>
+  auto bulk_execute(Function f, std::size_t n, SharedFactory sf) const
+    -> decltype(inner_declval<Function>().bulk_execute(std::move(f), n, std::move(sf)))
+  {
+    return inner_ex_.bulk_execute(std::move(f), n, std::move(sf));
+  }
+
+  template<class Function, class ResultFactory, class SharedFactory>
+  auto bulk_twoway_execute(Function f, std::size_t n, ResultFactory rf, SharedFactory sf) const
+    -> decltype(inner_declval<Function>().bulk_twoway_execute(std::move(f), n, std::move(rf), std::move(sf)))
+  {
+    return inner_ex_.bulk_twoway_execute(std::move(f), n, std::move(rf), std::move(sf));
+  }
+};
+
+template<class Executor>
+  constexpr typename std::enable_if<!has_require_member<Executor, unsafe_mode_t>::value,
+    unsafe_mode_adapter<Executor>>::type
+      require(Executor ex, unsafe_mode_t) { return unsafe_mode_adapter<Executor>(std::move(ex)); }
 
 // Default require for bulk adapts single executors, leaves bulk executors as is.
 
