@@ -78,11 +78,11 @@ template<class Executor> using executor_shape_t = typename executor_shape<Execut
 template<class Executor> using executor_index_t = typename executor_index<Executor>::type;
 
 // Type traits to determine whether a require member invocation is valid, and what its result is.
-template<class Executor, class Property> struct has_require_member;
+template<class Executor, class... Properties> struct has_require_members;
 template<class Executor, class Property> struct require_member_result;
 
-template<class Executor, class Property>
-  constexpr bool has_require_member_v = has_require_member<Executor, Property>::value;
+template<class Executor, class... Properties>
+  constexpr bool has_require_members_v = has_require_members<Executor, Properties...>::value;
 template<class Executor, class Property>
   using require_member_result_t = typename require_member_result<Executor, Property>::type;
 
@@ -134,7 +134,7 @@ class executor;
 #include <experimental/bits/executor_future.h>
 #include <experimental/bits/executor_shape.h>
 #include <experimental/bits/executor_index.h>
-#include <experimental/bits/has_require_member.h>
+#include <experimental/bits/has_require_members.h>
 #include <experimental/bits/has_prefer_member.h>
 #include <experimental/bits/require_member_result.h>
 #include <experimental/bits/require_adaptations.h>

@@ -10,7 +10,7 @@ namespace custom_hints
 
   // Default hint implementation drops it.
   template <class Executor>
-    std::enable_if_t<!execution::has_require_member_v<Executor, tracing>, Executor>
+    std::enable_if_t<!execution::has_require_members_v<Executor, tracing>, Executor>
       require(Executor ex, tracing) { return std::move(ex); }
 };
 

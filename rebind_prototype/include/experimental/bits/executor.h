@@ -392,10 +392,10 @@ public:
   executor prefer(new_thread_execution_mapping_t) const { return context_.impl_ ? context_.impl_->executor_prefer(new_thread_execution_mapping) : context_.impl_->clone(); }
   
   template<class Property> auto prefer(const Property& p) const
-    -> typename std::enable_if<execution::has_require_member<executor, Property>::value, executor>::type
+    -> typename std::enable_if<execution::has_require_members<executor, Property>::value, executor>::type
       { return this->require(p); }
   template<class Property> auto prefer(const Property&) const
-    -> typename std::enable_if<!execution::has_require_member<executor, Property>::value, executor>::type
+    -> typename std::enable_if<!execution::has_require_members<executor, Property>::value, executor>::type
       { return *this; }
 
   const context_type& context() const noexcept

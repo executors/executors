@@ -83,7 +83,7 @@ class static_thread_pool
     }
 
     template<class Property> auto prefer(const Property&) const
-      -> typename std::enable_if<!execution::has_require_member<executor_impl, Property>::value, executor_impl>::type
+      -> typename std::enable_if<!execution::has_require_members<executor_impl, Property>::value, executor_impl>::type
     {
       return *this;
     }

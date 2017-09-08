@@ -1,7 +1,7 @@
 #ifndef STD_EXPERIMENTAL_BITS_REQUIRE_H
 #define STD_EXPERIMENTAL_BITS_REQUIRE_H
 
-#include <experimental/bits/has_require_member.h>
+#include <experimental/bits/has_require_members.h>
 #include <experimental/bits/is_twoway_executor.h>
 #include <experimental/bits/is_oneway_executor.h>
 #include <experimental/bits/is_bulk_oneway_executor.h>
@@ -40,44 +40,44 @@ constexpr auto require(Executor&& ex, Property&& p)
 template<class Executor>
   constexpr typename std::enable_if<
     (is_oneway_executor<Executor>::value || is_bulk_oneway_executor<Executor>::value)
-    && !has_require_member<Executor, oneway_t>::value, Executor>::type
+    && !has_require_members<Executor, oneway_t>::value, Executor>::type
       require(Executor ex, oneway_t);
 template<class Executor> class twoway_adapter;
 template<class Executor>
   typename std::enable_if<
     (is_oneway_executor<Executor>::value || is_bulk_oneway_executor<Executor>::value)
     && !(is_twoway_executor<Executor>::value || is_bulk_twoway_executor<Executor>::value)
-    && has_require_member<Executor, unsafe_mode_t>::value
-    && !has_require_member<Executor, twoway_t>::value, twoway_adapter<Executor>>::type
+    && has_require_members<Executor, unsafe_mode_t>::value
+    && !has_require_members<Executor, twoway_t>::value, twoway_adapter<Executor>>::type
       require(Executor ex, twoway_t);
 template<class Executor> class unsafe_mode_adapter;
 template<class Executor>
-  constexpr typename std::enable_if<!has_require_member<Executor, unsafe_mode_t>::value,
+  constexpr typename std::enable_if<!has_require_members<Executor, unsafe_mode_t>::value,
     unsafe_mode_adapter<Executor>>::type
       require(Executor ex, unsafe_mode_t);
 template<class Executor> class bulk_adapter;
 template<class Executor>
   constexpr typename std::enable_if<
     (is_twoway_executor<Executor>::value || is_bulk_twoway_executor<Executor>::value)
-    && !has_require_member<Executor, twoway_t>::value, Executor>::type
+    && !has_require_members<Executor, twoway_t>::value, Executor>::type
       require(Executor ex, twoway_t);
 template<class Executor>
   typename std::enable_if<is_oneway_executor<Executor>::value
     && !(is_bulk_oneway_executor<Executor>::value || is_bulk_twoway_executor<Executor>::value)
-    && !has_require_member<Executor, bulk_t>::value, bulk_adapter<Executor>>::type
+    && !has_require_members<Executor, bulk_t>::value, bulk_adapter<Executor>>::type
       require(Executor ex, bulk_t);
 template<class Executor>
   constexpr typename std::enable_if<
     (is_bulk_oneway_executor<Executor>::value || is_bulk_twoway_executor<Executor>::value)
-    && !has_require_member<Executor, bulk_t>::value, Executor>::type
+    && !has_require_members<Executor, bulk_t>::value, Executor>::type
       require(Executor ex, bulk_t);
 template<class Executor> class always_blocking_adapter;
 template<class Executor>
-  constexpr typename std::enable_if<!has_require_member<Executor, always_blocking_t>::value,
+  constexpr typename std::enable_if<!has_require_members<Executor, always_blocking_t>::value,
     always_blocking_adapter<Executor>>::type
       require(Executor ex, always_blocking_t);
 template<class Executor>
-  constexpr typename std::enable_if<!has_require_member<Executor, possibly_blocking_t>::value, Executor>::type
+  constexpr typename std::enable_if<!has_require_members<Executor, possibly_blocking_t>::value, Executor>::type
     require(Executor ex, possibly_blocking_t);
 
 struct require_fn

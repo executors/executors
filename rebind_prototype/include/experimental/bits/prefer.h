@@ -2,7 +2,7 @@
 #define STD_EXPERIMENTAL_BITS_PREFER_H
 
 #include <experimental/bits/has_prefer_member.h>
-#include <experimental/bits/has_require_member.h>
+#include <experimental/bits/has_require_members.h>
 
 namespace std {
 namespace experimental {
@@ -29,7 +29,7 @@ constexpr auto prefer(Executor ex, Property&& p)
 template<class Executor, class Property>
 constexpr auto prefer(Executor ex, Property&&)
   -> typename std::enable_if<!has_prefer_member<Executor, Property>::value
-    && !has_require_member<Executor, Property>::value, Executor>::type
+    && !has_require_members<Executor, Property>::value, Executor>::type
 {
   return ex;
 }
