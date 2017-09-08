@@ -19,19 +19,19 @@ namespace execution {
 
   // Blocking properties:
 
-  constexpr struct never_blocking_t {} never_blocking;
   constexpr struct possibly_blocking_t {} possibly_blocking;
   constexpr struct always_blocking_t {} always_blocking;
+  constexpr struct never_blocking_t {} never_blocking;
 
   // Properties to indicate if submitted tasks represent continuations:
 
-  constexpr struct continuation_t {} continuation;
   constexpr struct not_continuation_t {} not_continuation;
+  constexpr struct continuation_t {} continuation;
 
   // Properties to indicate likely task submission in the future:
 
-  constexpr struct outstanding_work_t {} outstanding_work;
   constexpr struct not_outstanding_work_t {} not_outstanding_work;
+  constexpr struct outstanding_work_t {} outstanding_work;
 
   // Properties for bulk execution forward progress guarantees:
 
@@ -41,7 +41,7 @@ namespace execution {
 
   // Properties for mapping of execution on to threads:
 
-  constexpr struct default_execution_mapping_t {} default_execution_mapping;
+  constexpr struct other_execution_mapping_t {} other_execution_mapping;
   constexpr struct thread_execution_mapping_t {} thread_execution_mapping;
   constexpr struct new_thread_execution_mapping_t {} new_thread_execution_mapping;
 
@@ -328,17 +328,20 @@ The `single` and `bulk` properties are accumulative.
 
 ### Blocking properties
 
-    constexpr struct never_blocking_t {} never_blocking;
     constexpr struct possibly_blocking_t {} possibly_blocking;
     constexpr struct always_blocking_t {} always_blocking;
+    constexpr struct never_blocking_t {} never_blocking;
 
 | Property | Requirements |
 |----------|--------------|
-| `never_blocking` | A call to an executor's execution function shall not block pending completion of the execution agents created by that execution function. |
 | `possibly_blocking` | A call to an executor's execution function may block pending completion of one or more of the execution agents created by that execution function. |
 | `always_blocking` | A call to an executor's execution function shall block until completion of all execution agents created by that execution function. |
+| `never_blocking` | A call to an executor's execution function shall not block pending completion of the execution agents created by that execution function. |
 
-The `never_blocking`, `possibly_blocking`, and `always_blocking` properties are mutually exclusive.
+The `possibly_blocking`, `always_blocking` and `never_blocking` properties are mutually exclusive and provide an increasing superset of guarantees as follows:
+
+    possibly_blocking < always_blocking
+    possibly_blocking < never_blocking
 
 #### Properties to indicate if submitted tasks represent continuations
 
@@ -350,19 +353,23 @@ The `never_blocking`, `possibly_blocking`, and `always_blocking` properties are 
 | `continuation` | Function objects submitted through the executor represent continuations of the caller. If the caller is a lightweight execution agent managed by the executor or its associated execution context, the execution of the submitted function object may be deferred until the caller completes. |
 | `not_continuation` | Function objects submitted through the executor do not represent continuations of the caller. |
 
-The `continuation` and `not_continuation` properties are mutually exclusive.
+The `not_continuation` and `continuation` properties are mutually exclusive and provide an increasing superset of guarantees as follows:
+
+    not_continuation < continuation
 
 ### Properties to indicate likely task submission in the future
 
-    constexpr struct outstanding_work_t {} outstanding_work;
     constexpr struct not_outstanding_work_t {} not_outstanding_work;
+    constexpr struct outstanding_work_t {} outstanding_work;
 
 | Property | Requirements |
 |----------|--------------|
 | `outstanding_work` | The existence of the executor object represents an indication of likely future submission of a function object. The executor or its associated execution context may choose to maintain execution resources in anticipation of this submission. |
 | `not_outstanding_work` | The existence of the executor object does not indicate any likely future submission of a function object. |
 
-The `outstanding_work` and `not_outstanding_work` properties are mutually exclusive.
+The `not_outstanding_work` and `outstanding_work` properties are mutually exclusive and provide an increasing superset of guarantees as follows:
+
+    not_outstanding_work < outstanding_work
 
 ### Properties for bulk execution forward progress guarantees
 
@@ -387,17 +394,19 @@ The `bulk_sequenced_execution`, `bulk_parallel_execution`, and `bulk_unsequenced
 
 ### Properties for mapping of execution on to threads
 
+    constexpr struct other_execution_mapping_t {} default_execution_mapping;
     constexpr struct thread_execution_mapping_t {} thread_execution_mapping;
     constexpr struct new_thread_execution_mapping_t {} new_thread_execution_mapping;
-    constexpr struct default_execution_mapping_t {} default_execution_mapping;
 
 | Property | Requirements |
 |----------|--------------|
+| `other_execution_mapping` | Mapping of each execution agent created by the executor is implementation defined. |
 | `thread_execution_mapping` | Execution agents created by the executor are mapped onto threads of execution. |
 | `new_thread_execution_mapping` | Each execution agent created by the executor is mapped onto a new thread of execution. |
-| `default_execution_mapping` | Mapping of each execution agent created by the executor is implementation defined. |
 
-The `thread_execution_mapping`, `new_thread_execution_mapping` and `default_execution_mapping` properties are mutually exclusive.
+The `other_execution_mapping`, `thread_execution_mapping` and `new_thread_execution_mapping` properties are mutually exclusive and provide an increasing superset of guarantees as follows:
+
+    other_execution_mapping < thread_execution_mapping < new_thread_execution_mapping
 
 [*Note:* A mapping of an execution agent onto a thread of execution implies the
 agent executes as-if on a `std::thread`. Therefore, the facilities provided by
@@ -408,16 +417,18 @@ agents. *--end note*]
 
 ### Properties for customizing memory allocation
 
+    struct default_allocator_t {} default_allocator;
     template<class ProtoAllocator> struct allocator_t { ProtoAllocator alloc; };
     template<class ProtoAllocator> constexpr allocator_t<ProtoAllocator> allocator(const ProtoAllocator& a) { return {a}; }
-    struct default_allocator_t {} deault_allocator;
 
 | Property | Requirements |
 |----------|--------------|
-| `allocator(ProtoAllocator)` | Executor implementations shall use the supplied allocator to allocate any memory required to store the submitted function object. |
 | `default_allocator` | Executor implementations shall use a default implmentation defined allocator to allocate any memory required to store the submitted function object. |
+| `allocator(ProtoAllocator)` | Executor implementations shall use the supplied allocator to allocate any memory required to store the submitted function object. |
 
-The `allocator(ProtoAllocator)` and `default_allocator` properties are mutually exclusive.
+The `allocator(ProtoAllocator)` and `default_allocator` properties are mutually exclusive and provide an increaasing superset of guarantees as follows:
+
+    default_allocator < allocator
 
 ## Executor type traits
 
