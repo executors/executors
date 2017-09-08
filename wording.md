@@ -672,9 +672,12 @@ public:
   executor prefer(not_continuation_t p) const;
   executor prefer(outstanding_work_t p) const;
   executor prefer(not_outstanding_work_t p) const;
-  executor prefer(bulk_sequenced_execution_t p) const;
+  executor prefer(caller_concurrent_execution_t p) const;
+  executor prefer(caller_parallel_execution_t p) const;
+  executor prefer(caller_weakly_parallel_execution_t p) const;
+  executor prefer(bulk_concurrent_execution_t p) const;
   executor prefer(bulk_parallel_execution_t p) const;
-  executor prefer(bulk_unsequenced_execution_t p) const;
+  executor prefer(bulk_weakly_parallel_execution_t p) const;
   executor prefer(new_thread_execution_mapping_t p) const;
   template <class Property> executor prefer(const Property& p) const;
 
@@ -766,9 +769,12 @@ template<class Executor> executor(Executor e);
   * `can_prefer_v<Executor, not_continuation>`
   * `can_prefer_v<Executor, outstanding_work>`
   * `can_prefer_v<Executor, not_outstanding_work>`
-  * `can_prefer_v<Executor, bulk_sequenced_execution>`
+  * `can_prefer_v<Executor, bulk_concurrent_execution>`
+  * `can_prefer_v<Executor, caller_parallel_execution>`
+  * `can_prefer_v<Executor, caller_weakly_parallel_execution>`
+  * `can_prefer_v<Executor, caller_concurrent_execution>`
   * `can_prefer_v<Executor, bulk_parallel_execution>`
-  * `can_prefer_v<Executor, bulk_unsequenced_execution>`
+  * `can_prefer_v<Executor, bulk_weakly_parallel_execution>`
   * `can_require_v<Executor, thread_execution_mapping>`
   * `can_prefer_v<Executor, new_thread_execution_mapping>`
 
@@ -859,9 +865,12 @@ executor prefer(continuation_t) const;
 executor prefer(not_continuation_t) const;
 executor prefer(outstanding_work_t) const;
 executor prefer(not_outstanding_work_t) const;
-executor prefer(bulk_sequenced_execution_t) const;
+executor prefer(caller_concurrent_execution_t) const;
+executor prefer(caller_parallel_execution_t) const;
+executor prefer(caller_weakly_parallel_execution_t) const;
+executor prefer(bulk_concurrent_execution_t) const;
 executor prefer(bulk_parallel_execution_t) const;
-executor prefer(bulk_unsequenced_execution_t) const;
+executor prefer(bulk_weakly_parallel_execution_t) const;
 executor prefer(new_thread_execution_mapping_t) const;
 ```
 
