@@ -15,8 +15,8 @@ namespace execution {
 
 struct oneway_t;
 struct twoway_t;
-struct unsafe_mode_t;
-struct safe_mode_t;
+struct blocking_adaptable_t;
+struct not_blocking_adaptable_t;
 struct single_t;
 struct bulk_t;
 struct always_blocking_t;
@@ -47,14 +47,14 @@ template<class Executor>
   typename std::enable_if<
     (is_oneway_executor<Executor>::value || is_bulk_oneway_executor<Executor>::value)
     && !(is_twoway_executor<Executor>::value || is_bulk_twoway_executor<Executor>::value)
-    && has_require_members<Executor, unsafe_mode_t>::value
+    && has_require_members<Executor, blocking_adaptable_t>::value
     && !has_require_members<Executor, twoway_t>::value, twoway_adapter<Executor>>::type
       require(Executor ex, twoway_t);
-template<class Executor> class unsafe_mode_adapter;
+template<class Executor> class blocking_adaptable_adapter;
 template<class Executor>
-  constexpr typename std::enable_if<!has_require_members<Executor, unsafe_mode_t>::value,
-    unsafe_mode_adapter<Executor>>::type
-      require(Executor ex, unsafe_mode_t);
+  constexpr typename std::enable_if<!has_require_members<Executor, blocking_adaptable_t>::value,
+    blocking_adaptable_adapter<Executor>>::type
+      require(Executor ex, blocking_adaptable_t);
 template<class Executor> class bulk_adapter;
 template<class Executor>
   constexpr typename std::enable_if<

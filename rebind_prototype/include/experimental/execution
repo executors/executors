@@ -13,9 +13,9 @@ namespace execution {
 constexpr struct oneway_t {} oneway;
 constexpr struct twoway_t {} twoway;
 
-// Allow 'unsafe' adaptation of directionality (twoway in terms of oneway).
-constexpr struct unsafe_mode_t {} unsafe_mode;
-constexpr struct safe_mode_t {} safe_mode;
+// Allow adaptation of blocking and directionality (e.g. twoway in terms of oneway).
+constexpr struct blocking_adaptable_t {} blocking_adaptable;
+constexpr struct not_blocking_adaptable_t {} not_blocking_adaptable;
 
 // Cardinality.
 constexpr struct single_t {} single;

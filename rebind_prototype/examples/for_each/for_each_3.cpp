@@ -117,7 +117,7 @@ void for_each(ExecutionPolicy&& policy, RandomAccessIterator first, RandomAccess
 {
   auto n = last - first;
 
-  auto twoway_bulk_exec = execution::require(policy.executor(), execution::unsafe_mode, execution::bulk, execution::twoway);
+  auto twoway_bulk_exec = execution::require(policy.executor(), execution::blocking_adaptable, execution::bulk, execution::twoway);
 
   twoway_bulk_exec.bulk_twoway_execute([=](size_t idx, impl::ignored&)
   {
