@@ -555,6 +555,15 @@ The name `prefer` denotes a customization point. The effect of the expression `s
 
 * Otherwise, `std::experimental::concurrency_v2::execution::prefer(E, P0, Pn...)` is ill-formed.
 
+When the executor customization point named `prefer` invokes a free execution function of the same name, overload resolution is performed in a context that includes the declarations:
+
+    template<class E> void prefer(const E&, const oneway_t&) = delete;
+    template<class E> void prefer(const E&, const twoway_t&) = delete;
+    template<class E> void prefer(const E&, const single_t&) = delete;
+    template<class E> void prefer(const E&, const bulk_t&) = delete;
+
+[*Note:* This prevents the `oneway_t`, `twoway_t`, `single_t`, and `bulk_t` properties from being expressed as preferences. They may be used only as requirements. *--end note*]
+
 ### Customization point type traits
 
     template<class Executor, class... Properties> struct can_require;
