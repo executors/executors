@@ -49,6 +49,20 @@ namespace execution {
   template<class ProtoAllocator> struct allocator_t { ProtoAllocator alloc; };
   template<class ProtoAllocator> constexpr allocator_t<ProtoAllocator> allocator(const ProtoAllocator& a) { return {a}; }
 
+  // Query properties:
+
+  constexpr struct is_oneway_t {} is_oneway;
+  constexpr struct is_twoway_t {} is_twoway;
+  constexpr struct is_then_t {} is_then;
+  constexpr struct is_single_t {} is_single;
+  constexpr struct is_bulk_t {} is_bulk
+  constexpr struct get_blocking_t {} get_blocking;
+  constexpr struct is_continuation_t {} is_continuation;
+  constexpr struct is_outstanding_work_t {} is_outstanding_work;
+  constexpr struct get_bulk_execution_t {} get_bulk_execution;
+  constexpr struct get_execution_mapping_t {} get_execution_mapping;
+  constexpr struct get_allocator_t {} get_allocator;
+
   // Executor type traits:
 
   template<class Executor> struct is_executor;
@@ -81,38 +95,48 @@ namespace execution {
 
   template<class Executor, class Property> struct has_require_member;
   template<class Executor, class Property> struct has_prefer_member;
+  template<class Executor, class Property> struct has_query_member;
 
   template<class Executor, class Property>
     constexpr bool has_require_member_v = has_require_member<Executor, Property>::value;
   template<class Executor, class Property>
     constexpr bool has_prefer_member_v = has_prefer_member<Executor, Property>::value;
+  template<class Executor, class Property>
+    constexpr bool has_query_member_v = has_query_member<Executor, Property>::value;
 
   // Member return type traits for properties:
 
   template<class Executor, class Property> struct require_member_result;
   template<class Executor, class Property> struct prefer_member_result;
+  template<class Executor, class Property> struct query_member_result;
 
   template<class Executor, class Property>
     using require_member_result_t = typename require_member_result<Executor, Property>::type;
   template<class Executor, class Property>
     using prefer_member_result_t = typename prefer_member_result<Executor, Property>::type;
+  template<class Executor, class Property>
+    using query_member_result_t = typename query_member_result<Executor, Property>::type;
 
   // Customization points:
 
   namespace {
     constexpr unspecified require = unspecified;
     constexpr unspecified prefer = unspecified;
+    constexpr unspecified query = unspecified;
   }
 
   // Customization point type traits:
 
   template<class Executor, class... Properties> struct can_require;
   template<class Executor, class... Properties> struct can_prefer;
+  template<class Executor, class... Properties> struct can_query;
 
   template<class Executor, class... Properties>
     constexpr bool can_require_v = can_require<Executor, Properties>::value;
   template<class Executor, class... Properties>
     constexpr bool can_prefer_v = can_prefer<Executor, Properties>::value;
+  template<class Executor, class... Properties>
+    constexpr bool can_query_v = can_query<Executor, Properties>::value;
 
   // Polymorphic executor wrappers:
 
@@ -297,6 +321,12 @@ An executor's properties are modified by calling the `require` or `prefer` funct
 |------------|----------|
 | `x.require(p)` <br/> `require(x,p)` | Returns an executor object with the requested property `p` added to the set. All other properties of the returned executor are identical to those of `x`, except where those properties are described below as being mutually exclusive to `p`. In this case, the mutually exclusive properties are implicitly removed from the set associated with the returned executor. <br/> <br/> The expression is ill formed if an executor is unable to add the requested property. |
 | `x.prefer(p)` <br/> `prefer(x,p)` | If the executor is able to add the requested property `p`, returns an executor object with the requested property added to the set. All other properties of the returned executor are identical to those of `x`, except where those properties are described below as being mutually exclusive to `p`. In this case, the mutually exclusive properties are implicitly removed from the set associated with the returned executor. <br/> <br/> Otherwise, returns a copy of `x`. |
+
+The current value of an executor's properties can be queried by calling the `query` function. This function behaves according the table below. In the table below, `x` denotes a (possibly const) executor object of type `X`, * and `p` denotes a (possibly const) property object.
+
+| Expression | Comments |
+|------------|----------|
+| `x.query(p)` | Returns a value which describes the current value of the requested property `p`. The expression is ill formed if an executor is unable to return the requested property. |
 
 ### Directionality properties
 
@@ -489,6 +519,7 @@ This sub-clause contains templates that may be used to query the properties of a
 
     template<class Executor, class Property> struct has_require_member;
     template<class Executor, class Property> struct has_prefer_member;
+    template<class Executor, class Property> struct has_query_member;
 
 This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
 
@@ -496,18 +527,21 @@ This sub-clause contains templates that may be used to query the properties of a
 |----------------------------|---------------------|----------------|
 | `template<class T>` <br/>`struct has_require_member` | The expression `declval<const Executor>().require( declval<Property>())` is well formed. | `T` is a complete type. |
 | `template<class T>` <br/>`struct has_prefer_member` | The expression `declval<const Executor>().prefer( declval<Property>())` is well formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct has_query_member` | The expression `declval<const Executor>().query( declval<Property>())` is well formed. | `T` is a complete type. |
 
 ### Member return type traits for properties
 
     template<class Executor, class Property> struct require_member_result;
     template<class Executor, class Property> struct prefer_member_result;
+    template<class Executor, class Property> struct query_member_result;
 
 This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a TransformationTrait (C++Std [meta.rqmts]).
 
 | Template                   | Condition           | Comments  |
 |----------------------------|---------------------|-----------|
-| `template<class T>` <br/>`struct require_member_result` | The expression `declval<const Executor>().require( declval<Property>())` is well formed. | The member typedef `type` shall name the type of the expression `declval<const Executor>().require( declval<Property())`. |
+| `template<class T>` <br/>`struct query_member_result` | The expression `declval<const Executor>().query( declval<Property>())` is well formed. | The member typedef `type` shall name the type of the expression `declval<const Executor>().require( declval<Property())`. |
 | `template<class T>` <br/>`struct prefer_member_result` | The expression `declval<const Executor>().prefer( declval<Property>())` is well formed. | The member typedef `type` shall name the type of the expression `declval<const Executor>().prefer( declval<Property())`. |
+| `template<class T>` <br/>`struct query_member_result` | The expression `declval<const Executor>().query( declval<Property>())` is well formed. | The member typedef `type` shall name the type of the expression `declval<const Executor>().query( declval<Property())`. |
 
 ## Executor customization points
 
@@ -568,10 +602,31 @@ The name `prefer` denotes a customization point. The effect of the expression `s
 
 * Otherwise, `std::experimental::concurrency_v2::execution::prefer(E, P0, Pn...)` is ill-formed.
 
+### `query`
+
+    namespace {
+      constexpr unspecified query = unspecified;
+    }
+
+The name `query` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::query(E, P)` for some expressions `E` and `P` is equivalent to:
+
+* `(E).query(P)` if `has_query_member_v<decay_t<decltype(E)>, decltype(P)>` is true.
+
+* Otherwise, `(E).query(P)` if and `has_query_member_v<decay_t<decltype(E)>, decltype(P)>` is true.
+
+* Otherwise, `query(E, P)` if the expression is well formed.
+
+* Otherwise, `E`.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::prefer(E, P)` if the expression is well formed.
+
+* Otherwise, `std::experimental::concurrency_v2::execution::prefer(E, P)` is ill-formed.
+
 ### Customization point type traits
 
     template<class Executor, class... Properties> struct can_require;
     template<class Executor, class... Properties> struct can_prefer;
+    template<class Executor, class... Properties> struct can_query;
 
 This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
 
@@ -579,6 +634,7 @@ This sub-clause contains templates that may be used to query the properties of a
 |----------------------------|---------------------|----------------|
 | `template<class T>` <br/>`struct can_require` | The expression `std::experimental::concurrency_v2::execution::require( declval<const Executor>(), declval<Properties>()...)` is well formed. | `T` is a complete type. |
 | `template<class T>` <br/>`struct can_prefer` | The expression `std::experimental::concurrency_v2::execution::prefer( declval<const Executor>(), declval<Properties>()...)` is well formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_query` | The expression `std::experimental::concurrency_v2::execution::query( declval<const Executor>(), declval<Properties>()...)` is well formed. | `T` is a complete type. |
 
 ## Polymorphic executor wrappers
 
@@ -656,6 +712,18 @@ public:
   executor prefer(bulk_unsequenced_execution_t p) const;
   executor prefer(new_thread_execution_mapping_t p) const;
   template <class Property> executor prefer(const Property& p) const;
+
+  query_member_result_t<executor, is_oneway_t> query(is_oneway_t) const;
+  query_member_result_t<executor, is_twoway_t> query(is_twoway_t) is_twoway_t;
+  query_member_result_t<executor, is_then_t> query(is_then_t) const;
+  query_member_result_t<executor, is_single_t> query(is_single_t) const;
+  query_member_result_t<executor, is_bulk_t> query(is_bulk_t) const;
+  query_member_result_t<executor, get_blocking_t> query(get_blocking_t) const;
+  query_member_result_t<executor, is_continuation_t> query(is_continuation_t) const;
+  query_member_result_t<executor, is_outstanding_work_t> query(is_outstanding_work_t) const;
+  query_member_result_t<executor, get_bulk_execution_t> query(get_bulk_execution_t) const;
+  query_member_result_t<executor, get_execution_mapping_t> query(get_execution_mapping_t) const;
+  query_member_result_t<executor, get_allocator_t> query(get_allocator_t) const;
 
   template<class Function>
     void execute(Function&& f) const;
@@ -748,8 +816,19 @@ template<class Executor> executor(Executor e);
   * `can_prefer_v<Executor, bulk_sequenced_execution>`
   * `can_prefer_v<Executor, bulk_parallel_execution>`
   * `can_prefer_v<Executor, bulk_unsequenced_execution>`
-  * `can_require_v<Executor, thread_execution_mapping>`
+  * `can_prefer_v<Executor, thread_execution_mapping>`
   * `can_prefer_v<Executor, new_thread_execution_mapping>`
+  * `can_query_v<Executor, is_oneway>`
+  * `can_query_v<Executor, is_twoway>`
+  * `can_query_v<Executor, is_then>`
+  * `can_query_v<Executor, is_single>`
+  * `can_query_v<Executor, is_bulk>`
+  * `can_query_v<Executor, get_blocking>`
+  * `can_query_v<Executor, is_continuation>`
+  * `can_query_v<Executor, is_outstanding_work>`
+  * `can_query_v<Executor, get_bulk_execution>`
+  * `can_query_v<Executor, get_execution_mapping>`
+  * `can_query_v<Executor, get_allocator>`
 
 *Effects:* `*this` targets a copy of `e` initialized with `std::move(e)`.
 
