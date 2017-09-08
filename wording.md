@@ -1218,7 +1218,7 @@ bool operator!=(const static_thread_pool& a, const static_thread_pool& b) noexce
 
 ### `static_thread_pool` executor types
 
-All executor types accessible through `static_thread_pool::executor()`, and subsequent calls to the member functions `require` and `prefer`, conform to the following specification.
+All executor types accessible through `static_thread_pool::executor()`, and subsequent calls to the member function `require`, conform to the following specification.
 
 ```
 class C
@@ -1255,8 +1255,6 @@ class C
     see-below require(execution::not_outstanding_work_t) const;
     template<class ProtoAllocator>
       see-below require(const execution::allocator_t<ProtoAllocator>& a) const;
-
-    template<class Property> see-below prefer(const Property& p) const;
 
     bool running_in_this_thread() const noexcept;
 
@@ -1363,12 +1361,6 @@ specifications, associated with the same thread pool as `*this`, with the
 allocation and deallocation associated with function submission will be
 performed using a copy of `a.alloc`. All other properties of the returned
 executor object are identical to those of `*this`.
-
-```
-template<class Property> see-below prefer(const Property& p) const;
-```
-
-*Returns:* `this->require(p)` if that expression is well formed, otherwise `*this`.
 
 ```
 bool running_in_this_thread() const noexcept;
