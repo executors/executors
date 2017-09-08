@@ -35,15 +35,15 @@ namespace execution {
 
   // Properties for caller execution forward progress guarantess:
 
-  constexpr struct caller_sequenced_execution_t {} caller_sequenced_execution;
+  constexpr struct caller_weakly_parallel_execution_t {} caller_weakly_parallel_execution;
   constexpr struct caller_parallel_execution_t {} caller_parallel_execution;
-  constexpr struct caller_unsequenced_execution_t {} caller_unsequenced_execution;
+  constexpr struct caller_concurrent_execution_t {} caller_concurrent_execution;
 
   // Properties for bulk execution forward progress guarantees:
 
-  constexpr struct bulk_sequenced_execution_t {} bulk_sequenced_execution;
+  constexpr struct bulk_weakly_parallel_execution_t {} bulk_weakly_parallel_execution;
   constexpr struct bulk_parallel_execution_t {} bulk_parallel_execution;
-  constexpr struct bulk_unsequenced_execution_t {} bulk_unsequenced_execution;
+  constexpr struct bulk_concurrent_execution_t {} bulk_concurrent_execution;
 
   // Properties for mapping of execution on to threads:
 
@@ -368,43 +368,37 @@ The `outstanding_work` and `not_outstanding_work` properties are mutually exclus
 
 These properties communicate the forward progress and ordering guarantees of execution agent(s) with respect to the caller.
 
-    constexpr struct caller_sequenced_execution_t {} caller_sequenced_execution;
+    constexpr struct caller_weakly_parallel_execution_t {} caller_weakly_parallel_execution;
     constexpr struct caller_parallel_execution_t {} caller_parallel_execution;
-    constexpr struct caller_unsequenced_execution_t {} caller_unsequenced_execution;
+    constexpr struct caller_concurrent_execution_t {} caller_concurrent_execution;
 
 | Property | Requirements |
 |----------|--------------|
-| `caller_sequenced_execution` | |
-| `caller_parallel_execution` | |
-| `caller_unsequenced_execution` | |
+| `caller_weakly_parallel_execution` | Each execution agent within a bulk execution must provide weakly parallel forward progress guarantees with each other execution agent within the same execution, in accordance with § 1.10.2 (7). |
+| `caller_parallel_execution` | Each execution agent within a bulk execution must provide parallel forward progress guarantees with each other execution agent within the same execution, in accordance with § 1.10.2 (9). |
+| `caller_concurrent_execution` | Each execution agent within a bulk execution must provide concurrent forward progress guarantees with each other execution agent within the same execution, in accordance with § 1.10.2 (11). |
 
-TODO: *The meanings and relative "strength" of these categores are to be defined.
-Most of the wording for `caller_sequenced_execution`, `caller_parallel_execution`,
-and `caller_unsequenced_execution` can be migrated from S 25.2.3 p2, p3, and
-p4, respectively.*
+The `caller_weakly_parallel_execution`, `caller_parallel_execution`, and `caller_concurrent_execution` properties are mutually exclusive and provide an increasing superset of guarantees as follows:
 
-The `caller_sequenced_execution`, `caller_parallel_execution`, and `caller_unsequenced_execution` properties are mutually exclusive.
+    caller_weakly_parallel_execution < caller_parallel_execution < caller_concurrent_execution
 
 ### Properties for bulk execution forward progress guarantees
 
 These properties communicate the forward progress and ordering guarantees of execution agents with respect to other agents within the same bulk submission.
 
-    constexpr struct bulk_sequenced_execution_t {} bulk_sequenced_execution;
+    constexpr struct bulk_weakly_parallel_execution_t {} bulk_weakly_parallel_execution;
     constexpr struct bulk_parallel_execution_t {} bulk_parallel_execution;
-    constexpr struct bulk_unsequenced_execution_t {} bulk_unsequenced_execution;
+    constexpr struct bulk_concurrent_execution_t {} bulk_concurrent_execution;
 
 | Property | Requirements |
 |----------|--------------|
-| `bulk_sequenced_execution` | |
-| `bulk_parallel_execution` | |
-| `bulk_unsequenced_execution` | |
+| `bulk_weakly_parallel_execution` | Each execution agent within a bulk execution must provide weakly parallel forward progress guarantees with each other execution agent within the same execution, in accordance with § 1.10.2 (7). |
+| `bulk_parallel_execution` | Each execution agent within a bulk execution must provide parallel forward progress guarantees with each other execution agent within the same execution, in accordance with § 1.10.2 (9). |
+| `bulk_concurrent_execution` | Each execution agent within a bulk execution must provide concurrent forward progress guarantees with each other execution agent within the same execution, in accordance with § 1.10.2 (11). |
 
-TODO: *The meanings and relative "strength" of these categores are to be defined.
-Most of the wording for `bulk_sequenced_execution`, `bulk_parallel_execution`,
-and `bulk_unsequenced_execution` can be migrated from S 25.2.3 p2, p3, and
-p4, respectively.*
+The `bulk_weakly_parallel_execution`, `bulk_parallel_execution`, and `bulk_concurrent_execution` properties are mutually exclusive and provide an increasing superset of guarantees as follows:
 
-The `bulk_sequenced_execution`, `bulk_parallel_execution`, and `bulk_unsequenced_execution` properties are mutually exclusive.
+    bulk_weakly_parallel_execution < bulk_parallel_execution < bulk_concurrent_execution
 
 ### Properties for mapping of execution on to threads
 
