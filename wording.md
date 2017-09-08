@@ -511,7 +511,7 @@ Whenever `std::experimental::concurrency_v2::execution::`*NAME*`(`*ARGS*`)` is a
 ### `require`
 
     namespace {
-      constexpr unspecified prefer = unspecified;
+      constexpr unspecified require = unspecified;
     }
 
 The name `require` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::require(E, P0, Pn...)` for some expressions `E` and `P0`, and where `Pn...` represents `N` expressions (where `N` is 0 or more), is equivalent to:
