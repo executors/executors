@@ -80,22 +80,16 @@ namespace execution {
   // Member detection type traits for properties:
 
   template<class Executor, class Property> struct has_require_member;
-  template<class Executor, class Property> struct has_prefer_member;
 
   template<class Executor, class Property>
     constexpr bool has_require_member_v = has_require_member<Executor, Property>::value;
-  template<class Executor, class Property>
-    constexpr bool has_prefer_member_v = has_prefer_member<Executor, Property>::value;
 
   // Member return type traits for properties:
 
   template<class Executor, class Property> struct require_member_result;
-  template<class Executor, class Property> struct prefer_member_result;
 
   template<class Executor, class Property>
     using require_member_result_t = typename require_member_result<Executor, Property>::type;
-  template<class Executor, class Property>
-    using prefer_member_result_t = typename prefer_member_result<Executor, Property>::type;
 
   // Customization points:
 
@@ -291,12 +285,11 @@ In the Table below,
 
 An executor's behavior in generic contexts is determined by a set of executor properties, and each executor property imposes certain requirements on the executor.
 
-An executor's properties are modified by calling the `require` or `prefer` functions. These functions behave according the table below. In the table below, `x` denotes a (possibly const) executor object of type `X`, * and `p` denotes a (possibly const) property object.
+An executor's properties are modified by calling the `require` member or non-member functions. These functions behave according the table below. In the table below, `x` denotes a (possibly const) executor object of type `X`, * and `p` denotes a (possibly const) property object.
 
 | Expression | Comments |
 |------------|----------|
 | `x.require(p)` <br/> `require(x,p)` | Returns an executor object with the requested property `p` added to the set. All other properties of the returned executor are identical to those of `x`, except where those properties are described below as being mutually exclusive to `p`. In this case, the mutually exclusive properties are implicitly removed from the set associated with the returned executor. <br/> <br/> The expression is ill formed if an executor is unable to add the requested property. |
-| `x.prefer(p)` <br/> `prefer(x,p)` | If the executor is able to add the requested property `p`, returns an executor object with the requested property added to the set. All other properties of the returned executor are identical to those of `x`, except where those properties are described below as being mutually exclusive to `p`. In this case, the mutually exclusive properties are implicitly removed from the set associated with the returned executor. <br/> <br/> Otherwise, returns a copy of `x`. |
 
 ### Directionality properties
 
@@ -488,26 +481,22 @@ This sub-clause contains templates that may be used to query the properties of a
 ### Member detection type traits for properties
 
     template<class Executor, class Property> struct has_require_member;
-    template<class Executor, class Property> struct has_prefer_member;
 
 This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
 
 | Template                   | Condition           | Preconditions  |
 |----------------------------|---------------------|----------------|
 | `template<class T>` <br/>`struct has_require_member` | The expression `declval<const Executor>().require( declval<Property>())` is well formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_prefer_member` | The expression `declval<const Executor>().prefer( declval<Property>())` is well formed. | `T` is a complete type. |
 
 ### Member return type traits for properties
 
     template<class Executor, class Property> struct require_member_result;
-    template<class Executor, class Property> struct prefer_member_result;
 
 This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a TransformationTrait (C++Std [meta.rqmts]).
 
 | Template                   | Condition           | Comments  |
 |----------------------------|---------------------|-----------|
 | `template<class T>` <br/>`struct require_member_result` | The expression `declval<const Executor>().require( declval<Property>())` is well formed. | The member typedef `type` shall name the type of the expression `declval<const Executor>().require( declval<Property())`. |
-| `template<class T>` <br/>`struct prefer_member_result` | The expression `declval<const Executor>().prefer( declval<Property>())` is well formed. | The member typedef `type` shall name the type of the expression `declval<const Executor>().prefer( declval<Property())`. |
 
 ## Executor customization points
 
@@ -522,7 +511,7 @@ Whenever `std::experimental::concurrency_v2::execution::`*NAME*`(`*ARGS*`)` is a
 ### `require`
 
     namespace {
-      constexpr unspecified prefer = unspecified;
+      constexpr unspecified require = unspecified;
     }
 
 The name `require` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::require(E, P0, Pn...)` for some expressions `E` and `P0`, and where `Pn...` represents `N` expressions (where `N` is 0 or more), is equivalent to:
@@ -556,9 +545,7 @@ The name `require` denotes a customization point. The effect of the expression `
 
 The name `prefer` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::prefer(E, P0, Pn...)` for some expressions `E` and `P0`, and where `Pn...` represents `N` expressions (where `N` is 0 or more), is equivalent to:
 
-* `(E).prefer(P0)` if `N == 0` and `has_prefer_member_v<decay_t<decltype(E)>, decltype(P0)>` is true.
-
-* Otherwise, `(E).require(P0)` if `N == 0` and `has_require_member_v<decay_t<decltype(E)>, decltype(P0)>` is true.
+* `(E).require(P0)` if `N == 0` and `has_require_member_v<decay_t<decltype(E)>, decltype(P0)>` is true.
 
 * Otherwise, `prefer(E, P0)` if `N == 0` and the expression is well formed.
 
@@ -567,6 +554,15 @@ The name `prefer` denotes a customization point. The effect of the expression `s
 * Otherwise, `std::experimental::concurrency_v2::execution::prefer( std::experimental::concurrency_v2::execution::prefer(E, P0), Pn...)` if the expression is well formed.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::prefer(E, P0, Pn...)` is ill-formed.
+
+When the executor customization point named `prefer` invokes a free execution function of the same name, overload resolution is performed in a context that includes the declarations:
+
+    template<class E> void prefer(const E&, const oneway_t&) = delete;
+    template<class E> void prefer(const E&, const twoway_t&) = delete;
+    template<class E> void prefer(const E&, const single_t&) = delete;
+    template<class E> void prefer(const E&, const bulk_t&) = delete;
+
+[*Note:* This prevents the `oneway_t`, `twoway_t`, `single_t`, and `bulk_t` properties from being expressed as preferences. They may be used only as requirements. *--end note*]
 
 ### Customization point type traits
 
@@ -647,16 +643,6 @@ public:
   executor require(possibly_blocking_t p) const;
   executor require(always_blocking_t p) const;
 
-  executor prefer(continuation_t p) const;
-  executor prefer(not_continuation_t p) const;
-  executor prefer(outstanding_work_t p) const;
-  executor prefer(not_outstanding_work_t p) const;
-  executor prefer(bulk_sequenced_execution_t p) const;
-  executor prefer(bulk_parallel_execution_t p) const;
-  executor prefer(bulk_unsequenced_execution_t p) const;
-  executor prefer(new_thread_execution_mapping_t p) const;
-  template <class Property> executor prefer(const Property& p) const;
-
   template<class Function>
     void execute(Function&& f) const;
 
@@ -694,6 +680,15 @@ bool operator!=(nullptr_t, const executor& e) noexcept;
 // executor specialized algorithms:
 
 void swap(executor& a, executor& b) noexcept;
+
+executor prefer(const executor& e, continuation_t p);
+executor prefer(const executor& e, not_continuation_t p);
+executor prefer(const executor& e, outstanding_work_t p);
+executor prefer(const executor& e, not_outstanding_work_t p);
+executor prefer(const executor& e, bulk_sequenced_execution_t p);
+executor prefer(const executor& e, bulk_parallel_execution_t p);
+executor prefer(const executor& e, bulk_unsequenced_execution_t p);
+executor prefer(const executor& e, new_thread_execution_mapping_t p);
 ```
 
 The `executor` class satisfies the `BaseExecutor`, `DefaultConstructible` (C++Std [defaultconstructible]), and `CopyAssignable` (C++Std [copyassignable]) requirements.
@@ -834,25 +829,6 @@ executor require(always_blocking_t p) const;
 *Returns:* A polymorphic wrapper whose target is `execution::require(e, p)`, where `e` is the target object of `*this`.
 
 ```
-executor prefer(continuation_t) const;
-executor prefer(not_continuation_t) const;
-executor prefer(outstanding_work_t) const;
-executor prefer(not_outstanding_work_t) const;
-executor prefer(bulk_sequenced_execution_t) const;
-executor prefer(bulk_parallel_execution_t) const;
-executor prefer(bulk_unsequenced_execution_t) const;
-executor prefer(new_thread_execution_mapping_t) const;
-```
-
-*Returns:* A polymorphic wrapper whose target is `execution::prefer(e, p)`, where `e` is the target object of `*this`.
-
-```
-template <class Property> executor prefer(const Property& p) const;
-```
-
-*Returns:* `this->require(p)` if that expression is well formed, otherwise `*this`.
-
-```
 template<class Function>
   void execute(Function&& f) const;
 ```
@@ -985,6 +961,19 @@ void swap(executor& a, executor& b) noexcept;
 ```
 
 *Effects:* `a.swap(b)`.
+
+```
+executor prefer(const executor& e, continuation_t p);
+executor prefer(const executor& e, not_continuation_t p);
+executor prefer(const executor& e, outstanding_work_t p);
+executor prefer(const executor& e, not_outstanding_work_t p);
+executor prefer(const executor& e, bulk_sequenced_execution_t p);
+executor prefer(const executor& e, bulk_parallel_execution_t p);
+executor prefer(const executor& e, bulk_unsequenced_execution_t p);
+executor prefer(const executor& e, new_thread_execution_mapping_t p);
+```
+
+*Returns:* A polymorphic wrapper whose target is `execution::prefer(e1, p)`, where `e1` is the target object of `e`.
 
 ### Class `executor::context_type`
 
@@ -1229,7 +1218,7 @@ bool operator!=(const static_thread_pool& a, const static_thread_pool& b) noexce
 
 ### `static_thread_pool` executor types
 
-All executor types accessible through `static_thread_pool::executor()`, and subsequent calls to the member functions `require` and `prefer`, conform to the following specification.
+All executor types accessible through `static_thread_pool::executor()`, and subsequent calls to the member function `require`, conform to the following specification.
 
 ```
 class C
@@ -1266,8 +1255,6 @@ class C
     see-below require(execution::not_outstanding_work_t) const;
     template<class ProtoAllocator>
       see-below require(const execution::allocator_t<ProtoAllocator>& a) const;
-
-    template<class Property> see-below prefer(const Property& p) const;
 
     bool running_in_this_thread() const noexcept;
 
@@ -1374,12 +1361,6 @@ specifications, associated with the same thread pool as `*this`, with the
 allocation and deallocation associated with function submission will be
 performed using a copy of `a.alloc`. All other properties of the returned
 executor object are identical to those of `*this`.
-
-```
-template<class Property> see-below prefer(const Property& p) const;
-```
-
-*Returns:* `this->require(p)` if that expression is well formed, otherwise `*this`.
 
 ```
 bool running_in_this_thread() const noexcept;
