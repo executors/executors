@@ -643,16 +643,6 @@ public:
   executor require(possibly_blocking_t p) const;
   executor require(always_blocking_t p) const;
 
-  executor prefer(continuation_t p) const;
-  executor prefer(not_continuation_t p) const;
-  executor prefer(outstanding_work_t p) const;
-  executor prefer(not_outstanding_work_t p) const;
-  executor prefer(bulk_sequenced_execution_t p) const;
-  executor prefer(bulk_parallel_execution_t p) const;
-  executor prefer(bulk_unsequenced_execution_t p) const;
-  executor prefer(new_thread_execution_mapping_t p) const;
-  template <class Property> executor prefer(const Property& p) const;
-
   template<class Function>
     void execute(Function&& f) const;
 
@@ -690,6 +680,15 @@ bool operator!=(nullptr_t, const executor& e) noexcept;
 // executor specialized algorithms:
 
 void swap(executor& a, executor& b) noexcept;
+
+executor prefer(const executor& e, continuation_t p);
+executor prefer(const executor& e, not_continuation_t p);
+executor prefer(const executor& e, outstanding_work_t p);
+executor prefer(const executor& e, not_outstanding_work_t p);
+executor prefer(const executor& e, bulk_sequenced_execution_t p);
+executor prefer(const executor& e, bulk_parallel_execution_t p);
+executor prefer(const executor& e, bulk_unsequenced_execution_t p);
+executor prefer(const executor& e, new_thread_execution_mapping_t p);
 ```
 
 The `executor` class satisfies the `BaseExecutor`, `DefaultConstructible` (C++Std [defaultconstructible]), and `CopyAssignable` (C++Std [copyassignable]) requirements.
@@ -830,25 +829,6 @@ executor require(always_blocking_t p) const;
 *Returns:* A polymorphic wrapper whose target is `execution::require(e, p)`, where `e` is the target object of `*this`.
 
 ```
-executor prefer(continuation_t) const;
-executor prefer(not_continuation_t) const;
-executor prefer(outstanding_work_t) const;
-executor prefer(not_outstanding_work_t) const;
-executor prefer(bulk_sequenced_execution_t) const;
-executor prefer(bulk_parallel_execution_t) const;
-executor prefer(bulk_unsequenced_execution_t) const;
-executor prefer(new_thread_execution_mapping_t) const;
-```
-
-*Returns:* A polymorphic wrapper whose target is `execution::prefer(e, p)`, where `e` is the target object of `*this`.
-
-```
-template <class Property> executor prefer(const Property& p) const;
-```
-
-*Returns:* `this->require(p)` if that expression is well formed, otherwise `*this`.
-
-```
 template<class Function>
   void execute(Function&& f) const;
 ```
@@ -981,6 +961,19 @@ void swap(executor& a, executor& b) noexcept;
 ```
 
 *Effects:* `a.swap(b)`.
+
+```
+executor prefer(const executor& e, continuation_t p);
+executor prefer(const executor& e, not_continuation_t p);
+executor prefer(const executor& e, outstanding_work_t p);
+executor prefer(const executor& e, not_outstanding_work_t p);
+executor prefer(const executor& e, bulk_sequenced_execution_t p);
+executor prefer(const executor& e, bulk_parallel_execution_t p);
+executor prefer(const executor& e, bulk_unsequenced_execution_t p);
+executor prefer(const executor& e, new_thread_execution_mapping_t p);
+```
+
+*Returns:* A polymorphic wrapper whose target is `execution::prefer(e1, p)`, where `e1` is the target object of `e`.
 
 ### Class `executor::context_type`
 
