@@ -539,7 +539,7 @@ This sub-clause contains templates that may be used to query the properties of a
 
 | Template                   | Condition           | Comments  |
 |----------------------------|---------------------|-----------|
-| `template<class T>` <br/>`struct query_member_result` | The expression `declval<const Executor>().query( declval<Property>())` is well formed. | The member typedef `type` shall name the type of the expression `declval<const Executor>().require( declval<Property())`. |
+| `template<class T>` <br/>`struct require_member_result` | The expression `declval<const Executor>().require( declval<Property>())` is well formed. | The member typedef `type` shall name the type of the expression `declval<const Executor>().require( declval<Property())`. |
 | `template<class T>` <br/>`struct prefer_member_result` | The expression `declval<const Executor>().prefer( declval<Property>())` is well formed. | The member typedef `type` shall name the type of the expression `declval<const Executor>().prefer( declval<Property())`. |
 | `template<class T>` <br/>`struct query_member_result` | The expression `declval<const Executor>().query( declval<Property>())` is well formed. | The member typedef `type` shall name the type of the expression `declval<const Executor>().query( declval<Property())`. |
 
