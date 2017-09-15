@@ -15,8 +15,8 @@ namespace execution {
 
 struct oneway_t;
 struct twoway_t;
-struct blocking_adaptable_t;
-struct not_blocking_adaptable_t;
+struct adaptable_blocking_t;
+struct not_adaptable_blocking_t;
 struct single_t;
 struct bulk_t;
 struct always_blocking_t;
@@ -47,14 +47,14 @@ template<class Executor>
   typename std::enable_if<
     (is_oneway_executor<Executor>::value || is_bulk_oneway_executor<Executor>::value)
     && !(is_twoway_executor<Executor>::value || is_bulk_twoway_executor<Executor>::value)
-    && has_require_members<Executor, blocking_adaptable_t>::value
+    && has_require_members<Executor, adaptable_blocking_t>::value
     && !has_require_members<Executor, twoway_t>::value, twoway_adapter<Executor>>::type
       require(Executor ex, twoway_t);
-template<class Executor> class blocking_adaptable_adapter;
+template<class Executor> class adaptable_blocking_adapter;
 template<class Executor>
-  constexpr typename std::enable_if<!has_require_members<Executor, blocking_adaptable_t>::value,
-    blocking_adaptable_adapter<Executor>>::type
-      require(Executor ex, blocking_adaptable_t);
+  constexpr typename std::enable_if<!has_require_members<Executor, adaptable_blocking_t>::value,
+    adaptable_blocking_adapter<Executor>>::type
+      require(Executor ex, adaptable_blocking_t);
 template<class Executor> class bulk_adapter;
 template<class Executor>
   constexpr typename std::enable_if<

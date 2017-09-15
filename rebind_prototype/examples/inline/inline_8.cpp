@@ -27,22 +27,22 @@ public:
 
 static_assert(execution::is_oneway_executor_v<inline_executor>, "one way executor requirements not met");
 static_assert(execution::is_bulk_twoway_executor_v<decltype(execution::require(execution::require(
-          inline_executor(), execution::bulk), execution::blocking_adaptable, execution::twoway))>, "bulk two way executor requirements not met");
+          inline_executor(), execution::bulk), execution::adaptable_blocking, execution::twoway))>, "bulk two way executor requirements not met");
 static_assert(execution::is_bulk_twoway_executor_v<decltype(execution::require(execution::require(
-          inline_executor(), execution::blocking_adaptable, execution::twoway), execution::bulk))>, "bulk two way executor requirements not met");
+          inline_executor(), execution::adaptable_blocking, execution::twoway), execution::bulk))>, "bulk two way executor requirements not met");
 
 int main()
 {
   inline_executor ex1;
 
-  auto ex2 = execution::require(execution::require(ex1, execution::bulk), execution::blocking_adaptable, execution::twoway);
+  auto ex2 = execution::require(execution::require(ex1, execution::bulk), execution::adaptable_blocking, execution::twoway);
   std::future<void> f1 = ex2.bulk_twoway_execute([](int n, int&){ std::cout << "part " << n << "\n"; }, 8, []{}, []{ return 0; });
   f1.wait();
   std::cout << "bulk operation is complete\n";
   std::future<int> f2 = ex2.bulk_twoway_execute([](int n, int&, int&){ std::cout << "part " << n << "\n"; }, 8, []{ return 42; }, []{ return 0; });
   std::cout << "result is " << f2.get() << "\n";
 
-  auto ex3 = execution::require(execution::require(ex1, execution::blocking_adaptable, execution::twoway), execution::bulk);
+  auto ex3 = execution::require(execution::require(ex1, execution::adaptable_blocking, execution::twoway), execution::bulk);
   std::future<void> f3 = ex3.bulk_twoway_execute([](int n, int&){ std::cout << "part " << n << "\n"; }, 8, []{}, []{ return 0; });
   f3.wait();
   std::cout << "bulk operation is complete\n";

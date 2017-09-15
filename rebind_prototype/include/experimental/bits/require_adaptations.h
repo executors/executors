@@ -161,7 +161,7 @@ template<class Executor>
   typename std::enable_if<
     (is_oneway_executor<Executor>::value || is_bulk_oneway_executor<Executor>::value)
     && !(is_twoway_executor<Executor>::value || is_bulk_twoway_executor<Executor>::value)
-    && has_require_members<Executor, blocking_adaptable_t>::value
+    && has_require_members<Executor, adaptable_blocking_t>::value
     && !has_require_members<Executor, twoway_t>::value, twoway_adapter<Executor>>::type
       require(Executor ex, twoway_t) { return twoway_adapter<Executor>(std::move(ex)); }
 
@@ -174,34 +174,34 @@ template<class Executor>
 // Default adapter for unsafe mode adds the unsafe mode property.
 
 template<class InnerExecutor>
-class blocking_adaptable_adapter
+class adaptable_blocking_adapter
 {
   InnerExecutor inner_ex_;
   template <class T> static auto inner_declval() -> decltype(std::declval<InnerExecutor>());
 
 public:
-  blocking_adaptable_adapter(InnerExecutor ex) : inner_ex_(std::move(ex)) {}
+  adaptable_blocking_adapter(InnerExecutor ex) : inner_ex_(std::move(ex)) {}
 
-  blocking_adaptable_adapter require(blocking_adaptable_t) const & { return *this; }
-  blocking_adaptable_adapter require(blocking_adaptable_t) && { return std::move(*this); }
-  InnerExecutor require(not_blocking_adaptable_t) const & { return inner_ex_; }
-  InnerExecutor require(not_blocking_adaptable_t) && { return std::move(inner_ex_); }
+  adaptable_blocking_adapter require(adaptable_blocking_t) const & { return *this; }
+  adaptable_blocking_adapter require(adaptable_blocking_t) && { return std::move(*this); }
+  InnerExecutor require(not_adaptable_blocking_t) const & { return inner_ex_; }
+  InnerExecutor require(not_adaptable_blocking_t) && { return std::move(inner_ex_); }
 
   template<class... T> auto require(T&&... t) const &
-    -> blocking_adaptable_adapter<typename require_member_result<InnerExecutor, T...>::type>
+    -> adaptable_blocking_adapter<typename require_member_result<InnerExecutor, T...>::type>
       { return { inner_ex_.require(std::forward<T>(t)...) }; }
   template<class... T> auto require(T&&... t) &&
-    -> blocking_adaptable_adapter<typename require_member_result<InnerExecutor&&, T...>::type>
+    -> adaptable_blocking_adapter<typename require_member_result<InnerExecutor&&, T...>::type>
       { return { std::move(inner_ex_).require(std::forward<T>(t)...) }; }
 
   auto& context() const noexcept { return inner_ex_.context(); }
 
-  friend bool operator==(const blocking_adaptable_adapter& a, const blocking_adaptable_adapter& b) noexcept
+  friend bool operator==(const adaptable_blocking_adapter& a, const adaptable_blocking_adapter& b) noexcept
   {
     return a.inner_ex_ == b.inner_ex_;
   }
 
-  friend bool operator!=(const blocking_adaptable_adapter& a, const blocking_adaptable_adapter& b) noexcept
+  friend bool operator!=(const adaptable_blocking_adapter& a, const adaptable_blocking_adapter& b) noexcept
   {
     return !(a == b);
   }
@@ -235,9 +235,9 @@ public:
 };
 
 template<class Executor>
-  constexpr typename std::enable_if<!has_require_members<Executor, blocking_adaptable_t>::value,
-    blocking_adaptable_adapter<Executor>>::type
-      require(Executor ex, blocking_adaptable_t) { return blocking_adaptable_adapter<Executor>(std::move(ex)); }
+  constexpr typename std::enable_if<!has_require_members<Executor, adaptable_blocking_t>::value,
+    adaptable_blocking_adapter<Executor>>::type
+      require(Executor ex, adaptable_blocking_t) { return adaptable_blocking_adapter<Executor>(std::move(ex)); }
 
 // Default require for bulk adapts single executors, leaves bulk executors as is.
 

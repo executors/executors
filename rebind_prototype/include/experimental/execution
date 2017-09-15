@@ -14,8 +14,8 @@ constexpr struct oneway_t {} oneway;
 constexpr struct twoway_t {} twoway;
 
 // Allow adaptation of blocking and directionality (e.g. twoway in terms of oneway).
-constexpr struct blocking_adaptable_t {} blocking_adaptable;
-constexpr struct not_blocking_adaptable_t {} not_blocking_adaptable;
+constexpr struct adaptable_blocking_t {} adaptable_blocking;
+constexpr struct not_adaptable_blocking_t {} not_adaptable_blocking;
 
 // Cardinality.
 constexpr struct single_t {} single;
