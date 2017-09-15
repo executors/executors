@@ -86,27 +86,6 @@ public:
 
   void require(execution::always_blocking_t) const = delete;
 
-  template <class Property> auto prefer(const Property& p) const
-    -> strand<execution::prefer_member_result_t<Executor, Property>, Blocking>
-      { return { state_, ex_.prefer(p) }; }
-
-  auto prefer(execution::never_blocking_t) const
-    -> strand<execution::prefer_member_result_t<Executor, execution::never_blocking_t>, execution::never_blocking_t>
-  {
-    return {state_, ex_.prefer(execution::never_blocking)};
-  };
-
-  auto prefer(execution::possibly_blocking_t) const
-    -> strand<execution::prefer_member_result_t<Executor, execution::possibly_blocking_t>, execution::never_blocking_t>
-  {
-    return {state_, ex_.prefer(execution::possibly_blocking)};
-  };
-
-  strand prefer(execution::always_blocking_t) const
-  {
-    return *this;
-  }
-
   auto& context() const
   {
     return ex_.context();
