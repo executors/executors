@@ -295,6 +295,8 @@ An executor's behavior in generic contexts is determined by a set of executor pr
 
 An executor's properties are modified by calling the `require` or `prefer` functions. These functions behave according the table below. In the table below, `x` denotes a (possibly const) executor object of type `X`, * and `p` denotes a (possibly const) property object.
 
+[*Note:* As a general design note properties which define a mutually exclusive pair, that describe an enabled or non-enabled behaviour follow the convention of having the same property name for both with the `not_` prefix to the property for the non-enabled behaviour. *--end note*]
+
 | Expression | Comments |
 |------------|----------|
 | `x.require(p)` <br/> `require(x,p)` | Returns an executor object with the requested property `p` added to the set. All other properties of the returned executor are identical to those of `x`, except where those properties are described below as being mutually exclusive to `p`. In this case, the mutually exclusive properties are implicitly removed from the set associated with the returned executor. <br/> <br/> The expression is ill formed if an executor is unable to add the requested property. |
@@ -353,9 +355,7 @@ The `possibly_blocking`, `always_blocking` and `never_blocking` properties are m
 | `continuation` | Function objects submitted through the executor represent continuations of the caller. If the caller is a lightweight execution agent managed by the executor or its associated execution context, the execution of the submitted function object may be deferred until the caller completes. |
 | `not_continuation` | Function objects submitted through the executor do not represent continuations of the caller. |
 
-The `not_continuation` and `continuation` properties are mutually exclusive and provide an increasing superset of guarantees as follows:
-
-    not_continuation < continuation
+The `not_continuation` and `continuation` properties are mutually exclusive.
 
 ### Properties to indicate likely task submission in the future
 
@@ -367,9 +367,7 @@ The `not_continuation` and `continuation` properties are mutually exclusive and 
 | `outstanding_work` | The existence of the executor object represents an indication of likely future submission of a function object. The executor or its associated execution context may choose to maintain execution resources in anticipation of this submission. |
 | `not_outstanding_work` | The existence of the executor object does not indicate any likely future submission of a function object. |
 
-The `not_outstanding_work` and `outstanding_work` properties are mutually exclusive and provide an increasing superset of guarantees as follows:
-
-    not_outstanding_work < outstanding_work
+The `not_outstanding_work` and `outstanding_work` properties are mutually exclusive.
 
 ### Properties for bulk execution forward progress guarantees
 
@@ -381,16 +379,18 @@ These properties communicate the forward progress and ordering guarantees of exe
 
 | Property | Requirements |
 |----------|--------------|
-| `bulk_sequenced_execution` | |
-| `bulk_parallel_execution` | |
 | `bulk_unsequenced_execution` | |
+| `bulk_parallel_execution` | |
+| `bulk_sequenced_execution` | |
 
 TODO: *The meanings and relative "strength" of these categores are to be defined.
-Most of the wording for `bulk_sequenced_execution`, `bulk_parallel_execution`,
-and `bulk_unsequenced_execution` can be migrated from S 25.2.3 p2, p3, and
+Most of the wording for `bulk_unsequenced_execution`, `bulk_parallel_execution`,
+and `bulk_sequenced_execution` can be migrated from S 25.2.3 p2, p3, and
 p4, respectively.*
 
-The `bulk_sequenced_execution`, `bulk_parallel_execution`, and `bulk_unsequenced_execution` properties are mutually exclusive.
+The `bulk_unsequenced_execution`, `bulk_parallel_execution`, and `bulk_sequenced_execution` properties are mutually exclusive.
+
+[*Note:* The guarantees of `bulk_unsequenced_execution`, `bulk_parallel_execution` and `bulk_sequenced_execution` implies the relationship: `bulk_unsequenced_execution < bulk_parallel_execution < bulk_sequenced_execution` *--end note*]
 
 ### Properties for mapping of execution on to threads
 
@@ -404,9 +404,9 @@ The `bulk_sequenced_execution`, `bulk_parallel_execution`, and `bulk_unsequenced
 | `thread_execution_mapping` | Execution agents created by the executor are mapped onto threads of execution. |
 | `new_thread_execution_mapping` | Each execution agent created by the executor is mapped onto a new thread of execution. |
 
-The `other_execution_mapping`, `thread_execution_mapping` and `new_thread_execution_mapping` properties are mutually exclusive and provide an increasing superset of guarantees as follows:
+The `other_execution_mapping`, `thread_execution_mapping` and `new_thread_execution_mapping` properties are mutually exclusive.
 
-    other_execution_mapping < thread_execution_mapping < new_thread_execution_mapping
+[*Note:* The guarantees of `other_execution_mapping`, `thread_execution_mapping` and `new_thread_execution_mapping` implies the relationship: `other_execution_mapping < thread_execution_mapping < new_thread_execution_mapping` *--end note*]
 
 [*Note:* A mapping of an execution agent onto a thread of execution implies the
 agent executes as-if on a `std::thread`. Therefore, the facilities provided by
@@ -425,10 +425,6 @@ agents. *--end note*]
 |----------|--------------|
 | `default_allocator` | Executor implementations shall use a default implmentation defined allocator to allocate any memory required to store the submitted function object. |
 | `allocator(ProtoAllocator)` | Executor implementations shall use the supplied allocator to allocate any memory required to store the submitted function object. |
-
-The `allocator(ProtoAllocator)` and `default_allocator` properties are mutually exclusive and provide an increaasing superset of guarantees as follows:
-
-    default_allocator < allocator
 
 ## Executor type traits
 
