@@ -47,7 +47,7 @@ namespace execution {
 
   // Memory allocation properties:
 
-  struct default_allocator_t {} deault_allocator;
+  struct default_allocator_t {} default_allocator;
   template<class ProtoAllocator> struct allocator_t { ProtoAllocator alloc; };
   template<class ProtoAllocator> constexpr allocator_t<ProtoAllocator> allocator(const ProtoAllocator& a) { return {a}; }
 
