@@ -8,7 +8,7 @@ namespace custom_hints
 {
   struct tracing { bool on; };
 
-  // Default hint implementation creates an adapter.
+  // Default hint implementation creates an adapter, but only when require() is used.
 
   template <class InnerExecutor>
   class tracing_executor
@@ -73,6 +73,10 @@ namespace custom_hints
   template <class Executor>
     std::enable_if_t<!execution::has_require_member_v<Executor, tracing>, tracing_executor<Executor>>
       require(Executor ex, tracing t) { return { t.on, std::move(ex) }; }
+
+  // This hint cannot be preferred.
+  template <class Executor>
+    void prefer(Executor ex, tracing t) = delete;
 };
 
 class inline_executor
@@ -113,22 +117,18 @@ int main()
   auto ex1 = execution::require(inline_executor(), custom_hints::tracing{true});
   ex1.execute([]{ std::cout << "we made it\n"; });
 
-  auto ex2 = execution::prefer(inline_executor(), custom_hints::tracing{true});
-  ex2.execute([]{ std::cout << "we made it with a preference\n"; });
+  static_assert(!execution::can_prefer_v<inline_executor, custom_hints::tracing>, "cannot prefer");
 
   auto ex3 = execution::require(pool.executor(), custom_hints::tracing{true});
   ex3.execute([]{ std::cout << "we made it again\n"; });
 
-  auto ex4 = execution::prefer(pool.executor(), custom_hints::tracing{true});
-  ex4.execute([]{ std::cout << "we made it again with a preference\n"; });
+  static_assert(!execution::can_prefer_v<static_thread_pool::executor_type, custom_hints::tracing>, "cannot prefer");
 
   execution::executor ex5 = pool.executor();
   auto ex6 = execution::require(ex5, custom_hints::tracing{true});
   ex6.execute([]{ std::cout << "and again\n"; });
 
-  execution::executor ex7 = pool.executor();
-  auto ex8 = execution::prefer(ex7, custom_hints::tracing{true});
-  ex8.execute([]{ std::cout << "and again with a preference\n"; });
+  static_assert(!execution::can_prefer_v<execution::executor, custom_hints::tracing>, "cannot prefer");
 
   pool.wait();
 }
