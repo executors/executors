@@ -43,7 +43,7 @@ namespace execution {
 
   constexpr struct bulk_sequenced_execution_t {} bulk_sequenced_execution;
   constexpr struct bulk_parallel_execution_t {} bulk_parallel_execution;
-  constexpr struct bulk_concurrent_execution_t {} bulk_concurrent_execution;
+  constexpr struct bulk_unsequenced_execution_t {} bulk_concurrent_execution;
 
   // Properties for mapping of execution on to threads:
 
@@ -388,7 +388,7 @@ These properties communicate the forward progress and ordering guarantees of exe
 
     constexpr struct bulk_sequenced_execution_t {} bulk_sequenced_execution;
     constexpr struct bulk_parallel_execution_t {} bulk_parallel_execution;
-    constexpr struct bulk_unsequenced_execution {} bulk_unsequenced_execution;
+    constexpr struct bulk_unsequenced_execution_t {} bulk_unsequenced_execution;
 
 | Property | Requirements |
 |----------|--------------|
