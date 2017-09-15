@@ -425,6 +425,8 @@ agents. *--end note*]
 | `default_allocator` | Executor implementations shall use a default implmentation defined allocator to allocate any memory required to store the submitted function object. |
 | `allocator(ProtoAllocator)` | Executor implementations shall use the supplied allocator to allocate any memory required to store the submitted function object. |
 
+[*Note:* It is permitted for an allocator provided via the `allocator(ProtoAllocator)` property to be the same type as the allocator provided by the `default_allocator` property. *--end note*]
+
 ## Executor type traits
 
 ### Determining that a type satisfies executor type requirements
