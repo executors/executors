@@ -19,19 +19,19 @@ namespace execution {
 
   // Blocking properties:
 
-  constexpr struct never_blocking_t {} never_blocking;
   constexpr struct possibly_blocking_t {} possibly_blocking;
   constexpr struct always_blocking_t {} always_blocking;
+  constexpr struct never_blocking_t {} never_blocking;
 
   // Properties to indicate if submitted tasks represent continuations:
 
-  constexpr struct continuation_t {} continuation;
   constexpr struct not_continuation_t {} not_continuation;
+  constexpr struct continuation_t {} continuation;
 
   // Properties to indicate likely task submission in the future:
 
-  constexpr struct outstanding_work_t {} outstanding_work;
   constexpr struct not_outstanding_work_t {} not_outstanding_work;
+  constexpr struct outstanding_work_t {} outstanding_work;
 
   // Properties for bulk execution forward progress guarantees:
 
@@ -41,11 +41,13 @@ namespace execution {
 
   // Properties for mapping of execution on to threads:
 
+  constexpr struct other_execution_mapping_t {} other_execution_mapping;
   constexpr struct thread_execution_mapping_t {} thread_execution_mapping;
   constexpr struct new_thread_execution_mapping_t {} new_thread_execution_mapping;
 
   // Memory allocation properties:
 
+  struct default_allocator_t {} default_allocator;
   template<class ProtoAllocator> struct allocator_t { ProtoAllocator alloc; };
   template<class ProtoAllocator> constexpr allocator_t<ProtoAllocator> allocator(const ProtoAllocator& a) { return {a}; }
 
@@ -287,6 +289,8 @@ An executor's behavior in generic contexts is determined by a set of executor pr
 
 An executor's properties are modified by calling the `require` member or non-member functions. These functions behave according the table below. In the table below, `x` denotes a (possibly const) executor object of type `X`, * and `p` denotes a (possibly const) property object.
 
+[*Note:* As a general design note properties which define a mutually exclusive pair, that describe an enabled or non-enabled behaviour follow the convention of having the same property name for both with the `not_` prefix to the property for the non-enabled behaviour. *--end note*]
+
 | Expression | Comments |
 |------------|----------|
 | `x.require(p)` <br/> `require(x,p)` | Returns an executor object with the requested property `p` added to the set. All other properties of the returned executor are identical to those of `x`, except where those properties are described below as being mutually exclusive to `p`. In this case, the mutually exclusive properties are implicitly removed from the set associated with the returned executor. <br/> <br/> The expression is ill formed if an executor is unable to add the requested property. |
@@ -303,6 +307,8 @@ An executor's properties are modified by calling the `require` member or non-mem
 | `twoway` | The executor type satisfies the `TwoWayExecutor` or `BulkTwoWayExecutor` requirements. |
 | `then` | The executor type satisfies the `ThenExecutor` or `BulkThenExecutor` requirements. |
 
+The `oneway`, `twoway` and `then` properties are accumulative.
+
 ### Cardinality properties
 
     constexpr struct single_t {} single;
@@ -313,19 +319,23 @@ An executor's properties are modified by calling the `require` member or non-mem
 | `single` | The executor type satisfies the `OneWayExecutor`, `TwoWayExecutor`, or `ThenExecutor` requirements. |
 | `bulk` | The executor type satisfies the `BulkOneWayExecutor`, `BulkTwoWayExecutor`, or `BulkThenExecutor` requirements. |
 
+The `single` and `bulk` properties are accumulative.
+
 ### Blocking properties
 
-    constexpr struct never_blocking_t {} never_blocking;
     constexpr struct possibly_blocking_t {} possibly_blocking;
     constexpr struct always_blocking_t {} always_blocking;
+    constexpr struct never_blocking_t {} never_blocking;
 
 | Property | Requirements |
 |----------|--------------|
-| `never_blocking` | A call to an executor's execution function shall not block pending completion of the execution agents created by that execution function. |
 | `possibly_blocking` | A call to an executor's execution function may block pending completion of one or more of the execution agents created by that execution function. |
 | `always_blocking` | A call to an executor's execution function shall block until completion of all execution agents created by that execution function. |
+| `never_blocking` | A call to an executor's execution function shall not block pending completion of the execution agents created by that execution function. |
 
-The `never_blocking`, `possibly_blocking`, and `always_blocking` properties are mutually exclusive.
+The `possibly_blocking`, `always_blocking` and `never_blocking` properties are mutually exclusive.
+
+[*Note:* The guarantees of `possibly_blocking`, `always_blocking` and `never_blocking` implies the relationships: `possibly_blocking < always_blocking` and `possibly_blocking < never_blocking` *--end note*]
 
 #### Properties to indicate if submitted tasks represent continuations
 
@@ -337,19 +347,19 @@ The `never_blocking`, `possibly_blocking`, and `always_blocking` properties are 
 | `continuation` | Function objects submitted through the executor represent continuations of the caller. If the caller is a lightweight execution agent managed by the executor or its associated execution context, the execution of the submitted function object may be deferred until the caller completes. |
 | `not_continuation` | Function objects submitted through the executor do not represent continuations of the caller. |
 
-The `continuation` and `not_continuation` properties are mutually exclusive.
+The `not_continuation` and `continuation` properties are mutually exclusive.
 
 ### Properties to indicate likely task submission in the future
 
-    constexpr struct outstanding_work_t {} outstanding_work;
     constexpr struct not_outstanding_work_t {} not_outstanding_work;
+    constexpr struct outstanding_work_t {} outstanding_work;
 
 | Property | Requirements |
 |----------|--------------|
 | `outstanding_work` | The existence of the executor object represents an indication of likely future submission of a function object. The executor or its associated execution context may choose to maintain execution resources in anticipation of this submission. |
 | `not_outstanding_work` | The existence of the executor object does not indicate any likely future submission of a function object. |
 
-The `outstanding_work` and `not_outstanding_work` properties are mutually exclusive.
+The `not_outstanding_work` and `outstanding_work` properties are mutually exclusive.
 
 ### Properties for bulk execution forward progress guarantees
 
@@ -361,28 +371,34 @@ These properties communicate the forward progress and ordering guarantees of exe
 
 | Property | Requirements |
 |----------|--------------|
-| `bulk_sequenced_execution` | |
-| `bulk_parallel_execution` | |
 | `bulk_unsequenced_execution` | |
+| `bulk_parallel_execution` | |
+| `bulk_sequenced_execution` | |
 
 TODO: *The meanings and relative "strength" of these categores are to be defined.
-Most of the wording for `bulk_sequenced_execution`, `bulk_parallel_execution`,
-and `bulk_unsequenced_execution` can be migrated from S 25.2.3 p2, p3, and
+Most of the wording for `bulk_unsequenced_execution`, `bulk_parallel_execution`,
+and `bulk_sequenced_execution` can be migrated from S 25.2.3 p2, p3, and
 p4, respectively.*
 
-The `bulk_sequenced_execution`, `bulk_parallel_execution`, and `bulk_unsequenced_execution` properties are mutually exclusive.
+The `bulk_unsequenced_execution`, `bulk_parallel_execution`, and `bulk_sequenced_execution` properties are mutually exclusive.
+
+[*Note:* The guarantees of `bulk_unsequenced_execution`, `bulk_parallel_execution` and `bulk_sequenced_execution` implies the relationship: `bulk_unsequenced_execution < bulk_parallel_execution < bulk_sequenced_execution` *--end note*]
 
 ### Properties for mapping of execution on to threads
 
+    constexpr struct other_execution_mapping_t {} default_execution_mapping;
     constexpr struct thread_execution_mapping_t {} thread_execution_mapping;
     constexpr struct new_thread_execution_mapping_t {} new_thread_execution_mapping;
 
 | Property | Requirements |
 |----------|--------------|
+| `other_execution_mapping` | Mapping of each execution agent created by the executor is implementation defined. |
 | `thread_execution_mapping` | Execution agents created by the executor are mapped onto threads of execution. |
 | `new_thread_execution_mapping` | Each execution agent created by the executor is mapped onto a new thread of execution. |
 
-The `thread_execution_mapping` and `new_thread_execution_mapping` properties are mutually exclusive.
+The `other_execution_mapping`, `thread_execution_mapping` and `new_thread_execution_mapping` properties are mutually exclusive.
+
+[*Note:* The guarantees of `other_execution_mapping`, `thread_execution_mapping` and `new_thread_execution_mapping` implies the relationship: `other_execution_mapping < thread_execution_mapping < new_thread_execution_mapping` *--end note*]
 
 [*Note:* A mapping of an execution agent onto a thread of execution implies the
 agent executes as-if on a `std::thread`. Therefore, the facilities provided by
@@ -393,12 +409,16 @@ agents. *--end note*]
 
 ### Properties for customizing memory allocation
 
+    struct default_allocator_t {} default_allocator;
     template<class ProtoAllocator> struct allocator_t { ProtoAllocator alloc; };
     template<class ProtoAllocator> constexpr allocator_t<ProtoAllocator> allocator(const ProtoAllocator& a) { return {a}; }
 
 | Property | Requirements |
 |----------|--------------|
-| `allocator` | Executor implementations shall use the supplied allocator to allocate any memory required to store the submitted function object. |
+| `default_allocator` | Executor implementations shall use a default implmentation defined allocator to allocate any memory required to store the submitted function object. |
+| `allocator(ProtoAllocator)` | Executor implementations shall use the supplied allocator to allocate any memory required to store the submitted function object. |
+
+[*Note:* It is permitted for an allocator provided via the `allocator(ProtoAllocator)` property to be the same type as the allocator provided by the `default_allocator` property. *--end note*]
 
 ## Executor type traits
 
