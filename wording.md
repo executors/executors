@@ -41,7 +41,7 @@ namespace execution {
 
   // Properties for bulk execution forward progress guarantees:
 
-  constexpr struct bulk_weakly_parallel_execution_t {} bulk_weakly_parallel_execution;
+  constexpr struct bulk_sequenced_execution_t {} bulk_sequenced_execution;
   constexpr struct bulk_parallel_execution_t {} bulk_parallel_execution;
   constexpr struct bulk_concurrent_execution_t {} bulk_concurrent_execution;
 
@@ -374,31 +374,29 @@ These properties communicate the forward progress and ordering guarantees of exe
 
 | Property | Requirements |
 |----------|--------------|
-| `caller_weakly_parallel_execution` | Each execution agent within a bulk execution must provide weakly parallel forward progress guarantees with each other execution agent within the same execution, in accordance with § 1.10.2 (7). |
-| `caller_parallel_execution` | Each execution agent within a bulk execution must provide parallel forward progress guarantees with each other execution agent within the same execution, in accordance with § 1.10.2 (9). |
-| `caller_concurrent_execution` | Each execution agent within a bulk execution must provide concurrent forward progress guarantees with each other execution agent within the same execution, in accordance with § 1.10.2 (11). |
+| `caller_weakly_parallel_execution` | Each execution agent must provide weakly _parallel forward progress_ guarantees with respect to the calling thread. |
+| `caller_parallel_execution` | Each execution agent must provide _parallel forward progress_ guarantees with respect to the calling thread. |
+| `caller_concurrent_execution` | Each execution agent must provide _concurrent forward progress_ guarantees with respect to the calling thread. |
 
-The `caller_weakly_parallel_execution`, `caller_parallel_execution`, and `caller_concurrent_execution` properties are mutually exclusive and provide an increasing superset of guarantees as follows:
+The `caller_weakly_parallel_execution`, `caller_parallel_execution`, and `caller_concurrent_execution` properties are mutually exclusive.
 
-    caller_weakly_parallel_execution < caller_parallel_execution < caller_concurrent_execution
+[*Note:* The guarantees of `caller_weakly_parallel_execution`, `caller_parallel_execution` and `caller_concurrent_execution` implies the relationship: `caller_weakly_parallel_execution < caller_parallel_execution < caller_concurrent_execution` *--end note*]
 
 ### Properties for bulk execution forward progress guarantees
 
 These properties communicate the forward progress and ordering guarantees of execution agents with respect to other agents within the same bulk submission.
 
-    constexpr struct bulk_weakly_parallel_execution_t {} bulk_weakly_parallel_execution;
+    constexpr struct bulk_sequenced_execution_t {} bulk_sequenced_execution;
     constexpr struct bulk_parallel_execution_t {} bulk_parallel_execution;
-    constexpr struct bulk_concurrent_execution_t {} bulk_concurrent_execution;
+    constexpr struct bulk_unsequenced_execution {} bulk_unsequenced_execution;
 
 | Property | Requirements |
 |----------|--------------|
-| `bulk_weakly_parallel_execution` | Each execution agent within a bulk execution must provide weakly parallel forward progress guarantees with each other execution agent within the same execution, in accordance with § 1.10.2 (7). |
-| `bulk_parallel_execution` | Each execution agent within a bulk execution must provide parallel forward progress guarantees with each other execution agent within the same execution, in accordance with § 1.10.2 (9). |
-| `bulk_concurrent_execution` | Each execution agent within a bulk execution must provide concurrent forward progress guarantees with each other execution agent within the same execution, in accordance with § 1.10.2 (11). |
+| `bulk_sequenced_execution` | Execution agents within the same bulk execution may not be parallelized. |
+| `bulk_parallel_execution` | Execution agents within the same bulk execution may be parallelized. |
+| `bulk_unsequenced_execution` | Execution agents within the same bulk execution may be parallelized and vectorized. |
 
-The `bulk_weakly_parallel_execution`, `bulk_parallel_execution`, and `bulk_concurrent_execution` properties are mutually exclusive and provide an increasing superset of guarantees as follows:
-
-    bulk_weakly_parallel_execution < bulk_parallel_execution < bulk_concurrent_execution
+The `bulk_unsequenced_execution`, `bulk_parallel_execution`, and `bulk_sequenced_execution` properties are mutually exclusive.
 
 ### Properties for mapping of execution on to threads
 
@@ -675,9 +673,9 @@ public:
   executor prefer(caller_concurrent_execution_t p) const;
   executor prefer(caller_parallel_execution_t p) const;
   executor prefer(caller_weakly_parallel_execution_t p) const;
-  executor prefer(bulk_concurrent_execution_t p) const;
+  executor prefer(bulk_sequenced_execution_t p) const;
   executor prefer(bulk_parallel_execution_t p) const;
-  executor prefer(bulk_weakly_parallel_execution_t p) const;
+  executor prefer(bulk_unsequenced_execution_t p) const;
   executor prefer(new_thread_execution_mapping_t p) const;
   template <class Property> executor prefer(const Property& p) const;
 
@@ -769,12 +767,12 @@ template<class Executor> executor(Executor e);
   * `can_prefer_v<Executor, not_continuation>`
   * `can_prefer_v<Executor, outstanding_work>`
   * `can_prefer_v<Executor, not_outstanding_work>`
-  * `can_prefer_v<Executor, bulk_concurrent_execution>`
   * `can_prefer_v<Executor, caller_parallel_execution>`
   * `can_prefer_v<Executor, caller_weakly_parallel_execution>`
   * `can_prefer_v<Executor, caller_concurrent_execution>`
+  * `can_prefer_v<Executor, bulk_sequenced_execution>`
   * `can_prefer_v<Executor, bulk_parallel_execution>`
-  * `can_prefer_v<Executor, bulk_weakly_parallel_execution>`
+  * `can_prefer_v<Executor, bulk_unsequenced_execution>`
   * `can_require_v<Executor, thread_execution_mapping>`
   * `can_prefer_v<Executor, new_thread_execution_mapping>`
 
@@ -868,9 +866,9 @@ executor prefer(not_outstanding_work_t) const;
 executor prefer(caller_concurrent_execution_t) const;
 executor prefer(caller_parallel_execution_t) const;
 executor prefer(caller_weakly_parallel_execution_t) const;
-executor prefer(bulk_concurrent_execution_t) const;
+executor prefer(bulk_sequenced_execution_t) const;
 executor prefer(bulk_parallel_execution_t) const;
-executor prefer(bulk_weakly_parallel_execution_t) const;
+executor prefer(bulk_unsequenced_execution_t) const;
 executor prefer(new_thread_execution_mapping_t) const;
 ```
 
@@ -1241,6 +1239,7 @@ established:
   * `execution::possibly_blocking`
   * `execution::not_continuation`
   * `execution::not_outstanding_work`
+  * `execution::caller_parallel_execution`
   * `execution::allocator(std::allocator<void>())`
 
 #### Comparisons
@@ -1285,6 +1284,7 @@ class C
     C require(execution::then_t) const;
     C require(execution::single_t) const;
     C require(execution::bulk_t) const;
+    C require(execution::caller_parallel_execution_t) const;
     C require(execution::bulk_parallel_execution_t) const;
     C require(execution::thread_execution_mapping_t) const;
     see-below require(execution::never_blocking_t) const;
@@ -1370,6 +1370,7 @@ C require(execution::twoway_t) const;
 C require(execution::then_t) const;
 C require(execution::single_t) const;
 C require(execution::bulk_t) const;
+C require(execution::caller_parallel_execution_t) const;
 C require(execution::bulk_parallel_execution_t) const;
 C require(execution::thread_execution_mapping_t) const;
 ```
