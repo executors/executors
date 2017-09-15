@@ -49,20 +49,6 @@ namespace execution {
   template<class ProtoAllocator> struct allocator_t { ProtoAllocator alloc; };
   template<class ProtoAllocator> constexpr allocator_t<ProtoAllocator> allocator(const ProtoAllocator& a) { return {a}; }
 
-  // Query properties:
-
-  constexpr struct is_oneway_t {} is_oneway;
-  constexpr struct is_twoway_t {} is_twoway;
-  constexpr struct is_then_t {} is_then;
-  constexpr struct is_single_t {} is_single;
-  constexpr struct is_bulk_t {} is_bulk
-  constexpr struct get_blocking_t {} get_blocking;
-  constexpr struct is_continuation_t {} is_continuation;
-  constexpr struct is_outstanding_work_t {} is_outstanding_work;
-  constexpr struct get_bulk_execution_t {} get_bulk_execution;
-  constexpr struct get_execution_mapping_t {} get_execution_mapping;
-  constexpr struct get_allocator_t {} get_allocator;
-
   // Executor type traits:
 
   template<class Executor> struct is_executor;
@@ -326,7 +312,7 @@ The current value of an executor's properties can be queried by calling the `que
 
 | Expression | Comments |
 |------------|----------|
-| `x.query(p)` | Returns a value which describes the current value of the requested property `p`. The expression is ill formed if an executor is unable to return the requested property. |
+| `x.query(p)` | Returns the current value of the requested property `p`. The expression is ill formed if an executor is unable to return the requested property. |
 
 ### Directionality properties
 
@@ -713,17 +699,25 @@ public:
   executor prefer(new_thread_execution_mapping_t p) const;
   template <class Property> executor prefer(const Property& p) const;
 
-  query_member_result_t<executor, is_oneway_t> query(is_oneway_t) const;
-  query_member_result_t<executor, is_twoway_t> query(is_twoway_t) is_twoway_t;
-  query_member_result_t<executor, is_then_t> query(is_then_t) const;
-  query_member_result_t<executor, is_single_t> query(is_single_t) const;
-  query_member_result_t<executor, is_bulk_t> query(is_bulk_t) const;
-  query_member_result_t<executor, get_blocking_t> query(get_blocking_t) const;
-  query_member_result_t<executor, is_continuation_t> query(is_continuation_t) const;
-  query_member_result_t<executor, is_outstanding_work_t> query(is_outstanding_work_t) const;
-  query_member_result_t<executor, get_bulk_execution_t> query(get_bulk_execution_t) const;
-  query_member_result_t<executor, get_execution_mapping_t> query(get_execution_mapping_t) const;
-  query_member_result_t<executor, get_allocator_t> query(get_allocator_t) const;
+  query_member_result_t<executor, oneway_t> query(oneway_t) const;
+  query_member_result_t<executor, twoway_t> query(twoway_t) is_twoway_t;
+  query_member_result_t<executor, then_t> query(then_t) const;
+  query_member_result_t<executor, single_t> query(single_t) const;
+  query_member_result_t<executor, bulk_t> query(bulk_t) const;
+  query_member_result_t<executor, possibly_blocking_t> query(possibly_blocking_t) const;
+  query_member_result_t<executor, always_blocking_t> query(always_blocking_t) const;
+  query_member_result_t<executor, never_blocking_t> query(never_blocking_t) const;
+  query_member_result_t<executor, continuation_t> query(continuation_t) const;
+  query_member_result_t<executor, not_continuation_t> query(not_continuation_t) const;
+  query_member_result_t<executor, outstanding_work_t> query(outstanding_work_t) const;
+  query_member_result_t<executor, not_outstanding_work_t> query(not_outstanding_work_t) const;
+  query_member_result_t<executor, bulk_sequenced_execution_t> query(bulk_sequenced_execution_t) const;
+  query_member_result_t<executor, bulk_parallel_execution_t> query(bulk_parallel_execution_t) const;
+  query_member_result_t<executor, bulk_unsequenced_execution_t> query(bulk_unsequenced_execution_t) const;
+  query_member_result_t<executor, bulk_unsequenced_execution_t> query(bulk_unsequenced_execution_t) const;
+  query_member_result_t<executor, thread_execution_mapping_t> query(thread_execution_mapping_t) const;
+  query_member_result_t<executor, new_thread_execution_mapping_t> query(new_thread_execution_mapping_t) const;
+  query_member_result_t<executor, allocator_t> query(allocator_t) const;
 
   template<class Function>
     void execute(Function&& f) const;
@@ -818,17 +812,24 @@ template<class Executor> executor(Executor e);
   * `can_prefer_v<Executor, bulk_unsequenced_execution>`
   * `can_prefer_v<Executor, thread_execution_mapping>`
   * `can_prefer_v<Executor, new_thread_execution_mapping>`
-  * `can_query_v<Executor, is_oneway>`
-  * `can_query_v<Executor, is_twoway>`
-  * `can_query_v<Executor, is_then>`
-  * `can_query_v<Executor, is_single>`
-  * `can_query_v<Executor, is_bulk>`
-  * `can_query_v<Executor, get_blocking>`
-  * `can_query_v<Executor, is_continuation>`
-  * `can_query_v<Executor, is_outstanding_work>`
-  * `can_query_v<Executor, get_bulk_execution>`
-  * `can_query_v<Executor, get_execution_mapping>`
-  * `can_query_v<Executor, get_allocator>`
+  * `can_query_v<Executor, oneway>`
+  * `can_query_v<Executor, twoway>`
+  * `can_query_v<Executor, then>`
+  * `can_query_v<Executor, single>`
+  * `can_query_v<Executor, bulk>`
+  * `can_query_v<Executor, never_blocking>`
+  * `can_query_v<Executor, possibly_blocking>`
+  * `can_query_v<Executor, always_blocking>`
+  * `can_query_v<Executor, continuation>`
+  * `can_query_v<Executor, not_continuation>`
+  * `can_query_v<Executor, outstanding_work>`
+  * `can_query_v<Executor, not_outstanding_work>`
+  * `can_query_v<Executor, bulk_sequenced_execution>`
+  * `can_query_v<Executor, bulk_parallel_execution>`
+  * `can_query_v<Executor, bulk_unsequenced_execution>`
+  * `can_query_v<Executor, thread_execution_mapping>`
+  * `can_query_v<Executor, new_thread_execution_mapping>`
+  * `can_query_v<Executor, allocator>`
 
 *Effects:* `*this` targets a copy of `e` initialized with `std::move(e)`.
 
