@@ -47,9 +47,9 @@ namespace execution {
 
   // Memory allocation properties:
 
+  struct default_allocator_t {} deault_allocator;
   template<class ProtoAllocator> struct allocator_t { ProtoAllocator alloc; };
   template<class ProtoAllocator> constexpr allocator_t<ProtoAllocator> allocator(const ProtoAllocator& a) { return {a}; }
-  struct default_allocator_t {} deault_allocator;
 
   // Executor type traits:
 
@@ -340,10 +340,9 @@ The `single` and `bulk` properties are accumulative.
 | `always_blocking` | A call to an executor's execution function shall block until completion of all execution agents created by that execution function. |
 | `never_blocking` | A call to an executor's execution function shall not block pending completion of the execution agents created by that execution function. |
 
-The `possibly_blocking`, `always_blocking` and `never_blocking` properties are mutually exclusive and provide an increasing superset of guarantees as follows:
+The `possibly_blocking`, `always_blocking` and `never_blocking` properties are mutually exclusive.
 
-    possibly_blocking < always_blocking
-    possibly_blocking < never_blocking
+[*Note:* The guarantees of `possibly_blocking`, `always_blocking` and `never_blocking` implies the relationships: `possibly_blocking < always_blocking` and `possibly_blocking < never_blocking` *--end note*]
 
 #### Properties to indicate if submitted tasks represent continuations
 
