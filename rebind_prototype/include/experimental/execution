@@ -86,15 +86,6 @@ template<class Executor, class... Properties>
 template<class Executor, class Property>
   using require_member_result_t = typename require_member_result<Executor, Property>::type;
 
-// Type traits to determine whether a prefer member invocation is valid, and what its result is.
-template<class Executor, class Property> struct has_prefer_member;
-template<class Executor, class Property> struct prefer_member_result;
-
-template<class Executor, class Property>
-  constexpr bool has_prefer_member_v = has_prefer_member<Executor, Property>::value;
-template<class Executor, class Property>
-  using prefer_member_result_t = typename prefer_member_result<Executor, Property>::type;
-
 namespace
 {
   // Require customization point.
@@ -135,10 +126,8 @@ class executor;
 #include <experimental/bits/executor_shape.h>
 #include <experimental/bits/executor_index.h>
 #include <experimental/bits/has_require_members.h>
-#include <experimental/bits/has_prefer_member.h>
 #include <experimental/bits/require_member_result.h>
 #include <experimental/bits/require_adaptations.h>
-#include <experimental/bits/prefer_member_result.h>
 #include <experimental/bits/can_require.h>
 #include <experimental/bits/can_prefer.h>
 #include <experimental/bits/executor.h>

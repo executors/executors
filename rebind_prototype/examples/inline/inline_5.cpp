@@ -8,7 +8,6 @@ class inline_executor
 public:
   inline_executor require(execution::always_blocking_t) const { return *this; }
   inline_executor require(execution::possibly_blocking_t) const { return *this; }
-  template <class... Args> inline_executor prefer(Args&&...) const { return *this; }
 
   auto& context() const noexcept { return *this; }
 

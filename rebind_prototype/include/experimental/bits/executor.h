@@ -382,22 +382,15 @@ public:
   executor require(possibly_blocking_t) const { return context_.impl_ ? context_.impl_->executor_require(possibly_blocking) : context_.impl_->clone(); }
   executor require(always_blocking_t) const { return context_.impl_ ? context_.impl_->executor_require(always_blocking) : context_.impl_->clone(); }
 
-  executor prefer(continuation_t) const { return context_.impl_ ? context_.impl_->executor_prefer(continuation) : context_.impl_->clone(); }
-  executor prefer(not_continuation_t) const { return context_.impl_ ? context_.impl_->executor_prefer(not_continuation) : context_.impl_->clone(); }
-  executor prefer(outstanding_work_t) const { return context_.impl_ ? context_.impl_->executor_prefer(outstanding_work) : context_.impl_->clone(); }
-  executor prefer(not_outstanding_work_t) const { return context_.impl_ ? context_.impl_->executor_prefer(not_outstanding_work) : context_.impl_->clone(); }
-  executor prefer(bulk_sequenced_execution_t) const { return context_.impl_ ? context_.impl_->executor_prefer(bulk_sequenced_execution) : context_.impl_->clone(); }
-  executor prefer(bulk_parallel_execution_t) const { return context_.impl_ ? context_.impl_->executor_prefer(bulk_parallel_execution) : context_.impl_->clone(); }
-  executor prefer(bulk_unsequenced_execution_t) const { return context_.impl_ ? context_.impl_->executor_prefer(bulk_unsequenced_execution) : context_.impl_->clone(); }
-  executor prefer(new_thread_execution_mapping_t) const { return context_.impl_ ? context_.impl_->executor_prefer(new_thread_execution_mapping) : context_.impl_->clone(); }
+  friend executor prefer(const executor& e, continuation_t) { return e.get_impl() ? e.get_impl()->executor_prefer(continuation) : e.get_impl()->clone(); }
+  friend executor prefer(const executor& e, not_continuation_t) { return e.get_impl() ? e.get_impl()->executor_prefer(not_continuation) : e.get_impl()->clone(); }
+  friend executor prefer(const executor& e, outstanding_work_t) { return e.get_impl() ? e.get_impl()->executor_prefer(outstanding_work) : e.get_impl()->clone(); }
+  friend executor prefer(const executor& e, not_outstanding_work_t) { return e.get_impl() ? e.get_impl()->executor_prefer(not_outstanding_work) : e.get_impl()->clone(); }
+  friend executor prefer(const executor& e, bulk_sequenced_execution_t) { return e.get_impl() ? e.get_impl()->executor_prefer(bulk_sequenced_execution) : e.get_impl()->clone(); }
+  friend executor prefer(const executor& e, bulk_parallel_execution_t) { return e.get_impl() ? e.get_impl()->executor_prefer(bulk_parallel_execution) : e.get_impl()->clone(); }
+  friend executor prefer(const executor& e, bulk_unsequenced_execution_t) { return e.get_impl() ? e.get_impl()->executor_prefer(bulk_unsequenced_execution) : e.get_impl()->clone(); }
+  friend executor prefer(const executor& e, new_thread_execution_mapping_t) { return e.get_impl() ? e.get_impl()->executor_prefer(new_thread_execution_mapping) : e.get_impl()->clone(); }
   
-  template<class Property> auto prefer(const Property& p) const
-    -> typename std::enable_if<execution::has_require_members<executor, Property>::value, executor>::type
-      { return this->require(p); }
-  template<class Property> auto prefer(const Property&) const
-    -> typename std::enable_if<!execution::has_require_members<executor, Property>::value, executor>::type
-      { return *this; }
-
   const context_type& context() const noexcept
   {
     return context_;

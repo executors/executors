@@ -9,7 +9,7 @@ int main()
   static_thread_pool pool{1};
   execution::executor ex = pool.executor().require(execution::always_blocking);
   std::cout << "before submission\n";
-  ex.execute([ex = ex.require(execution::never_blocking).prefer(execution::continuation)]{
+  ex.execute([ex = execution::prefer(ex.require(execution::never_blocking), execution::continuation)]{
       std::cout << "outer starts\n";
       ex.execute([]{ std::cout << "inner\n"; });
       std::cout << "outer ends\n";
