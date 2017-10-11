@@ -55,7 +55,7 @@ namespace execution {
 
   struct default_allocator_t {} default_allocator;
   template<class ProtoAllocator> struct allocator_t { ProtoAllocator alloc; };
-  template<class ProtoAllocator> constexpr allocator_t<ProtoAllocator> allocator(const ProtoAllocator& a) { return {a}; }
+  struct { template<class ProtoAllocator> constexpr allocator_t<ProtoAllocator> operator()(const ProtoAllocator& a) { return {a}; } } allocator;
 
   // Executor type traits:
 
@@ -117,14 +117,14 @@ namespace execution {
 
   template<class Executor, class... Properties> struct can_require;
   template<class Executor, class... Properties> struct can_prefer;
-  template<class Executor, class... Properties> struct can_query;
+  template<class Executor, class Property> struct can_query;
 
   template<class Executor, class... Properties>
-    constexpr bool can_require_v = can_require<Executor, Properties>::value;
+    constexpr bool can_require_v = can_require<Executor, Properties...>::value;
   template<class Executor, class... Properties>
-    constexpr bool can_prefer_v = can_prefer<Executor, Properties>::value;
-  template<class Executor, class... Properties>
-    constexpr bool can_query_v = can_query<Executor, Properties>::value;
+    constexpr bool can_prefer_v = can_prefer<Executor, Properties...>::value;
+  template<class Executor, class Property>
+    constexpr bool can_query_v = can_query<Executor, Property>::value;
 
   // Polymorphic executor wrappers:
 
@@ -305,6 +305,8 @@ An executor's behavior in generic contexts is determined by a set of executor pr
 
 An executor's properties are modified by calling the `require` member or non-member functions. These functions behave according the table below. In the table below, `x` denotes a (possibly const) executor object of type `X`, * and `p` denotes a (possibly const) property object.
 
+[*Note:* If a property requires a value to be provided when being set such as with the `allocator(ProtoAllocator)` property, it must be implemented such that it is callable with the stated parameter when used in `require` or `prefer` and is passable as an instance when used in `query`. Otherwise it must only be implemented such that it is passable as an instance when used in `require`, `prefer` or `query` *--end note*]
+
 [*Note:* As a general design note properties which define a mutually exclusive pair, that describe an enabled or non-enabled behaviour follow the convention of having the same property name for both with the `not_` prefix to the property for the non-enabled behaviour. *--end note*]
 
 | Expression | Comments |
@@ -449,9 +451,9 @@ agents. *--end note*]
 
 ### Properties for customizing memory allocation
 
-    struct default_allocator_t {} default_allocator;
-    template<class ProtoAllocator> struct allocator_t { ProtoAllocator alloc; };
-    template<class ProtoAllocator> constexpr allocator_t<ProtoAllocator> allocator(const ProtoAllocator& a) { return {a}; }
+  struct default_allocator_t {} default_allocator;
+  template<class ProtoAllocator> struct allocator_t { ProtoAllocator alloc; };
+  struct { template<class ProtoAllocator> constexpr allocator_t<ProtoAllocator> operator()(const ProtoAllocator& a) { return {a}; } } allocator;
 
 | Property | Requirements |
 |----------|--------------|
@@ -652,7 +654,7 @@ The name `query` denotes a customization point. The effect of the expression `st
 
     template<class Executor, class... Properties> struct can_require;
     template<class Executor, class... Properties> struct can_prefer;
-    template<class Executor, class... Properties> struct can_query;
+    template<class Executor, class Property> struct can_query;
 
 This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
 
@@ -660,7 +662,7 @@ This sub-clause contains templates that may be used to query the properties of a
 |----------------------------|---------------------|----------------|
 | `template<class T>` <br/>`struct can_require` | The expression `std::experimental::concurrency_v2::execution::require( declval<const Executor>(), declval<Properties>()...)` is well formed. | `T` is a complete type. |
 | `template<class T>` <br/>`struct can_prefer` | The expression `std::experimental::concurrency_v2::execution::prefer( declval<const Executor>(), declval<Properties>()...)` is well formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_query` | The expression `std::experimental::concurrency_v2::execution::query( declval<const Executor>(), declval<Properties>()...)` is well formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_query` | The expression `std::experimental::concurrency_v2::execution::query( declval<const Executor>(), declval<Property>())` is well formed. | `T` is a complete type. |
 
 ## Polymorphic executor wrappers
 
@@ -761,7 +763,7 @@ public:
 
   template<class Function, class ResultFactory, class SharedFactory>
     std::experimental::future<result_of_t<decay_t<ResultFactory>()>>
-      void bulk_twoway_execute(Function&& f, size_t n, ResultFactory&& rf, SharedFactory&& sf) const;
+      bulk_twoway_execute(Function&& f, size_t n, ResultFactory&& rf, SharedFactory&& sf) const;
 
   // executor capacity:
 
