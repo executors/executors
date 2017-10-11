@@ -385,6 +385,8 @@ The `not_continuation` and `continuation` properties are mutually exclusive.
 
 The `not_outstanding_work` and `outstanding_work` properties are mutually exclusive.
 
+[*Note:* The `outstanding_work` and `not_outstanding_work` properties provide a hint to the associated execution context as what to consider outstanding work. This is primarily important to the execution context's on-destruction behaviour as it will influence whether it considers's the existance of the executor object with the `outstanding_work` property enabled outstanding work when deciding what to wait on before destruction. However this will be largely defined by the execution context implementation. It is intended that the execution context will define it's on-destruction behaviour and provide an interface for querying this. An initial work towards this is included in P0737r0). *--end note*]
+
 ### Properties for execution forward progress guarantees with caller
 
 These properties communicate the forward progress and ordering guarantees of execution agent(s) with respect to the caller.
