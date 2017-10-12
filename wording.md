@@ -105,6 +105,13 @@ namespace execution {
   template<class Executor, class Property>
     using query_member_result_t = typename query_member_result<Executor, Property>::type;
 
+  // Property value types traits:
+
+  template<class Executor, class Property> struct property_value;
+
+  template<class Executor, class Property>
+    using property_value_t = typename property_value<Executor, Property>::type;
+
   // Customization points:
 
   namespace {
@@ -562,6 +569,14 @@ This sub-clause contains templates that may be used to query the properties of a
 | `template<class T>` <br/>`struct require_member_result` | The expression `declval<const Executor>().require( declval<Property>())` is well formed. | The member typedef `type` shall name the type of the expression `declval<const Executor>().require( declval<Property())`. |
 | `template<class T>` <br/>`struct query_member_result` | The expression `declval<const Executor>().query( declval<Property>())` is well formed. | The member typedef `type` shall name the type of the expression `declval<const Executor>().query( declval<Property())`. |
 
+## Property value types traits for properties
+
+This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a TransformationTrait (C++Std [meta.rqmts]).
+
+| Template                   | Condition           | Comments  |
+|----------------------------|---------------------|-----------|
+| `template<class T>` <br/>`struct property_value` | The expression `std::experimental::concurrency_v2::execution::query(declval<const Executor>(), declval<Property>())` is well formed. | The member typedef `type` shall name the type of the expression `std::experimental::concurrency_v2::execution::query(declval<const Executor>(), declval<Property())` and must satisfy `DefaultConstructible` (C++Std [defaultconstructible]) . |
+
 ## Executor customization points
 
 *Executor customization points* are functions which adapt an executor's properties. Executor customization points enable uniform use of executors in generic contexts.
@@ -636,17 +651,15 @@ When the executor customization point named `prefer` invokes a free execution fu
 
 The name `query` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::query(E, P)` for some expressions `E` and `P` is equivalent to:
 
-* `(E).query(P)` if `has_query_member_v<decay_t<decltype(E)>, decltype(P)>` is true.
+* `(E).query(P)` if `property_value<decltype(E)>, decltype(P)>` satisfies `DefaultConstructible` (C++Std [defaultconstructible]) and `has_query_member_v<decay_t<decltype(E)>, decltype(P)>` is true.
 
-* Otherwise, `(E).query(P)` if and `has_query_member_v<decay_t<decltype(E)>, decltype(P)>` is true.
+* Otherwise, `query(E, P)` if `property_value<decltype(E)>, decltype(P)>` satisfies `DefaultConstructible` (C++Std [defaultconstructible]) and the expression is well formed.
 
-* Otherwise, `query(E, P)` if the expression is well formed.
-
-* Otherwise, `E`.
-
-* Otherwise, `std::experimental::concurrency_v2::execution::prefer(E, P)` if the expression is well formed.
+* Otherwise, `property_value<decltype(E)>, decltype(P)>{}` if `property_value<decltype(E)>, decltype(P)>` satisfies `DefaultConstructible` (C++Std [defaultconstructible]).
 
 * Otherwise, `std::experimental::concurrency_v2::execution::prefer(E, P)` is ill-formed.
+
+[*Note:* `property_value<decltype(E)>, decltype(P)>` is required to be default constructible in order for the customisation point to be well-formed in the case where the property is either not supported by the executor or the executor fails to query the property. It is expected that `property_value<decltype(E)>, decltype(P)>` be a container type which can optionally store the value such as `std::optional` or potentially `std::expected` (see P0323r2) or `std::status_value` (see P0262r1) in order to also provide an error or status in the case where the property could not be queried. ]
 
 ### Customization point type traits
 
