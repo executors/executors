@@ -18,7 +18,7 @@ namespace require_impl {
 template<class Executor>
   constexpr typename std::enable_if<
     (is_oneway_executor<Executor>::value || is_bulk_oneway_executor<Executor>::value)
-    && !has_require_member<Executor, oneway_t>::value, Executor>::type
+    && !has_require_members<Executor, oneway_t>::value, Executor>::type
       require(Executor ex, oneway_t) { return std::move(ex); }
 
 // Default require for two way adapts one way executors, leaves two way executors as is.
@@ -161,14 +161,83 @@ template<class Executor>
   typename std::enable_if<
     (is_oneway_executor<Executor>::value || is_bulk_oneway_executor<Executor>::value)
     && !(is_twoway_executor<Executor>::value || is_bulk_twoway_executor<Executor>::value)
-    && !has_require_member<Executor, twoway_t>::value, twoway_adapter<Executor>>::type
+    && has_require_members<Executor, adaptable_blocking_t>::value
+    && !has_require_members<Executor, twoway_t>::value, twoway_adapter<Executor>>::type
       require(Executor ex, twoway_t) { return twoway_adapter<Executor>(std::move(ex)); }
 
 template<class Executor>
   constexpr typename std::enable_if<
     (is_twoway_executor<Executor>::value || is_bulk_twoway_executor<Executor>::value)
-    && !has_require_member<Executor, twoway_t>::value, Executor>::type
+    && !has_require_members<Executor, twoway_t>::value, Executor>::type
       require(Executor ex, twoway_t) { return std::move(ex); }
+
+// Default adapter for unsafe mode adds the unsafe mode property.
+
+template<class InnerExecutor>
+class adaptable_blocking_adapter
+{
+  InnerExecutor inner_ex_;
+  template <class T> static auto inner_declval() -> decltype(std::declval<InnerExecutor>());
+
+public:
+  adaptable_blocking_adapter(InnerExecutor ex) : inner_ex_(std::move(ex)) {}
+
+  adaptable_blocking_adapter require(adaptable_blocking_t) const & { return *this; }
+  adaptable_blocking_adapter require(adaptable_blocking_t) && { return std::move(*this); }
+  InnerExecutor require(not_adaptable_blocking_t) const & { return inner_ex_; }
+  InnerExecutor require(not_adaptable_blocking_t) && { return std::move(inner_ex_); }
+
+  template<class... T> auto require(T&&... t) const &
+    -> adaptable_blocking_adapter<typename require_member_result<InnerExecutor, T...>::type>
+      { return { inner_ex_.require(std::forward<T>(t)...) }; }
+  template<class... T> auto require(T&&... t) &&
+    -> adaptable_blocking_adapter<typename require_member_result<InnerExecutor&&, T...>::type>
+      { return { std::move(inner_ex_).require(std::forward<T>(t)...) }; }
+
+  auto& context() const noexcept { return inner_ex_.context(); }
+
+  friend bool operator==(const adaptable_blocking_adapter& a, const adaptable_blocking_adapter& b) noexcept
+  {
+    return a.inner_ex_ == b.inner_ex_;
+  }
+
+  friend bool operator!=(const adaptable_blocking_adapter& a, const adaptable_blocking_adapter& b) noexcept
+  {
+    return !(a == b);
+  }
+
+  template<class Function> auto execute(Function f) const
+    -> decltype(inner_declval<Function>().execute(std::move(f)))
+  {
+    return inner_ex_.execute(std::move(f));
+  }
+
+  template<class Function>
+  auto twoway_execute(Function f) const
+    -> decltype(inner_declval<Function>().twoway_execute(std::move(f)))
+  {
+    return inner_ex_.twoway_execute(std::move(f));
+  }
+
+  template<class Function, class SharedFactory>
+  auto bulk_execute(Function f, std::size_t n, SharedFactory sf) const
+    -> decltype(inner_declval<Function>().bulk_execute(std::move(f), n, std::move(sf)))
+  {
+    return inner_ex_.bulk_execute(std::move(f), n, std::move(sf));
+  }
+
+  template<class Function, class ResultFactory, class SharedFactory>
+  auto bulk_twoway_execute(Function f, std::size_t n, ResultFactory rf, SharedFactory sf) const
+    -> decltype(inner_declval<Function>().bulk_twoway_execute(std::move(f), n, std::move(rf), std::move(sf)))
+  {
+    return inner_ex_.bulk_twoway_execute(std::move(f), n, std::move(rf), std::move(sf));
+  }
+};
+
+template<class Executor>
+  constexpr typename std::enable_if<!has_require_members<Executor, adaptable_blocking_t>::value,
+    adaptable_blocking_adapter<Executor>>::type
+      require(Executor ex, adaptable_blocking_t) { return adaptable_blocking_adapter<Executor>(std::move(ex)); }
 
 // Default require for bulk adapts single executors, leaves bulk executors as is.
 
@@ -311,13 +380,13 @@ public:
 template<class Executor>
   typename std::enable_if<is_oneway_executor<Executor>::value
     && !(is_bulk_oneway_executor<Executor>::value || is_bulk_twoway_executor<Executor>::value)
-    && !has_require_member<Executor, bulk_t>::value, bulk_adapter<Executor>>::type
+    && !has_require_members<Executor, bulk_t>::value, bulk_adapter<Executor>>::type
       require(Executor ex, bulk_t) { return bulk_adapter<Executor>(std::move(ex)); }
 
 template<class Executor>
   constexpr typename std::enable_if<
     (is_bulk_oneway_executor<Executor>::value || is_bulk_twoway_executor<Executor>::value)
-    && !has_require_member<Executor, bulk_t>::value, Executor>::type
+    && !has_require_members<Executor, bulk_t>::value, Executor>::type
       require(Executor ex, bulk_t) { return std::move(ex); }
 
 // Default require for always blocking adapts all executors.
@@ -394,14 +463,14 @@ public:
 };
 
 template<class Executor>
-  constexpr typename std::enable_if<!has_require_member<Executor, always_blocking_t>::value,
+  constexpr typename std::enable_if<!has_require_members<Executor, always_blocking_t>::value,
     always_blocking_adapter<Executor>>::type
       require(Executor ex, always_blocking_t) { return always_blocking_adapter<Executor>(std::move(ex)); }
 
 // Default require for possibly blocking does no adaptation, as all executors are possibly blocking.
 
 template<class Executor>
-  constexpr typename std::enable_if<!has_require_member<Executor, possibly_blocking_t>::value, Executor>::type
+  constexpr typename std::enable_if<!has_require_members<Executor, possibly_blocking_t>::value, Executor>::type
     require(Executor ex, possibly_blocking_t) { return std::move(ex); }
 
 } // namespace require_impl
