@@ -376,6 +376,8 @@ The `possibly_blocking`, `always_blocking` and `never_blocking` properties are m
 
 The `not_adaptable_blocking` and `adaptable_blocking` properties are mutually exclusive.
 
+[*Note:* The `two_way` property is included here as the `require` customization point's `two_way` adaptation is specified in terms of `std::experimental::future`, and that template supports blocking wait operations. *--end note*]
+
 #### Properties to indicate if submitted tasks represent continuations
 
     constexpr struct continuation_t {} continuation;
