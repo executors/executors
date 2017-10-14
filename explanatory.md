@@ -1079,6 +1079,13 @@ Example using `std::status_value`:
       handle_error(sv);
     }
 
+The `execution::query` customization point can be used to retrieve the current
+value of standard properties, however it can also be used to retrieve the value
+of properties which represent executor capabilities or information. Some
+examples of these are the optimal shape for execution, memory affinity,
+execution priority, logging and tracing or task grouping. It's expected that an
+implementation will provide additional implementation specific properties.
+
 # Implementing Executors
 
 A programmer implements an executor by defining a type which satisfies the
