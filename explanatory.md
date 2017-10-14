@@ -1509,16 +1509,6 @@ lifetimes of `thread_local` variables. It is unclear whether these tools are
 sufficient or if more fine-grained control over thread local storage is
 warranted.
 
-**Forward Progress Guarantees and Boost Blocking.** Our executor programming model prescribes a way for bulk executors to advertise
-the forward progress guarantees of execution agents created in bulk. This
-guarantee describes an agent's forward progress with respect to other agents
-within the same group as that agent. However, our model prescribes no analogous
-way for advertising any guarantee of forward progress between a single
-execution agent and the client thread which requested the creation of that
-agent. Similarly, our programming model does not describe how executors would
-make such guarantees. Incorporating a model of *boost blocking* into our design
-could be one option.
-
 ## Envisioned Extensions
 
 we conclude with a brief survey of future work extending our proposal. Some of
