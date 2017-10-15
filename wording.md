@@ -54,8 +54,8 @@ namespace execution {
   // Memory allocation properties:
 
   struct default_allocator_t {} default_allocator;
-  template<class ProtoAllocator> struct allocator_t { ProtoAllocator alloc; };
-  struct { template<class ProtoAllocator> constexpr allocator_t<ProtoAllocator> operator()(const ProtoAllocator& a) { return {a}; } } allocator;
+  template<class ProtoAllocator> struct allocator_wrapper_t { ProtoAllocator alloc; };
+  struct allocator_t { template<class ProtoAllocator> constexpr allocator_wrapper_t<ProtoAllocator> operator()(const ProtoAllocator& a) { return {a}; } } allocator;
 
   // Executor type traits:
 
@@ -305,8 +305,6 @@ An executor's behavior in generic contexts is determined by a set of executor pr
 
 An executor's properties are modified by calling the `require` member or non-member functions. These functions behave according the table below. In the table below, `x` denotes a (possibly const) executor object of type `X`, * and `p` denotes a (possibly const) property object.
 
-[*Note:* If a property requires a value to be provided when being set such as with the `allocator(ProtoAllocator)` property, it must be implemented such that it is callable with the stated parameter when used in `require` or `prefer` and is passable as an instance when used in `query`. Otherwise it must only be implemented such that it is passable as an instance when used in `require`, `prefer` or `query` *--end note*]
-
 [*Note:* As a general design note properties which define a mutually exclusive pair, that describe an enabled or non-enabled behaviour follow the convention of having the same property name for both with the `not_` prefix to the property for the non-enabled behaviour. *--end note*]
 
 | Expression | Comments |
@@ -385,7 +383,7 @@ The `not_continuation` and `continuation` properties are mutually exclusive.
 
 The `not_outstanding_work` and `outstanding_work` properties are mutually exclusive.
 
-[*Note:* The `outstanding_work` and `not_outstanding_work` properties provide a hint to the associated execution context as what to consider outstanding work. This is primarily important to the execution context's on-destruction behaviour as it will influence whether it considers's the existance of the executor object with the `outstanding_work` property enabled outstanding work when deciding what to wait on before destruction. However this will be largely defined by the execution context implementation. It is intended that the execution context will define it's on-destruction behaviour and provide an interface for querying this. An initial work towards this is included in P0737r0). *--end note*]
+[*Note:* The `outstanding_work` and `not_outstanding_work` properties are use to communicate to the associated execution context intended future work submission on the executor. The intended effect of the properties is the behavior of execution context's facilities for awaiting outstanding work; specifically whether it considers's the existance of the executor object with the `outstanding_work` property enabled outstanding work when deciding what to wait on. However this will be largely defined by the execution context implementation. It is intended that the execution context will define it's wait facilities and on-destruction behaviour and provide an interface for querying this. An initial work towards this is included in P0737r0. *--end note*]
 
 ### Properties for execution forward progress guarantees with caller
 
@@ -454,13 +452,15 @@ agents. *--end note*]
 ### Properties for customizing memory allocation
 
   struct default_allocator_t {} default_allocator;
-  template<class ProtoAllocator> struct allocator_t { ProtoAllocator alloc; };
-  struct { template<class ProtoAllocator> constexpr allocator_t<ProtoAllocator> operator()(const ProtoAllocator& a) { return {a}; } } allocator;
+  template<class ProtoAllocator> struct allocator_wrapper_t { ProtoAllocator alloc; };
+  struct allocator_t { template<class ProtoAllocator> constexpr allocator_wrapper_t<ProtoAllocator> operator()(const ProtoAllocator& a) { return {a}; } } allocator;
 
 | Property | Requirements |
 |----------|--------------|
 | `default_allocator` | Executor implementations shall use a default implmentation defined allocator to allocate any memory required to store the submitted function object. |
 | `allocator(ProtoAllocator)` | Executor implementations shall use the supplied allocator to allocate any memory required to store the submitted function object. |
+
+[*Note:* As the `allocator(ProtoAllocator)` property requires a value to be provided when being set, it is required to be implemented such that it is callable with the `ProtoAllocator` parameter when used in `require` or `prefer` where the customization points accepts the result of the function call operator of `allocator_t`; `allocator_wrapper_t` and is passable as an instance when used in `query` where the customization point accepts an instance of `allocator_t`. *--end note*]
 
 [*Note:* It is permitted for an allocator provided via the `allocator(ProtoAllocator)` property to be the same type as the allocator provided by the `default_allocator` property. *--end note*]
 
@@ -1387,7 +1387,7 @@ class C
     see-below require(execution::outstanding_work_t) const;
     see-below require(execution::not_outstanding_work_t) const;
     template<class ProtoAllocator>
-      see-below require(const execution::allocator_t<ProtoAllocator>& a) const;
+      see-below require(const execution::allocator_wrapper_t<ProtoAllocator>& a) const;
 
     bool running_in_this_thread() const noexcept;
 
@@ -1486,12 +1486,12 @@ returned executor object are identical to those of `*this`.
 
 ```
 template<class ProtoAllocator>
-  see-below require(const execution::allocator_t<ProtoAllocator>& a) const;
+  see-below require(const execution::allocator_wrapper_t<ProtoAllocator>& a) const;
 ```
 
 *Returns:* An executor object of an unspecified type conforming to these
 specifications, associated with the same thread pool as `*this`, with the
-`execution::allocator_t<ProtoAllocator>` property established such that
+`execution::allocator_wrapper_t<ProtoAllocator>` property established such that
 allocation and deallocation associated with function submission will be
 performed using a copy of `a.alloc`. All other properties of the returned
 executor object are identical to those of `*this`.
