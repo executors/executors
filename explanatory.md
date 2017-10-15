@@ -1559,6 +1559,32 @@ P0443 and should be done before the design is considered complete. Other work
 is explicitly out of scope, and should be pursued independently using our
 design as a foundation. 
 
+## Naming of `require` and `prefer`
+
+Some concern has been expressed over the name `require` and the potential for
+confusion with the `requires` keyword from the Concepts TS. In particular:
+
+  * Similar to `requires`, the function `require` is used to assert requirements on an executor.
+  * Unlike `requires`, the function `require` performs a transformation on the executor to obtain a new object that satisfies the requirements.
+
+With this in mind, we suggest the following names as alternatives for the names
+`require` and `prefer`:
+
+| require           | prefer                                       |
+|-------------------|----------------------------------------------|
+| `transform` | `maybe_transform` or `try_transform` |
+| `transform_executor` | `maybe_transform_executor` or `try_transform_executor` |
+| `rebind` | `maybe_rebind` or `try_rebind` |
+| `expect` | `maybe_expect` or `try_expect` |
+| `modify` | `maybe_modify` or `try_modify` |
+| `apply` | `maybe_apply` or `try_apply` |
+| `adapt` | `maybe_adapt` or `try_adapt` |
+
+The first two, based on the word `transform`, are our (weak) preferences from
+these alternatives. However, it is worth noting than when potential library
+users were presented with these alternatives, they expressed a preference for
+the existing names (`require` and `prefer`).
+
 ## Open Design Issues
 
 Much of our design for executors is well-established. However, some aspects of the
