@@ -1581,9 +1581,10 @@ With this in mind, we suggest the following names as alternatives for the names
 | `adapt` | `maybe_adapt` or `try_adapt` |
 
 The first two, based on the word `transform`, are our (weak) preferences from
-these alternatives. However, it is worth noting than when potential library
-users were presented with these alternatives, they expressed a preference for
-the existing names (`require` and `prefer`).
+these alternatives (although there is a potential conflict with the
+`std::transform` algorithm in the first case). However, it is worth noting that
+when potential library users were presented with these alternatives, they
+expressed a preference for the existing names (`require` and `prefer`).
 
 ## Open Design Issues
 
