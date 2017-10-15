@@ -1020,6 +1020,72 @@ properties requested through a call to either `execution::require` or
 `execution::prefer` may be changed. The resulting executor must retain all the
 other properties of the original executor which were not named by the call.
 
+## Customization Points Query An Executor's Properties
+
+The current value of an executor's property can be queried through the
+`execution::query` customization point. This can be useful for querying whether
+a call to the `execution::prefer` was successful and the requested property is
+honoured by the returned executor but also as a general interface for querying
+information about an executor's capabilities.
+
+Whether a property can be queried can be known at compile-time using the
+`execution::can_query_v` type trait.
+
+The property value type which is returned can be known at compile-time using the
+`execution::property_value` type trait. This type will often be `bool` as
+querying a property will often return whether that property is enabled. However
+properties which require a value such as the `allocator` property are expected
+to return a container which can optionally store a value such as `std::optional`
+. If the implementation wishes to also have the option to return an error then
+it may choose to return `std::expected` (see P0323r2) or `std::status_value`
+(see P0262r1) in order to also provide an error or status in the case where the
+property could not be queried. The `execution::property_value` type is required
+to always be `DefaultConstructible` (C++Std [defaultconstructible]).
+
+Example using `std::optional`:
+
+    // get an executor through some means
+    my_executor_type my_executor = ...
+
+    std::optional<std::allocator<void>> opt = my_executor.query(allocator);
+
+    if (opt.has_value()) {
+      do_something_with(opt.value());
+    }
+
+Example using `std::expected`:
+
+    // get an executor through some means
+    my_executor_type my_executor = ...
+
+    std::expected<std::allocator<void>, property_error> exp = my_executor.query(allocator);
+
+    if (exp.has_value()) {
+      do_something_with(exp.value());
+    } else {
+      handle_error(exp.error());
+    }
+
+Example using `std::status_value`:
+
+    // get an executor through some means
+    my_executor_type my_executor = ...
+
+    std::status_value<property_query, std::allocator<void>> sv = my_executor.query(allocator);
+
+    if (sv.status() == property_query::success) {
+      do_something_with(sv.value());
+    } else {
+      handle_error(sv);
+    }
+
+The `execution::query` customization point can be used to retrieve the current
+value of standard properties, however it can also be used to retrieve the value
+of properties which represent executor capabilities or information. Some
+examples of these are the optimal shape for execution, memory affinity,
+execution priority, logging and tracing or task grouping. It's expected that an
+implementation will provide additional implementation specific properties.
+
 # Implementing Executors
 
 A programmer implements an executor by defining a type which satisfies the

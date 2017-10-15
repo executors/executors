@@ -44,7 +44,7 @@ namespace execution {
   constexpr struct caller_parallel_execution_t {} caller_parallel_execution;
   constexpr struct caller_concurrent_execution_t {} caller_concurrent_execution;
 
-  // Properties for bulk execution forward progress guarantees:
+  // Properties for bulk execution guarantees:
 
   constexpr struct bulk_sequenced_execution_t {} bulk_sequenced_execution;
   constexpr struct bulk_parallel_execution_t {} bulk_parallel_execution;
@@ -109,6 +109,13 @@ namespace execution {
     using require_member_result_t = typename require_member_result<Executor, Property>::type;
   template<class Executor, class Property>
     using query_member_result_t = typename query_member_result<Executor, Property>::type;
+
+  // Property value types traits:
+
+  template<class Executor, class Property> struct property_value;
+
+  template<class Executor, class Property>
+    using property_value_t = typename property_value<Executor, Property>::type;
 
   // Customization points:
 
@@ -420,7 +427,7 @@ The `caller_weakly_parallel_execution`, `caller_parallel_execution`, and `caller
 
 [*Note:* The guarantees of `caller_weakly_parallel_execution`, `caller_parallel_execution` and `caller_concurrent_execution` implies the relationship: `caller_weakly_parallel_execution < caller_parallel_execution < caller_concurrent_execution` *--end note*]
 
-### Properties for bulk execution forward progress guarantees
+### Properties for bulk execution guarantees
 
 These properties communicate the forward progress and ordering guarantees of execution agents with respect to other agents within the same bulk submission.
 
@@ -566,8 +573,8 @@ This sub-clause contains templates that may be used to query the properties of a
 
 | Template                   | Condition           | Preconditions  |
 |----------------------------|---------------------|----------------|
-| `template<class T>` <br/>`struct has_require_member` | The expression `declval<const Executor>().require( declval<Property>())` is well formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct has_query_member` | The expression `declval<const Executor>().query( declval<Property>())` is well formed. | `T` is a complete type. |
+| `template<class Executor, class Property>` <br/>`struct has_require_member` | The expression `declval<const Executor>().require( declval<Property>())` is well formed. | `Executor` is a complete type. |
+| `template<class Executor, class Property>` <br/>`struct has_query_member` | The expression `declval<const Executor>().query( declval<Property>())` is well formed. | `Executor` is a complete type. |
 
 ### Member return type traits for properties
 
@@ -578,8 +585,16 @@ This sub-clause contains templates that may be used to query the properties of a
 
 | Template                   | Condition           | Comments  |
 |----------------------------|---------------------|-----------|
-| `template<class T>` <br/>`struct require_member_result` | The expression `declval<const Executor>().require( declval<Property>())` is well formed. | The member typedef `type` shall name the type of the expression `declval<const Executor>().require( declval<Property())`. |
-| `template<class T>` <br/>`struct query_member_result` | The expression `declval<const Executor>().query( declval<Property>())` is well formed. | The member typedef `type` shall name the type of the expression `declval<const Executor>().query( declval<Property())`. |
+| `template<class Executor, class Property>` <br/>`struct require_member_result` | The expression `declval<const Executor>().require( declval<Property>())` is well formed. | The member typedef `type` shall name the type of the expression `declval<const Executor>().require( declval<Property())`. |
+| `template<class Executor, class Property>` <br/>`struct query_member_result` | The expression `declval<const Executor>().query( declval<Property>())` is well formed. | The member typedef `type` shall name the type of the expression `declval<const Executor>().query( declval<Property())`. |
+
+## Property value types traits for properties
+
+This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a TransformationTrait (C++Std [meta.rqmts]).
+
+| Template                   | Condition           | Comments  |
+|----------------------------|---------------------|-----------|
+| `template<class Executor, class Property>` <br/>`struct property_value` | | The member typedef `type` shall name the type of the value associated with the property `Property`. |
 
 ## Executor customization points
 
@@ -659,15 +674,9 @@ The name `query` denotes a customization point. The effect of the expression `st
 
 * `(E).query(P)` if `has_query_member_v<decay_t<decltype(E)>, decltype(P)>` is true.
 
-* Otherwise, `(E).query(P)` if and `has_query_member_v<decay_t<decltype(E)>, decltype(P)>` is true.
-
 * Otherwise, `query(E, P)` if the expression is well formed.
 
-* Otherwise, `E`.
-
-* Otherwise, `std::experimental::concurrency_v2::execution::prefer(E, P)` if the expression is well formed.
-
-* Otherwise, `std::experimental::concurrency_v2::execution::prefer(E, P)` is ill-formed.
+* Otherwise, `std::experimental::concurrency_v2::execution::query(E, P)` is ill-formed.
 
 ### Customization point type traits
 
@@ -749,26 +758,6 @@ public:
   executor require(never_blocking_t p) const;
   executor require(possibly_blocking_t p) const;
   executor require(always_blocking_t p) const;
-
-  query_member_result_t<executor, oneway_t> query(oneway_t) const;
-  query_member_result_t<executor, twoway_t> query(twoway_t) is_twoway_t;
-  query_member_result_t<executor, then_t> query(then_t) const;
-  query_member_result_t<executor, single_t> query(single_t) const;
-  query_member_result_t<executor, bulk_t> query(bulk_t) const;
-  query_member_result_t<executor, possibly_blocking_t> query(possibly_blocking_t) const;
-  query_member_result_t<executor, always_blocking_t> query(always_blocking_t) const;
-  query_member_result_t<executor, never_blocking_t> query(never_blocking_t) const;
-  query_member_result_t<executor, continuation_t> query(continuation_t) const;
-  query_member_result_t<executor, not_continuation_t> query(not_continuation_t) const;
-  query_member_result_t<executor, outstanding_work_t> query(outstanding_work_t) const;
-  query_member_result_t<executor, not_outstanding_work_t> query(not_outstanding_work_t) const;
-  query_member_result_t<executor, bulk_sequenced_execution_t> query(bulk_sequenced_execution_t) const;
-  query_member_result_t<executor, bulk_parallel_execution_t> query(bulk_parallel_execution_t) const;
-  query_member_result_t<executor, bulk_unsequenced_execution_t> query(bulk_unsequenced_execution_t) const;
-  query_member_result_t<executor, bulk_unsequenced_execution_t> query(bulk_unsequenced_execution_t) const;
-  query_member_result_t<executor, thread_execution_mapping_t> query(thread_execution_mapping_t) const;
-  query_member_result_t<executor, new_thread_execution_mapping_t> query(new_thread_execution_mapping_t) const;
-  query_member_result_t<executor, allocator_t> query(allocator_t) const;
 
   template<class Function>
     void execute(Function&& f) const;
@@ -875,24 +864,6 @@ template<class Executor> executor(Executor e);
   * `can_prefer_v<Executor, bulk_unsequenced_execution>`
   * `can_prefer_v<Executor, thread_execution_mapping>`
   * `can_prefer_v<Executor, new_thread_execution_mapping>`
-  * `can_query_v<Executor, oneway>`
-  * `can_query_v<Executor, twoway>`
-  * `can_query_v<Executor, then>`
-  * `can_query_v<Executor, single>`
-  * `can_query_v<Executor, bulk>`
-  * `can_query_v<Executor, never_blocking>`
-  * `can_query_v<Executor, possibly_blocking>`
-  * `can_query_v<Executor, always_blocking>`
-  * `can_query_v<Executor, continuation>`
-  * `can_query_v<Executor, not_continuation>`
-  * `can_query_v<Executor, outstanding_work>`
-  * `can_query_v<Executor, not_outstanding_work>`
-  * `can_query_v<Executor, bulk_sequenced_execution>`
-  * `can_query_v<Executor, bulk_parallel_execution>`
-  * `can_query_v<Executor, bulk_unsequenced_execution>`
-  * `can_query_v<Executor, thread_execution_mapping>`
-  * `can_query_v<Executor, new_thread_execution_mapping>`
-  * `can_query_v<Executor, allocator>`
 
 *Effects:* `*this` targets a copy of `e` initialized with `std::move(e)`.
 
