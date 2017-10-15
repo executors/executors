@@ -54,7 +54,7 @@ Abstract:           This paper proposes a programming model for executors, which
 * Introduced `execution::query()` for executor property introspection
 * Simplified the design of `execution::prefer()`
 * `oneway`, `twoway`, `single`, and `bulk` are now `require()`-only properties
-* Introduced properties allowing executors to opt into one-way to two-way adaptations
+* Introduced properties allowing executors to opt into adaptations that add blocking semantics
 * Introduced properties describing the forward progress relationship between caller and agents
 * Various minor improvements to existing functionality based on prototyping
 
