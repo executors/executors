@@ -49,7 +49,21 @@ Abstract:           This paper proposes a programming model for executors, which
 
 ## Changelog
 
-### Changes since R0
+### Revision 3
+
+* Introduced `execution::query()` for executor property introspection
+* Simplified the design of `execution::prefer()`
+* `oneway`, `twoway`, `single`, and `bulk` are now `require()`-only properties
+* Introduced properties allowing executors to opt into one-way to two-way adaptations
+* Introduced properties describing the forward progress relationship between caller and agents
+* Various minor improvements to existing functionality based on prototyping
+
+### Revision 2
+
+* Separated wording from explanatory prose, now contained in paper [P0761](https://wg21.link/P0761)
+* Applied the simplification proposed by paper [P0688](https://wg21.link/P0688)
+
+### Revision 1
 
 * Executor category simplification
 * Specified executor customization points in detail
@@ -61,11 +75,6 @@ Abstract:           This paper proposes a programming model for executors, which
 * Allocator support for single agent execution functions
 * Renamed `thread_pool` to `static_thread_pool`
 * New introduction
-
-### Changes since R1
-
-* Separated wording from explanatory prose, now contained in paper [P0761](https://wg21.link/P0761)
-* Applied the simplification proposed by paper [P0688](https://wg21.link/P0688)
 
 # Proposed Wording
 
