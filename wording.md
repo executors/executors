@@ -59,8 +59,8 @@ namespace execution {
   // Memory allocation properties:
 
   struct default_allocator_t {} default_allocator;
-  template<class ProtoAllocator> struct allocator_t { ProtoAllocator alloc; };
-  template<class ProtoAllocator> constexpr allocator_t<ProtoAllocator> allocator(const ProtoAllocator& a) { return {a}; }
+  template<class ProtoAllocator> struct allocator_wrapper_t { ProtoAllocator alloc; };
+  struct allocator_t { template<class ProtoAllocator> constexpr allocator_wrapper_t<ProtoAllocator> operator()(const ProtoAllocator& a) { return {a}; } } allocator;
 
   // Executor type traits:
 
@@ -129,14 +129,14 @@ namespace execution {
 
   template<class Executor, class... Properties> struct can_require;
   template<class Executor, class... Properties> struct can_prefer;
-  template<class Executor, class... Properties> struct can_query;
+  template<class Executor, class Property> struct can_query;
 
   template<class Executor, class... Properties>
-    constexpr bool can_require_v = can_require<Executor, Properties>::value;
+    constexpr bool can_require_v = can_require<Executor, Properties...>::value;
   template<class Executor, class... Properties>
-    constexpr bool can_prefer_v = can_prefer<Executor, Properties>::value;
-  template<class Executor, class... Properties>
-    constexpr bool can_query_v = can_query<Executor, Properties>::value;
+    constexpr bool can_prefer_v = can_prefer<Executor, Properties...>::value;
+  template<class Executor, class Property>
+    constexpr bool can_query_v = can_query<Executor, Property>::value;
 
   // Polymorphic executor wrappers:
 
@@ -409,6 +409,8 @@ The `not_continuation` and `continuation` properties are mutually exclusive.
 
 The `not_outstanding_work` and `outstanding_work` properties are mutually exclusive.
 
+[*Note:* The `outstanding_work` and `not_outstanding_work` properties are use to communicate to the associated execution context intended future work submission on the executor. The intended effect of the properties is the behavior of execution context's facilities for awaiting outstanding work; specifically whether it considers the existance of the executor object with the `outstanding_work` property enabled outstanding work when deciding what to wait on. However this will be largely defined by the execution context implementation. It is intended that the execution context will define its wait facilities and on-destruction behaviour and provide an interface for querying this. An initial work towards this is included in P0737r0. *--end note*]
+
 ### Properties for execution forward progress guarantees with caller
 
 These properties communicate the forward progress and ordering guarantees of execution agent(s) with respect to the caller.
@@ -475,14 +477,16 @@ agents. *--end note*]
 
 ### Properties for customizing memory allocation
 
-    struct default_allocator_t {} default_allocator;
-    template<class ProtoAllocator> struct allocator_t { ProtoAllocator alloc; };
-    template<class ProtoAllocator> constexpr allocator_t<ProtoAllocator> allocator(const ProtoAllocator& a) { return {a}; }
+  struct default_allocator_t {} default_allocator;
+  template<class ProtoAllocator> struct allocator_wrapper_t { ProtoAllocator alloc; };
+  struct allocator_t { template<class ProtoAllocator> constexpr allocator_wrapper_t<ProtoAllocator> operator()(const ProtoAllocator& a) { return {a}; } } allocator;
 
 | Property | Requirements |
 |----------|--------------|
 | `default_allocator` | Executor implementations shall use a default implmentation defined allocator to allocate any memory required to store the submitted function object. |
 | `allocator(ProtoAllocator)` | Executor implementations shall use the supplied allocator to allocate any memory required to store the submitted function object. |
+
+[*Note:* As the `allocator(ProtoAllocator)` property requires a value to be provided when being set, it is required to be implemented such that it is callable with the `ProtoAllocator` parameter when used in `require` or `prefer` where the customization points accepts the result of the function call operator of `allocator_t`; `allocator_wrapper_t` and is passable as an instance when used in `query` where the customization point accepts an instance of `allocator_t`. *--end note*]
 
 [*Note:* It is permitted for an allocator provided via the `allocator(ProtoAllocator)` property to be the same type as the allocator provided by the `default_allocator` property. *--end note*]
 
@@ -682,7 +686,7 @@ The name `query` denotes a customization point. The effect of the expression `st
 
     template<class Executor, class... Properties> struct can_require;
     template<class Executor, class... Properties> struct can_prefer;
-    template<class Executor, class... Properties> struct can_query;
+    template<class Executor, class Property> struct can_query;
 
 This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
 
@@ -690,7 +694,7 @@ This sub-clause contains templates that may be used to query the properties of a
 |----------------------------|---------------------|----------------|
 | `template<class T>` <br/>`struct can_require` | The expression `std::experimental::concurrency_v2::execution::require( declval<const Executor>(), declval<Properties>()...)` is well formed. | `T` is a complete type. |
 | `template<class T>` <br/>`struct can_prefer` | The expression `std::experimental::concurrency_v2::execution::prefer( declval<const Executor>(), declval<Properties>()...)` is well formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_query` | The expression `std::experimental::concurrency_v2::execution::query( declval<const Executor>(), declval<Properties>()...)` is well formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_query` | The expression `std::experimental::concurrency_v2::execution::query( declval<const Executor>(), declval<Property>())` is well formed. | `T` is a complete type. |
 
 ## Polymorphic executor wrappers
 
@@ -771,7 +775,7 @@ public:
 
   template<class Function, class ResultFactory, class SharedFactory>
     std::experimental::future<result_of_t<decay_t<ResultFactory>()>>
-      void bulk_twoway_execute(Function&& f, size_t n, ResultFactory&& rf, SharedFactory&& sf) const;
+      bulk_twoway_execute(Function&& f, size_t n, ResultFactory&& rf, SharedFactory&& sf) const;
 
   // executor capacity:
 
@@ -1375,7 +1379,7 @@ class C
     see-below require(execution::outstanding_work_t) const;
     see-below require(execution::not_outstanding_work_t) const;
     template<class ProtoAllocator>
-      see-below require(const execution::allocator_t<ProtoAllocator>& a) const;
+      see-below require(const execution::allocator_wrapper_t<ProtoAllocator>& a) const;
 
     bool running_in_this_thread() const noexcept;
 
@@ -1474,12 +1478,12 @@ returned executor object are identical to those of `*this`.
 
 ```
 template<class ProtoAllocator>
-  see-below require(const execution::allocator_t<ProtoAllocator>& a) const;
+  see-below require(const execution::allocator_wrapper_t<ProtoAllocator>& a) const;
 ```
 
 *Returns:* An executor object of an unspecified type conforming to these
 specifications, associated with the same thread pool as `*this`, with the
-`execution::allocator_t<ProtoAllocator>` property established such that
+`execution::allocator_wrapper_t<ProtoAllocator>` property established such that
 allocation and deallocation associated with function submission will be
 performed using a copy of `a.alloc`. All other properties of the returned
 executor object are identical to those of `*this`.
