@@ -1,4 +1,4 @@
-% A Unified Executors Proposal for C++ | P0443R2
+% A Unified Executors Proposal for C++ | P0443R3
 
 ----------------    -------------------------------------
 Title:              A Unified Executors Proposal for C++
@@ -35,9 +35,9 @@ Other Contributors: Hans Boehm, hboehm@google.com
 
                     Michael Wong, michael@codeplay.com
 
-Document Number:    P0443R2
+Document Number:    P0443R3
 
-Date:               2017-07-31
+Date:               2017-10-16
 
 Audience:           SG1 - Concurrency and Parallelism
 
@@ -75,6 +75,10 @@ Abstract:           This paper proposes a programming model for executors, which
 * Allocator support for single agent execution functions
 * Renamed `thread_pool` to `static_thread_pool`
 * New introduction
+
+### Revision 0
+
+* Initial design
 
 # Proposed Wording
 

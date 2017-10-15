@@ -1,7 +1,7 @@
 ----------------    -------------------------------------
 Title:              Executors Design Document
 
-Document Number:    P0761R0
+Document Number:    P0761R1
 
 Authors:            Jared Hoberock, jhoberock@nvidia.com
 
@@ -17,7 +17,7 @@ Authors:            Jared Hoberock, jhoberock@nvidia.com
 
                     Michael Wong, michael@codeplay.com
 
-Date:               2017-07-31
+Date:               2017-10-16
 
 Audience:           SG1 - Concurrency and Parallelism
 
