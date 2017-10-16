@@ -1,4 +1,4 @@
-% A Unified Executors Proposal for C++ | P0443R2
+% A Unified Executors Proposal for C++ | P0443R3
 
 ----------------    -------------------------------------
 Title:              A Unified Executors Proposal for C++
@@ -35,9 +35,9 @@ Other Contributors: Hans Boehm, hboehm@google.com
 
                     Michael Wong, michael@codeplay.com
 
-Document Number:    P0443R2
+Document Number:    P0443R3
 
-Date:               2017-07-31
+Date:               2017-10-16
 
 Audience:           SG1 - Concurrency and Parallelism
 
@@ -49,7 +49,21 @@ Abstract:           This paper proposes a programming model for executors, which
 
 ## Changelog
 
-### Changes since R0
+### Revision 3
+
+* Introduced `execution::query()` for executor property introspection
+* Simplified the design of `execution::prefer()`
+* `oneway`, `twoway`, `single`, and `bulk` are now `require()`-only properties
+* Introduced properties allowing executors to opt into adaptations that add blocking semantics
+* Introduced properties describing the forward progress relationship between caller and agents
+* Various minor improvements to existing functionality based on prototyping
+
+### Revision 2
+
+* Separated wording from explanatory prose, now contained in paper [P0761](https://wg21.link/P0761)
+* Applied the simplification proposed by paper [P0688](https://wg21.link/P0688)
+
+### Revision 1
 
 * Executor category simplification
 * Specified executor customization points in detail
@@ -62,10 +76,9 @@ Abstract:           This paper proposes a programming model for executors, which
 * Renamed `thread_pool` to `static_thread_pool`
 * New introduction
 
-### Changes since R1
+### Revision 0
 
-* Separated wording from explanatory prose, now contained in paper [P0761](https://wg21.link/P0761)
-* Applied the simplification proposed by paper [P0688](https://wg21.link/P0688)
+* Initial design
 
 # Proposed Wording
 

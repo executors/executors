@@ -1,7 +1,7 @@
 ----------------    -------------------------------------
 Title:              Executors Design Document
 
-Document Number:    P0761R0
+Document Number:    P0761R1
 
 Authors:            Jared Hoberock, jhoberock@nvidia.com
 
@@ -17,7 +17,7 @@ Authors:            Jared Hoberock, jhoberock@nvidia.com
 
                     Michael Wong, michael@codeplay.com
 
-Date:               2017-07-31
+Date:               2017-10-16
 
 Audience:           SG1 - Concurrency and Parallelism
 
@@ -1601,16 +1601,6 @@ threads, and consequently how the lifetimes of those agents relate to the
 lifetimes of `thread_local` variables. It is unclear whether these tools are
 sufficient or if more fine-grained control over thread local storage is
 warranted.
-
-**Forward Progress Guarantees and Boost Blocking.** Our executor programming model prescribes a way for bulk executors to advertise
-the forward progress guarantees of execution agents created in bulk. This
-guarantee describes an agent's forward progress with respect to other agents
-within the same group as that agent. However, our model prescribes no analogous
-way for advertising any guarantee of forward progress between a single
-execution agent and the client thread which requested the creation of that
-agent. Similarly, our programming model does not describe how executors would
-make such guarantees. Incorporating a model of *boost blocking* into our design
-could be one option.
 
 ## Envisioned Extensions
 
