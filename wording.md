@@ -441,14 +441,19 @@ These properties communicate the forward progress and ordering guarantees of exe
 | `bulk_parallel_execution` | Execution agents within the same bulk execution may be parallelized. |
 | `bulk_unsequenced_execution` | Execution agents within the same bulk execution may be parallelized and vectorized. |
 
-TODO: *The meanings and relative "strength" of these categores are to be defined.
-Most of the wording for `bulk_unsequenced_execution`, `bulk_parallel_execution`,
-and `bulk_sequenced_execution` can be migrated from S 25.2.3 p2, p3, and
-p4, respectively.*
+Execution agents created by executors with the `bulk_sequenced_execution` property execute in sequence in lexicographic order of their indices.
+
+Execution agents created by executors with the `bulk_parallel_execution` property execute with a parallel forward progress guarantee. Any such agents executing in the same thread of execution are indeterminately sequenced with respect to each other. [*Note:* It is the caller's responsibility to ensure that the invocation does not introduce data races or deadlocks. *--end note*]
+
+Execution agents created by executors with the `bulk_unsequenced_execution` property may execute in an unordered fashion. Any such agents executing in the same thread of execution are unsequenced with respect to each other. [*Note:* This means that multiple execution agents may be interleaved on a single thread of execution, which overrides the usual guarantee from [intro.execution] that function executions do not interleave with one another. *--end note*]
+
+[*Editorial note:* The descriptions of these properties were ported from [algorithms.parallel.user]. The intention is that a future standard will specify execution policy behavior in terms of the fundamental properties of their associated executors. We did not include the accompanying code examples from [algorithms.parallel.user] because the examples seem easier to understand when illustrated by `std::for_each`. *--end editorial note*]
+
+[*Note:* The guarantees provided by these properties implies the relationship: `bulk_unsequenced_execution < bulk_parallel_execution < bulk_sequenced_execution`. *--end note*]
+
+[*Editorial note:* The note above is intended to describe when one bulk executor can be substituted for another and provide the required semantics. For example, if a user needs sequenced execution, then only an executor with the `bulk_sequenced_execution` property will do. On the other hand, if a user only needs `bulk_unsequenced_execution`, then an executor with any of the above properties will suffice. *--end editorial note*]
 
 The `bulk_unsequenced_execution`, `bulk_parallel_execution`, and `bulk_sequenced_execution` properties are mutually exclusive.
-
-[*Note:* The guarantees of `bulk_unsequenced_execution`, `bulk_parallel_execution` and `bulk_sequenced_execution` implies the relationship: `bulk_unsequenced_execution < bulk_parallel_execution < bulk_sequenced_execution` *--end note*]
 
 ### Properties for mapping of execution on to threads
 
