@@ -75,19 +75,6 @@ class static_thread_pool
     executor_impl<Blocking, Continuation, execution::not_outstanding_work_t, NewProtoAllocator>
       require(const execution::allocator_t<NewProtoAllocator>& a) const { return {pool_, a.alloc}; };
 
-    // Prefer uses require if available, otherwise returns *this.
-    template<class Property> auto prefer(const Property& p) const
-      -> decltype(this->require(p))
-    {
-      return this->require(p);
-    }
-
-    template<class Property> auto prefer(const Property&) const
-      -> typename std::enable_if<!execution::has_require_member<executor_impl, Property>::value, executor_impl>::type
-    {
-      return *this;
-    }
-
     bool running_in_this_thread() const noexcept { return pool_->running_in_this_thread(); }
 
     static_thread_pool& context() const noexcept { return *pool_; }

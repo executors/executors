@@ -25,11 +25,11 @@ void my_twoway_operation_1(const execution::executor& tex, int n,
   {
     // Simulate an asynchronous operation.
     tex.require(execution::never_blocking).execute(
-        [n, cex = cex.prefer(execution::outstanding_work), h = std::move(h)]() mutable
+        [n, cex = execution::prefer(cex, execution::outstanding_work), h = std::move(h)]() mutable
         {
           int result = n * 2;
           std::this_thread::sleep_for(std::chrono::seconds(1)); // Simulate long running work.
-          cex.prefer(execution::possibly_blocking).execute(
+          execution::prefer(cex, execution::possibly_blocking).execute(
               [h = std::move(h), result]() mutable
               {
                 h(result);
@@ -69,8 +69,8 @@ void my_twoway_operation_2(const execution::executor& tex, int n, int m,
   // so we save the stored executors with that attribute rebound in.
   my_twoway_operation_1(tex, n, cex,
     my_twoway_operation_2_impl<CompletionHandler>{
-        tex.prefer(execution::continuation), 0, m,
-        cex.prefer(execution::continuation), std::move(h)});
+        execution::prefer(tex, execution::continuation), 0, m,
+        execution::prefer(cex, execution::continuation), std::move(h)});
 }
 
 int main()

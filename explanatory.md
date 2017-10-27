@@ -1,7 +1,7 @@
 ----------------    -------------------------------------
 Title:              Executors Design Document
 
-Document Number:    P0761R0
+Document Number:    P0761R1
 
 Authors:            Jared Hoberock, jhoberock@nvidia.com
 
@@ -17,7 +17,7 @@ Authors:            Jared Hoberock, jhoberock@nvidia.com
 
                     Michael Wong, michael@codeplay.com
 
-Date:               2017-07-31
+Date:               2017-10-16
 
 Audience:           SG1 - Concurrency and Parallelism
 
@@ -297,13 +297,6 @@ the completion handler by calling the `get_associated_executor` function:
 
     auto ex = std::experimental::net::get_associated_executor(completion_handler)
 
-To inform the executor that there is a pending operation, the asynchronous
-operation creates an `executor_work_guard` object and keeps a copy of it until
-the operation is complete. This object automatically calls the executor's
-`on_work_started` and `on_work_finished` member functions.
-
-    auto work = std::experimental::net::make_work_guard(ex);
-
 If an asynchronous operation completes immediately (that is, within the
 asynchronous operation's initiating function), the completion handler is
 scheduled for invocation using a never-blocking executor created from the
@@ -318,12 +311,22 @@ original executor `ex`:
         }
       );
 
-A never-blocking executor is used above to ensure that operations that
-always complete immediately do not lead to deadlock or stack exhaustion. On the
-other hand, if the operation completes later then the asynchronous operation
-invokes the completion handler using a possibly-blocking executor:
+A never-blocking executor is required to ensure that operations that always
+complete immediately do not lead to deadlock or stack exhaustion.
 
-    auto possibly_blocking_ex = std::execution::require(ex, std::execution::possibly_blocking);
+Otherwise, to inform the executor that there is now a pending operation, the
+asynchronous operation specifies that `execution::outstanding_work` is a
+preferred property of the executor.
+
+    auto work_ex = std::execution::prefer(ex, std::execution::outstanding_work);
+
+The asynchronous operation keeps a copy of this executor until the operation is
+complete.
+
+When the asynchronous operation completes some time later, it invokes the
+completion handler using a (preferably) possibly-blocking executor:
+
+    auto possibly_blocking_ex = std::execution::prefer(work_ex, std::execution::possibly_blocking);
 
     possibly_blocking_ex.execute(
         [h = std::move(completion_handler), my_result]() mutable
@@ -336,10 +339,10 @@ This allows the result to be delivered to the application code with minimal
 latency.
 
 Finally, if an asynchronous operation consists of multiple intermediate steps,
-these steps may be scheduled using the defer execution function:
-these steps may be scheduled using an executor which may execute as continuations of the calling thread:
+these steps may be scheduled using an executor which may execute submitted
+tasks as continuations of the calling execution agent:
 
-    auto continuation_ex = std::execution::prefer(ex, std::execution::continuation);
+    auto continuation_ex = std::execution::prefer(work_ex, std::execution::continuation);
 
     // asynchronous operation consists of multiple steps
     continuation_ex.execute(my_intermediate_complete_handler);
@@ -709,12 +712,12 @@ executor creates work:
       bool on;
       Ex wrapped;
 
-      auto context() const { return wrapped.context(); }
-      bool operator==(const logging_executor& other) { return wrapped == other.wrapped; }
-      bool operator!=(const logging_executor& other) { return wrapped != other.wrapped; }
+      auto context() const noexcept { return wrapped.context(); }
+      bool operator==(const logging_executor& other) const noexcept { return wrapped == other.wrapped; }
+      bool operator!=(const logging_executor& other) const noexcept { return wrapped != other.wrapped; }
 
       template<class Function>
-      void execute(Function f)
+      void execute(Function f) const
       {
         if(on) std::cout << ".execute() called" << std::endl;
         wrapped.execute(f);
@@ -1017,6 +1020,72 @@ properties requested through a call to either `execution::require` or
 `execution::prefer` may be changed. The resulting executor must retain all the
 other properties of the original executor which were not named by the call.
 
+## Customization Points Query An Executor's Properties
+
+The current value of an executor's property can be queried through the
+`execution::query` customization point. This can be useful for querying whether
+a call to the `execution::prefer` was successful and the requested property is
+honoured by the returned executor but also as a general interface for querying
+information about an executor's capabilities.
+
+Whether a property can be queried can be known at compile-time using the
+`execution::can_query_v` type trait.
+
+The property value type which is returned can be known at compile-time using the
+`execution::property_value` type trait. This type will often be `bool` as
+querying a property will often return whether that property is enabled. However
+properties which require a value such as the `allocator` property are expected
+to return a container which can optionally store a value such as `std::optional`
+. If the implementation wishes to also have the option to return an error then
+it may choose to return `std::expected` (see P0323r2) or `std::status_value`
+(see P0262r1) in order to also provide an error or status in the case where the
+property could not be queried. The `execution::property_value` type is required
+to always be `DefaultConstructible` (C++Std [defaultconstructible]).
+
+Example using `std::optional`:
+
+    // get an executor through some means
+    my_executor_type my_executor = ...
+
+    std::optional<std::allocator<void>> opt = my_executor.query(allocator);
+
+    if (opt.has_value()) {
+      do_something_with(opt.value());
+    }
+
+Example using `std::expected`:
+
+    // get an executor through some means
+    my_executor_type my_executor = ...
+
+    std::expected<std::allocator<void>, property_error> exp = my_executor.query(allocator);
+
+    if (exp.has_value()) {
+      do_something_with(exp.value());
+    } else {
+      handle_error(exp.error());
+    }
+
+Example using `std::status_value`:
+
+    // get an executor through some means
+    my_executor_type my_executor = ...
+
+    std::status_value<property_query, std::allocator<void>> sv = my_executor.query(allocator);
+
+    if (sv.status() == property_query::success) {
+      do_something_with(sv.value());
+    } else {
+      handle_error(sv);
+    }
+
+The `execution::query` customization point can be used to retrieve the current
+value of standard properties, however it can also be used to retrieve the value
+of properties which represent executor capabilities or information. Some
+examples of these are the optimal shape for execution, memory affinity,
+execution priority, logging and tracing or task grouping. It's expected that an
+implementation will provide additional implementation specific properties.
+
 # Implementing Executors
 
 A programmer implements an executor by defining a type which satisfies the
@@ -1111,15 +1180,15 @@ object. Consider a `thread_pool_executor`:
       public:
         thread_pool_executor(thread_pool& pool) : pool_(pool) {}
 
-        bool operator==(const thread_pool& other) const {
+        bool operator==(const thread_pool& other) const noexcept {
           return pool_ == other.pool_;
         }
 
-        bool operator!=(const thread_pool& other) const {
+        bool operator!=(const thread_pool& other) const noexcept {
           return pool_ != other.pool_;
         }
 
-        const thread_pool& context() const {
+        const thread_pool& context() const noexcept {
           return pool_;
         }
 
@@ -1490,6 +1559,33 @@ P0443 and should be done before the design is considered complete. Other work
 is explicitly out of scope, and should be pursued independently using our
 design as a foundation. 
 
+## Naming of `require` and `prefer`
+
+Some concern has been expressed over the name `require` and the potential for
+confusion with the `requires` keyword from the Concepts TS. In particular:
+
+  * Similar to `requires`, the function `require` is used to assert requirements on an executor.
+  * Unlike `requires`, the function `require` performs a transformation on the executor to obtain a new object that satisfies the requirements.
+
+With this in mind, we suggest the following names as alternatives for the names
+`require` and `prefer`:
+
+| require           | prefer                                       |
+|-------------------|----------------------------------------------|
+| `transform` | `maybe_transform` or `try_transform` |
+| `transform_executor` | `maybe_transform_executor` or `try_transform_executor` |
+| `rebind` | `maybe_rebind` or `try_rebind` |
+| `expect` | `maybe_expect` or `try_expect` |
+| `modify` | `maybe_modify` or `try_modify` |
+| `apply` | `maybe_apply` or `try_apply` |
+| `adapt` | `maybe_adapt` or `try_adapt` |
+
+The first two, based on the word `transform`, are our (weak) preferences from
+these alternatives (although there is a potential conflict with the
+`std::transform` algorithm in the first case). However, it is worth noting that
+when potential library users were presented with these alternatives, they
+expressed a preference for the existing names (`require` and `prefer`).
+
 ## Open Design Issues
 
 Much of our design for executors is well-established. However, some aspects of the
@@ -1505,16 +1601,6 @@ threads, and consequently how the lifetimes of those agents relate to the
 lifetimes of `thread_local` variables. It is unclear whether these tools are
 sufficient or if more fine-grained control over thread local storage is
 warranted.
-
-**Forward Progress Guarantees and Boost Blocking.** Our executor programming model prescribes a way for bulk executors to advertise
-the forward progress guarantees of execution agents created in bulk. This
-guarantee describes an agent's forward progress with respect to other agents
-within the same group as that agent. However, our model prescribes no analogous
-way for advertising any guarantee of forward progress between a single
-execution agent and the client thread which requested the creation of that
-agent. Similarly, our programming model does not describe how executors would
-make such guarantees. Incorporating a model of *boost blocking* into our design
-could be one option.
 
 ## Envisioned Extensions
 
