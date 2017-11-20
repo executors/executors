@@ -227,7 +227,7 @@ In the Table below, `x` denotes a (possibly const) executor object of type `X`, 
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.twoway_execute(f)` | A type that satisfies the `Future` requirements for the value type `R`. | Creates an execution agent which invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `execute`. <br/> <br/> May block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))()` finishes execution. <br/> <br/> The invocation of `twoway_execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. <br/> <br/> Stores the result of `DECAY_COPY( std::forward<F>(f))()`, or any exception thrown by `DECAY_COPY( std::forward<F>(f))()`, in the associated shared state of the resulting `Future`. |
+| `x.twoway_execute(f)` | A type that satisfies the `Future` requirements for the value type `R`. | Creates an execution agent which invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `twoway_execute`. <br/> <br/> May block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))()` finishes execution. <br/> <br/> The invocation of `twoway_execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. <br/> <br/> Stores the result of `DECAY_COPY( std::forward<F>(f))()`, or any exception thrown by `DECAY_COPY( std::forward<F>(f))()`, in the associated shared state of the resulting `Future`. |
 
 ### `ThenExecutor` requirements
 
@@ -239,7 +239,7 @@ In the Table below, `x` denotes a (possibly const) executor object of type `X`, 
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.then_execute(f, pred)` | A type that satisfies the `Future` requirements for the value type `R`. | When `pred` is ready, creates an execution agent which invokes `DECAY_COPY( std::forward<F>(f))(pred)` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `execute`. <br/> <br/> May block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))(pred)` finishes execution. <br/> <br/> The invocation of `then_execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. <br/> <br/> Stores the result of `DECAY_COPY( std::forward<F>(f))(pred)`, or any exception thrown by `DECAY_COPY( std::forward<F>(f))(pred)`, in the associated shared state of the resulting `Future`. |
+| `x.then_execute(f, pred)` | A type that satisfies the `Future` requirements for the value type `R`. | When `pred` is ready, creates an execution agent which invokes `DECAY_COPY( std::forward<F>(f))(pred)` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `then_execute`. <br/> <br/> May block forward progress of the caller until `DECAY_COPY( std::forward<F>(f))(pred)` finishes execution. <br/> <br/> The invocation of `then_execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. <br/> <br/> Stores the result of `DECAY_COPY( std::forward<F>(f))(pred)`, or any exception thrown by `DECAY_COPY( std::forward<F>(f))(pred)`, in the associated shared state of the resulting `Future`. |
 
 ### `BulkOneWayExecutor` requirements
 
