@@ -315,7 +315,7 @@ In the Table below,
 
 An executor's behavior in generic contexts is determined by a set of executor properties, and each executor property imposes certain requirements on the executor.
 
-An executor's properties are modified by calling the `require` member or non-member functions. These functions behave according the table below. In the table below, `x` denotes a (possibly const) executor object of type `X`, * and `p` denotes a (possibly const) property object.
+Given an existing executor, a related executor with different properties may be created by calling the `require` member or non-member functions. These functions behave according the table below. In the table below, `x` denotes a (possibly const) executor object of type `X`, * and `p` denotes a (possibly const) property object.
 
 [*Note:* As a general design note properties which define a mutually exclusive pair, that describe an enabled or non-enabled behaviour follow the convention of having the same property name for both with the `not_` prefix to the property for the non-enabled behaviour. *--end note*]
 
