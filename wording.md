@@ -341,7 +341,7 @@ The current value of an executor's properties can be queried by calling the `que
 | `twoway` | The executor type satisfies the `TwoWayExecutor` or `BulkTwoWayExecutor` requirements. |
 | `then` | The executor type satisfies the `ThenExecutor` or `BulkThenExecutor` requirements. |
 
-The `oneway`, `twoway` and `then` properties are accumulative.
+The `oneway`, `twoway` and `then` properties are not mutually exclusive.
 
 ### Cardinality properties
 
@@ -353,7 +353,7 @@ The `oneway`, `twoway` and `then` properties are accumulative.
 | `single` | The executor type satisfies the `OneWayExecutor`, `TwoWayExecutor`, or `ThenExecutor` requirements. |
 | `bulk` | The executor type satisfies the `BulkOneWayExecutor`, `BulkTwoWayExecutor`, or `BulkThenExecutor` requirements. |
 
-The `single` and `bulk` properties are accumulative.
+The `single` and `bulk` properties are not mutually exclusive.
 
 ### Blocking properties
 
