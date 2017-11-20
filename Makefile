@@ -5,10 +5,10 @@ wording: wording_pdf wording_html
 explanatory: explanatory_pdf explanatory_html
 
 wording_pdf: wording_front_matter.md wording.md
-	pandoc wording_front_matter.md wording.md -o wording.pdf -H header.tex --number-sections -o P0443R3_A_Unified_Executors_Proposal.pdf
+	pandoc wording_front_matter.md wording.md -o wording.pdf -H header.tex --number-sections -o P0443R4_A_Unified_Executors_Proposal.pdf
 
 wording_html: wording.md
-	pandoc wording_front_matter.md wording.md -o wording.html --number-sections -o P0443R3_A_Unified_Executors_Proposal.html
+	pandoc wording_front_matter.md wording.md -o wording.html --number-sections -o P0443R4_A_Unified_Executors_Proposal.html
 
 PANDOC_FLAGS = -f markdown \
 	       --variable urlcolor=cyan
