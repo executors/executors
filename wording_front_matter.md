@@ -1,4 +1,4 @@
-% A Unified Executors Proposal for C++ | P0443R3
+% A Unified Executors Proposal for C++ | P0443R4
 
 ----------------    -------------------------------------
 Title:              A Unified Executors Proposal for C++
@@ -35,9 +35,9 @@ Other Contributors: Hans Boehm, hboehm@google.com
 
                     Michael Wong, michael@codeplay.com
 
-Document Number:    P0443R3
+Document Number:    P0443R4
 
-Date:               2017-10-16
+Date:               2017-11-XX
 
 Audience:           SG1 - Concurrency and Parallelism
 
@@ -48,6 +48,10 @@ Abstract:           This paper proposes a programming model for executors, which
 ------------------------------------------------------
 
 ## Changelog
+
+### Revision 4
+
+* Specified the guarantees implied by `bulk_sequenced_execution`, `bulk_parallel_execution`, and `bulk_unsequenced_execution`
 
 ### Revision 3
 
