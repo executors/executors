@@ -18,7 +18,7 @@ namespace require_impl {
 template<class Executor>
   constexpr typename std::enable_if<
     (is_oneway_executor<Executor>::value || is_bulk_oneway_executor<Executor>::value)
-    && !has_require_members<Executor, oneway_t>::value, Executor>::type
+    && !has_require_member<Executor, oneway_t>::value, Executor>::type
       require(Executor ex, oneway_t) { return std::move(ex); }
 
 // Default require for two way adapts one way executors, leaves two way executors as is.
@@ -161,14 +161,14 @@ template<class Executor>
   typename std::enable_if<
     (is_oneway_executor<Executor>::value || is_bulk_oneway_executor<Executor>::value)
     && !(is_twoway_executor<Executor>::value || is_bulk_twoway_executor<Executor>::value)
-    && has_require_members<Executor, adaptable_blocking_t>::value
-    && !has_require_members<Executor, twoway_t>::value, twoway_adapter<Executor>>::type
+    && has_require_member<Executor, adaptable_blocking_t>::value
+    && !has_require_member<Executor, twoway_t>::value, twoway_adapter<Executor>>::type
       require(Executor ex, twoway_t) { return twoway_adapter<Executor>(std::move(ex)); }
 
 template<class Executor>
   constexpr typename std::enable_if<
     (is_twoway_executor<Executor>::value || is_bulk_twoway_executor<Executor>::value)
-    && !has_require_members<Executor, twoway_t>::value, Executor>::type
+    && !has_require_member<Executor, twoway_t>::value, Executor>::type
       require(Executor ex, twoway_t) { return std::move(ex); }
 
 // Default adapter for unsafe mode adds the unsafe mode property.
@@ -235,7 +235,7 @@ public:
 };
 
 template<class Executor>
-  constexpr typename std::enable_if<!has_require_members<Executor, adaptable_blocking_t>::value,
+  constexpr typename std::enable_if<!has_require_member<Executor, adaptable_blocking_t>::value,
     adaptable_blocking_adapter<Executor>>::type
       require(Executor ex, adaptable_blocking_t) { return adaptable_blocking_adapter<Executor>(std::move(ex)); }
 
@@ -380,13 +380,13 @@ public:
 template<class Executor>
   typename std::enable_if<is_oneway_executor<Executor>::value
     && !(is_bulk_oneway_executor<Executor>::value || is_bulk_twoway_executor<Executor>::value)
-    && !has_require_members<Executor, bulk_t>::value, bulk_adapter<Executor>>::type
+    && !has_require_member<Executor, bulk_t>::value, bulk_adapter<Executor>>::type
       require(Executor ex, bulk_t) { return bulk_adapter<Executor>(std::move(ex)); }
 
 template<class Executor>
   constexpr typename std::enable_if<
     (is_bulk_oneway_executor<Executor>::value || is_bulk_twoway_executor<Executor>::value)
-    && !has_require_members<Executor, bulk_t>::value, Executor>::type
+    && !has_require_member<Executor, bulk_t>::value, Executor>::type
       require(Executor ex, bulk_t) { return std::move(ex); }
 
 // Default require for always blocking adapts all executors.
@@ -463,14 +463,14 @@ public:
 };
 
 template<class Executor>
-  constexpr typename std::enable_if<!has_require_members<Executor, always_blocking_t>::value,
+  constexpr typename std::enable_if<!has_require_member<Executor, always_blocking_t>::value,
     always_blocking_adapter<Executor>>::type
       require(Executor ex, always_blocking_t) { return always_blocking_adapter<Executor>(std::move(ex)); }
 
 // Default require for possibly blocking does no adaptation, as all executors are possibly blocking.
 
 template<class Executor>
-  constexpr typename std::enable_if<!has_require_members<Executor, possibly_blocking_t>::value, Executor>::type
+  constexpr typename std::enable_if<!has_require_member<Executor, possibly_blocking_t>::value, Executor>::type
     require(Executor ex, possibly_blocking_t) { return std::move(ex); }
 
 } // namespace require_impl

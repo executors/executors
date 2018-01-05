@@ -71,7 +71,7 @@ namespace custom_hints
   };
 
   template <class Executor>
-    std::enable_if_t<!execution::has_require_members_v<Executor, tracing>, tracing_executor<Executor>>
+    std::enable_if_t<!execution::has_require_member_v<Executor, tracing>, tracing_executor<Executor>>
       require(Executor ex, tracing t) { return { t.on, std::move(ex) }; }
 
   // This hint cannot be preferred.
