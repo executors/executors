@@ -22,8 +22,6 @@ public:
 
   bool query(custom_hints::tracing) const { return tracing_; }
 
-  auto& context() const noexcept { return *this; }
-
   friend bool operator==(const inline_executor&, const inline_executor&) noexcept
   {
     return true;

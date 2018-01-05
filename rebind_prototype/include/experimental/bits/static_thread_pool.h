@@ -36,6 +36,9 @@ class static_thread_pool
     executor_impl(const executor_impl& other) noexcept : pool_(other.pool_) { pool_->work_up(Work{}); }
     ~executor_impl() { pool_->work_down(Work{}); }
 
+    // Associated execution context.
+    static_thread_pool& query(execution::context_t) const noexcept { return *pool_; }
+
     // Directionality. Both kinds supported, so requiring does not change type.
     executor_impl require(execution::oneway_t) const { return *this; }
     executor_impl require(execution::twoway_t) const { return *this; }
@@ -79,8 +82,6 @@ class static_thread_pool
     ProtoAllocator query(const execution::allocator_t&) const noexcept { return allocator_; }
 
     bool running_in_this_thread() const noexcept { return pool_->running_in_this_thread(); }
-
-    static_thread_pool& context() const noexcept { return *pool_; }
 
     friend bool operator==(const executor_impl& a, const executor_impl& b) noexcept
     {
@@ -504,16 +505,6 @@ private:
   bool stopped_{false};
   std::size_t work_{1};
 };
-
-inline bool operator==(const static_thread_pool& a, const static_thread_pool& b) noexcept
-{
-  return std::addressof(a) == std::addressof(b);
-}
-
-inline bool operator!=(const static_thread_pool& a, const static_thread_pool& b) noexcept
-{
-  return !(a == b);
-}
 
 } // inline namespace concurrency_v2
 } // namespace experimental

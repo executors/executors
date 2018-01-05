@@ -26,7 +26,7 @@ void static_thread_pool_executor_compile_test(Executor ex1)
   bool b1 = cex1.running_in_this_thread();
   (void)b1;
 
-  static_thread_pool& pool = cex1.context();
+  static_thread_pool& pool = execution::query(cex1, execution::context);
   (void)pool;
 
   const Executor& cex2 = ex2;
@@ -222,15 +222,6 @@ void static_thread_pool_compile_test()
   pool1.wait();
 
   executor_type ex1(pool1.executor());
-
-  const static_thread_pool& cpool1 = pool1;
-  const static_thread_pool& cpool2 = pool1;
-
-  bool b1 = (cpool1 == cpool2);
-  (void)b1;
-
-  bool b2 = (cpool1 != cpool2);
-  (void)b2;
 
   static_thread_pool_oneway_executor_compile_test(pool1.executor());
   static_thread_pool_oneway_executor_compile_test(pool1.executor().require(execution::oneway));

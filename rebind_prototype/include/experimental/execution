@@ -10,6 +10,9 @@ namespace experimental {
 inline namespace concurrency_v2 {
 namespace execution {
 
+// Associated execution context.
+constexpr struct context_t {} context;
+
 // Directionality.
 constexpr struct oneway_t {} oneway;
 constexpr struct twoway_t {} twoway;
@@ -61,11 +64,6 @@ template<class Executor> constexpr bool is_oneway_executor_v = is_oneway_executo
 template<class Executor> constexpr bool is_twoway_executor_v = is_twoway_executor<Executor>::value;
 template<class Executor> constexpr bool is_bulk_oneway_executor_v = is_bulk_oneway_executor<Executor>::value;
 template<class Executor> constexpr bool is_bulk_twoway_executor_v = is_bulk_twoway_executor<Executor>::value;
-
-// Type trait to obtain an executor's associated context type.
-template<class Executor> struct executor_context;
-
-template<class Executor> using executor_context_t = typename executor_context<Executor>::type;
 
 // Type trait to obtain a two way executor's future type.
 template<class Executor, class T> struct executor_future;
@@ -141,7 +139,6 @@ class executor;
 #include <experimental/bits/is_twoway_executor.h>
 #include <experimental/bits/is_bulk_oneway_executor.h>
 #include <experimental/bits/is_bulk_twoway_executor.h>
-#include <experimental/bits/executor_context.h>
 #include <experimental/bits/executor_future.h>
 #include <experimental/bits/executor_shape.h>
 #include <experimental/bits/executor_index.h>

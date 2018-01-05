@@ -42,8 +42,6 @@ namespace custom_hints
       -> typename execution::query_member_result<InnerExecutor, Property>::type
         { return inner_ex_.query(p); }
 
-    auto& context() const noexcept { return inner_ex_.context(); }
-
     friend bool operator==(const tracing_executor& a, const tracing_executor& b) noexcept
     {
       return a.tracing_ == b.tracing_ && a.inner_ex_ == b.inner_ex_;
@@ -94,8 +92,6 @@ public:
   inline_executor require(custom_hints::tracing t) const { inline_executor tmp(*this); tmp.tracing_ = t.on; return tmp; }
 
   bool query(custom_hints::tracing) const { return tracing_; }
-
-  auto& context() const noexcept { return *this; }
 
   friend bool operator==(const inline_executor&, const inline_executor&) noexcept
   {

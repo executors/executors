@@ -50,8 +50,6 @@ public:
     -> typename query_member_result<InnerExecutor, T...>::type
       { return inner_ex_.query(std::forward<T>(t)...); }
 
-  auto& context() const noexcept { return inner_ex_.context(); }
-
   friend bool operator==(const twoway_adapter& a, const twoway_adapter& b) noexcept
   {
     return a.inner_ex_ == b.inner_ex_;
@@ -203,8 +201,6 @@ public:
     -> typename query_member_result<InnerExecutor, T...>::type
       { return inner_ex_.query(std::forward<T>(t)...); }
 
-  auto& context() const noexcept { return inner_ex_.context(); }
-
   friend bool operator==(const adaptable_blocking_adapter& a, const adaptable_blocking_adapter& b) noexcept
   {
     return a.inner_ex_ == b.inner_ex_;
@@ -275,8 +271,6 @@ public:
   template<class... T> auto query(T&&... t) const
     -> typename query_member_result<InnerExecutor, T...>::type
       { return inner_ex_.query(std::forward<T>(t)...); }
-
-  auto& context() const noexcept { return inner_ex_.context(); }
 
   friend bool operator==(const bulk_adapter& a, const bulk_adapter& b) noexcept
   {
@@ -428,8 +422,6 @@ public:
   template<class... T> auto query(T&&... t) const
     -> typename query_member_result<InnerExecutor, T...>::type
       { return inner_ex_.query(std::forward<T>(t)...); }
-
-  auto& context() const noexcept { return inner_ex_.context(); }
 
   friend bool operator==(const always_blocking_adapter& a, const always_blocking_adapter& b) noexcept
   {

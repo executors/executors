@@ -1,3 +1,4 @@
+#include <cassert>
 #include <chrono>
 #include <experimental/thread_pool>
 #include <iostream>
@@ -90,11 +91,6 @@ public:
     -> typename execution::query_member_result<Executor, Property>::type
       { return ex_.query(p); }
 
-  auto& context() const
-  {
-    return ex_.context();
-  }
-
   friend bool operator==(const strand& a, const strand& b) noexcept
   {
     return a.state_ == b.state_;
@@ -166,6 +162,7 @@ int main()
 {
   static_thread_pool pool{2};
   strand<static_thread_pool::executor_type> s1(pool.executor());
+  assert(&execution::query(s1, execution::context) == &pool);
   s1.require(execution::never_blocking).execute(foo{s1});
   s1.require(execution::possibly_blocking).execute([]{ std::cout << "After 0, before 1\n"; });
   pool.wait();

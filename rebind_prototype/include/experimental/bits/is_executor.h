@@ -24,7 +24,6 @@ struct eval<T,
   typename type_check<
     typename std::enable_if<std::is_nothrow_copy_constructible<T>::value>::type,
     typename std::enable_if<std::is_nothrow_move_constructible<T>::value>::type,
-    typename std::enable_if<std::is_lvalue_reference<decltype(std::declval<const T&>().context())>::value>::type,
     typename std::enable_if<noexcept(static_cast<bool>(std::declval<const T&>() == std::declval<const T&>()))>::type,
     typename std::enable_if<noexcept(static_cast<bool>(std::declval<const T&>() != std::declval<const T&>()))>::type
 	>::type> : std::true_type {};
