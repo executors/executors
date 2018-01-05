@@ -3,6 +3,7 @@
 
 #include <experimental/bits/require.h>
 #include <experimental/bits/prefer.h>
+#include <experimental/bits/query.h>
 
 namespace std {
 namespace experimental {
@@ -86,6 +87,15 @@ template<class Executor, class Property>
 template<class Executor, class Property>
   using require_member_result_t = typename require_member_result<Executor, Property>::type;
 
+// Type traits to determine whether a query member invocation is valid, and what its result is.
+template<class Executor, class Property> struct has_query_member;
+template<class Executor, class Property> struct query_member_result;
+
+template<class Executor, class Property>
+  constexpr bool has_query_members_v = has_query_member<Executor, Property>::value;
+template<class Executor, class Property>
+  using query_member_result_t = typename query_member_result<Executor, Property>::type;
+
 namespace
 {
   // Require customization point.
@@ -93,6 +103,9 @@ namespace
 
   // Prefer customization point.
   constexpr const auto& prefer = prefer_impl::customization_point<>;
+
+  // Query customization point.
+  constexpr const auto& query = query_impl::customization_point<>;
 }
 
 // Type trait to determine whether the require customization point is valid for the specified arguments.
@@ -106,6 +119,12 @@ template<class Executor, class... Properties> struct can_prefer;
 
 template<class Executor, class... Properties>
   constexpr bool can_prefer_v = can_prefer<Executor, Properties...>::value;
+
+// Type trait to determine whether the query customization point is valid for the specified arguments.
+template<class Executor, class Property> struct can_query;
+
+template<class Executor, class Property>
+  constexpr bool can_query_v = can_query<Executor, Property>::value;
 
 // Polymorphic wrappers.
 class bad_executor;
@@ -128,8 +147,11 @@ class executor;
 #include <experimental/bits/has_require_member.h>
 #include <experimental/bits/require_member_result.h>
 #include <experimental/bits/require_adaptations.h>
+#include <experimental/bits/has_query_member.h>
+#include <experimental/bits/query_member_result.h>
 #include <experimental/bits/can_require.h>
 #include <experimental/bits/can_prefer.h>
+#include <experimental/bits/can_query.h>
 #include <experimental/bits/executor.h>
 
 #endif // STD_EXPERIMENTAL_EXECUTION

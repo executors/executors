@@ -86,6 +86,10 @@ public:
 
   void require(execution::always_blocking_t) const = delete;
 
+  template<class Property> auto query(const Property& p) const
+    -> typename execution::query_member_result<Executor, Property>::type
+      { return ex_.query(p); }
+
   auto& context() const
   {
     return ex_.context();
