@@ -36,6 +36,9 @@ void static_thread_pool_executor_compile_test(Executor ex1)
 
   bool b3 = (cex1 != cex2);
   (void)b3;
+
+  auto alloc = execution::query(cex1, execution::allocator);
+  (void)alloc;
 }
 
 template<class Executor>

@@ -1386,6 +1386,8 @@ class C
     template<class ProtoAllocator>
       see-below require(const execution::allocator_wrapper_t<ProtoAllocator>& a) const;
 
+    see-below query(execution::allocator_t) const noexcept;
+
     bool running_in_this_thread() const noexcept;
 
     static_thread_pool& context() const noexcept;
@@ -1492,6 +1494,14 @@ specifications, associated with the same thread pool as `*this`, with the
 allocation and deallocation associated with function submission will be
 performed using a copy of `a.alloc`. All other properties of the returned
 executor object are identical to those of `*this`.
+
+```
+see-below query(execution::allocator_t) const noexcept;
+```
+
+*Returns:* The allocator object associated with the executor, with type and
+value as previously established by the `execution::allocator_wrapper_t`
+property.
 
 ```
 bool running_in_this_thread() const noexcept;
