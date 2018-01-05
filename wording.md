@@ -58,9 +58,9 @@ namespace execution {
 
   // Memory allocation properties:
 
-  struct default_allocator_t {} default_allocator;
+  constexpr struct default_allocator_t {} default_allocator;
   template<class ProtoAllocator> struct allocator_wrapper_t { ProtoAllocator alloc; };
-  struct allocator_t { template<class ProtoAllocator> constexpr allocator_wrapper_t<ProtoAllocator> operator()(const ProtoAllocator& a) { return {a}; } } allocator;
+  constexpr struct allocator_t { template<class ProtoAllocator> constexpr allocator_wrapper_t<ProtoAllocator> operator()(const ProtoAllocator& a) const noexcept { return {a}; } } allocator;
 
   // Executor type traits:
 
@@ -482,13 +482,13 @@ agents. *--end note*]
 
 ### Properties for customizing memory allocation
 
-  struct default_allocator_t {} default_allocator;
+  constexpr struct default_allocator_t {} default_allocator;
   template<class ProtoAllocator> struct allocator_wrapper_t { ProtoAllocator alloc; };
-  struct allocator_t { template<class ProtoAllocator> constexpr allocator_wrapper_t<ProtoAllocator> operator()(const ProtoAllocator& a) { return {a}; } } allocator;
+  constexpr struct allocator_t { template<class ProtoAllocator> constexpr allocator_wrapper_t<ProtoAllocator> operator()(const ProtoAllocator& a) const noexcept { return {a}; } } allocator;
 
 | Property | Requirements |
 |----------|--------------|
-| `default_allocator` | Executor implementations shall use a default implmentation defined allocator to allocate any memory required to store the submitted function object. |
+| `default_allocator` | Executor implementations shall use a default implementation defined allocator to allocate any memory required to store the submitted function object. |
 | `allocator(ProtoAllocator)` | Executor implementations shall use the supplied allocator to allocate any memory required to store the submitted function object. |
 
 [*Note:* As the `allocator(ProtoAllocator)` property requires a value to be provided when being set, it is required to be implemented such that it is callable with the `ProtoAllocator` parameter when used in `require` or `prefer` where the customization points accepts the result of the function call operator of `allocator_t`; `allocator_wrapper_t` and is passable as an instance when used in `query` where the customization point accepts an instance of `allocator_t`. *--end note*]
