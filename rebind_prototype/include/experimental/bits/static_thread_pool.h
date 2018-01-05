@@ -71,9 +71,11 @@ class static_thread_pool
     executor_impl require(execution::thread_execution_mapping_t) const { return *this; }
 
     // Allocator.
+    executor_impl<Blocking, Continuation, Work, std::allocator<void>>
+      require(const execution::default_allocator_t&) const { return {pool_, std::allocator<void>{}}; };
     template<class NewProtoAllocator>
-    executor_impl<Blocking, Continuation, execution::not_outstanding_work_t, NewProtoAllocator>
-      require(const execution::allocator_t<NewProtoAllocator>& a) const { return {pool_, a.alloc}; };
+      executor_impl<Blocking, Continuation, Work, NewProtoAllocator>
+        require(const execution::allocator_wrapper_t<NewProtoAllocator>& a) const { return {pool_, a.alloc}; };
 
     bool running_in_this_thread() const noexcept { return pool_->running_in_this_thread(); }
 

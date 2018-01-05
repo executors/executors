@@ -45,8 +45,9 @@ constexpr struct thread_execution_mapping_t {} thread_execution_mapping;
 constexpr struct new_thread_execution_mapping_t {} new_thread_execution_mapping;
 
 // Memory allocations.
-template<class ProtoAllocator> struct allocator_t { ProtoAllocator alloc; };
-template<class ProtoAllocator> constexpr allocator_t<ProtoAllocator> allocator(const ProtoAllocator& a) { return {a}; }
+constexpr struct default_allocator_t {} default_allocator;
+template<class ProtoAllocator> struct allocator_wrapper_t { ProtoAllocator alloc; };
+constexpr struct allocator_t { template<class ProtoAllocator> constexpr allocator_wrapper_t<ProtoAllocator> operator()(const ProtoAllocator& a) const noexcept { return {a}; } } allocator;
 
 // Type traits to determine conformance to executor type requirements.
 template<class Executor> struct is_executor;

@@ -25,7 +25,8 @@ struct continuation_t;
 struct not_continuation_t;
 struct outstanding_work_t;
 struct not_outstanding_work_t;
-template<class> struct allocator_t;
+template<class> struct allocator_wrapper_t;
+struct allocator_t;
 
 namespace require_impl {
 
