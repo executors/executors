@@ -17,10 +17,10 @@ CITEPROC= --filter pandoc-citeproc \
 	  --csl=acm-sig-proceedings-long-author-list.csl
 
 explanatory_pdf: explanatory.md explanatory_header.tex explanatory_metadata.yaml
-	pandoc $(PANDOC_FLAGS) $(CITEPROC) -H explanatory_header.tex explanatory_metadata.yaml explanatory.md -o P0761R1_Executors_Design_Document.pdf
+	pandoc $(PANDOC_FLAGS) $(CITEPROC) -H explanatory_header.tex explanatory_metadata.yaml explanatory.md -o P0761R2_Executors_Design_Document.pdf
 
 explanatory_html: explanatory.md explanatory_header.tex explanatory_metadata.yaml
-	pandoc $(PANDOC_FLAGS) $(CITEPROC) -H explanatory_header.tex explanatory_metadata.yaml explanatory.md -o P0761R1_Executors_Design_Document.html
+	pandoc $(PANDOC_FLAGS) $(CITEPROC) -H explanatory_header.tex explanatory_metadata.yaml explanatory.md -o P0761R2_Executors_Design_Document.html
 
 clean:
 	rm -f *0443*.pdf *0443*.html *0761*.pdf *0761*.html
