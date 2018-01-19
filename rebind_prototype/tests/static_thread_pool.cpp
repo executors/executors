@@ -6,8 +6,6 @@ using std::experimental::static_thread_pool;
 template<class Executor>
 void static_thread_pool_executor_compile_test(Executor ex1)
 {
-  static_assert(execution::is_executor_v<Executor>, "is_executor must evaluate true");
-
   const Executor& cex1 = ex1;
 
   static_assert(noexcept(Executor(ex1)), "copy constructor must not throw");

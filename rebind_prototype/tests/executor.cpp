@@ -8,7 +8,6 @@ using std::experimental::concurrency_v2::future;
 
 void executor_compile_test()
 {
-  static_assert(execution::is_executor_v<executor>, "is_executor must evaluate true");
   static_assert(execution::is_oneway_executor_v<executor>, "is_oneway_executor must evaluate true");
   static_assert(execution::is_twoway_executor_v<executor>, "is_twoway_executor must evaluate true");
 

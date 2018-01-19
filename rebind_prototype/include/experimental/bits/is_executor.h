@@ -29,10 +29,6 @@ struct eval<T,
 	>::type> : std::true_type {};
 
 } // namespace is_executor_impl
-
-template<class Executor>
-struct is_executor : is_executor_impl::eval<Executor> {};
-
 } // namespace execution
 } // inline namespace concurrency_v2
 } // namespace experimental

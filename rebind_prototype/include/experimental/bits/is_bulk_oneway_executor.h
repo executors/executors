@@ -41,7 +41,7 @@ struct eval<T,
           std::declval<const bulk_function&>(), 1, std::declval<shared_factory>()))>::value>::type,
     typename std::enable_if<std::is_same<void, decltype(std::declval<const T&>().bulk_execute(
           std::declval<bulk_function&&>(), 1, std::declval<shared_factory>()))>::value>::type
-	>::type> : is_executor<T> {};
+	>::type> : is_executor_impl::eval<T> {};
 
 } // namespace is_bulk_oneway_executor_impl
 

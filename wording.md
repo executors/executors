@@ -64,7 +64,6 @@ namespace execution {
 
   // Executor type traits:
 
-  template<class Executor> struct is_executor;
   template<class Executor> struct is_oneway_executor;
   template<class Executor> struct is_twoway_executor;
   template<class Executor> struct is_then_executor;
@@ -72,7 +71,6 @@ namespace execution {
   template<class Executor> struct is_bulk_twoway_executor;
   template<class Executor> struct is_bulk_then_executor;
 
-  template<class Executor> constexpr bool is_executor_v = is_executor<Executor>::value;
   template<class Executor> constexpr bool is_oneway_executor_v = is_oneway_executor<Executor>::value;
   template<class Executor> constexpr bool is_twoway_executor_v = is_twoway_executor<Executor>::value;
   template<class Executor> constexpr bool is_then_executor_v = is_then_executor<Executor>::value;
@@ -499,7 +497,6 @@ agents. *--end note*]
 
 ### Determining that a type satisfies executor type requirements
 
-    template<class T> struct is_executor;
     template<class T> struct is_oneway_executor;
     template<class T> struct is_twoway_executor;
     template<class T> struct is_then_executor;
@@ -511,7 +508,6 @@ This sub-clause contains templates that may be used to query the properties of a
 
 | Template                   | Condition           | Preconditions  |
 |----------------------------|---------------------|----------------|
-| `template<class T>` <br/>`struct is_executor` | `T` meets the syntactic requirements for `BaseExecutor`. | `T` is a complete type. |
 | `template<class T>` <br/>`struct is_oneway_executor` | `T` meets the syntactic requirements for `OneWayExecutor`. | `T` is a complete type. |
 | `template<class T>` <br/>`struct is_twoway_executor` | `T` meets the syntactic requirements for `TwoWayExecutor`. | `T` is a complete type. |
 | `template<class T>` <br/>`struct is_then_executor` | `T` meets the syntactic requirements for `ThenExecutor`. | `T` is a complete type. |

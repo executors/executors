@@ -53,13 +53,11 @@ template<class ProtoAllocator> struct allocator_wrapper_t { ProtoAllocator alloc
 constexpr struct allocator_t { template<class ProtoAllocator> constexpr allocator_wrapper_t<ProtoAllocator> operator()(const ProtoAllocator& a) const noexcept { return {a}; } } allocator;
 
 // Type traits to determine conformance to executor type requirements.
-template<class Executor> struct is_executor;
 template<class Executor> struct is_oneway_executor;
 template<class Executor> struct is_twoway_executor;
 template<class Executor> struct is_bulk_oneway_executor;
 template<class Executor> struct is_bulk_twoway_executor;
 
-template<class Executor> constexpr bool is_executor_v = is_executor<Executor>::value;
 template<class Executor> constexpr bool is_oneway_executor_v = is_oneway_executor<Executor>::value;
 template<class Executor> constexpr bool is_twoway_executor_v = is_twoway_executor<Executor>::value;
 template<class Executor> constexpr bool is_bulk_oneway_executor_v = is_bulk_oneway_executor<Executor>::value;
@@ -134,7 +132,6 @@ class executor;
 } // namespace experimental
 } // namespace std
 
-#include <experimental/bits/is_executor.h>
 #include <experimental/bits/is_oneway_executor.h>
 #include <experimental/bits/is_twoway_executor.h>
 #include <experimental/bits/is_bulk_oneway_executor.h>
