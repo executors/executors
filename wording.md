@@ -6,6 +6,9 @@ namespace experimental {
 inline namespace concurrency_v2 {
 namespace execution {
 
+  // Associated execution context property:
+  constexpr struct context_t {} context;
+
   // Directionality properties:
 
   constexpr struct oneway_t {} oneway;
@@ -78,12 +81,10 @@ namespace execution {
   template<class Executor> constexpr bool is_bulk_twoway_executor_v = is_bulk_twoway_executor<Executor>::value;
   template<class Executor> constexpr bool is_bulk_then_executor_v = is_bulk_then_executor<Executor>::value;
 
-  template<class Executor> struct executor_context;
   template<class Executor, class T> struct executor_future;
   template<class Executor> struct executor_shape;
   template<class Executor> struct executor_index;
 
-  template<class Executor> using executor_context_t = typename executor_context<Executor>::type;
   template<class Executor, class T> using executor_future_t = typename executor_future<Executor, T>::type;
   template<class Executor> using executor_shape_t = typename executor_shape<Executor>::type;
   template<class Executor> using executor_index_t = typename executor_index<Executor>::type;
@@ -175,10 +176,6 @@ A type `F` meets the `Future` requirements for some value type `T` if `F` is `st
 
 A type `A` meets the `ProtoAllocator` requirements if `A` is `CopyConstructible` (C++Std [copyconstructible]), `Destructible` (C++Std [destructible]), and `allocator_traits<A>::rebind_alloc<U>` meets the allocator requirements (C++Std [allocator.requirements]), where `U` is an object type. [*Note:* For example, `std::allocator<void>` meets the proto-allocator requirements but not the allocator requirements. *--end note*] No comparison operator, copy operation, move operation, or swap operation on these types shall exit via an exception.
 
-### `ExecutionContext` requirements
-
-A type meets the `ExecutionContext` requirements if it satisfies the `EqualityComparable` requirements (C++Std [equalitycomparable]). No comparison operator on these types shall exit via an exception.
-
 ### `BaseExecutor` requirements
 
 A type `X` meets the `BaseExecutor` requirements if it satisfies the requirements of `CopyConstructible` (C++Std [copyconstructible]), `Destructible` (C++Std [destructible]), and `EqualityComparable` (C++Std [equalitycomparable]), as well as the additional requirements listed below.
@@ -195,11 +192,10 @@ Table: (Base executor requirements) \label{base_executor_requirements}
 
 | Expression   | Type       | Assertion/note/pre-/post-condition |
 |--------------|------------|------------------------------------|
-| `X u(x1);` | | Shall not exit via an exception. <br/><br/>*Post:* `u == x1` and `u.context() == x1.context()`. |
-| `X u(mx1);` | | Shall not exit via an exception. <br/><br/>*Post:* `u` equals the prior value of `mx1` and `u.context()` equals the prior value of `mx1.context()`. |
+| `X u(x1);` | | Shall not exit via an exception. <br/><br/>*Post:* `u == x1`. |
+| `X u(mx1);` | | Shall not exit via an exception. <br/><br/>*Post:* `u` equals the prior value of `mx1`. |
 | `x1 == x2` | `bool` | Returns `true` only if `x1` and `x2` can be interchanged with identical effects in any of the expressions defined in these type requirements (TODO and the other executor requirements defined in this Technical Specification). [*Note:* Returning `false` does not necessarily imply that the effects are not identical. *--end note*] `operator==` shall be reflexive, symmetric, and transitive, and shall not exit via an exception. |
 | `x1 != x2` | `bool` | Same as `!(x1 == x2)`. |
-| `x1.context()` | `E&` or `const E&` where `E` is a type that satisfies the `ExecutionContext` requirements. | Shall not exit via an exception. The comparison operators and member functions defined in these requirements (TODO and the other executor requirements defined in this Technical Specification) shall not alter the reference returned by this function. |
 
 [*Commentary: The equality operator is specified primarily as an aid to support postconditons on executor copy construction and move construction. The key word in supporting these postconditions is "interchanged". That is, if a copy is substituted for the original executor it shall produce identical effects, provided the expression, calling context, and program state are otherwise identical. Calls to the copied executor from a different context or program state are not required to produce identical effects, and this is not considered an "interchanged" use of an executor. In particular, even consecutive calls to the same executor need not produce identical effects since the program state has already altered.*]
 
@@ -326,6 +322,14 @@ The current value of an executor's properties can be queried by calling the `que
 | Expression | Comments |
 |------------|----------|
 | `x.query(p)` | Returns the current value of the requested property `p`. The expression is ill formed if an executor is unable to return the requested property. |
+
+### Associated execution context property
+
+  constexpr struct context_t {} context;
+
+The `context` property can be used only with `query`, which returns the **execution context** associated with the executor.
+
+An execution context is a program object that represents a specific collection of execution resources and the **execution agents** that exist within those resources. Execution agents are units of execution, and a 1-to-1 mapping exists between an execution agent and an invocation of a callable function object submitted via the executor.
 
 ### Directionality properties
 
@@ -515,14 +519,6 @@ This sub-clause contains templates that may be used to query the properties of a
 | `template<class T>` <br/>`struct is_bulk_twoway_executor` | `T` meets the syntactic requirements for `BulkTwoWayExecutor`. | `T` is a complete type. |
 | `template<class T>` <br/>`struct is_bulk_then_executor` | `T` meets the syntactic requirements for `BulkThenExecutor`. | `T` is a complete type. |
 
-### Associated execution context type
-
-    template<class Executor>
-    struct executor_context
-    {
-      using type = std::decay_t<decltype(declval<const Executor&>().context())>;
-    };
-
 ### Associated future type
 
     template<class Executor, class T>
@@ -632,11 +628,11 @@ The name `require` denotes a customization point. The effect of the expression `
 
 * Otherwise, a value `E1` of unspecified type that holds a copy of `E` if `N == 0`, `is_same<decay_t<decltype(P0)>, twoway_t>` is true, and `can_query_v<decltype(E), adaptable_blocking_t>` is true. The type of `E1` satisfies the `BaseExecutor` requirements and provides member functions such that calls to `require`, `prefer`, `query`, `context`, `execute` and `bulk_execute` are forwarded to the corresponding member functions of the copy of `E`, if present. In addition, if `E` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `TwoWayExecutor` requirements by implementing `twoway_execute` in terms of `execute`. Similarly, if `E` satisfies the `BulkOneWayExecutor` requirements, `E1` shall satisfy the `BulkTwoWayExecutor` requirements by implementing `bulk_twoway_execute` in terms of `bulk_execute`. For some type `T`, the type yielded by `executor_future_t<decltype(E1), T>` is `std::experimental::future<T>`. `E1` has the same executor properties as `E`, except for the addition of the `twoway_t` property.
 
-* Otherwise, a value `E1` of unspecified type that holds a copy of `E` if `N == 0` and `is_same<decay_t<decltype(P0)>, bulk_t>` is true. The type of `E1` satisfies the `BaseExecutor` requirements and provides member functions such that calls to `require`, `prefer`, `query`, `context`, `execute` and `twoway_execute` are forwarded to the corresponding member functions of the copy of `E`, if present. In addition, if `E` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `BulkExecutor` requirements by implementing `bulk_execute` in terms of `execute`. If `E` also satisfies the `TwoWayExecutor` requirements, `E1` shall satisfy the `BulkTwoWayExecutor` requirements by implementing `bulk_twoway_execute` in terms of `bulk_execute`. `E1` has the same executor properties as `E`, except for the addition of the `bulk_t` property.
+* Otherwise, a value `E1` of unspecified type that holds a copy of `E` if `N == 0` and `is_same<decay_t<decltype(P0)>, bulk_t>` is true. The type of `E1` satisfies the `BaseExecutor` requirements and provides member functions such that calls to `require`, `prefer`, `query`, `execute` and `twoway_execute` are forwarded to the corresponding member functions of the copy of `E`, if present. In addition, if `E` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `BulkExecutor` requirements by implementing `bulk_execute` in terms of `execute`. If `E` also satisfies the `TwoWayExecutor` requirements, `E1` shall satisfy the `BulkTwoWayExecutor` requirements by implementing `bulk_twoway_execute` in terms of `bulk_execute`. `E1` has the same executor properties as `E`, except for the addition of the `bulk_t` property.
 
-* Otherwise, a value `E1` of unspecified type that holds a copy of `E` if `N == 0`, `is_same<decay_t<decltype(P0)>, always_blocking_t>` is true, and `can_query_v<decltype(E), adaptable_blocking_t>` is true. The type of `E1` satisfies the `BaseExecutor` requirements and provides member functions such that calls to `require`, `prefer`, `query`, `context`, `execute`, `twoway_execute`, `bulk_execute`, and `bulk_twoway_execute` are forwarded to the corresponding member functions of the copy of `E`, if present. In addition, `E1` provides an overload of `require` that returns a copy of `E1`, and all functions `execute`, `twoway_execute`, `bulk_execute`, and `bulk_twoway_execute` shall block the calling thread until the submitted functions have finished execution. `E1` has the same executor properties as `E`, except for the addition of the `always_blocking_t` property, and removal of `never_blocking_t` and `possibly_blocking_t` properties if present.
+* Otherwise, a value `E1` of unspecified type that holds a copy of `E` if `N == 0`, `is_same<decay_t<decltype(P0)>, always_blocking_t>` is true, and `can_query_v<decltype(E), adaptable_blocking_t>` is true. The type of `E1` satisfies the `BaseExecutor` requirements and provides member functions such that calls to `require`, `prefer`, `query`, `execute`, `twoway_execute`, `bulk_execute`, and `bulk_twoway_execute` are forwarded to the corresponding member functions of the copy of `E`, if present. In addition, `E1` provides an overload of `require` that returns a copy of `E1`, and all functions `execute`, `twoway_execute`, `bulk_execute`, and `bulk_twoway_execute` shall block the calling thread until the submitted functions have finished execution. `E1` has the same executor properties as `E`, except for the addition of the `always_blocking_t` property, and removal of `never_blocking_t` and `possibly_blocking_t` properties if present.
 
-* Otherwise, a value `E1` of unspecified type that holds a copy of `E` if `N == 0` and `is_same<decay_t<decltype(P0)>, adaptable_blocking_t>` is true. The type of `E1` satisfies the `BaseExecutor` requirements and provides member functions such that calls to `require`, `prefer`, `query`, `context`, `execute`, `twoway_execute`, `bulk_execute`, and `bulk_twoway_execute` are forwarded to the corresponding member functions of the copy of `E`, if present. In addition, `can_query_v<decltype(E1), adaptable_blocking_t>` is true, and `E1.require(not_adaptable_blocking_t)` yields a copy of `E`. `E1` has the same executor properties as `E`, except for the addition of the `adaptable_blocking_t` property.
+* Otherwise, a value `E1` of unspecified type that holds a copy of `E` if `N == 0` and `is_same<decay_t<decltype(P0)>, adaptable_blocking_t>` is true. The type of `E1` satisfies the `BaseExecutor` requirements and provides member functions such that calls to `require`, `prefer`, `query`, `execute`, `twoway_execute`, `bulk_execute`, and `bulk_twoway_execute` are forwarded to the corresponding member functions of the copy of `E`, if present. In addition, `can_query_v<decltype(E1), adaptable_blocking_t>` is true, and `E1.require(not_adaptable_blocking_t)` yields a copy of `E`. `E1` has the same executor properties as `E`, except for the addition of the `adaptable_blocking_t` property.
 
 * Otherwise, `std::experimental::concurrency_v2::execution::require( std::experimental::concurrency_v2::execution::require(E, P0), Pn...)` if `N > 0` and the expression is well formed.
 
@@ -753,7 +749,7 @@ public:
 
   // executor operations:
 
-  const context_type& context() const noexcept;
+  const context_type& query(context_t) const noexcept;
 
   executor require(oneway_t) const;
   executor require(twoway_t) const;
@@ -927,12 +923,12 @@ void swap(executor& other) noexcept;
 #### `executor` operations
 
 ```
-const context_type& context() const noexcept;
+const context_type& query(context_t) const noexcept;
 ```
 
 *Requires:* `*this != nullptr`.
 
-*Returns:* A polymorphic execution context wrapper whose target is `e.context()`, where `e` is the target object of `*this`.
+*Returns:* A polymorphic execution context wrapper whose target is `e.query(execution::context)`, where `e` is the target object of `*this`.
 
 ```
 executor require(oneway_t) const;
@@ -1220,12 +1216,7 @@ class static_thread_pool
     // standard contexts.
     executor_type executor() noexcept;
 };
-
-bool operator==(const static_thread_pool& a, const static_thread_pool& b) noexcept;
-bool operator!=(const static_thread_pool& a, const static_thread_pool& b) noexcept;
 ```
-
-The class `static_thread_pool` satisfies the `ExecutionContext` requirements.
 
 For an object of type `static_thread_pool`, *outstanding work* is defined as the sum
 of:
@@ -1327,20 +1318,6 @@ established:
   * `execution::caller_parallel_execution`
   * `execution::allocator(std::allocator<void>())`
 
-#### Comparisons
-
-```
-bool operator==(const static_thread_pool& a, const static_thread_pool& b) noexcept;
-```
-
-*Returns:* `std::addressof(a) == std::addressof(b)`.
-
-```
-bool operator!=(const static_thread_pool& a, const static_thread_pool& b) noexcept;
-```
-
-*Returns:* `!(a == b)`.
-
 ### `static_thread_pool` executor types
 
 All executor types accessible through `static_thread_pool::executor()`, and subsequent calls to the member function `require`, conform to the following specification.
@@ -1382,11 +1359,10 @@ class C
     template<class ProtoAllocator>
       see-below require(const execution::allocator_wrapper_t<ProtoAllocator>& a) const;
 
+    see-below query(execution::context_t) const noexcept;
     see-below query(execution::allocator_t) const noexcept;
 
     bool running_in_this_thread() const noexcept;
-
-    static_thread_pool& context() const noexcept;
 
     template<class Function>
       void execute(Function&& f) const;
@@ -1492,6 +1468,12 @@ performed using a copy of `a.alloc`. All other properties of the returned
 executor object are identical to those of `*this`.
 
 ```
+static_thread_pool& query(execution::context_t) const noexcept;
+```
+
+*Returns:* A reference to the associated `static_thread_pool` object.
+
+```
 see-below query(execution::allocator_t) const noexcept;
 ```
 
@@ -1505,12 +1487,6 @@ bool running_in_this_thread() const noexcept;
 
 *Returns:* `true` if the current thread of execution is a thread that was
 created by or attached to the associated `static_thread_pool` object.
-
-```
-static_thread_pool& context() const noexcept;
-```
-
-*Returns:* A reference to the associated `static_thread_pool` object.
 
 ```
 template<class Function>
@@ -1586,7 +1562,7 @@ for `*this`.
 bool operator==(const C& a, const C& b) noexcept;
 ```
 
-*Returns:* `true` if `a.context() == b.context()` and `a` and `b` have identical
+*Returns:* `true` if `&a.query(execution::context) == &b.query(execution::context)` and `a` and `b` have identical
 properties, otherwise `false`.
 
 ```
