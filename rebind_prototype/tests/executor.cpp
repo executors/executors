@@ -8,10 +8,13 @@ using std::experimental::concurrency_v2::future;
 
 void executor_compile_test()
 {
+  static_assert(execution::is_executor_v<executor>, "is_executor must evaluate true");
   static_assert(execution::is_oneway_executor_v<executor>, "is_oneway_executor must evaluate true");
   static_assert(execution::is_twoway_executor_v<executor>, "is_twoway_executor must evaluate true");
 
   static_thread_pool pool(0);
+
+  using context_type = executor::context_type;
 
   static_assert(noexcept(executor()), "default constructor must not throw");
   static_assert(noexcept(executor(nullptr)), "nullptr constructor must not throw");
@@ -67,7 +70,7 @@ void executor_compile_test()
   ex1 = execution::prefer(cex1, execution::bulk_unsequenced_execution);
   ex1 = execution::prefer(cex1, execution::new_thread_execution_mapping);
 
-  auto& context = execution::query(cex1, execution::context);
+  const context_type& context = cex1.context();
   (void)context;
 
   cex1.execute([]{});
