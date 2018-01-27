@@ -3,7 +3,7 @@
 ```
 namespace std {
 namespace experimental {
-inline namespace concurrency_v2 {
+inline namespace executors_v1 {
 namespace execution {
 
   // Directionality properties:
@@ -144,7 +144,7 @@ namespace execution {
   class executor;
 
 } // namespace execution
-} // inline namespace concurrency_v2
+} // inline namespace executors_v1
 } // namespace experimental
 } // namespace std
 ```
@@ -613,7 +613,7 @@ When an executor customization point named *NAME* invokes a free execution funct
 
 [*Note:* This provision allows executor customization points to call the executor's free, non-member execution function of the same name without recursion. *--end note*]
 
-Whenever `std::experimental::concurrency_v2::execution::`*NAME*`(`*ARGS*`)` is a valid expression, that expression satisfies the syntactic requirements for the free execution function named *NAME* with arity `sizeof...(`*ARGS*`)` with that free execution function's semantics.
+Whenever `std::experimental::executors_v1::execution::`*NAME*`(`*ARGS*`)` is a valid expression, that expression satisfies the syntactic requirements for the free execution function named *NAME* with arity `sizeof...(`*ARGS*`)` with that free execution function's semantics.
 
 ### `require`
 
@@ -621,7 +621,7 @@ Whenever `std::experimental::concurrency_v2::execution::`*NAME*`(`*ARGS*`)` is a
       constexpr unspecified require = unspecified;
     }
 
-The name `require` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::require(E, P0, Pn...)` for some expressions `E` and `P0`, and where `Pn...` represents `N` expressions (where `N` is 0 or more), is equivalent to:
+The name `require` denotes a customization point. The effect of the expression `std::experimental::executors_v1::execution::require(E, P0, Pn...)` for some expressions `E` and `P0`, and where `Pn...` represents `N` expressions (where `N` is 0 or more), is equivalent to:
 
 * `(E).require(P0)` if `N == 0` and `has_require_member_v<decay_t<decltype(E)>, decltype(P0)>` is true.
 
@@ -642,9 +642,9 @@ The name `require` denotes a customization point. The effect of the expression `
 
 * Otherwise, a value `E1` of unspecified type that holds a copy of `E` if `N == 0` and `is_same<decay_t<decltype(P0)>, adaptable_blocking_t>` is true. The type of `E1` satisfies the `BaseExecutor` requirements and provides member functions such that calls to `require`, `prefer`, `query`, `context`, `execute`, `twoway_execute`, `bulk_execute`, and `bulk_twoway_execute` are forwarded to the corresponding member functions of the copy of `E`, if present. In addition, `can_query_v<decltype(E1), adaptable_blocking_t>` is true, and `E1.require(not_adaptable_blocking_t)` yields a copy of `E`. `E1` has the same executor properties as `E`, except for the addition of the `adaptable_blocking_t` property.
 
-* Otherwise, `std::experimental::concurrency_v2::execution::require( std::experimental::concurrency_v2::execution::require(E, P0), Pn...)` if `N > 0` and the expression is well formed.
+* Otherwise, `std::experimental::executors_v1::execution::require( std::experimental::executors_v1::execution::require(E, P0), Pn...)` if `N > 0` and the expression is well formed.
 
-* Otherwise, `std::experimental::concurrency_v2::execution::require(E, P0, Pn...)` is ill-formed.
+* Otherwise, `std::experimental::executors_v1::execution::require(E, P0, Pn...)` is ill-formed.
 
 ### `prefer`
 
@@ -652,7 +652,7 @@ The name `require` denotes a customization point. The effect of the expression `
       constexpr unspecified prefer = unspecified;
     }
 
-The name `prefer` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::prefer(E, P0, Pn...)` for some expressions `E` and `P0`, and where `Pn...` represents `N` expressions (where `N` is 0 or more), is equivalent to:
+The name `prefer` denotes a customization point. The effect of the expression `std::experimental::executors_v1::execution::prefer(E, P0, Pn...)` for some expressions `E` and `P0`, and where `Pn...` represents `N` expressions (where `N` is 0 or more), is equivalent to:
 
 * `(E).require(P0)` if `N == 0` and `has_require_member_v<decay_t<decltype(E)>, decltype(P0)>` is true.
 
@@ -660,9 +660,9 @@ The name `prefer` denotes a customization point. The effect of the expression `s
 
 * Otherwise, `E` if `N == 0`.
 
-* Otherwise, `std::experimental::concurrency_v2::execution::prefer( std::experimental::concurrency_v2::execution::prefer(E, P0), Pn...)` if the expression is well formed.
+* Otherwise, `std::experimental::executors_v1::execution::prefer( std::experimental::executors_v1::execution::prefer(E, P0), Pn...)` if the expression is well formed.
 
-* Otherwise, `std::experimental::concurrency_v2::execution::prefer(E, P0, Pn...)` is ill-formed.
+* Otherwise, `std::experimental::executors_v1::execution::prefer(E, P0, Pn...)` is ill-formed.
 
 When the executor customization point named `prefer` invokes a free execution function of the same name, overload resolution is performed in a context that includes the declarations:
 
@@ -679,13 +679,13 @@ When the executor customization point named `prefer` invokes a free execution fu
       constexpr unspecified query = unspecified;
     }
 
-The name `query` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::query(E, P)` for some expressions `E` and `P` is equivalent to:
+The name `query` denotes a customization point. The effect of the expression `std::experimental::executors_v1::execution::query(E, P)` for some expressions `E` and `P` is equivalent to:
 
 * `(E).query(P)` if `has_query_member_v<decay_t<decltype(E)>, decltype(P)>` is true.
 
 * Otherwise, `query(E, P)` if the expression is well formed.
 
-* Otherwise, `std::experimental::concurrency_v2::execution::query(E, P)` is ill-formed.
+* Otherwise, `std::experimental::executors_v1::execution::query(E, P)` is ill-formed.
 
 ### Customization point type traits
 
@@ -697,9 +697,9 @@ This sub-clause contains templates that may be used to query the properties of a
 
 | Template                   | Condition           | Preconditions  |
 |----------------------------|---------------------|----------------|
-| `template<class T>` <br/>`struct can_require` | The expression `std::experimental::concurrency_v2::execution::require( declval<const Executor>(), declval<Properties>()...)` is well formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_prefer` | The expression `std::experimental::concurrency_v2::execution::prefer( declval<const Executor>(), declval<Properties>()...)` is well formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_query` | The expression `std::experimental::concurrency_v2::execution::query( declval<const Executor>(), declval<Property>())` is well formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_require` | The expression `std::experimental::executors_v1::execution::require( declval<const Executor>(), declval<Properties>()...)` is well formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_prefer` | The expression `std::experimental::executors_v1::execution::prefer( declval<const Executor>(), declval<Properties>()...)` is well formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_query` | The expression `std::experimental::executors_v1::execution::query( declval<const Executor>(), declval<Property>())` is well formed. | `T` is a complete type. |
 
 ## Polymorphic executor wrappers
 
@@ -1171,11 +1171,11 @@ overhead of thread creation and destruction whenever such agents are needed.
 ```
 namespace std {
 namespace experimental {
-inline namespace concurrency_v2 {
+inline namespace executors_v1 {
 
   class static_thread_pool;
 
-} // inline namespace concurrency_v2
+} // inline namespace executors_v1
 } // namespace experimental
 } // namespace std
 ```
