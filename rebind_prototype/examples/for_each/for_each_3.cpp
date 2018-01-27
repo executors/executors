@@ -22,7 +22,7 @@ class system_thread_pool_bulk_executor
     template<class T>
     using future = execution::executor_future_t<static_thread_pool::executor_type,T>;
 
-    auto& context() const noexcept { return system_thread_pool; }
+    auto& query(execution::context_t) const noexcept { return system_thread_pool; }
 
     friend bool operator==(const system_thread_pool_bulk_executor&, const system_thread_pool_bulk_executor&) noexcept
     {
@@ -132,8 +132,6 @@ void for_each(ExecutionPolicy&& policy, RandomAccessIterator first, RandomAccess
 class inline_executor
 {
 public:
-  auto& context() const noexcept { return *this; }
-
   friend bool operator==(const inline_executor&, const inline_executor&) noexcept
   {
     return true;

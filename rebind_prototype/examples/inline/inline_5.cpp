@@ -9,8 +9,6 @@ public:
   inline_executor require(execution::always_blocking_t) const { return *this; }
   inline_executor require(execution::possibly_blocking_t) const { return *this; }
 
-  auto& context() const noexcept { return *this; }
-
   friend bool operator==(const inline_executor&, const inline_executor&) noexcept
   {
     return true;

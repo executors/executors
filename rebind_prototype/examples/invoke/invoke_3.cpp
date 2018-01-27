@@ -26,8 +26,6 @@ auto invoke(Executor ex, Function f, Args&&... args)
 class inline_executor
 {
 public:
-  auto& context() const noexcept { return *this; }
-
   friend bool operator==(const inline_executor&, const inline_executor&) noexcept
   {
     return true;

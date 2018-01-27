@@ -30,7 +30,7 @@ struct eval<T,
     typename std::enable_if<std::is_same<void, decltype(std::declval<const T&>().execute(std::declval<nullary_function&>()))>::value>::type,
     typename std::enable_if<std::is_same<void, decltype(std::declval<const T&>().execute(std::declval<const nullary_function&>()))>::value>::type,
     typename std::enable_if<std::is_same<void, decltype(std::declval<const T&>().execute(std::declval<nullary_function&&>()))>::value>::type
-	>::type> : is_executor<T> {};
+	>::type> : is_executor_impl::eval<T> {};
 
 } // namespace is_oneway_executor_impl
 

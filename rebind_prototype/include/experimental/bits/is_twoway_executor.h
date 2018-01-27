@@ -32,7 +32,7 @@ struct eval<T,
     decltype(static_cast<const dummy&>(std::declval<const T&>().twoway_execute(std::declval<nullary_function&>()).get())),
     decltype(static_cast<const dummy&>(std::declval<const T&>().twoway_execute(std::declval<const nullary_function&>()).get())),
     decltype(static_cast<const dummy&>(std::declval<const T&>().twoway_execute(std::declval<nullary_function&&>()).get()))
-	>::type> : is_executor<T> {};
+	>::type> : is_executor_impl::eval<T> {};
 
 } // namespace is_twoway_executor_impl
 
