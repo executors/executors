@@ -3,7 +3,7 @@
 ```
 namespace std {
 namespace experimental {
-inline namespace concurrency_v2 {
+inline namespace executors_v1 {
 namespace execution {
 
   // Associated execution context property:
@@ -41,12 +41,6 @@ namespace execution {
   constexpr struct not_outstanding_work_t {} not_outstanding_work;
   constexpr struct outstanding_work_t {} outstanding_work;
 
-  // Properties for caller execution forward progress guarantess:
-
-  constexpr struct caller_weakly_parallel_execution_t {} caller_weakly_parallel_execution;
-  constexpr struct caller_parallel_execution_t {} caller_parallel_execution;
-  constexpr struct caller_concurrent_execution_t {} caller_concurrent_execution;
-
   // Properties for bulk execution guarantees:
 
   constexpr struct bulk_sequenced_execution_t {} bulk_sequenced_execution;
@@ -61,9 +55,14 @@ namespace execution {
 
   // Memory allocation properties:
 
-  constexpr struct default_allocator_t {} default_allocator;
-  template<class ProtoAllocator> struct allocator_wrapper_t { ProtoAllocator alloc; };
-  constexpr struct allocator_t { template<class ProtoAllocator> constexpr allocator_wrapper_t<ProtoAllocator> operator()(const ProtoAllocator& a) const noexcept { return {a}; } } allocator;
+  template<class ProtoAllocator> struct allocator_t { ProtoAllocator a; };
+  template<> struct allocator_t<void> {
+    template<class ProtoAllocator>
+    constexpr allocator_t<ProtoAllocator> operator()(const ProtoAllocator& a) const {
+      return allocator_t<ProtoAllocator>{a};
+    }
+  };
+  constexpr allocator_t<void> allocator;
 
   // Executor type traits:
 
@@ -143,7 +142,7 @@ namespace execution {
   class executor;
 
 } // namespace execution
-} // inline namespace concurrency_v2
+} // inline namespace executors_v1
 } // namespace experimental
 } // namespace std
 ```
@@ -413,24 +412,6 @@ The `not_outstanding_work` and `outstanding_work` properties are mutually exclus
 
 [*Note:* The `outstanding_work` and `not_outstanding_work` properties are use to communicate to the associated execution context intended future work submission on the executor. The intended effect of the properties is the behavior of execution context's facilities for awaiting outstanding work; specifically whether it considers the existance of the executor object with the `outstanding_work` property enabled outstanding work when deciding what to wait on. However this will be largely defined by the execution context implementation. It is intended that the execution context will define its wait facilities and on-destruction behaviour and provide an interface for querying this. An initial work towards this is included in P0737r0. *--end note*]
 
-### Properties for execution forward progress guarantees with caller
-
-These properties communicate the forward progress and ordering guarantees of execution agent(s) with respect to the caller.
-
-    constexpr struct caller_weakly_parallel_execution_t {} caller_weakly_parallel_execution;
-    constexpr struct caller_parallel_execution_t {} caller_parallel_execution;
-    constexpr struct caller_concurrent_execution_t {} caller_concurrent_execution;
-
-| Property | Requirements |
-|----------|--------------|
-| `caller_weakly_parallel_execution` | Each execution agent must provide weakly _parallel forward progress_ guarantees with respect to the calling thread. |
-| `caller_parallel_execution` | Each execution agent must provide _parallel forward progress_ guarantees with respect to the calling thread. |
-| `caller_concurrent_execution` | Each execution agent must provide _concurrent forward progress_ guarantees with respect to the calling thread. |
-
-The `caller_weakly_parallel_execution`, `caller_parallel_execution`, and `caller_concurrent_execution` properties are mutually exclusive.
-
-[*Note:* The guarantees of `caller_weakly_parallel_execution`, `caller_parallel_execution` and `caller_concurrent_execution` implies the relationship: `caller_weakly_parallel_execution < caller_parallel_execution < caller_concurrent_execution` *--end note*]
-
 ### Properties for bulk execution guarantees
 
 These properties communicate the forward progress and ordering guarantees of execution agents with respect to other agents within the same bulk submission.
@@ -484,16 +465,21 @@ agents. *--end note*]
 
 ### Properties for customizing memory allocation
 
-  constexpr struct default_allocator_t {} default_allocator;
-  template<class ProtoAllocator> struct allocator_wrapper_t { ProtoAllocator alloc; };
-  constexpr struct allocator_t { template<class ProtoAllocator> constexpr allocator_wrapper_t<ProtoAllocator> operator()(const ProtoAllocator& a) const noexcept { return {a}; } } allocator;
+  template<class ProtoAllocator> struct allocator_t { ProtoAllocator a; };
+  template<> struct allocator_t<void> {
+    template<class ProtoAllocator>
+    constexpr allocator_t<ProtoAllocator> operator()(const ProtoAllocator& a) const {
+      return allocator_t<ProtoAllocator>{a};
+    }
+  };
+  constexpr allocator_t<void> allocator;
 
 | Property | Requirements |
 |----------|--------------|
 | `default_allocator` | Executor implementations shall use a default implementation defined allocator to allocate any memory required to store the submitted function object. |
 | `allocator(ProtoAllocator)` | Executor implementations shall use the supplied allocator to allocate any memory required to store the submitted function object. |
 
-[*Note:* As the `allocator(ProtoAllocator)` property requires a value to be provided when being set, it is required to be implemented such that it is callable with the `ProtoAllocator` parameter when used in `require` or `prefer` where the customization points accepts the result of the function call operator of `allocator_t`; `allocator_wrapper_t` and is passable as an instance when used in `query` where the customization point accepts an instance of `allocator_t`. *--end note*]
+[*Note:* As the `allocator(ProtoAllocator)` property requires a value to be provided when being set, it is required to be implemented such that it is callable with the `ProtoAllocator` parameter when used in `require` or `prefer` where the customization points accepts the result of the function call operator of `allocator_t<void>`; `allocator_t<ProtoAllocator>` and is passable as an instance when used in `query` where the customization point accepts an instance of `allocator_t<void>`. *--end note*]
 
 [*Note:* It is permitted for an allocator provided via the `allocator(ProtoAllocator)` property to be the same type as the allocator provided by the `default_allocator` property. *--end note*]
 
@@ -605,7 +591,7 @@ When an executor customization point named *NAME* invokes a free execution funct
 
 [*Note:* This provision allows executor customization points to call the executor's free, non-member execution function of the same name without recursion. *--end note*]
 
-Whenever `std::experimental::concurrency_v2::execution::`*NAME*`(`*ARGS*`)` is a valid expression, that expression satisfies the syntactic requirements for the free execution function named *NAME* with arity `sizeof...(`*ARGS*`)` with that free execution function's semantics.
+Whenever `std::experimental::executors_v1::execution::`*NAME*`(`*ARGS*`)` is a valid expression, that expression satisfies the syntactic requirements for the free execution function named *NAME* with arity `sizeof...(`*ARGS*`)` with that free execution function's semantics.
 
 ### `require`
 
@@ -613,7 +599,7 @@ Whenever `std::experimental::concurrency_v2::execution::`*NAME*`(`*ARGS*`)` is a
       constexpr unspecified require = unspecified;
     }
 
-The name `require` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::require(E, P0, Pn...)` for some expressions `E` and `P0`, and where `Pn...` represents `N` expressions (where `N` is 0 or more), is equivalent to:
+The name `require` denotes a customization point. The effect of the expression `std::experimental::executors_v1::execution::require(E, P0, Pn...)` for some expressions `E` and `P0`, and where `Pn...` represents `N` expressions (where `N` is 0 or more), is equivalent to:
 
 * `(E).require(P0)` if `N == 0` and `has_require_member_v<decay_t<decltype(E)>, decltype(P0)>` is true.
 
@@ -634,9 +620,9 @@ The name `require` denotes a customization point. The effect of the expression `
 
 * Otherwise, a value `E1` of unspecified type that holds a copy of `E` if `N == 0` and `is_same<decay_t<decltype(P0)>, adaptable_blocking_t>` is true. If `E` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `OneWayExecutor` requirements by providing member functions `require`, `query`, and `execute` that forward to the corresponding member functions of the copy of `E`. If `E` satisfies the `TwoWayExecutor` requirements, `E1` shall satisfy the `TwoWayExecutor` requirements by providing member functions `require`, `query`, and `twoway_execute` that forward to the corresponding member functions of the copy of `E`. If `E` satisfies the `BulkOneWayExecutor` requirements, `E1` shall satisfy the `BulkOneWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_execute` that forward to the corresponding member functions of the copy of `E`. If `E` satisfies the `BulkTwoWayExecutor` requirements, `E1` shall satisfy the `BulkTwoWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_twoway_execute` that forward to the corresponding member functions of the copy of `E`. In addition, `can_query_v<decltype(E1), adaptable_blocking_t>` is true, and `E1.require(not_adaptable_blocking)` yields a copy of `E`. `E1` has the same executor properties as `E`, except for the addition of the `adaptable_blocking_t` property.
 
-* Otherwise, `std::experimental::concurrency_v2::execution::require( std::experimental::concurrency_v2::execution::require(E, P0), Pn...)` if `N > 0` and the expression is well formed.
+* Otherwise, `std::experimental::executors_v1::execution::require( std::experimental::executors_v1::execution::require(E, P0), Pn...)` if `N > 0` and the expression is well formed.
 
-* Otherwise, `std::experimental::concurrency_v2::execution::require(E, P0, Pn...)` is ill-formed.
+* Otherwise, `std::experimental::executors_v1::execution::require(E, P0, Pn...)` is ill-formed.
 
 ### `prefer`
 
@@ -644,7 +630,7 @@ The name `require` denotes a customization point. The effect of the expression `
       constexpr unspecified prefer = unspecified;
     }
 
-The name `prefer` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::prefer(E, P0, Pn...)` for some expressions `E` and `P0`, and where `Pn...` represents `N` expressions (where `N` is 0 or more), is equivalent to:
+The name `prefer` denotes a customization point. The effect of the expression `std::experimental::executors_v1::execution::prefer(E, P0, Pn...)` for some expressions `E` and `P0`, and where `Pn...` represents `N` expressions (where `N` is 0 or more), is equivalent to:
 
 * `(E).require(P0)` if `N == 0` and `has_require_member_v<decay_t<decltype(E)>, decltype(P0)>` is true.
 
@@ -652,9 +638,9 @@ The name `prefer` denotes a customization point. The effect of the expression `s
 
 * Otherwise, `E` if `N == 0`.
 
-* Otherwise, `std::experimental::concurrency_v2::execution::prefer( std::experimental::concurrency_v2::execution::prefer(E, P0), Pn...)` if the expression is well formed.
+* Otherwise, `std::experimental::executors_v1::execution::prefer( std::experimental::executors_v1::execution::prefer(E, P0), Pn...)` if the expression is well formed.
 
-* Otherwise, `std::experimental::concurrency_v2::execution::prefer(E, P0, Pn...)` is ill-formed.
+* Otherwise, `std::experimental::executors_v1::execution::prefer(E, P0, Pn...)` is ill-formed.
 
 When the executor customization point named `prefer` invokes a free execution function of the same name, overload resolution is performed in a context that includes the declarations:
 
@@ -671,13 +657,13 @@ When the executor customization point named `prefer` invokes a free execution fu
       constexpr unspecified query = unspecified;
     }
 
-The name `query` denotes a customization point. The effect of the expression `std::experimental::concurrency_v2::execution::query(E, P)` for some expressions `E` and `P` is equivalent to:
+The name `query` denotes a customization point. The effect of the expression `std::experimental::executors_v1::execution::query(E, P)` for some expressions `E` and `P` is equivalent to:
 
 * `(E).query(P)` if `has_query_member_v<decay_t<decltype(E)>, decltype(P)>` is true.
 
 * Otherwise, `query(E, P)` if the expression is well formed.
 
-* Otherwise, `std::experimental::concurrency_v2::execution::query(E, P)` is ill-formed.
+* Otherwise, `std::experimental::executors_v1::execution::query(E, P)` is ill-formed.
 
 ### Customization point type traits
 
@@ -689,9 +675,9 @@ This sub-clause contains templates that may be used to query the properties of a
 
 | Template                   | Condition           | Preconditions  |
 |----------------------------|---------------------|----------------|
-| `template<class T>` <br/>`struct can_require` | The expression `std::experimental::concurrency_v2::execution::require( declval<const Executor>(), declval<Properties>()...)` is well formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_prefer` | The expression `std::experimental::concurrency_v2::execution::prefer( declval<const Executor>(), declval<Properties>()...)` is well formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_query` | The expression `std::experimental::concurrency_v2::execution::query( declval<const Executor>(), declval<Property>())` is well formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_require` | The expression `std::experimental::executors_v1::execution::require( declval<const Executor>(), declval<Properties>()...)` is well formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_prefer` | The expression `std::experimental::executors_v1::execution::prefer( declval<const Executor>(), declval<Properties>()...)` is well formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_query` | The expression `std::experimental::executors_v1::execution::query( declval<const Executor>(), declval<Property>())` is well formed. | `T` is a complete type. |
 
 ## Polymorphic executor wrappers
 
@@ -857,9 +843,6 @@ template<class Executor> executor(Executor e);
   * `can_prefer_v<Executor, not_continuation>`
   * `can_prefer_v<Executor, outstanding_work>`
   * `can_prefer_v<Executor, not_outstanding_work>`
-  * `can_prefer_v<Executor, caller_parallel_execution>`
-  * `can_prefer_v<Executor, caller_weakly_parallel_execution>`
-  * `can_prefer_v<Executor, caller_concurrent_execution>`
   * `can_prefer_v<Executor, bulk_sequenced_execution>`
   * `can_prefer_v<Executor, bulk_parallel_execution>`
   * `can_prefer_v<Executor, bulk_unsequenced_execution>`
@@ -1163,11 +1146,11 @@ overhead of thread creation and destruction whenever such agents are needed.
 ```
 namespace std {
 namespace experimental {
-inline namespace concurrency_v2 {
+inline namespace executors_v1 {
 
   class static_thread_pool;
 
-} // inline namespace concurrency_v2
+} // inline namespace executors_v1
 } // namespace experimental
 } // namespace std
 ```
@@ -1315,7 +1298,6 @@ established:
   * `execution::possibly_blocking`
   * `execution::not_continuation`
   * `execution::not_outstanding_work`
-  * `execution::caller_parallel_execution`
   * `execution::allocator(std::allocator<void>())`
 
 ### `static_thread_pool` executor types
@@ -1346,7 +1328,6 @@ class C
     C require(execution::then_t) const;
     C require(execution::single_t) const;
     C require(execution::bulk_t) const;
-    C require(execution::caller_parallel_execution_t) const;
     C require(execution::bulk_parallel_execution_t) const;
     C require(execution::thread_execution_mapping_t) const;
     see-below require(execution::never_blocking_t) const;
@@ -1357,7 +1338,7 @@ class C
     see-below require(execution::outstanding_work_t) const;
     see-below require(execution::not_outstanding_work_t) const;
     template<class ProtoAllocator>
-      see-below require(const execution::allocator_wrapper_t<ProtoAllocator>& a) const;
+    see-below require(const execution::allocator_t<ProtoAllocator>& a) const;
 
     see-below query(execution::context_t) const noexcept;
     see-below query(execution::allocator_t) const noexcept;
@@ -1431,7 +1412,6 @@ C require(execution::twoway_t) const;
 C require(execution::then_t) const;
 C require(execution::single_t) const;
 C require(execution::bulk_t) const;
-C require(execution::caller_parallel_execution_t) const;
 C require(execution::bulk_parallel_execution_t) const;
 C require(execution::thread_execution_mapping_t) const;
 ```
@@ -1457,12 +1437,12 @@ returned executor object are identical to those of `*this`.
 
 ```
 template<class ProtoAllocator>
-  see-below require(const execution::allocator_wrapper_t<ProtoAllocator>& a) const;
+  see-below require(const execution::allocator_t<ProtoAllocator>& a) const;
 ```
 
 *Returns:* An executor object of an unspecified type conforming to these
 specifications, associated with the same thread pool as `*this`, with the
-`execution::allocator_wrapper_t<ProtoAllocator>` property established such that
+`execution::allocator_t<ProtoAllocator>` property established such that
 allocation and deallocation associated with function submission will be
 performed using a copy of `a.alloc`. All other properties of the returned
 executor object are identical to those of `*this`.
