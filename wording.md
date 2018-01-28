@@ -38,12 +38,6 @@ namespace execution {
   constexpr struct not_outstanding_work_t {} not_outstanding_work;
   constexpr struct outstanding_work_t {} outstanding_work;
 
-  // Properties for caller execution forward progress guarantess:
-
-  constexpr struct caller_weakly_parallel_execution_t {} caller_weakly_parallel_execution;
-  constexpr struct caller_parallel_execution_t {} caller_parallel_execution;
-  constexpr struct caller_concurrent_execution_t {} caller_concurrent_execution;
-
   // Properties for bulk execution guarantees:
 
   constexpr struct bulk_sequenced_execution_t {} bulk_sequenced_execution;
@@ -415,24 +409,6 @@ The `not_continuation` and `continuation` properties are mutually exclusive.
 The `not_outstanding_work` and `outstanding_work` properties are mutually exclusive.
 
 [*Note:* The `outstanding_work` and `not_outstanding_work` properties are use to communicate to the associated execution context intended future work submission on the executor. The intended effect of the properties is the behavior of execution context's facilities for awaiting outstanding work; specifically whether it considers the existance of the executor object with the `outstanding_work` property enabled outstanding work when deciding what to wait on. However this will be largely defined by the execution context implementation. It is intended that the execution context will define its wait facilities and on-destruction behaviour and provide an interface for querying this. An initial work towards this is included in P0737r0. *--end note*]
-
-### Properties for execution forward progress guarantees with caller
-
-These properties communicate the forward progress and ordering guarantees of execution agent(s) with respect to the caller.
-
-    constexpr struct caller_weakly_parallel_execution_t {} caller_weakly_parallel_execution;
-    constexpr struct caller_parallel_execution_t {} caller_parallel_execution;
-    constexpr struct caller_concurrent_execution_t {} caller_concurrent_execution;
-
-| Property | Requirements |
-|----------|--------------|
-| `caller_weakly_parallel_execution` | Each execution agent must provide weakly _parallel forward progress_ guarantees with respect to the calling thread. |
-| `caller_parallel_execution` | Each execution agent must provide _parallel forward progress_ guarantees with respect to the calling thread. |
-| `caller_concurrent_execution` | Each execution agent must provide _concurrent forward progress_ guarantees with respect to the calling thread. |
-
-The `caller_weakly_parallel_execution`, `caller_parallel_execution`, and `caller_concurrent_execution` properties are mutually exclusive.
-
-[*Note:* The guarantees of `caller_weakly_parallel_execution`, `caller_parallel_execution` and `caller_concurrent_execution` implies the relationship: `caller_weakly_parallel_execution < caller_parallel_execution < caller_concurrent_execution` *--end note*]
 
 ### Properties for bulk execution guarantees
 
@@ -875,9 +851,6 @@ template<class Executor> executor(Executor e);
   * `can_prefer_v<Executor, not_continuation>`
   * `can_prefer_v<Executor, outstanding_work>`
   * `can_prefer_v<Executor, not_outstanding_work>`
-  * `can_prefer_v<Executor, caller_parallel_execution>`
-  * `can_prefer_v<Executor, caller_weakly_parallel_execution>`
-  * `can_prefer_v<Executor, caller_concurrent_execution>`
   * `can_prefer_v<Executor, bulk_sequenced_execution>`
   * `can_prefer_v<Executor, bulk_parallel_execution>`
   * `can_prefer_v<Executor, bulk_unsequenced_execution>`
@@ -1338,7 +1311,6 @@ established:
   * `execution::possibly_blocking`
   * `execution::not_continuation`
   * `execution::not_outstanding_work`
-  * `execution::caller_parallel_execution`
   * `execution::allocator(std::allocator<void>())`
 
 #### Comparisons
@@ -1383,7 +1355,6 @@ class C
     C require(execution::then_t) const;
     C require(execution::single_t) const;
     C require(execution::bulk_t) const;
-    C require(execution::caller_parallel_execution_t) const;
     C require(execution::bulk_parallel_execution_t) const;
     C require(execution::thread_execution_mapping_t) const;
     see-below require(execution::never_blocking_t) const;
@@ -1467,7 +1438,6 @@ C require(execution::twoway_t) const;
 C require(execution::then_t) const;
 C require(execution::single_t) const;
 C require(execution::bulk_t) const;
-C require(execution::caller_parallel_execution_t) const;
 C require(execution::bulk_parallel_execution_t) const;
 C require(execution::thread_execution_mapping_t) const;
 ```
