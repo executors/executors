@@ -322,7 +322,9 @@ The current value of an executor's properties can be queried by calling the `que
 |------------|----------|
 | `x.query(p)` | Returns the current value of the requested property `p`. The expression is ill formed if an executor is unable to return the requested property. |
 
-### Associated execution context property
+### Query-only properties
+
+#### Associated execution context property
 
   constexpr struct context_t {} context;
 
@@ -330,7 +332,9 @@ The `context` property can be used only with `query`, which returns the **execut
 
 An execution context is a program object that represents a specific collection of execution resources and the **execution agents** that exist within those resources. Execution agents are units of execution, and a 1-to-1 mapping exists between an execution agent and an invocation of a callable function object submitted via the executor.
 
-### Directionality properties
+### Interface-changing properties
+
+#### Directionality properties
 
     constexpr struct oneway_t {} oneway;
     constexpr struct twoway_t {} twoway;
@@ -344,7 +348,7 @@ An execution context is a program object that represents a specific collection o
 
 The `oneway`, `twoway` and `then` properties are not mutually exclusive.
 
-### Cardinality properties
+#### Cardinality properties
 
     constexpr struct single_t {} single;
     constexpr struct bulk_t {} bulk;
@@ -356,7 +360,9 @@ The `oneway`, `twoway` and `then` properties are not mutually exclusive.
 
 The `single` and `bulk` properties are not mutually exclusive.
 
-### Blocking properties
+### Behavioral properties
+
+#### Blocking properties
 
     constexpr struct possibly_blocking_t {} possibly_blocking;
     constexpr struct always_blocking_t {} always_blocking;
@@ -398,7 +404,7 @@ The `not_adaptable_blocking` and `adaptable_blocking` properties are mutually ex
 
 The `not_continuation` and `continuation` properties are mutually exclusive.
 
-### Properties to indicate likely task submission in the future
+#### Properties to indicate likely task submission in the future
 
     constexpr struct not_outstanding_work_t {} not_outstanding_work;
     constexpr struct outstanding_work_t {} outstanding_work;
@@ -412,7 +418,7 @@ The `not_outstanding_work` and `outstanding_work` properties are mutually exclus
 
 [*Note:* The `outstanding_work` and `not_outstanding_work` properties are use to communicate to the associated execution context intended future work submission on the executor. The intended effect of the properties is the behavior of execution context's facilities for awaiting outstanding work; specifically whether it considers the existance of the executor object with the `outstanding_work` property enabled outstanding work when deciding what to wait on. However this will be largely defined by the execution context implementation. It is intended that the execution context will define its wait facilities and on-destruction behaviour and provide an interface for querying this. An initial work towards this is included in P0737r0. *--end note*]
 
-### Properties for bulk execution guarantees
+#### Properties for bulk execution guarantees
 
 These properties communicate the forward progress and ordering guarantees of execution agents with respect to other agents within the same bulk submission.
 
@@ -440,7 +446,7 @@ Execution agents created by executors with the `bulk_unsequenced_execution` prop
 
 The `bulk_unsequenced_execution`, `bulk_parallel_execution`, and `bulk_sequenced_execution` properties are mutually exclusive.
 
-### Properties for mapping of execution on to threads
+#### Properties for mapping of execution on to threads
 
     constexpr struct other_execution_mapping_t {} default_execution_mapping;
     constexpr struct thread_execution_mapping_t {} thread_execution_mapping;
@@ -463,7 +469,7 @@ agent executes as-if on a `std::thread`. Therefore, the facilities provided by
 particular that thread-local storage will not be shared between execution
 agents. *--end note*]
 
-### Properties for customizing memory allocation
+#### Properties for customizing memory allocation
 
   template<class ProtoAllocator> struct allocator_t { ProtoAllocator a; };
   template<> struct allocator_t<void> {
