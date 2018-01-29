@@ -1710,7 +1710,10 @@ driven primarily by the application areas spanned by the Concurrency,
 Parallelism, and Networking Technical Specifications. Meanwhile, the C++
 Coroutines Technical Specification, which represents another important
 mode of execution, has progressed independently. Robust interoperability
-between executors and coroutines ought to be explored.
+between executors and coroutines ought to be explored. Based on prior
+experience with a similar executor model [@Kohlhoff16:P0286], we believe
+that interoperation is possible, although the exact form is still to be
+determined.
 
 # Acknowledgements
 
