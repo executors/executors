@@ -7,7 +7,7 @@
 
 namespace std {
 namespace experimental {
-inline namespace concurrency_v2 {
+inline namespace executors_v1 {
 
 template<class R> class promise;
 
@@ -16,15 +16,15 @@ template<class R> class future;
 template<class> class packaged_task; // not defined
 template<class R, class... Args> class packaged_task<R(Args...)>;
 
-} // inline namespace concurrency_v2
+} // inline namespace executors_v1
 } // namespace experimental
 
 template<class R, class Alloc>
-  struct uses_allocator<std::experimental::concurrency_v2::promise<R>, Alloc>
+  struct uses_allocator<std::experimental::executors_v1::promise<R>, Alloc>
     : std::true_type {};
 
 template<class R, class... Args, class Alloc>
-  struct uses_allocator<std::experimental::concurrency_v2::packaged_task<R(Args...)>, Alloc>
+  struct uses_allocator<std::experimental::executors_v1::packaged_task<R(Args...)>, Alloc>
     : std::true_type {};
 
 } // namespace std

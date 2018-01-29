@@ -5,7 +5,7 @@
 
 namespace std {
 namespace experimental {
-inline namespace concurrency_v2 {
+inline namespace executors_v1 {
 namespace execution {
 
 template<class Executor, class T>
@@ -15,7 +15,7 @@ struct executor_future
 };
 
 } // namespace execution
-} // inline namespace concurrency_v2
+} // inline namespace executors_v1
 } // namespace experimental
 } // namespace std
 

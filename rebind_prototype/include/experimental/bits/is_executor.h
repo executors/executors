@@ -6,7 +6,7 @@
 
 namespace std {
 namespace experimental {
-inline namespace concurrency_v2 {
+inline namespace executors_v1 {
 namespace execution {
 namespace is_executor_impl {
 
@@ -30,7 +30,7 @@ struct eval<T,
 
 } // namespace is_executor_impl
 } // namespace execution
-} // inline namespace concurrency_v2
+} // inline namespace executors_v1
 } // namespace experimental
 } // namespace std
 

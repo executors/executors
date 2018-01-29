@@ -6,7 +6,7 @@
 
 namespace std {
 namespace experimental {
-inline namespace concurrency_v2 {
+inline namespace executors_v1 {
 namespace execution {
 namespace has_require_member_impl {
 
@@ -31,7 +31,7 @@ template<class Executor, class Property>
 struct has_require_member : has_require_member_impl::eval<Executor, Property> {};
 
 } // namespace execution
-} // inline namespace concurrency_v2
+} // inline namespace executors_v1
 } // namespace experimental
 } // namespace std
 

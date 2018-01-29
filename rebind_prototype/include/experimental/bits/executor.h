@@ -9,7 +9,7 @@
 
 namespace std {
 namespace experimental {
-inline namespace concurrency_v2 {
+inline namespace executors_v1 {
 namespace execution {
 
 class executor
@@ -552,7 +552,7 @@ inline void swap(executor& a, executor& b) noexcept
 }
 
 } // namespace execution
-} // inline namespace concurrency_v2
+} // inline namespace executors_v1
 } // namespace experimental
 } // namespace std
 
