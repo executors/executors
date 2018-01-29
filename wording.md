@@ -387,7 +387,7 @@ The blocking properties conform to the following specification:
 
       template<class Executor>
         static constexpr bool is_supportable
-          = can_query_v<Execution, S>;
+          = can_query_v<Executor, S>;
     };
 
 | Property | Requirements |
