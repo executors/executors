@@ -3,7 +3,7 @@
 
 namespace execution = std::experimental::execution;
 using std::experimental::static_thread_pool;
-using std::experimental::concurrency_v2::future;
+using std::experimental::executors_v1::future;
 
 int main()
 {

@@ -6,7 +6,7 @@
 
 namespace std {
 namespace experimental {
-inline namespace concurrency_v2 {
+inline namespace executors_v1 {
 namespace execution {
 
 namespace query_impl {
@@ -33,7 +33,7 @@ template<class T = query_fn> constexpr T customization_point{};
 
 } // namespace query_impl
 } // namespace execution
-} // inline namespace concurrency_v2
+} // inline namespace executors_v1
 } // namespace experimental
 } // namespace std
 

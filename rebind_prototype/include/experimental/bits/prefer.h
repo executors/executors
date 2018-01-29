@@ -5,7 +5,7 @@
 
 namespace std {
 namespace experimental {
-inline namespace concurrency_v2 {
+inline namespace executors_v1 {
 namespace execution {
 
 template<class Property> struct is_require_only;
@@ -54,7 +54,7 @@ template<class T = prefer_fn> constexpr T customization_point{};
 
 } // namespace prefer_impl
 } // namespace execution
-} // inline namespace concurrency_v2
+} // inline namespace executors_v1
 } // namespace experimental
 } // namespace std
 

@@ -10,7 +10,7 @@
 
 namespace std {
 namespace experimental {
-inline namespace concurrency_v2 {
+inline namespace executors_v1 {
 namespace execution {
 namespace require_impl {
 
@@ -484,7 +484,7 @@ template<class Executor>
 
 } // namespace require_impl
 } // namespace execution
-} // inline namespace concurrency_v2
+} // inline namespace executors_v1
 } // namespace experimental
 } // namespace std
 

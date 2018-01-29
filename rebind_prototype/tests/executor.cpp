@@ -4,7 +4,7 @@
 namespace execution = std::experimental::execution;
 using execution::executor;
 using std::experimental::static_thread_pool;
-using std::experimental::concurrency_v2::future;
+using std::experimental::executors_v1::future;
 
 void executor_compile_test()
 {
@@ -72,10 +72,10 @@ void executor_compile_test()
 
   cex1.execute([]{});
 
-  std::experimental::concurrency_v2::future<int> f1 = cex1.twoway_execute([]{ return 42; });
+  std::experimental::executors_v1::future<int> f1 = cex1.twoway_execute([]{ return 42; });
   (void)f1;
 
-  std::experimental::concurrency_v2::future<void> f2 = cex1.twoway_execute([]{});
+  std::experimental::executors_v1::future<void> f2 = cex1.twoway_execute([]{});
   (void)f2;
 
   cex1.bulk_execute([](std::size_t, int&){}, 1, []{ return 42; });

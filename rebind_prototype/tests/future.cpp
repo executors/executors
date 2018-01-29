@@ -1,9 +1,9 @@
 #include <experimental/future>
 
 namespace execution = std::experimental::execution;
-template<class R> using promise = std::experimental::concurrency_v2::promise<R>;
-template<class R> using future = std::experimental::concurrency_v2::future<R>;
-template<class R> using packaged_task = std::experimental::concurrency_v2::packaged_task<R>;
+template<class R> using promise = std::experimental::executors_v1::promise<R>;
+template<class R> using future = std::experimental::executors_v1::future<R>;
+template<class R> using packaged_task = std::experimental::executors_v1::packaged_task<R>;
 
 struct move_only
 {

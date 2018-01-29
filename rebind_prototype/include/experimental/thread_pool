@@ -5,11 +5,11 @@
 
 namespace std {
 namespace experimental {
-inline namespace concurrency_v2 {
+inline namespace executors_v1 {
 
 class static_thread_pool;
 
-} // inline namespace concurrency_v2
+} // inline namespace executors_v1
 } // namespace experimental
 } // namespace std
 

@@ -14,7 +14,7 @@
 
 namespace std {
 namespace experimental {
-inline namespace concurrency_v2 {
+inline namespace executors_v1 {
 
 class static_thread_pool
 {
@@ -506,7 +506,7 @@ private:
   std::size_t work_{1};
 };
 
-} // inline namespace concurrency_v2
+} // inline namespace executors_v1
 } // namespace experimental
 } // namespace std
 
