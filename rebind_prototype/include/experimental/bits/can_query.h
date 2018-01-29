@@ -7,7 +7,7 @@
 
 namespace std {
 namespace experimental {
-inline namespace concurrency_v2 {
+inline namespace executors_v1 {
 namespace execution {
 namespace can_query_impl {
 
@@ -23,7 +23,7 @@ struct eval : std::false_type {};
 template<class Executor, class Property>
 struct eval<Executor, std::tuple<Property>,
   typename type_check<decltype(
-    ::std::experimental::concurrency_v2::execution::query(std::declval<Executor>(), std::declval<Property>())
+    ::std::experimental::executors_v1::execution::query(std::declval<Executor>(), std::declval<Property>())
   )>::type> : std::true_type {};
 
 } // namespace can_query_impl
@@ -32,7 +32,7 @@ template<class Executor, class Property>
 struct can_query : can_query_impl::eval<Executor, std::tuple<Property>> {};
 
 } // namespace execution
-} // inline namespace concurrency_v2
+} // inline namespace executors_v1
 } // namespace experimental
 } // namespace std
 

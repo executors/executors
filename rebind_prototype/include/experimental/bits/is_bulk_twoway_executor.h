@@ -5,7 +5,7 @@
 
 namespace std {
 namespace experimental {
-inline namespace concurrency_v2 {
+inline namespace executors_v1 {
 namespace execution {
 namespace is_bulk_twoway_executor_impl {
 
@@ -56,7 +56,7 @@ template<class Executor>
 struct is_bulk_twoway_executor : is_bulk_twoway_executor_impl::eval<Executor> {};
 
 } // namespace execution
-} // inline namespace concurrency_v2
+} // inline namespace executors_v1
 } // namespace experimental
 } // namespace std
 

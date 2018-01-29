@@ -8,7 +8,7 @@
 
 namespace std {
 namespace experimental {
-inline namespace concurrency_v2 {
+inline namespace executors_v1 {
 namespace future_impl {
 
 template<class R, class... Args>
@@ -284,7 +284,7 @@ public:
   }
 };
 
-} // inline namespace concurrency_v2
+} // inline namespace executors_v1
 } // namespace experimental
 } // namespace std
 
