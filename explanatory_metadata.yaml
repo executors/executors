@@ -301,4 +301,17 @@ references:
       - 15
   title: 'Working Draft, C++ Extensions for Ranges'
   URL: https://wg21.link/N4651
+
+- type: paper-conference
+  id: Kohlhoff16:P0286
+  author:
+  - family: Kohlhoff
+    given: Chris
+  issued:
+    date-parts:
+    - - 2016
+      - 2
+      - 14
+  title: 'A networking library extension to support co_await-based coroutines'
+  URL: https://wg21.link/P0286
 ...
