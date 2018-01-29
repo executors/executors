@@ -3,11 +3,15 @@
 
 #include <experimental/bits/require.h>
 #include <experimental/bits/prefer.h>
+#include <experimental/bits/query.h>
 
 namespace std {
 namespace experimental {
 inline namespace concurrency_v2 {
 namespace execution {
+
+// Associated execution context.
+constexpr struct context_t {} context;
 
 // Directionality.
 constexpr struct oneway_t {} oneway;
@@ -44,26 +48,20 @@ constexpr struct thread_execution_mapping_t {} thread_execution_mapping;
 constexpr struct new_thread_execution_mapping_t {} new_thread_execution_mapping;
 
 // Memory allocations.
-template<class ProtoAllocator> struct allocator_t { ProtoAllocator alloc; };
-template<class ProtoAllocator> constexpr allocator_t<ProtoAllocator> allocator(const ProtoAllocator& a) { return {a}; }
+constexpr struct default_allocator_t {} default_allocator;
+template<class ProtoAllocator> struct allocator_wrapper_t { ProtoAllocator alloc; };
+constexpr struct allocator_t { template<class ProtoAllocator> constexpr allocator_wrapper_t<ProtoAllocator> operator()(const ProtoAllocator& a) const noexcept { return {a}; } } allocator;
 
 // Type traits to determine conformance to executor type requirements.
-template<class Executor> struct is_executor;
 template<class Executor> struct is_oneway_executor;
 template<class Executor> struct is_twoway_executor;
 template<class Executor> struct is_bulk_oneway_executor;
 template<class Executor> struct is_bulk_twoway_executor;
 
-template<class Executor> constexpr bool is_executor_v = is_executor<Executor>::value;
 template<class Executor> constexpr bool is_oneway_executor_v = is_oneway_executor<Executor>::value;
 template<class Executor> constexpr bool is_twoway_executor_v = is_twoway_executor<Executor>::value;
 template<class Executor> constexpr bool is_bulk_oneway_executor_v = is_bulk_oneway_executor<Executor>::value;
 template<class Executor> constexpr bool is_bulk_twoway_executor_v = is_bulk_twoway_executor<Executor>::value;
-
-// Type trait to obtain an executor's associated context type.
-template<class Executor> struct executor_context;
-
-template<class Executor> using executor_context_t = typename executor_context<Executor>::type;
 
 // Type trait to obtain a two way executor's future type.
 template<class Executor, class T> struct executor_future;
@@ -78,13 +76,22 @@ template<class Executor> using executor_shape_t = typename executor_shape<Execut
 template<class Executor> using executor_index_t = typename executor_index<Executor>::type;
 
 // Type traits to determine whether a require member invocation is valid, and what its result is.
-template<class Executor, class... Properties> struct has_require_members;
+template<class Executor, class Property> struct has_require_member;
 template<class Executor, class Property> struct require_member_result;
 
-template<class Executor, class... Properties>
-  constexpr bool has_require_members_v = has_require_members<Executor, Properties...>::value;
+template<class Executor, class Property>
+  constexpr bool has_require_member_v = has_require_member<Executor, Property>::value;
 template<class Executor, class Property>
   using require_member_result_t = typename require_member_result<Executor, Property>::type;
+
+// Type traits to determine whether a query member invocation is valid, and what its result is.
+template<class Executor, class Property> struct has_query_member;
+template<class Executor, class Property> struct query_member_result;
+
+template<class Executor, class Property>
+  constexpr bool has_query_members_v = has_query_member<Executor, Property>::value;
+template<class Executor, class Property>
+  using query_member_result_t = typename query_member_result<Executor, Property>::type;
 
 namespace
 {
@@ -93,6 +100,9 @@ namespace
 
   // Prefer customization point.
   constexpr const auto& prefer = prefer_impl::customization_point<>;
+
+  // Query customization point.
+  constexpr const auto& query = query_impl::customization_point<>;
 }
 
 // Type trait to determine whether the require customization point is valid for the specified arguments.
@@ -107,6 +117,12 @@ template<class Executor, class... Properties> struct can_prefer;
 template<class Executor, class... Properties>
   constexpr bool can_prefer_v = can_prefer<Executor, Properties...>::value;
 
+// Type trait to determine whether the query customization point is valid for the specified arguments.
+template<class Executor, class Property> struct can_query;
+
+template<class Executor, class Property>
+  constexpr bool can_query_v = can_query<Executor, Property>::value;
+
 // Polymorphic wrappers.
 class bad_executor;
 class executor;
@@ -116,20 +132,21 @@ class executor;
 } // namespace experimental
 } // namespace std
 
-#include <experimental/bits/is_executor.h>
 #include <experimental/bits/is_oneway_executor.h>
 #include <experimental/bits/is_twoway_executor.h>
 #include <experimental/bits/is_bulk_oneway_executor.h>
 #include <experimental/bits/is_bulk_twoway_executor.h>
-#include <experimental/bits/executor_context.h>
 #include <experimental/bits/executor_future.h>
 #include <experimental/bits/executor_shape.h>
 #include <experimental/bits/executor_index.h>
-#include <experimental/bits/has_require_members.h>
+#include <experimental/bits/has_require_member.h>
 #include <experimental/bits/require_member_result.h>
 #include <experimental/bits/require_adaptations.h>
+#include <experimental/bits/has_query_member.h>
+#include <experimental/bits/query_member_result.h>
 #include <experimental/bits/can_require.h>
 #include <experimental/bits/can_prefer.h>
+#include <experimental/bits/can_query.h>
 #include <experimental/bits/executor.h>
 
 #endif // STD_EXPERIMENTAL_EXECUTION

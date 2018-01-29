@@ -55,7 +55,6 @@ template<class R> inline future<R> unwrap(future<future<R>> f) { return {std::mo
 struct default_executor
 {
 public:
-  auto& context() const noexcept { return *this; }
   friend bool operator==(const default_executor&, const default_executor&) noexcept { return true; }
   friend bool operator!=(const default_executor&, const default_executor&) noexcept { return false; }
   template<class Function> void execute(Function f) const noexcept { f(); }

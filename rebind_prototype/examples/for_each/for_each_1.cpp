@@ -22,7 +22,7 @@ class system_thread_pool_bulk_executor
     template<class T>
     using future = execution::executor_future_t<static_thread_pool::executor_type,T>;
 
-    auto& context() const noexcept { return system_thread_pool; }
+    auto& query(execution::context_t) const noexcept { return system_thread_pool; }
 
     friend bool operator==(const system_thread_pool_bulk_executor&, const system_thread_pool_bulk_executor&) noexcept
     {

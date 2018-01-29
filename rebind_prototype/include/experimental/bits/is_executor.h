@@ -24,16 +24,11 @@ struct eval<T,
   typename type_check<
     typename std::enable_if<std::is_nothrow_copy_constructible<T>::value>::type,
     typename std::enable_if<std::is_nothrow_move_constructible<T>::value>::type,
-    typename std::enable_if<std::is_lvalue_reference<decltype(std::declval<const T&>().context())>::value>::type,
     typename std::enable_if<noexcept(static_cast<bool>(std::declval<const T&>() == std::declval<const T&>()))>::type,
     typename std::enable_if<noexcept(static_cast<bool>(std::declval<const T&>() != std::declval<const T&>()))>::type
 	>::type> : std::true_type {};
 
 } // namespace is_executor_impl
-
-template<class Executor>
-struct is_executor : is_executor_impl::eval<Executor> {};
-
 } // namespace execution
 } // inline namespace concurrency_v2
 } // namespace experimental

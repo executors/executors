@@ -48,7 +48,7 @@ struct eval<T,
             1, std::declval<result_factory>(), std::declval<shared_factory>()).get())),
     decltype(static_cast<const result&>(std::declval<const T&>().bulk_twoway_execute(std::declval<bulk_function&&>(),
             1, std::declval<result_factory>(), std::declval<shared_factory>()).get()))
-	>::type> : is_executor<T> {};
+	>::type> : is_executor_impl::eval<T> {};
 
 } // namespace is_bulk_twoway_executor_impl
 

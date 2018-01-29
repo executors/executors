@@ -231,12 +231,12 @@ class executor
 
     virtual const type_info& context_target_type() const
     {
-      return typeid(executor_.context());
+      return typeid(execution::query(executor_, execution::context));
     }
 
     virtual const void* context_target() const
     {
-      return &executor_.context();
+      return &execution::query(executor_, execution::context);
     }
 
     virtual bool context_equals(const impl_base* i) const noexcept
@@ -245,7 +245,8 @@ class executor
         return true;
       if (context_target_type() != i->context_target_type())
         return false;
-      return executor_.context() == *static_cast<const executor_context_t<Executor>*>(i->context_target());
+      using context_type = typename decay<decltype(execution::query(executor_, execution::context))>::type;
+      return &execution::query(executor_, execution::context) == static_cast<const context_type*>(i->context_target());
     }
   };
 
@@ -390,8 +391,8 @@ public:
   friend executor prefer(const executor& e, bulk_parallel_execution_t) { return e.get_impl() ? e.get_impl()->executor_prefer(bulk_parallel_execution) : e.get_impl()->clone(); }
   friend executor prefer(const executor& e, bulk_unsequenced_execution_t) { return e.get_impl() ? e.get_impl()->executor_prefer(bulk_unsequenced_execution) : e.get_impl()->clone(); }
   friend executor prefer(const executor& e, new_thread_execution_mapping_t) { return e.get_impl() ? e.get_impl()->executor_prefer(new_thread_execution_mapping) : e.get_impl()->clone(); }
-  
-  const context_type& context() const noexcept
+
+  const context_type& query(context_t) const noexcept
   {
     return context_;
   }
