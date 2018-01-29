@@ -47,9 +47,13 @@ namespace execution {
 
   // Properties for bulk execution guarantees:
 
-  constexpr struct bulk_sequenced_execution_t {} bulk_sequenced_execution;
-  constexpr struct bulk_parallel_execution_t {} bulk_parallel_execution;
-  constexpr struct bulk_unsequenced_execution_t {} bulk_unsequenced_execution;
+  struct bulk_sequenced_execution_t;
+  struct bulk_parallel_execution_t;
+  struct bulk_unsequenced_execution_t;
+
+  constexpr struct bulk_sequenced_execution;
+  constexpr struct bulk_parallel_execution;
+  constexpr struct bulk_unsequenced_execution;
 
   // Properties for mapping of execution on to threads:
 
@@ -440,15 +444,29 @@ The `not_outstanding_work` and `outstanding_work` properties are mutually exclus
 
 These properties communicate the forward progress and ordering guarantees of execution agents with respect to other agents within the same bulk submission.
 
-    constexpr struct bulk_sequenced_execution_t {} bulk_sequenced_execution;
-    constexpr struct bulk_parallel_execution_t {} bulk_parallel_execution;
-    constexpr struct bulk_unsequenced_execution_t {} bulk_unsequenced_execution;
+    struct bulk_sequenced_execution_t;
+    struct bulk_parallel_execution_t;
+    struct bulk_unsequenced_execution_t;
+
+The bulk execution guarantee properties conform to the following specifictiona:
+
+    struct S
+    {
+      static constexpr bool is_requirable = true;
+      static constexpr bool is_preferable = true;
+
+      using polymorphic_query_result_type = bool;
+
+      template<class Executor>
+        static constexpr bool is_supportable
+          = can_query_v<Executor, S>;
+    }
 
 | Property | Requirements |
 |----------|--------------|
-| `bulk_sequenced_execution` | Execution agents within the same bulk execution may not be parallelized. |
-| `bulk_parallel_execution` | Execution agents within the same bulk execution may be parallelized. |
-| `bulk_unsequenced_execution` | Execution agents within the same bulk execution may be parallelized and vectorized. |
+| `bulk_sequenced_execution_t` | Execution agents within the same bulk execution may not be parallelized. |
+| `bulk_parallel_execution_t` | Execution agents within the same bulk execution may be parallelized. |
+| `bulk_unsequenced_execution_t` | Execution agents within the same bulk execution may be parallelized and vectorized. |
 
 Execution agents created by executors with the `bulk_sequenced_execution` property execute in sequence in lexicographic order of their indices.
 
