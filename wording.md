@@ -22,9 +22,13 @@ namespace execution {
 
   // Blocking properties:
 
-  constexpr struct possibly_blocking_t {} possibly_blocking;
-  constexpr struct always_blocking_t {} always_blocking;
-  constexpr struct never_blocking_t {} never_blocking;
+  struct possibly_blocking_t;
+  struct always_blocking_t;
+  struct never_blocking_t;
+
+  constexpr possibly_blocking_t possibly_blocking;
+  constexpr always_blocking_t always_blocking;
+  constexpr never_blocking_t never_blocking;
 
   // Properties to allow adaptation of blocking and directionality:
 
@@ -364,15 +368,29 @@ The `single` and `bulk` properties are not mutually exclusive.
 
 #### Blocking properties
 
-    constexpr struct possibly_blocking_t {} possibly_blocking;
-    constexpr struct always_blocking_t {} always_blocking;
-    constexpr struct never_blocking_t {} never_blocking;
+    struct possibly_blocking_t;
+    struct always_blocking_t;
+    struct never_blocking_t;
+
+The blocking properties conform to the following specification:
+
+    struct S
+    {
+      static constexpr bool is_requirable = true;
+      static constexpr bool is_preferable = true;
+
+      using polymorphic_query_result_type = bool;
+
+      template<class Executor>
+        static constexpr bool is_supportable
+          = can_query_v<Execution, S>;
+    };
 
 | Property | Requirements |
 |----------|--------------|
-| `possibly_blocking` | A call to an executor's execution function may block pending completion of one or more of the execution agents created by that execution function. |
-| `always_blocking` | A call to an executor's execution function shall block until completion of all execution agents created by that execution function. |
-| `never_blocking` | A call to an executor's execution function shall not block pending completion of the execution agents created by that execution function. |
+| `possibly_blocking_t` | A call to an executor's execution function may block pending completion of one or more of the execution agents created by that execution function. |
+| `always_blocking_t` | A call to an executor's execution function shall block until completion of all execution agents created by that execution function. |
+| `never_blocking_t` | A call to an executor's execution function shall not block pending completion of the execution agents created by that execution function. |
 
 The `possibly_blocking`, `always_blocking` and `never_blocking` properties are mutually exclusive.
 
