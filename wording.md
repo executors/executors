@@ -11,14 +11,21 @@ namespace execution {
 
   // Directionality properties:
 
-  constexpr struct oneway_t {} oneway;
-  constexpr struct twoway_t {} twoway;
-  constexpr struct then_t {} then;
+  struct oneway_t;
+  struct twoway_t;
+  struct then_t;
+
+  constexpr oneway_t oneway;
+  constexpr twoway_t twoway;
+  constexpr then_t then;
 
   // Cardinality properties:
 
-  constexpr struct single_t {} single;
-  constexpr struct bulk_t {} bulk;
+  struct single_t;
+  struct bulk_t;
+
+  constexpr single_t single;
+  constexpr bulk_t bulk;
 
   // Blocking properties:
 
@@ -344,27 +351,55 @@ An execution context is a program object that represents a specific collection o
 
 #### Directionality properties
 
-    constexpr struct oneway_t {} oneway;
-    constexpr struct twoway_t {} twoway;
-    constexpr struct then_t {} then;
+    struct oneway_t;
+    struct twoway_t;
+    struct then_t;
 
-| Property | Requirements |
-|----------|--------------|
-| `oneway` | The executor type satisfies the `OneWayExecutor` or `BulkOneWayExecutor` requirements. |
-| `twoway` | The executor type satisfies the `TwoWayExecutor` or `BulkTwoWayExecutor` requirements. |
-| `then` | The executor type satisfies the `ThenExecutor` or `BulkThenExecutor` requirements. |
+The directionality properties conform to the following specification:
+
+    struct S
+    {
+      static constexpr bool is_requirable = true;
+      static constexpr bool is_preferable = false;
+
+      using polymorphic_query_result_type = bool;
+
+      template<class Executor>
+        static constexpr bool is_supportable
+          = see-below;
+    };
+
+| Property | Requirements | is_supportable                 |
+|----------|--------------| -------------------------------|
+| `oneway_t` | The executor type satisfies the `OneWayExecutor` or `BulkOneWayExecutor` requirements. | `can_query_v<Executor, S> && (is_oneway_executor_v<Executor> || is_bulk_oneway_executor_v<Executor>)` |
+| `twoway_t` | The executor type satisfies the `TwoWayExecutor` or `BulkTwoWayExecutor` requirements. | `can_query_v<Executor, S> && (is_twoway_executor_v<Executor> || is_bulk_twoway_executor_v<Executor>)` |
+| `then_t` | The executor type satisfies the `ThenExecutor` or `BulkThenExecutor` requirements. | `can_query_v<Executor, S> && (is_then_executor_v<Executor> || is_bulk_then_executor_v<Executor>)` |
 
 The `oneway`, `twoway` and `then` properties are not mutually exclusive.
 
 #### Cardinality properties
 
-    constexpr struct single_t {} single;
-    constexpr struct bulk_t {} bulk;
+    struct single_t;
+    struct bulk_t;
 
-| Property | Requirements |
-|----------|--------------|
-| `single` | The executor type satisfies the `OneWayExecutor`, `TwoWayExecutor`, or `ThenExecutor` requirements. |
-| `bulk` | The executor type satisfies the `BulkOneWayExecutor`, `BulkTwoWayExecutor`, or `BulkThenExecutor` requirements. |
+The cardinality properties conform to the following specification:
+
+    struct S
+    {
+      static constexpr bool is_requirable = true;
+      static constexpr bool is_preferable = false;
+
+      using polymorphic_query_result_type = bool;
+
+      template<class Executor>
+        static constexpr bool is_supportable
+          = see-below;
+    };
+
+| Property | Requirements | is_supportable                      |
+|----------|--------------| ------------------------------------|
+| `single_t` | The executor type satisfies the `OneWayExecutor`, `TwoWayExecutor`, or `ThenExecutor` requirements. | `can_query_v<Executor, S> && (is_oneway_executor_v<Executor> || is_twoway_executor_v<Executor> || is_then_executor_v<Executor>)` |
+| `bulk_t` | The executor type satisfies the `BulkOneWayExecutor`, `BulkTwoWayExecutor`, or `BulkThenExecutor` requirements. | `can_query_v<Executor, S> && (is_bulk_oneway_executor_v<Executor> || is_bulk_twoway_executor_v<Executor> || is_bulk_then_executor_v<Executor>)` |
 
 The `single` and `bulk` properties are not mutually exclusive.
 
@@ -674,24 +709,15 @@ The name `require` denotes a customization point. The effect of the expression `
 
 The name `prefer` denotes a customization point. The effect of the expression `std::experimental::executors_v1::execution::prefer(E, P0, Pn...)` for some expressions `E` and `P0`, and where `Pn...` represents `N` expressions (where `N` is 0 or more), is equivalent to:
 
-* `(E).require(P0)` if `N == 0` and `has_require_member_v<decay_t<decltype(E)>, decltype(P0)>` is true.
+* `(E).require(P0)` if `N == 0`, `P0::is_preferable == true`, and `has_require_member_v<decay_t<decltype(E)>, decltype(P0)>` is true.
 
-* Otherwise, `prefer(E, P0)` if `N == 0` and the expression is well formed.
+* Otherwise, `prefer(E, P0)` if `N == 0`, `P0::is_preferable == true`, and the expression is well formed.
 
-* Otherwise, `E` if `N == 0`.
+* Otherwise, `E` if `N == 0` and `P0::is_preferable == true`.
 
 * Otherwise, `std::experimental::executors_v1::execution::prefer( std::experimental::executors_v1::execution::prefer(E, P0), Pn...)` if the expression is well formed.
 
 * Otherwise, `std::experimental::executors_v1::execution::prefer(E, P0, Pn...)` is ill-formed.
-
-When the executor customization point named `prefer` invokes a free execution function of the same name, overload resolution is performed in a context that includes the declarations:
-
-    template<class E> void prefer(const E&, const oneway_t&) = delete;
-    template<class E> void prefer(const E&, const twoway_t&) = delete;
-    template<class E> void prefer(const E&, const single_t&) = delete;
-    template<class E> void prefer(const E&, const bulk_t&) = delete;
-
-[*Note:* This prevents the `oneway_t`, `twoway_t`, `single_t`, and `bulk_t` properties from being expressed as preferences. They may be used only as requirements. *--end note*]
 
 ### `query`
 
