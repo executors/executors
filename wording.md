@@ -39,18 +39,27 @@ namespace execution {
 
   // Properties to allow adaptation of blocking and directionality:
 
-  constexpr struct adaptable_blocking_t {} adaptable_blocking;
-  constexpr struct not_adaptable_blocking_t {} not_adaptable_blocking;
+  struct adaptable_blocking_t;
+  struct not_adaptable_blocking_t;
+
+  constexpr adaptable_blocking_t adaptable_blocking;
+  constexpr not_adaptable_blocking_t not_adaptable_blocking;
 
   // Properties to indicate if submitted tasks represent continuations:
 
-  constexpr struct not_continuation_t {} not_continuation;
-  constexpr struct continuation_t {} continuation;
+  struct not_continuation_t;
+  struct continuation_t;
+
+  constexpr not_continuation_t not_continuation;
+  constexpr continuation_t continuation;
 
   // Properties to indicate likely task submission in the future:
 
-  constexpr struct not_outstanding_work_t {} not_outstanding_work;
-  constexpr struct outstanding_work_t {} outstanding_work;
+  struct not_outstanding_work_t;
+  struct outstanding_work_t;
+
+  constexpr not_outstanding_work_t not_outstanding_work;
+  constexpr outstanding_work_t outstanding_work;
 
   // Properties for bulk execution guarantees:
 
@@ -58,9 +67,9 @@ namespace execution {
   struct bulk_parallel_execution_t;
   struct bulk_unsequenced_execution_t;
 
-  constexpr struct bulk_sequenced_execution;
-  constexpr struct bulk_parallel_execution;
-  constexpr struct bulk_unsequenced_execution;
+  constexpr bulk_sequenced_execution_t bulk_sequenced_execution;
+  constexpr bulk_parallel_execution_t bulk_parallel_execution;
+  constexpr bulk_unsequenced_execution_t bulk_unsequenced_execution;
 
   // Properties for mapping of execution on to threads:
 
@@ -409,13 +418,7 @@ The `single` and `bulk` properties are not mutually exclusive.
 
 ### Behavioral properties
 
-#### Blocking properties
-
-    struct possibly_blocking_t;
-    struct always_blocking_t;
-    struct never_blocking_t;
-
-The blocking properties conform to the following specification:
+Unless otherwise specified, behavioral properties conform to the following specification:
 
     struct S
     {
@@ -429,55 +432,65 @@ The blocking properties conform to the following specification:
           = can_query_v<Executor, S>;
     };
 
+Unless otherwise specified, the result of the `query` customization point for a
+behavioral property is `true` if the property is present in the executor, and
+`false` if it is not.
+
+#### Blocking properties
+
+    struct possibly_blocking_t;
+    struct always_blocking_t;
+    struct never_blocking_t;
+
 | Property | Requirements |
 |----------|--------------|
 | `possibly_blocking_t` | A call to an executor's execution function may block pending completion of one or more of the execution agents created by that execution function. |
 | `always_blocking_t` | A call to an executor's execution function shall block until completion of all execution agents created by that execution function. |
 | `never_blocking_t` | A call to an executor's execution function shall not block pending completion of the execution agents created by that execution function. |
 
-The `possibly_blocking`, `always_blocking` and `never_blocking` properties are mutually exclusive.
+The `possibly_blocking_t`, `always_blocking_t` and `never_blocking_t` properties are mutually exclusive.
 
-[*Note:* The guarantees of `possibly_blocking`, `always_blocking` and `never_blocking` implies the relationships: `possibly_blocking < always_blocking` and `possibly_blocking < never_blocking` *--end note*]
+[*Note:* The guarantees of `possibly_blocking_t`, `always_blocking_t` and `never_blocking_t` implies the relationships: `possibly_blocking < always_blocking` and `possibly_blocking < never_blocking` *--end note*]
 
 #### Properties to indicate if blocking and directionality may be adapted
 
-    constexpr struct adaptable_blocking_t {} adaptable_blocking;
-    constexpr struct not_adaptable_blocking_t {} not_adaptable_blocking;
+    struct adaptable_blocking_t;
+    struct not_adaptable_blocking_t;
 
 | Property | Requirements |
 |----------|--------------|
-| `adaptable_blocking` | The `require` customization point may adapt the executor to add the `two_way` or `always_blocking` properties. |
-| `not_adaptable_blocking` | The `require` customization point may not adapt the executor to add the `two_way` or `always_blocking` properties. |
+| `adaptable_blocking_t` | The `require` customization point may adapt the executor to add the `two_way_t` or `always_blocking_t` properties. |
+| `not_adaptable_blocking_t` | The `require` customization point may not adapt the executor to add the `two_way_t` or `always_blocking_t` properties. |
 
-The `not_adaptable_blocking` and `adaptable_blocking` properties are mutually exclusive.
+The `not_adaptable_blocking_t` and `adaptable_blocking_t` properties are mutually exclusive.
 
-[*Note:* The `two_way` property is included here as the `require` customization point's `two_way` adaptation is specified in terms of `std::experimental::future`, and that template supports blocking wait operations. *--end note*]
+[*Note:* The `two_way_t` property is included here as the `require` customization point's `two_way_t` adaptation is specified in terms of `std::experimental::future`, and that template supports blocking wait operations. *--end note*]
 
 #### Properties to indicate if submitted tasks represent continuations
 
-    constexpr struct continuation_t {} continuation;
-    constexpr struct not_continuation_t {} not_continuation;
+    struct continuation_t;
+    struct not_continuation_t;
 
 | Property | Requirements |
 |----------|--------------|
-| `continuation` | Function objects submitted through the executor represent continuations of the caller. If the caller is a lightweight execution agent managed by the executor or its associated execution context, the execution of the submitted function object may be deferred until the caller completes. |
-| `not_continuation` | Function objects submitted through the executor do not represent continuations of the caller. |
+| `continuation_t` | Function objects submitted through the executor represent continuations of the caller. If the caller is a lightweight execution agent managed by the executor or its associated execution context, the execution of the submitted function object may be deferred until the caller completes. |
+| `not_continuation_t` | Function objects submitted through the executor do not represent continuations of the caller. |
 
-The `not_continuation` and `continuation` properties are mutually exclusive.
+The `not_continuation_t` and `continuation_t` properties are mutually exclusive.
 
 #### Properties to indicate likely task submission in the future
 
-    constexpr struct not_outstanding_work_t {} not_outstanding_work;
-    constexpr struct outstanding_work_t {} outstanding_work;
+    struct not_outstanding_work_t;
+    struct outstanding_work_t;
 
 | Property | Requirements |
 |----------|--------------|
-| `outstanding_work` | The existence of the executor object represents an indication of likely future submission of a function object. The executor or its associated execution context may choose to maintain execution resources in anticipation of this submission. |
-| `not_outstanding_work` | The existence of the executor object does not indicate any likely future submission of a function object. |
+| `outstanding_work_t` | The existence of the executor object represents an indication of likely future submission of a function object. The executor or its associated execution context may choose to maintain execution resources in anticipation of this submission. |
+| `not_outstanding_work_t` | The existence of the executor object does not indicate any likely future submission of a function object. |
 
-The `not_outstanding_work` and `outstanding_work` properties are mutually exclusive.
+The `not_outstanding_work_t` and `outstanding_work_t` properties are mutually exclusive.
 
-[*Note:* The `outstanding_work` and `not_outstanding_work` properties are use to communicate to the associated execution context intended future work submission on the executor. The intended effect of the properties is the behavior of execution context's facilities for awaiting outstanding work; specifically whether it considers the existance of the executor object with the `outstanding_work` property enabled outstanding work when deciding what to wait on. However this will be largely defined by the execution context implementation. It is intended that the execution context will define its wait facilities and on-destruction behaviour and provide an interface for querying this. An initial work towards this is included in P0737r0. *--end note*]
+[*Note:* The `outstanding_work_t` and `not_outstanding_work_t` properties are use to communicate to the associated execution context intended future work submission on the executor. The intended effect of the properties is the behavior of execution context's facilities for awaiting outstanding work; specifically whether it considers the existance of the executor object with the `outstanding_work` property enabled outstanding work when deciding what to wait on. However this will be largely defined by the execution context implementation. It is intended that the execution context will define its wait facilities and on-destruction behaviour and provide an interface for querying this. An initial work towards this is included in P0737r0. *--end note*]
 
 #### Properties for bulk execution guarantees
 
@@ -486,20 +499,6 @@ These properties communicate the forward progress and ordering guarantees of exe
     struct bulk_sequenced_execution_t;
     struct bulk_parallel_execution_t;
     struct bulk_unsequenced_execution_t;
-
-The bulk execution guarantee properties conform to the following specifictiona:
-
-    struct S
-    {
-      static constexpr bool is_requirable = true;
-      static constexpr bool is_preferable = true;
-
-      using polymorphic_query_result_type = bool;
-
-      template<class Executor>
-        static constexpr bool is_supportable
-          = can_query_v<Executor, S>;
-    };
 
 | Property | Requirements |
 |----------|--------------|
@@ -519,7 +518,7 @@ Execution agents created by executors with the `bulk_unsequenced_execution` prop
 
 [*Editorial note:* The note above is intended to describe when one bulk executor can be substituted for another and provide the required semantics. For example, if a user needs sequenced execution, then only an executor with the `bulk_sequenced_execution` property will do. On the other hand, if a user only needs `bulk_unsequenced_execution`, then an executor with any of the above properties will suffice. *--end editorial note*]
 
-The `bulk_unsequenced_execution`, `bulk_parallel_execution`, and `bulk_sequenced_execution` properties are mutually exclusive.
+The `bulk_unsequenced_execution_t`, `bulk_parallel_execution_t`, and `bulk_sequenced_execution_t` properties are mutually exclusive.
 
 #### Properties for mapping of execution on to threads
 
@@ -527,34 +526,20 @@ The `bulk_unsequenced_execution`, `bulk_parallel_execution`, and `bulk_sequenced
     struct thread_execution_mapping_t;
     struct new_thread_execution_mapping_t;
 
-The execution mapping properties conform to the following specification:
-
-    struct S
-    {
-      static constexpr bool is_requirable = true;
-      struct constexpr bool is_preferable = true;
-
-      using polymorphic_query_result_type = bool;
-
-      template<class Executor>
-        static constexpr bool is_supportable
-          = can_query_v<Executor, S>;
-    };
-
 | Property | Requirements |
 |----------|--------------|
 | `other_execution_mapping_t` | Mapping of each execution agent created by the executor is implementation defined. |
 | `thread_execution_mapping_t` | Execution agents created by the executor are mapped onto threads of execution. |
 | `new_thread_execution_mapping_t` | Each execution agent created by the executor is mapped onto a new thread of execution. |
 
-The `other_execution_mapping`, `thread_execution_mapping` and `new_thread_execution_mapping` properties are mutually exclusive.
+The `other_execution_mapping_t`, `thread_execution_mapping_t` and `new_thread_execution_mapping_t` properties are mutually exclusive.
 
-[*Note:* The guarantees of `other_execution_mapping`, `thread_execution_mapping` and `new_thread_execution_mapping` implies the relationship: `other_execution_mapping < thread_execution_mapping < new_thread_execution_mapping` *--end note*]
+[*Note:* The guarantees of `other_execution_mapping_t`, `thread_execution_mapping_t` and `new_thread_execution_mapping_t` implies the relationship: `other_execution_mapping_t < thread_execution_mapping_t < new_thread_execution_mapping_t` *--end note*]
 
 [*Note:* A mapping of an execution agent onto a thread of execution implies the
 agent executes as-if on a `std::thread`. Therefore, the facilities provided by
 `std::thread`, such as thread-local storage, are available.
-`new_thread_execution_mapping` provides stronger guarantees, in
+`new_thread_execution_mapping_t` provides stronger guarantees, in
 particular that thread-local storage will not be shared between execution
 agents. *--end note*]
 
