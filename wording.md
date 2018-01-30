@@ -499,7 +499,7 @@ The bulk execution guarantee properties conform to the following specifictiona:
       template<class Executor>
         static constexpr bool is_supportable
           = can_query_v<Executor, S>;
-    }
+    };
 
 | Property | Requirements |
 |----------|--------------|
