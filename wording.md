@@ -64,9 +64,13 @@ namespace execution {
 
   // Properties for mapping of execution on to threads:
 
-  constexpr struct other_execution_mapping_t {} other_execution_mapping;
-  constexpr struct thread_execution_mapping_t {} thread_execution_mapping;
-  constexpr struct new_thread_execution_mapping_t {} new_thread_execution_mapping;
+  struct other_execution_mapping_t;
+  struct thread_execution_mapping_t;
+  struct new_thread_execution_mapping_t;
+
+  constexpr other_execution_mapping_t other_execution_mapping;
+  constexpr thread_execution_mapping_t thread_execution_mapping;
+  constexpr new_thread_execution_mapping_t new_thread_execution_mapping;
 
   // Memory allocation properties:
 
@@ -519,15 +523,29 @@ The `bulk_unsequenced_execution`, `bulk_parallel_execution`, and `bulk_sequenced
 
 #### Properties for mapping of execution on to threads
 
-    constexpr struct other_execution_mapping_t {} default_execution_mapping;
-    constexpr struct thread_execution_mapping_t {} thread_execution_mapping;
-    constexpr struct new_thread_execution_mapping_t {} new_thread_execution_mapping;
+    struct other_execution_mapping_t;
+    struct thread_execution_mapping_t;
+    struct new_thread_execution_mapping_t;
+
+The execution mapping properties conform to the following specification:
+
+    struct S
+    {
+      static constexpr bool is_requirable = true;
+      struct constexpr bool is_preferable = true;
+
+      using polymorphic_query_result_type = bool;
+
+      template<class Executor>
+        static constexpr bool is_supportable
+          = can_query_v<Executor, S>;
+    };
 
 | Property | Requirements |
 |----------|--------------|
-| `other_execution_mapping` | Mapping of each execution agent created by the executor is implementation defined. |
-| `thread_execution_mapping` | Execution agents created by the executor are mapped onto threads of execution. |
-| `new_thread_execution_mapping` | Each execution agent created by the executor is mapped onto a new thread of execution. |
+| `other_execution_mapping_t` | Mapping of each execution agent created by the executor is implementation defined. |
+| `thread_execution_mapping_t` | Execution agents created by the executor are mapped onto threads of execution. |
+| `new_thread_execution_mapping_t` | Each execution agent created by the executor is mapped onto a new thread of execution. |
 
 The `other_execution_mapping`, `thread_execution_mapping` and `new_thread_execution_mapping` properties are mutually exclusive.
 
