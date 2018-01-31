@@ -7,7 +7,9 @@ inline namespace executors_v1 {
 namespace execution {
 
   // Associated execution context property:
-  constexpr struct context_t {} context;
+  struct context_t;
+
+  constexpr context_t context;
 
   // Directionality properties:
 
@@ -354,9 +356,20 @@ The current value of an executor's properties can be queried by calling the `que
 
 #### Associated execution context property
 
-  constexpr struct context_t {} context;
+    struct context_t
+    {
+      static constexpr bool is_requirable = true;
+      static constexpr bool is_preferable = false;
 
-The `context` property can be used only with `query`, which returns the **execution context** associated with the executor.
+      using polymorphic_query_result_type = any; // TODO: alternatively consider void*, or simply omitting the type.
+
+      template<class Executor>
+        static constexpr bool is_supportable
+          = can_query_v<Executor, context_t>;
+            // TODO consider requiring the query result to be an lvalue reference.
+    };
+
+The `context_t` property can be used only with `query`, which returns the **execution context** associated with the executor.
 
 An execution context is a program object that represents a specific collection of execution resources and the **execution agents** that exist within those resources. Execution agents are units of execution, and a 1-to-1 mapping exists between an execution agent and an invocation of a callable function object submitted via the executor.
 
