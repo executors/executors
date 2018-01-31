@@ -401,7 +401,7 @@ The directionality properties conform to the following specification:
 | `twoway_t` | The executor type satisfies the `TwoWayExecutor` or `BulkTwoWayExecutor` requirements. | `can_query_v<Executor, S> && (is_twoway_executor_v<Executor> || is_bulk_twoway_executor_v<Executor>)` |
 | `then_t` | The executor type satisfies the `ThenExecutor` or `BulkThenExecutor` requirements. | `can_query_v<Executor, S> && (is_then_executor_v<Executor> || is_bulk_then_executor_v<Executor>)` |
 
-The `oneway`, `twoway` and `then` properties are not mutually exclusive.
+The `oneway_t`, `twoway_t` and `then_t` properties are not mutually exclusive.
 
 #### Cardinality properties
 
@@ -427,7 +427,7 @@ The cardinality properties conform to the following specification:
 | `single_t` | The executor type satisfies the `OneWayExecutor`, `TwoWayExecutor`, or `ThenExecutor` requirements. | `can_query_v<Executor, S> && (is_oneway_executor_v<Executor> || is_twoway_executor_v<Executor> || is_then_executor_v<Executor>)` |
 | `bulk_t` | The executor type satisfies the `BulkOneWayExecutor`, `BulkTwoWayExecutor`, or `BulkThenExecutor` requirements. | `can_query_v<Executor, S> && (is_bulk_oneway_executor_v<Executor> || is_bulk_twoway_executor_v<Executor> || is_bulk_then_executor_v<Executor>)` |
 
-The `single` and `bulk` properties are not mutually exclusive.
+The `single_t` and `bulk_t` properties are not mutually exclusive.
 
 ### Behavioral properties
 
@@ -503,7 +503,7 @@ The `not_continuation_t` and `continuation_t` properties are mutually exclusive.
 
 The `not_outstanding_work_t` and `outstanding_work_t` properties are mutually exclusive.
 
-[*Note:* The `outstanding_work_t` and `not_outstanding_work_t` properties are use to communicate to the associated execution context intended future work submission on the executor. The intended effect of the properties is the behavior of execution context's facilities for awaiting outstanding work; specifically whether it considers the existance of the executor object with the `outstanding_work` property enabled outstanding work when deciding what to wait on. However this will be largely defined by the execution context implementation. It is intended that the execution context will define its wait facilities and on-destruction behaviour and provide an interface for querying this. An initial work towards this is included in P0737r0. *--end note*]
+[*Note:* The `outstanding_work_t` and `not_outstanding_work_t` properties are use to communicate to the associated execution context intended future work submission on the executor. The intended effect of the properties is the behavior of execution context's facilities for awaiting outstanding work; specifically whether it considers the existance of the executor object with the `outstanding_work_t` property enabled outstanding work when deciding what to wait on. However this will be largely defined by the execution context implementation. It is intended that the execution context will define its wait facilities and on-destruction behaviour and provide an interface for querying this. An initial work towards this is included in P0737r0. *--end note*]
 
 #### Properties for bulk execution guarantees
 
@@ -519,17 +519,17 @@ These properties communicate the forward progress and ordering guarantees of exe
 | `bulk_parallel_execution_t` | Execution agents within the same bulk execution may be parallelized. |
 | `bulk_unsequenced_execution_t` | Execution agents within the same bulk execution may be parallelized and vectorized. |
 
-Execution agents created by executors with the `bulk_sequenced_execution` property execute in sequence in lexicographic order of their indices.
+Execution agents created by executors with the `bulk_sequenced_execution_t` property execute in sequence in lexicographic order of their indices.
 
-Execution agents created by executors with the `bulk_parallel_execution` property execute with a parallel forward progress guarantee. Any such agents executing in the same thread of execution are indeterminately sequenced with respect to each other. [*Note:* It is the caller's responsibility to ensure that the invocation does not introduce data races or deadlocks. *--end note*]
+Execution agents created by executors with the `bulk_parallel_execution_t` property execute with a parallel forward progress guarantee. Any such agents executing in the same thread of execution are indeterminately sequenced with respect to each other. [*Note:* It is the caller's responsibility to ensure that the invocation does not introduce data races or deadlocks. *--end note*]
 
-Execution agents created by executors with the `bulk_unsequenced_execution` property may execute in an unordered fashion. Any such agents executing in the same thread of execution are unsequenced with respect to each other. [*Note:* This means that multiple execution agents may be interleaved on a single thread of execution, which overrides the usual guarantee from [intro.execution] that function executions do not interleave with one another. *--end note*]
+Execution agents created by executors with the `bulk_unsequenced_execution_t` property may execute in an unordered fashion. Any such agents executing in the same thread of execution are unsequenced with respect to each other. [*Note:* This means that multiple execution agents may be interleaved on a single thread of execution, which overrides the usual guarantee from [intro.execution] that function executions do not interleave with one another. *--end note*]
 
 [*Editorial note:* The descriptions of these properties were ported from [algorithms.parallel.user]. The intention is that a future standard will specify execution policy behavior in terms of the fundamental properties of their associated executors. We did not include the accompanying code examples from [algorithms.parallel.user] because the examples seem easier to understand when illustrated by `std::for_each`. *--end editorial note*]
 
 [*Note:* The guarantees provided by these properties implies the relationship: `bulk_unsequenced_execution < bulk_parallel_execution < bulk_sequenced_execution`. *--end note*]
 
-[*Editorial note:* The note above is intended to describe when one bulk executor can be substituted for another and provide the required semantics. For example, if a user needs sequenced execution, then only an executor with the `bulk_sequenced_execution` property will do. On the other hand, if a user only needs `bulk_unsequenced_execution`, then an executor with any of the above properties will suffice. *--end editorial note*]
+[*Editorial note:* The note above is intended to describe when one bulk executor can be substituted for another and provide the required semantics. For example, if a user needs sequenced execution, then only an executor with the `bulk_sequenced_execution_t` property will do. On the other hand, if a user only needs `bulk_unsequenced_execution_t`, then an executor with any of the above properties will suffice. *--end editorial note*]
 
 The `bulk_unsequenced_execution_t`, `bulk_parallel_execution_t`, and `bulk_sequenced_execution_t` properties are mutually exclusive.
 
