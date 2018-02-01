@@ -12,11 +12,6 @@ template<class Property> struct is_require_only;
 
 namespace prefer_impl {
 
-template<class E> void prefer(const E&, const oneway_t&) = delete;
-template<class E> void prefer(const E&, const twoway_t&) = delete;
-template<class E> void prefer(const E&, const single_t&) = delete;
-template<class E> void prefer(const E&, const bulk_t&) = delete;
-
 template<class Executor, class Property>
 constexpr auto prefer(Executor&& ex, Property&& p)
   -> decltype(std::forward<Executor>(ex).require(std::forward<Property>(p)))
@@ -36,7 +31,8 @@ struct prefer_fn
   template<class Executor, class Property>
   constexpr auto operator()(Executor&& ex, Property&& p) const
     noexcept(noexcept(prefer(std::forward<Executor>(ex), std::forward<Property>(p))))
-    -> decltype(prefer(std::forward<Executor>(ex), std::forward<Property>(p)))
+    -> typename std::enable_if<std::decay<Property>::type::is_preferable,
+      decltype(prefer(std::forward<Executor>(ex), std::forward<Property>(p)))>::type
   {
     return prefer(std::forward<Executor>(ex), std::forward<Property>(p));
   }

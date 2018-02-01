@@ -5,11 +5,22 @@
 namespace execution = std::experimental::execution;
 using std::experimental::static_thread_pool;
 
-namespace custom_hints
+namespace custom_props
 {
-  struct tracing { bool on = false; };
+  struct tracing
+  {
+    static constexpr bool is_requirable = true;
+    static constexpr bool is_preferable = false;
+    using polymorphic_query_result_type = bool;
 
-  // Default hint implementation creates an adapter, but only when require() is used.
+    template <class Executor>
+      static constexpr bool is_supportable
+        = execution::can_query_v<Executor, tracing>;
+
+    bool on = false;
+  };
+
+  // Requiring the property defaults to an adapter.
 
   template <class InnerExecutor>
   class tracing_executor
@@ -24,7 +35,7 @@ namespace custom_hints
       : tracing_(on), inner_ex_(ex) {}
 
     // Intercept require requests for tracing.
-    tracing_executor require(custom_hints::tracing t) const { return { t.on, inner_ex_ }; }
+    tracing_executor require(custom_props::tracing t) const { return { t.on, inner_ex_ }; }
 
     // Forward other kinds of require to the inner executor.
     template <class Property> auto require(const Property& p) const &
@@ -35,7 +46,7 @@ namespace custom_hints
         { return { tracing_, std::move(inner_ex_).require(p) }; }
 
     // Intercept query requests for tracing.
-    bool query(custom_hints::tracing) const { return tracing_; }
+    bool query(custom_props::tracing) const { return tracing_; }
 
     // Forward other kinds of query to the inner executor.
     template<class Property> auto query(const Property& p) const
@@ -80,18 +91,14 @@ namespace custom_hints
   template <class Executor>
     std::enable_if_t<!execution::has_require_member_v<Executor, tracing>, tracing_executor<Executor>>
       require(Executor ex, tracing t) { return { t.on, std::move(ex) }; }
-
-  // This hint cannot be preferred.
-  template <class Executor>
-    void prefer(Executor ex, tracing t) = delete;
 };
 
 class inline_executor
 {
 public:
-  inline_executor require(custom_hints::tracing t) const { inline_executor tmp(*this); tmp.tracing_ = t.on; return tmp; }
+  inline_executor require(custom_props::tracing t) const { inline_executor tmp(*this); tmp.tracing_ = t.on; return tmp; }
 
-  bool query(custom_hints::tracing) const { return tracing_; }
+  bool query(custom_props::tracing) const { return tracing_; }
 
   friend bool operator==(const inline_executor&, const inline_executor&) noexcept
   {
@@ -115,30 +122,33 @@ private:
 };
 
 static_assert(execution::is_oneway_executor_v<inline_executor>, "one way executor requirements not met");
-static_assert(execution::is_oneway_executor_v<custom_hints::tracing_executor<static_thread_pool::executor_type>>, "one way executor requirements not met");
+static_assert(custom_props::tracing::is_supportable<inline_executor>, "tracing property not supportable");
+static_assert(execution::is_oneway_executor_v<custom_props::tracing_executor<static_thread_pool::executor_type>>, "one way executor requirements not met");
+static_assert(!custom_props::tracing::is_supportable<static_thread_pool::executor_type>, "tracing property supportable when it shouldn't be");
+static_assert(custom_props::tracing::is_supportable<custom_props::tracing_executor<static_thread_pool::executor_type>>, "tracing property not supportable");
 
 int main()
 {
   static_thread_pool pool{1};
 
-  auto ex1 = execution::require(inline_executor(), custom_hints::tracing{true});
-  assert(execution::query(ex1, custom_hints::tracing{}));
+  auto ex1 = execution::require(inline_executor(), custom_props::tracing{true});
+  assert(execution::query(ex1, custom_props::tracing{}));
   ex1.execute([]{ std::cout << "we made it\n"; });
 
-  static_assert(!execution::can_prefer_v<inline_executor, custom_hints::tracing>, "cannot prefer");
+  static_assert(!execution::can_prefer_v<inline_executor, custom_props::tracing>, "cannot prefer");
 
-  auto ex3 = execution::require(pool.executor(), custom_hints::tracing{true});
-  assert(execution::query(ex3, custom_hints::tracing{}));
+  auto ex3 = execution::require(pool.executor(), custom_props::tracing{true});
+  assert(execution::query(ex3, custom_props::tracing{}));
   ex3.execute([]{ std::cout << "we made it again\n"; });
 
-  static_assert(!execution::can_prefer_v<static_thread_pool::executor_type, custom_hints::tracing>, "cannot prefer");
+  static_assert(!execution::can_prefer_v<static_thread_pool::executor_type, custom_props::tracing>, "cannot prefer");
 
   execution::executor ex5 = pool.executor();
-  auto ex6 = execution::require(ex5, custom_hints::tracing{true});
-  assert(execution::query(ex6, custom_hints::tracing{}));
+  auto ex6 = execution::require(ex5, custom_props::tracing{true});
+  assert(execution::query(ex6, custom_props::tracing{}));
   ex6.execute([]{ std::cout << "and again\n"; });
 
-  static_assert(!execution::can_prefer_v<execution::executor, custom_hints::tracing>, "cannot prefer");
+  static_assert(!execution::can_prefer_v<execution::executor, custom_props::tracing>, "cannot prefer");
 
   pool.wait();
 }

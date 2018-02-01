@@ -11,46 +11,45 @@ inline namespace executors_v1 {
 namespace execution {
 
 // Associated execution context.
-constexpr struct context_t {} context;
+struct context_t;
 
 // Directionality.
-constexpr struct oneway_t {} oneway;
-constexpr struct twoway_t {} twoway;
-
-// Allow adaptation of blocking and directionality (e.g. twoway in terms of oneway).
-constexpr struct adaptable_blocking_t {} adaptable_blocking;
-constexpr struct not_adaptable_blocking_t {} not_adaptable_blocking;
+struct oneway_t;
+struct twoway_t;
 
 // Cardinality.
-constexpr struct single_t {} single;
-constexpr struct bulk_t {} bulk;
+struct single_t;
+struct bulk_t;
 
 // Blocking behaviour.
-constexpr struct never_blocking_t {} never_blocking;
-constexpr struct possibly_blocking_t {} possibly_blocking;
-constexpr struct always_blocking_t {} always_blocking;
+struct never_blocking_t;
+struct possibly_blocking_t;
+struct always_blocking_t;
+
+// Allow adaptation of blocking and directionality (e.g. twoway in terms of oneway).
+struct adaptable_blocking_t;
+struct not_adaptable_blocking_t;
 
 // Whether submitted tasks represent a continuation.
-constexpr struct continuation_t {} continuation;
-constexpr struct not_continuation_t {} not_continuation;
+struct continuation_t;
+struct not_continuation_t;
 
 // Whether there is outstanding work, i.e. an indication of likely task submission in the future.
-constexpr struct outstanding_work_t {} outstanding_work;
-constexpr struct not_outstanding_work_t {} not_outstanding_work;
+struct outstanding_work_t;
+struct not_outstanding_work_t;
 
 // Properties for bulk execution forward progress guarantees.
-constexpr struct bulk_sequenced_execution_t {} bulk_sequenced_execution;
-constexpr struct bulk_parallel_execution_t {} bulk_parallel_execution;
-constexpr struct bulk_unsequenced_execution_t {} bulk_unsequenced_execution;
+struct bulk_sequenced_execution_t;
+struct bulk_parallel_execution_t;
+struct bulk_unsequenced_execution_t;
 
 // Properties for mapping of execution on to threads.
-constexpr struct thread_execution_mapping_t {} thread_execution_mapping;
-constexpr struct new_thread_execution_mapping_t {} new_thread_execution_mapping;
+struct thread_execution_mapping_t;
+struct new_thread_execution_mapping_t;
 
 // Memory allocations.
-constexpr struct default_allocator_t {} default_allocator;
-template<class ProtoAllocator> struct allocator_wrapper_t { ProtoAllocator alloc; };
-constexpr struct allocator_t { template<class ProtoAllocator> constexpr allocator_wrapper_t<ProtoAllocator> operator()(const ProtoAllocator& a) const noexcept { return {a}; } } allocator;
+struct default_allocator_t;
+template<class ProtoAllocator> struct allocator_t;
 
 // Type traits to determine conformance to executor type requirements.
 template<class Executor> struct is_oneway_executor;
@@ -136,12 +135,20 @@ class executor;
 #include <experimental/bits/is_twoway_executor.h>
 #include <experimental/bits/is_bulk_oneway_executor.h>
 #include <experimental/bits/is_bulk_twoway_executor.h>
+#include <experimental/bits/context.h>
+#include <experimental/bits/directionality.h>
+#include <experimental/bits/cardinality.h>
+#include <experimental/bits/continuation.h>
+#include <experimental/bits/blocking.h>
+#include <experimental/bits/outstanding_work.h>
+#include <experimental/bits/bulk_execution.h>
+#include <experimental/bits/thread_execution.h>
+#include <experimental/bits/allocator.h>
 #include <experimental/bits/executor_future.h>
 #include <experimental/bits/executor_shape.h>
 #include <experimental/bits/executor_index.h>
 #include <experimental/bits/has_require_member.h>
 #include <experimental/bits/require_member_result.h>
-#include <experimental/bits/require_adaptations.h>
 #include <experimental/bits/has_query_member.h>
 #include <experimental/bits/query_member_result.h>
 #include <experimental/bits/can_require.h>

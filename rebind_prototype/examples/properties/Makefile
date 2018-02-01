@@ -1,8 +1,8 @@
 EXAMPLES = \
-  defaulted_1 \
-  defaulted_2 \
-  defaulted_3 \
-  non_defaulted
+  adapted_and_preferable \
+  adapted_and_not_preferable \
+  not_adapted_and_preferable \
+  not_adapted_and_not_preferable
 
 CXXFLAGS = -std=c++14 -pthread -Wall -Wextra -I../../include
 
