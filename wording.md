@@ -1219,7 +1219,7 @@ The `static_thread_pool` member functions `executor`, `attach`, `wait`, and
 do not introduce data races as a result of concurrent calls to those
 functions from different threads of execution.
 
-A `static_thread_pool`'s threads execute execution agents created via its associated executors with forward progress delegation.
+A `static_thread_pool`'s threads execute execution agents created via its associated executors with forward progress guarantee delegation.
 
 #### Types
 
