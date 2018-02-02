@@ -58,6 +58,7 @@ Abstract:           This paper proposes a programming model for executors, which
 * Based on feedback from SG1, `Future`'s requirements have been elaborated to allow boost-blocking
 * Based on feedback from SG1, operational semantics of execution functions have been reworded to use similar language as the blocking properties
 * Based on feedback from SG1, `static_thread_pool`'s specification has been elaborated to guarantee that threads in the pool boost-block their work
+* Based on feedback from SG1, the operational semantics of one-way execution functions have been elaborated to note that forward progress guarantees are specific to the concrete executor type
 
 ### Revision 4
 
