@@ -1166,7 +1166,7 @@ automatic resizing.
 
 `static_thread_pool` presents an effectively unbounded input queue and the execution functions of `static_thread_pool`'s associated executors do not block on this input queue.
 
-[*Note:* Because `static_thread_pool` provides parallel execution agents,
+[*Note:* Because `static_thread_pool` represents work as parallel execution agents,
 situations which require concurrent execution properties are not guaranteed
 correctness. *--end note.*]
 
@@ -1218,6 +1218,8 @@ The `static_thread_pool` member functions `executor`, `attach`, `wait`, and
 `stop`, and the associated executors' copy constructors and member functions,
 do not introduce data races as a result of concurrent calls to those
 functions from different threads of execution.
+
+A `static_thread_pool`'s threads execute execution agents created via its associated executors with forward progress delegation.
 
 #### Types
 
