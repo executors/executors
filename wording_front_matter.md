@@ -55,7 +55,8 @@ Abstract:           This paper proposes a programming model for executors, which
 * Based on feedback from SG1, eliminated ill-specified caller-agent forward progress properties
 * Based on feedback from LEWG, eliminated named `BaseExecutor` context
 * Renamed TS namespace from `concurrency_v21 to `executors_v1`
-* Based on feedback from SG1, `Future`'s requirements have been elaborated to boost-block
+* Based on feedback from SG1, `Future`'s requirements have been elaborated to allow boost-blocking
+* Based on feedback from SG1, operational semantics of execution functions have been reworded to use similar language as the blocking properties
 
 ### Revision 4
 
