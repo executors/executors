@@ -58,6 +58,8 @@ public:
   friend bool operator==(const default_executor&, const default_executor&) noexcept { return true; }
   friend bool operator!=(const default_executor&, const default_executor&) noexcept { return false; }
   template<class Function> void execute(Function f) const noexcept { f(); }
+  constexpr bool query(execution::oneway_t) { return true; }
+  constexpr bool query(execution::single_t) { return true; }
 };
 
 } // namespace future_impl

@@ -35,6 +35,7 @@ class system_thread_pool_bulk_executor
     }
 
     system_thread_pool_bulk_executor require(execution::bulk_parallel_execution_t) const { return *this; }
+    bool query(execution::bulk_parallel_execution_t) const { return true; }
 
     template<class Function, class ResultFactory, class SharedFactory>
     auto bulk_twoway_execute(Function f, size_t n, ResultFactory rf, SharedFactory sf) const
@@ -145,6 +146,11 @@ public:
   inline_executor require(execution::bulk_parallel_execution_t) const
   {
     return *this;
+  }
+
+  bool query(execution::bulk_parallel_execution_t) const
+  {
+    return true;
   }
 
   template <class Function>

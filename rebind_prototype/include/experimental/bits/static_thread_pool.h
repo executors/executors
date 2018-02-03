@@ -42,10 +42,14 @@ class static_thread_pool
     // Directionality. Both kinds supported, so requiring does not change type.
     executor_impl require(execution::oneway_t) const { return *this; }
     executor_impl require(execution::twoway_t) const { return *this; }
+    bool query(execution::oneway_t) const { return true; }
+    bool query(execution::twoway_t) const { return true; }
 
     // Cardinality. Both kinds supported, so requiring does not change type.
     executor_impl require(execution::single_t) const { return *this; }
     executor_impl require(execution::bulk_t) const { return *this; }
+    bool query(execution::single_t) const { return true; }
+    bool query(execution::bulk_t) const { return true; }
 
     // Blocking modes.
     executor_impl<execution::never_blocking_t, Continuation, Work, ProtoAllocator>
@@ -54,32 +58,42 @@ class static_thread_pool
       require(execution::possibly_blocking_t) const { return {pool_, allocator_}; };
     executor_impl<execution::always_blocking_t, Continuation, Work, ProtoAllocator>
       require(execution::always_blocking_t) const { return {pool_, allocator_}; };
+    bool query(execution::never_blocking_t) const { return is_same<Blocking, execution::never_blocking_t>::value; }
+    bool query(execution::possibly_blocking_t) const { return is_same<Blocking, execution::possibly_blocking_t>::value; }
+    bool query(execution::always_blocking_t) const { return is_same<Blocking, execution::always_blocking_t>::value; }
 
     // Continuation hint.
     executor_impl<Blocking, execution::continuation_t, Work, ProtoAllocator>
       require(execution::continuation_t) const { return {pool_, allocator_}; };
     executor_impl<Blocking, execution::not_continuation_t, Work, ProtoAllocator>
       require(execution::not_continuation_t) const { return {pool_, allocator_}; };
+    bool query(execution::continuation_t) const { return is_same<Continuation, execution::continuation_t>::value; }
+    bool query(execution::not_continuation_t) const { return is_same<Continuation, execution::not_continuation_t>::value; }
 
     // Work tracking.
     executor_impl<Blocking, Continuation, execution::outstanding_work_t, ProtoAllocator>
       require(execution::outstanding_work_t) const { return {pool_, allocator_}; };
     executor_impl<Blocking, Continuation, execution::not_outstanding_work_t, ProtoAllocator>
       require(execution::not_outstanding_work_t) const { return {pool_, allocator_}; };
+    bool query(execution::outstanding_work_t) const { return is_same<Work, execution::outstanding_work_t>::value; }
+    bool query(execution::not_outstanding_work_t) const { return is_same<Work, execution::not_outstanding_work_t>::value; }
 
     // Bulk forward progress.
     executor_impl require(execution::bulk_parallel_execution_t) const { return *this; }
+    bool query(execution::bulk_parallel_execution_t) const { return true; }
 
     // Mapping of execution on to threads.
     executor_impl require(execution::thread_execution_mapping_t) const { return *this; }
+    bool query(execution::thread_execution_mapping_t) const { return true; }
 
     // Allocator.
     executor_impl<Blocking, Continuation, Work, std::allocator<void>>
       require(const execution::default_allocator_t&) const { return {pool_, std::allocator<void>{}}; };
     template<class NewProtoAllocator>
       executor_impl<Blocking, Continuation, Work, NewProtoAllocator>
-        require(const execution::allocator_wrapper_t<NewProtoAllocator>& a) const { return {pool_, a.alloc}; };
-    ProtoAllocator query(const execution::allocator_t&) const noexcept { return allocator_; }
+        require(const execution::allocator_t<NewProtoAllocator>& a) const { return {pool_, a.alloc}; };
+    ProtoAllocator query(const execution::allocator_t<ProtoAllocator>&) const noexcept { return allocator_; }
+    ProtoAllocator query(const execution::allocator_t<void>&) const noexcept { return allocator_; }
 
     bool running_in_this_thread() const noexcept { return pool_->running_in_this_thread(); }
 
