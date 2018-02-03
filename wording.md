@@ -431,7 +431,7 @@ The `single_t` and `bulk_t` properties are not mutually exclusive.
 
 ### Behavioral properties
 
-Unless otherwise specified, behavioral properties conform to the following specification:
+Behavioral properties conform to the following specification:
 
     struct S
     {
@@ -445,9 +445,8 @@ Unless otherwise specified, behavioral properties conform to the following speci
           = can_query_v<Executor, S>;
     };
 
-Unless otherwise specified, the result of the `query` customization point for a
-behavioral property is `true` if the property is present in the executor, and
-`false` if it is not.
+The result of the `query` customization point for a behavioral property is
+`true` if the property is present in the executor, and `false` if it is not.
 
 #### Blocking properties
 
@@ -556,7 +555,7 @@ agent executes as-if on a `std::thread`. Therefore, the facilities provided by
 particular that thread-local storage will not be shared between execution
 agents. *--end note*]
 
-#### Properties for customizing memory allocation
+### Properties for customizing memory allocation
 
   template<class ProtoAllocator> struct allocator_t { ProtoAllocator a; };
   template<> struct allocator_t<void> {
