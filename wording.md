@@ -403,6 +403,85 @@ The directionality properties conform to the following specification:
 
 The `oneway_t`, `twoway_t` and `then_t` properties are not mutually exclusive.
 
+##### `oneway_t` customization points
+
+In addition to conforming to the above specification, the `oneway_t` property provides the following customizations:
+
+    struct oneway_t
+    {
+      template<class Executor>
+        friend Executor require(Executor ex, oneway_t);
+
+      template<class Executor>
+        friend constexpr bool query(const Executor& ex, oneway_t);
+    };
+
+These customizations automatically enable the `oneway_t` property if an executor type already satisfies the syntactic requirements for a oneway executor.
+
+```
+template<class Executor>
+  friend Executor require(Executor ex, oneway_t);
+```
+
+*Returns:* `std::move(ex)`.
+
+*Remarks:* This function shall not participate in overload resolution unless `is_oneway_executor_v<Executor> || is_bulk_oneway_executor_v<Executor>` is true.
+
+```
+template<class Executor>
+  friend constexpr bool query(const Executor& ex, oneway_t);
+```
+
+*Returns:* `true`.
+
+*Remarks:* This function shall not participate in overload resolution unless `is_oneway_executor_v<Executor> || is_bulk_oneway_executor_v<Executor>` is true.
+
+##### `twoway_t` customization points
+
+In addition to conforming to the above specification, the `twoway_t` property provides the following customizations:
+
+    struct twoway_t
+    {
+      template<class Executor>
+        friend Executor require(Executor ex, twoway_t);
+
+      template<class Executor>
+        friend see-below require(Executor ex, twoway_t);
+
+      template<class Executor>
+        friend constexpr bool query(const Executor& ex, twoway_t);
+    };
+
+These customizations automatically enable the `twoway_t` property if an executor type already satisfies the syntactic requirements for a twoway executor. Otherwise, if the executor has the `oneway_t` and `adaptable_blocking_t` properties, an adapter is used to implement the twoway property and its requirements.
+
+```
+template<class Executor>
+  friend Executor require(Executor ex, twoway_t);
+```
+
+*Returns:* `std::move(ex)`.
+
+*Remarks:* This function shall not participate in overload resolution unless `is_twoway_executor_v<Executor> || is_bulk_twoway_executor_v<Executor>` is true.
+
+```
+template<class Executor>
+  friend see-below require(Executor ex, twoway_t);
+```
+
+*Returns:* A value `e1` of type `E1` that holds a copy of `ex`. If `Executor` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `OneWayExecutor` requirements by providing member functions `require`, `query`, and `execute` that forward to the corresponding member functions of the copy of `ex`, if present, and `E1` shall satisfy the `TwoWayExecutor` requirements by implementing `twoway_execute` in terms of `execute`. Similarly, if `Executor` satisfies the `BulkOneWayExecutor` requirements, `E1` shall satisfy the `BulkOneWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_execute` that forward to the corresponding member functions of the copy of `ex`, if present, and `E1` shall satisfy the `BulkTwoWayExecutor` requirements by implementing `bulk_twoway_execute` in terms of `bulk_execute`. For some type `T`, the type yielded by `executor_future_t<E1, T>` is `std::experimental::future<T>`. `e1` has the same executor properties as `ex`, except for the addition of the `twoway_t` property.
+
+
+*Remarks:* This function shall not participate in overload resolution unless `is_twoway_executor_v<Executor> ||` `is_bulk_twoway_executor_v<Executor>` is false, `is_oneway_executor_v<Executor>` `||` `is_bulk_oneway_executor_v<Executor>` is true, and `can_query_v<Executor, adaptable_blocking_t` is true.
+
+```
+template<class Executor>
+  friend constexpr bool query(const Executor& ex, twoway_t);
+```
+
+*Returns:* `true`.
+
+*Remarks:* This function shall not participate in overload resolution unless `is_twoway_executor_v<Executor> || is_bulk_twoway_executor_v<Executor>` is true.
+
 #### Cardinality properties
 
     struct single_t;
@@ -698,13 +777,9 @@ The name `require` denotes a customization point. The effect of the expression `
 * Otherwise, `require(E, P0)` if `N == 0` and the expression is well formed.
 
 * Otherwise, `E` if `N == 0` and:
-  * `is_same<decay_t<decltype(P0)>, oneway_t>` is true and `(is_oneway_executor_v<decay_t<decltype(E)>> || is_bulk_oneway_executor_v<decay_t<decltype(E)>>)` is true; or
-  * `is_same<decay_t<decltype(P0)>, twoway_t>` is true and `(is_twoway_executor_v<decay_t<decltype(E)>> || is_bulk_twoway_executor_v<decay_t<decltype(E)>>)` is true; or
   * `is_same<decay_t<decltype(P0)>, single_t>` is true and `(is_oneway_executor_v<decay_t<decltype(E)>> || is_twoway_executor_v<decay_t<decltype(E)>>)` is true; or
   * `is_same<decay_t<decltype(P0)>, bulk_t>` is true and `(is_bulk_oneway_executor_v<decay_t<decltype(E)>> || is_bulk_twoway_executor_v<decay_t<decltype(E)>>)` is true; or
   * `is_same<decay_t<decltype(P0)>, possibly_blocking_t>` is true.
-
-* Otherwise, a value `E1` of unspecified type that holds a copy of `E` if `N == 0`, `is_same<decay_t<decltype(P0)>, twoway_t>` is true, and `can_query_v<decltype(E), adaptable_blocking_t>` is true. If `E` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `OneWayExecutor` requirements by providing member functions `require`, `query`, and `execute` that forward to the corresponding member functions of the copy of `E`, if present, and `E1` shall satisfy the `TwoWayExecutor` requirements by implementing `twoway_execute` in terms of `execute`. Similarly, if `E` satisfies the `BulkOneWayExecutor` requirements, `E1` shall satisfy the `BulkOneWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_execute` that forward to the corresponding member functions of the copy of `E`, if present, and `E1` shall satisfy the `BulkTwoWayExecutor` requirements by implementing `bulk_twoway_execute` in terms of `bulk_execute`. For some type `T`, the type yielded by `executor_future_t<decltype(E1), T>` is `std::experimental::future<T>`. `E1` has the same executor properties as `E`, except for the addition of the `twoway_t` property.
 
 * Otherwise, a value `E1` of unspecified type that holds a copy of `E` if `N == 0` and `is_same<decay_t<decltype(P0)>, bulk_t>` is true. If `E` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `OneWayExecutor` requirements by providing member functions `require`, `query`, and `execute` that forward to the corresponding member functions of the copy of `E`, if present, and `E1` shall satisfy the `BulkExecutor` requirements by implementing `bulk_execute` in terms of `execute`. If `E` also satisfies the `TwoWayExecutor` requirements, `E1` shall satisfy the `TwoWayExecutor` requirements by providing the member function `twoway_execute` that forwards to the corresponding member function of the copy of `E`, if present, and `E1` shall satisfy the `BulkTwoWayExecutor` requirements by implementing `bulk_twoway_execute` in terms of `bulk_execute`. `E1` has the same executor properties as `E`, except for the addition of the `bulk_t` property.
 
