@@ -118,16 +118,6 @@ namespace execution {
   template<class Executor> using executor_shape_t = typename executor_shape<Executor>::type;
   template<class Executor> using executor_index_t = typename executor_index<Executor>::type;
 
-  // Member detection type traits for properties:
-
-  template<class Executor, class Property> struct has_require_member;
-  template<class Executor, class Property> struct has_query_member;
-
-  template<class Executor, class Property>
-    constexpr bool has_require_member_v = has_require_member<Executor, Property>::value;
-  template<class Executor, class Property>
-    constexpr bool has_query_member_v = has_query_member<Executor, Property>::value;
-
   // Member return type traits for properties:
 
   template<class Executor, class Property> struct require_member_result;
@@ -872,18 +862,6 @@ This sub-clause contains templates that may be used to query the properties of a
         // exposition only
         static_assert(std::is_integral_v<type>, "index type must be an integral type");
     };
-
-### Member detection type traits for properties
-
-    template<class Executor, class Property> struct has_require_member;
-    template<class Executor, class Property> struct has_query_member;
-
-This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
-
-| Template                   | Condition           | Preconditions  |
-|----------------------------|---------------------|----------------|
-| `template<class Executor, class Property>` <br/>`struct has_require_member` | The expression `declval<const Executor>().require( declval<Property>())` is well formed. | `Executor` is a complete type. |
-| `template<class Executor, class Property>` <br/>`struct has_query_member` | The expression `declval<const Executor>().query( declval<Property>())` is well formed. | `Executor` is a complete type. |
 
 ### Member return type traits for properties
 
