@@ -689,6 +689,25 @@ The `not_adaptable_blocking_t` and `adaptable_blocking_t` properties are mutuall
 
 [*Note:* The `two_way_t` property is included here as the `require` customization point's `two_way_t` adaptation is specified in terms of `std::experimental::future`, and that template supports blocking wait operations. *--end note*]
 
+##### `adaptable_blocking_t` customization points
+
+In addition to conforming to the above specification, the `adaptable_blocking_t` property provides the following customization:
+
+    struct adaptable_blocking_t
+    {
+      template<class Executor>
+        friend see-below require(Executor ex, adaptable_blocking_t);
+    };
+
+This customization uses an adapter to implement the `adaptable_blocking_t` property.
+
+```
+template<class Executor>
+  friend see-below require(Executor ex, adaptable_blocking_t);
+```
+
+*Returns:* A value `e1` of type `E1` that holds a copy of `ex`. If `Executor` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `OneWayExecutor` requirements by providing member functions `require`, `query`, and `execute` that forward to the corresponding member functions of the copy of `ex`. If `Executor` satisfies the `TwoWayExecutor` requirements, `E1` shall satisfy the `TwoWayExecutor` requirements by providing member functions `require`, `query`, and `twoway_execute` that forward to the corresponding member functions of the copy of `ex`. If `Executor` satisfies the `BulkOneWayExecutor` requirements, `E1` shall satisfy the `BulkOneWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_execute` that forward to the corresponding member functions of the copy of `ex`. If `Executor` satisfies the `BulkTwoWayExecutor` requirements, `E1` shall satisfy the `BulkTwoWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_twoway_execute` that forward to the corresponding member functions of the copy of `ex`. In addition, `can_query_v<E1, adaptable_blocking_t>` is true, and `E1.require(not_adaptable_blocking)` yields a copy of `ex`. `e1` has the same executor properties as `ex`, except for the addition of the `adaptable_blocking_t` property.
+
 #### Properties to indicate if submitted tasks represent continuations
 
     struct continuation_t;
@@ -907,8 +926,6 @@ The name `require` denotes a customization point. The effect of the expression `
 * `(E).require(P0)` if `N == 0` and `has_require_member_v<decay_t<decltype(E)>, decltype(P0)>` is true.
 
 * Otherwise, `require(E, P0)` if `N == 0` and the expression is well formed.
-
-* Otherwise, a value `E1` of unspecified type that holds a copy of `E` if `N == 0` and `is_same<decay_t<decltype(P0)>, adaptable_blocking_t>` is true. If `E` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `OneWayExecutor` requirements by providing member functions `require`, `query`, and `execute` that forward to the corresponding member functions of the copy of `E`. If `E` satisfies the `TwoWayExecutor` requirements, `E1` shall satisfy the `TwoWayExecutor` requirements by providing member functions `require`, `query`, and `twoway_execute` that forward to the corresponding member functions of the copy of `E`. If `E` satisfies the `BulkOneWayExecutor` requirements, `E1` shall satisfy the `BulkOneWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_execute` that forward to the corresponding member functions of the copy of `E`. If `E` satisfies the `BulkTwoWayExecutor` requirements, `E1` shall satisfy the `BulkTwoWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_twoway_execute` that forward to the corresponding member functions of the copy of `E`. In addition, `can_query_v<decltype(E1), adaptable_blocking_t>` is true, and `E1.require(not_adaptable_blocking)` yields a copy of `E`. `E1` has the same executor properties as `E`, except for the addition of the `adaptable_blocking_t` property.
 
 * Otherwise, `std::experimental::executors_v1::execution::require( std::experimental::executors_v1::execution::require(E, P0), Pn...)` if `N > 0` and the expression is well formed.
 
