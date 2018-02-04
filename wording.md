@@ -118,16 +118,6 @@ namespace execution {
   template<class Executor> using executor_shape_t = typename executor_shape<Executor>::type;
   template<class Executor> using executor_index_t = typename executor_index<Executor>::type;
 
-  // Member return type traits for properties:
-
-  template<class Executor, class Property> struct require_member_result;
-  template<class Executor, class Property> struct query_member_result;
-
-  template<class Executor, class Property>
-    using require_member_result_t = typename require_member_result<Executor, Property>::type;
-  template<class Executor, class Property>
-    using query_member_result_t = typename query_member_result<Executor, Property>::type;
-
   // Property value types traits:
 
   template<class Executor, class Property> struct property_value;
@@ -862,18 +852,6 @@ This sub-clause contains templates that may be used to query the properties of a
         // exposition only
         static_assert(std::is_integral_v<type>, "index type must be an integral type");
     };
-
-### Member return type traits for properties
-
-    template<class Executor, class Property> struct require_member_result;
-    template<class Executor, class Property> struct query_member_result;
-
-This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a TransformationTrait (C++Std [meta.rqmts]).
-
-| Template                   | Condition           | Comments  |
-|----------------------------|---------------------|-----------|
-| `template<class Executor, class Property>` <br/>`struct require_member_result` | The expression `declval<const Executor>().require( declval<Property>())` is well formed. | The member typedef `type` shall name the type of the expression `declval<const Executor>().require( declval<Property())`. |
-| `template<class Executor, class Property>` <br/>`struct query_member_result` | The expression `declval<const Executor>().query( declval<Property>())` is well formed. | The member typedef `type` shall name the type of the expression `declval<const Executor>().query( declval<Property())`. |
 
 ## Property value types traits for properties
 
