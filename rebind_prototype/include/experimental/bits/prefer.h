@@ -21,7 +21,7 @@ constexpr auto prefer(Executor&& ex, Property&& p)
 
 template<class Executor, class Property>
 constexpr auto prefer(Executor ex, Property&&)
-  -> typename std::enable_if<!has_require_member<Executor, Property>::value, Executor>::type
+  -> typename std::enable_if<!has_require_member_impl::eval<Executor, Property>::value, Executor>::type
 {
   return ex;
 }

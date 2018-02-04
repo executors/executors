@@ -29,10 +29,6 @@ struct eval<Executor, Property,
 };
 
 } // namespace require_member_result_impl
-
-template<class Executor, class Property>
-struct require_member_result : require_member_result_impl::eval<Executor, Property> {};
-
 } // namespace execution
 } // inline namespace executors_v1
 } // namespace experimental
