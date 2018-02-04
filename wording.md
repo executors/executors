@@ -358,7 +358,7 @@ The current value of an executor's properties can be queried by calling the `que
 
     struct context_t
     {
-      static constexpr bool is_requirable = true;
+      static constexpr bool is_requirable = false;
       static constexpr bool is_preferable = false;
 
       using polymorphic_query_result_type = any; // TODO: alternatively consider void*, or simply omitting the type.
