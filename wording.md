@@ -923,11 +923,11 @@ Whenever `std::experimental::executors_v1::execution::`*NAME*`(`*ARGS*`)` is a v
 
 The name `require` denotes a customization point. The effect of the expression `std::experimental::executors_v1::execution::require(E, P0, Pn...)` for some expressions `E` and `P0`, and where `Pn...` represents `N` expressions (where `N` is 0 or more), is equivalent to:
 
-* `(E).require(P0)` if `N == 0` and `has_require_member_v<decay_t<decltype(E)>, decltype(P0)>` is true.
+* If `N == 0`, `P0::is_requirable` is true,  and the expression `(E).require(P0)` is well-formed, `(E).require(P0)`.
 
-* Otherwise, `require(E, P0)` if `N == 0` and the expression is well formed.
+* If `N == 0`, `P0::is_requirable` is true, and the expression `require(E, P0)` is well-formed, `require(E, P0)`.
 
-* Otherwise, `std::experimental::executors_v1::execution::require( std::experimental::executors_v1::execution::require(E, P0), Pn...)` if `N > 0` and the expression is well formed.
+* If `N > 0` and the expression `std::experimental::executors_v1::execution::require( std::experimental::executors_v1::execution::require(E, P0), Pn...)` is well formed, `std::experimental::executors_v1::execution::require( std::experimental::executors_v1::execution::require(E, P0), Pn...)`.
 
 * Otherwise, `std::experimental::executors_v1::execution::require(E, P0, Pn...)` is ill-formed.
 
@@ -939,15 +939,15 @@ The name `require` denotes a customization point. The effect of the expression `
 
 The name `prefer` denotes a customization point. The effect of the expression `std::experimental::executors_v1::execution::prefer(E, P0, Pn...)` for some expressions `E` and `P0`, and where `Pn...` represents `N` expressions (where `N` is 0 or more), is equivalent to:
 
-* `(E).require(P0)` if `N == 0`, `P0::is_preferable == true`, and `has_require_member_v<decay_t<decltype(E)>, decltype(P0)>` is true.
+* If `N == 0`, `P0::is_preferable` is true,  and the expression `(E).require(P0)` is well-formed, `(E).require(P0)`.
 
-* Otherwise, `prefer(E, P0)` if `N == 0`, `P0::is_preferable == true`, and the expression is well formed.
+* If `N == 0`, `P0::is_preferable` is true, and the expression `prefer(E, P0)` is well-formed, `prefer(E, P0)`.
 
-* Otherwise, `E` if `N == 0` and `P0::is_preferable == true`.
+* If `N == 0` and `P0::is_preferable` is true, `E`.
 
-* Otherwise, `std::experimental::executors_v1::execution::prefer( std::experimental::executors_v1::execution::prefer(E, P0), Pn...)` if the expression is well formed.
+* If `N > 0` and the expression `std::experimental::executors_v1::execution::prefer( std::experimental::executors_v1::execution::prefer(E, P0), Pn...)` is well formed, `std::experimental::executors_v1::execution::prefer( std::experimental::executors_v1::execution::prefer(E, P0), Pn...)`.
 
-* Otherwise, `std::experimental::executors_v1::execution::prefer(E, P0, Pn...)` is ill-formed.
+* Otherwise, `std::experimental::executors_v1::execution::require(E, P0, Pn...)` is ill-formed.
 
 ### `query`
 
@@ -957,9 +957,9 @@ The name `prefer` denotes a customization point. The effect of the expression `s
 
 The name `query` denotes a customization point. The effect of the expression `std::experimental::executors_v1::execution::query(E, P)` for some expressions `E` and `P` is equivalent to:
 
-* `(E).query(P)` if `has_query_member_v<decay_t<decltype(E)>, decltype(P)>` is true.
+* If the expression `(E).query(P0)` is well-formed, `(E).query(P0)`.
 
-* Otherwise, `query(E, P)` if the expression is well formed.
+* If the expression `query(E, P0)` is well-formed, `query(E, P0)`.
 
 * Otherwise, `std::experimental::executors_v1::execution::query(E, P)` is ill-formed.
 
