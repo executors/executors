@@ -508,6 +508,84 @@ The cardinality properties conform to the following specification:
 
 The `single_t` and `bulk_t` properties are not mutually exclusive.
 
+##### `single_t` customization points
+
+In addition to conforming to the above specification, the `single_t` property provides the following customizations:
+
+    struct single_t
+    {
+      template<class Executor>
+        friend Executor require(Executor ex, single_t);
+
+      template<class Executor>
+        friend constexpr bool query(const Executor& ex, single_t);
+    };
+
+These customizations automatically enable the `single_t` property if an executor type already satisfies the syntactic requirements for a single executor.
+
+```
+template<class Executor>
+  friend Executor require(Executor ex, single_t);
+```
+
+*Returns:* `std::move(ex)`.
+
+*Remarks:* This function shall not participate in overload resolution unless `is_oneway_executor_v<Executor> || is_twoway_executor_v<Executor>` is true.
+
+```
+template<class Executor>
+  friend constexpr bool query(const Executor& ex, single_t);
+```
+
+*Returns:* `true`.
+
+*Remarks:* This function shall not participate in overload resolution unless `is_oneway_executor_v<Executor> || is_twoway_executor_v<Executor>` is true.
+
+##### `bulk_t` customization points
+
+In addition to conforming to the above specification, the `bulk_t` property provides the following customizations:
+
+    struct bulk_t
+    {
+      template<class Executor>
+        friend Executor require(Executor ex, bulk_t);
+
+      template<class Executor>
+        friend see-below require(Executor ex, bulk_t);
+
+      template<class Executor>
+        friend constexpr bool query(const Executor& ex, bulk_t);
+    };
+
+These customizations automatically enable the `bulk_t` property if an executor type already satisfies the syntactic requirements for a bulk executor. Otherwise, if the executor has the `oneway_t` property, an adapter is used to implement the bulk property and its requirements.
+
+```
+template<class Executor>
+  friend Executor require(Executor ex, bulk_t);
+```
+
+*Returns:* `std::move(ex)`.
+
+*Remarks:* This function shall not participate in overload resolution unless `is_bulk_oneway_executor_v<Executor> || is_bulk_twoway_executor_v<Executor>` is true.
+
+```
+template<class Executor>
+  friend see-below require(Executor ex, bulk_t);
+```
+
+*Returns:* A value `e1` of type `E1` that holds a copy of `ex`. If `Executor` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `OneWayExecutor` requirements by providing member functions `require`, `query`, and `execute` that forward to the corresponding member functions of the copy of `ex`, if present, and `E1` shall satisfy the `BulkExecutor` requirements by implementing `bulk_execute` in terms of `execute`. If `Executor` also satisfies the `TwoWayExecutor` requirements, `E1` shall satisfy the `TwoWayExecutor` requirements by providing the member function `twoway_execute` that forwards to the corresponding member function of the copy of `ex`, if present, and `E1` shall satisfy the `BulkTwoWayExecutor` requirements by implementing `bulk_twoway_execute` in terms of `bulk_execute`. `e1` has the same executor properties as `ex`, except for the addition of the `bulk_t` property.
+
+*Remarks:* This function shall not participate in overload resolution unless `is_bulk_oneway_executor_v<Executor> ||` `is_bulk_twoway_executor_v<Executor>` is false, and `is_oneway_executor_v<Executor>` is true.
+
+```
+template<class Executor>
+  friend constexpr bool query(const Executor& ex, bulk_t);
+```
+
+*Returns:* `true`.
+
+*Remarks:* This function shall not participate in overload resolution unless `is_bulk_oneway_executor_v<Executor> || is_bulk_twoway_executor_v<Executor>` is true.
+
 ### Behavioral properties
 
 Behavioral properties conform to the following specification:
@@ -777,11 +855,7 @@ The name `require` denotes a customization point. The effect of the expression `
 * Otherwise, `require(E, P0)` if `N == 0` and the expression is well formed.
 
 * Otherwise, `E` if `N == 0` and:
-  * `is_same<decay_t<decltype(P0)>, single_t>` is true and `(is_oneway_executor_v<decay_t<decltype(E)>> || is_twoway_executor_v<decay_t<decltype(E)>>)` is true; or
-  * `is_same<decay_t<decltype(P0)>, bulk_t>` is true and `(is_bulk_oneway_executor_v<decay_t<decltype(E)>> || is_bulk_twoway_executor_v<decay_t<decltype(E)>>)` is true; or
   * `is_same<decay_t<decltype(P0)>, possibly_blocking_t>` is true.
-
-* Otherwise, a value `E1` of unspecified type that holds a copy of `E` if `N == 0` and `is_same<decay_t<decltype(P0)>, bulk_t>` is true. If `E` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `OneWayExecutor` requirements by providing member functions `require`, `query`, and `execute` that forward to the corresponding member functions of the copy of `E`, if present, and `E1` shall satisfy the `BulkExecutor` requirements by implementing `bulk_execute` in terms of `execute`. If `E` also satisfies the `TwoWayExecutor` requirements, `E1` shall satisfy the `TwoWayExecutor` requirements by providing the member function `twoway_execute` that forwards to the corresponding member function of the copy of `E`, if present, and `E1` shall satisfy the `BulkTwoWayExecutor` requirements by implementing `bulk_twoway_execute` in terms of `bulk_execute`. `E1` has the same executor properties as `E`, except for the addition of the `bulk_t` property.
 
 * Otherwise, a value `E1` of unspecified type that holds a copy of `E` if `N == 0`, `is_same<decay_t<decltype(P0)>, always_blocking_t>` is true, and `can_query_v<decltype(E), adaptable_blocking_t>` is true. If `E` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `OneWayExecutor` requirements by providing member functions `require`, `query`, and `execute` that forward to the corresponding member functions of the copy of `E`. If `E` satisfies the `TwoWayExecutor` requirements, `E1` shall satisfy the `TwoWayExecutor` requirements by providing member functions `require`, `query`, and `twoway_execute` that forward to the corresponding member functions of the copy of `E`. If `E` satisfies the `BulkOneWayExecutor` requirements, `E1` shall satisfy the `BulkOneWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_execute` that forward to the corresponding member functions of the copy of `E`. If `E` satisfies the `BulkTwoWayExecutor` requirements, `E1` shall satisfy the `BulkTwoWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_twoway_execute` that forward to the corresponding member functions of the copy of `E`. In addition, `E1` provides an overload of `require` such that `E1.require(always_blocking)` returns a copy of `E1`, and all functions `execute`, `twoway_execute`, `bulk_execute`, and `bulk_twoway_execute` shall block the calling thread until the submitted functions have finished execution. `E1` has the same executor properties as `E`, except for the addition of the `always_blocking_t` property, and removal of `never_blocking_t` and `possibly_blocking_t` properties if present.
 
