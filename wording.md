@@ -621,6 +621,39 @@ The `possibly_blocking_t`, `always_blocking_t` and `never_blocking_t` properties
 
 [*Note:* The guarantees of `possibly_blocking_t`, `always_blocking_t` and `never_blocking_t` implies the relationships: `possibly_blocking < always_blocking` and `possibly_blocking < never_blocking` *--end note*]
 
+##### `possibly_blocking_t` customization points
+
+In addition to conforming to the above specification, the `possibly_blocking_t` property provides the following customizations:
+
+    struct possibly_blocking_t
+    {
+      template<class Executor>
+        friend Executor require(Executor ex, possibly_blocking_t);
+
+      template<class Executor>
+        friend constexpr bool query(const Executor& ex, possibly_blocking_t);
+    };
+
+These customizations automatically enable the `possibly_blocking_t` property for all executors that do not otherwise support the `always_blocking_t` or `never_blocking_t` properties. [*Note:* That is, all executors are treated as possibly blocking unless otherwise specified. *--end note*]
+
+```
+template<class Executor>
+  friend Executor require(Executor ex, possibly_blocking_t);
+```
+
+*Returns:* `std::move(ex)`.
+
+*Remarks:* This function shall not participate in overload resolution unless `can_query_v<Executor, always_blocking_t> || can_query_v<Executor, never_blocking_t>` is false.
+
+```
+template<class Executor>
+  friend constexpr bool query(const Executor& ex, possibly_blocking_t);
+```
+
+*Returns:* `true`.
+
+*Remarks:* This function shall not participate in overload resolution unless `can_query_v<Executor, always_blocking_t> || can_query_v<Executor, never_blocking_t>` is false.
+
 #### Properties to indicate if blocking and directionality may be adapted
 
     struct adaptable_blocking_t;
@@ -853,9 +886,6 @@ The name `require` denotes a customization point. The effect of the expression `
 * `(E).require(P0)` if `N == 0` and `has_require_member_v<decay_t<decltype(E)>, decltype(P0)>` is true.
 
 * Otherwise, `require(E, P0)` if `N == 0` and the expression is well formed.
-
-* Otherwise, `E` if `N == 0` and:
-  * `is_same<decay_t<decltype(P0)>, possibly_blocking_t>` is true.
 
 * Otherwise, a value `E1` of unspecified type that holds a copy of `E` if `N == 0`, `is_same<decay_t<decltype(P0)>, always_blocking_t>` is true, and `can_query_v<decltype(E), adaptable_blocking_t>` is true. If `E` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `OneWayExecutor` requirements by providing member functions `require`, `query`, and `execute` that forward to the corresponding member functions of the copy of `E`. If `E` satisfies the `TwoWayExecutor` requirements, `E1` shall satisfy the `TwoWayExecutor` requirements by providing member functions `require`, `query`, and `twoway_execute` that forward to the corresponding member functions of the copy of `E`. If `E` satisfies the `BulkOneWayExecutor` requirements, `E1` shall satisfy the `BulkOneWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_execute` that forward to the corresponding member functions of the copy of `E`. If `E` satisfies the `BulkTwoWayExecutor` requirements, `E1` shall satisfy the `BulkTwoWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_twoway_execute` that forward to the corresponding member functions of the copy of `E`. In addition, `E1` provides an overload of `require` such that `E1.require(always_blocking)` returns a copy of `E1`, and all functions `execute`, `twoway_execute`, `bulk_execute`, and `bulk_twoway_execute` shall block the calling thread until the submitted functions have finished execution. `E1` has the same executor properties as `E`, except for the addition of the `always_blocking_t` property, and removal of `never_blocking_t` and `possibly_blocking_t` properties if present.
 
