@@ -100,6 +100,8 @@ public:
     -> always_blocking_adapter<typename require_member_result_impl::eval<InnerExecutor&&, T...>::type>
       { return { std::move(inner_ex_).require(std::forward<T>(t)...) }; }
 
+  constexpr bool query(const always_blocking_t&) const { return true; }
+
   template<class... T> auto query(T&&... t) const
     -> typename query_member_result_impl::eval<InnerExecutor, T...>::type
       { return inner_ex_.query(std::forward<T>(t)...); }
