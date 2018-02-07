@@ -555,7 +555,6 @@ agents. *--end note*]
 
 	template <typename ProtoAllocator>
 	struct allocator_t;
-    struct default_allocator_t;
 
 The `allocator_t` property conforms to the following specification:
 
@@ -568,7 +567,7 @@ The `allocator_t` property conforms to the following specification:
         template<class Executor>
         static constexpr bool is_supportable = see-below;
 
-        template <typename ProtoAllocator, typename = typename std::enable_if_t<std::is_same<Allocator, void>>>
+        template <typename ProtoAllocator, typename = typename std::enable_if_t<std::is_same_v<Allocator, void>>>
         allocator_t<ProtoAllocator> operator()(const ProtoAllocator &a) const {
         	return allocator_t<ProtoAllocator>{a};
         }
