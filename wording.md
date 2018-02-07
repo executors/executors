@@ -1423,6 +1423,20 @@ class C
     template<class ProtoAllocator>
     see-below require(const execution::allocator_t<ProtoAllocator>& a) const;
 
+    bool query(execution::oneway_t) const;
+    bool query(execution::twoway_t) const;
+    bool query(execution::then_t) const;
+    bool query(execution::single_t) const;
+    bool query(execution::bulk_t) const;
+    bool query(execution::bulk_parallel_execution_t) const;
+    bool query(execution::thread_execution_mapping_t) const;
+    bool query(execution::never_blocking_t) const;
+    bool query(execution::possibly_blocking_t) const;
+    bool query(execution::always_blocking_t) const;
+    bool query(execution::continuation_t) const;
+    bool query(execution::not_continuation_t) const;
+    bool query(execution::outstanding_work_t) const;
+    bool query(execution::not_outstanding_work_t) const;
     see-below query(execution::context_t) const noexcept;
     see-below query(execution::allocator_t) const noexcept;
 
@@ -1529,6 +1543,26 @@ specifications, associated with the same thread pool as `*this`, with the
 allocation and deallocation associated with function submission will be
 performed using a copy of `a.alloc`. All other properties of the returned
 executor object are identical to those of `*this`.
+
+```
+bool query(execution::oneway_t) const;
+bool query(execution::twoway_t) const;
+bool query(execution::then_t) const;
+bool query(execution::single_t) const;
+bool query(execution::bulk_t) const;
+bool query(execution::bulk_parallel_execution_t) const;
+bool query(execution::thread_execution_mapping_t) const;
+bool query(execution::never_blocking_t) const;
+bool query(execution::possibly_blocking_t) const;
+bool query(execution::always_blocking_t) const;
+bool query(execution::continuation_t) const;
+bool query(execution::not_continuation_t) const;
+bool query(execution::outstanding_work_t) const;
+bool query(execution::not_outstanding_work_t) const;
+```
+
+*Returns:* `true` if `*this` has the property established such that it meets
+that properies requirements.
 
 ```
 static_thread_pool& query(execution::context_t) const noexcept;
