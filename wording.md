@@ -787,11 +787,12 @@ bad_executor() noexcept;
 
 *Postconditions:* `what()` returns an implementation-defined NTBS.
 
-### Class `executor`
+### Class template `executor`
 
-The `executor` class provides a polymorphic wrapper for executor types.
+The `executor` class template provides a polymorphic wrapper for executor types.
 
 ```
+template <class... Properties>
 class executor
 {
 public:
@@ -818,16 +819,14 @@ public:
 
   // executor operations:
 
-  const context_type& query(context_t) const noexcept;
+  template <class Property>
+  executor require(Property) const;
 
-  executor require(oneway_t) const;
-  executor require(twoway_t) const;
-  executor require(single_t) const;
-  executor require(bulk_t) const;
-  executor require(thread_execution_mapping_t) const;
-  executor require(never_blocking_t p) const;
-  executor require(possibly_blocking_t p) const;
-  executor require(always_blocking_t p) const;
+  template <class Property>
+  executor prefer(Property) const;
+
+  template <class Property>
+  executor query(Property) const;
 
   template<class Function>
     void execute(Function&& f) const;
@@ -867,14 +866,8 @@ bool operator!=(nullptr_t, const executor& e) noexcept;
 
 void swap(executor& a, executor& b) noexcept;
 
-executor prefer(const executor& e, continuation_t p);
-executor prefer(const executor& e, not_continuation_t p);
-executor prefer(const executor& e, outstanding_work_t p);
-executor prefer(const executor& e, not_outstanding_work_t p);
-executor prefer(const executor& e, bulk_sequenced_execution_t p);
-executor prefer(const executor& e, bulk_parallel_execution_t p);
-executor prefer(const executor& e, bulk_unsequenced_execution_t p);
-executor prefer(const executor& e, new_thread_execution_mapping_t p);
+template <class Property>
+executor prefer(const executor& e, Property p);
 ```
 
 The `executor` class satisfies the general requirements on executors.
@@ -915,22 +908,9 @@ template<class Executor> executor(Executor e);
 
 *Requires:*
 
-  * `can_require_v<Executor, oneway>`
-  * `can_require_v<Executor, twoway>`
-  * `can_require_v<Executor, single>`
-  * `can_require_v<Executor, bulk>`
-  * `can_require_v<Executor, never_blocking>`
-  * `can_require_v<Executor, possibly_blocking>`
-  * `can_require_v<Executor, always_blocking>`
-  * `can_prefer_v<Executor, continuation>`
-  * `can_prefer_v<Executor, not_continuation>`
-  * `can_prefer_v<Executor, outstanding_work>`
-  * `can_prefer_v<Executor, not_outstanding_work>`
-  * `can_prefer_v<Executor, bulk_sequenced_execution>`
-  * `can_prefer_v<Executor, bulk_parallel_execution>`
-  * `can_prefer_v<Executor, bulk_unsequenced_execution>`
-  * `can_prefer_v<Executor, thread_execution_mapping>`
-  * `can_prefer_v<Executor, new_thread_execution_mapping>`
+* `can_require_v<Executor, P`, if `P::is_requireable`, where `P` is each property in `Properties...`.
+* `can_prefer_v<Executor, P`, if `P::is_preferable`, where `P` is each property in `Properties...`.
+* `can_query_v<Executor, P`, where `P` is each property in `Properties...`.
 
 *Effects:* `*this` targets a copy of `e` initialized with `std::move(e)`.
 
@@ -989,40 +969,48 @@ void swap(executor& other) noexcept;
 #### `executor` operations
 
 ```
-const context_type& query(context_t) const noexcept;
+template <class Property>
+executor require(Property p) const;
 ```
 
-*Requires:* `*this != nullptr`.
+*Requires:* `std::disjunction_v<std::is_same<Property, Properties>...> && Property::is_requirable`.
 
-*Returns:* A polymorphic execution context wrapper whose target is `e.query(execution::context)`, where `e` is the target object of `*this`.
-
-```
-executor require(oneway_t) const;
-executor require(twoway_t) const;
-executor require(single_t) const;
-executor require(bulk_t) const;
-executor require(thread_execution_mapping_t) const;
-```
+*Effects:* Performs `e.require(p)`, where `e` is the target object of `*this`.
 
 *Returns:* `*this`.
 
 ```
-executor require(never_blocking_t p) const;
-executor require(possibly_blocking_t p) const;
-executor require(always_blocking_t p) const;
+template <class Property>
+executor prefer(Property p) const;
 ```
 
-*Returns:* A polymorphic wrapper whose target is `execution::require(e, p)`, where `e` is the target object of `*this`.
+*Requires:* `std::disjunction_v<std::is_same<Property, Properties>...> && Property::is_preferable`.
+
+*Effects:* Performs `e.prefer(p)`, where `e` is the target object of `*this`.
+
+*Returns:* `*this`.
+
+```
+template <class Property>
+executor query(Property p) const;
+```
+
+*Requires:* `std::disjunction_v<std::is_same<Property, Properties>...>`.
+
+*Effects:* Performs `e.query(p)`, where `e` is the target object of `*this`.
+
+*Returns:* `static_cast<Property::polymorphic_query_result_type>(e.query(p))`.
 
 ```
 template<class Function>
   void execute(Function&& f) const;
 ```
 
-*Effects:* Performs `e2.execute(f2)`, where:
+*Requires:* `std::disjunction_v<std::is_same<execution::oneway_t, Properties>...> && std::disjunction_v<std::is_same<execution::single_t, Properties>...>`.
 
-  * `e1` is the target object of `*this`;
-  * `e2` is the result of `require(require(e1, single), oneway)`;
+*Effects:* Performs `e.execute(f2)`, where:
+
+  * `e` is the target object of `*this`;
   * `f1` is the result of `DECAY_COPY(std::forward<Function>(f))`;
   * `f2` is a function object of unspecified type that, when called as `f2()`, performs `f1()`.
 
@@ -1032,25 +1020,26 @@ template<class Function>
     twoway_execute(Function&& f) const
 ```
 
-*Effects:* Performs `e2.twoway_execute(f2)`, where:
+*Requires:* `std::disjunction_v<std::is_same<execution::twoway_t, Properties>...> && std::disjunction_v<std::is_same<execution::single_t, Properties>...>`.
 
-  * `e1` is the target object of `*this`;
-  * `e2` is the result of `require(require(e1, single), twoway)`;
+*Effects:* Performs `e.twoway_execute(f2)`, where:
+
+  * `e` is the target object of `*this`;
   * `f1` is the result of `DECAY_COPY(std::forward<Function>(f))`;
   * `f2` is a function object of unspecified type that, when called as `f2()`, performs `f1()`.
 
 *Returns:* A future, whose shared state is made ready when the future returned by `e.twoway_execute(f2)` is made ready, containing the result of `f1()` or any exception thrown by `f1()`. [*Note:* `e2.twoway_execute(f2)` may return any future type that satisfies the Future requirements, and not necessarily `std::experimental::future`. One possible implementation approach is for the polymorphic wrapper to attach a continuation to the inner future via that object's `then()` member function. When invoked, this continuation stores the result in the outer future's associated shared and makes that shared state ready. *--end note*]
-
 
 ```
 template<class Function, class SharedFactory>
   void bulk_execute(Function&& f, size_t n, SharedFactory&& sf) const;
 ```
 
-*Effects:* Performs `e2.bulk_execute(f2, n, sf2)`, where:
+*Requires:* `std::disjunction_v<std::is_same<execution::oneway_t, Properties>...> && std::disjunction_v<std::is_same<execution::bulk_t, Properties>...>`.
 
-  * `e1` is the target object of `*this`;
-  * `e2` is the result of `require(require(e1, bulk), oneway)`;
+*Effects:* Performs `e.bulk_execute(f2, n, sf2)`, where:
+
+  * `e` is the target object of `*this`;
   * `sf1` is the result of `DECAY_COPY(std::forward<SharedFactory>(sf))`;
   * `sf2` is a function object of unspecified type that, when called as `sf2()`, performs `sf1()`;
   * `s1` is the result of `sf1()`;
@@ -1064,10 +1053,11 @@ template<class Function, class ResultFactory, class SharedFactory>
     void bulk_twoway_execute(Function&& f, size_t n, ResultFactory&& rf, SharedFactory&& sf) const;
 ```
 
+*Requires:* `std::disjunction_v<std::is_same<execution::twoway_t, Properties>...> && std::disjunction_v<std::is_same<execution::bulk_t, Properties>...>`.
+
 *Effects:* Performs `e.bulk_twoway_execute(f2, n, rf2, sf2)`, where:
 
-  * `e1` is the target object of `*this`;
-  * `e2` is the result of `require(require(e1, bulk), twoway)`;
+  * `e` is the target object of `*this`;
   * `rf1` is the result of `DECAY_COPY(std::forward<ResultFactory>(rf))`;
   * `rf2` is a function object of unspecified type that, when called as `rf2()`, performs `rf1()`;
   * `sf1` is the result of `DECAY_COPY(std::forward<SharedFactory>(rf))`;
@@ -1082,7 +1072,7 @@ template<class Function, class ResultFactory, class SharedFactory>
   * if `decltype(rf1())` is void and `decltype(rf2())` is non-void, `f2` is a function object of unspecified type that, when called as `f2(i, r2, s2)`, performs `f1(i, s1)`, where `i` is a value of type `size_t`.
   * if `decltype(rf1())` is void and `decltype(rf2())` is void, `f2` is a function object of unspecified type that, when called as `f2(i, s2)`, performs `f1(i, s1)`, where `i` is a value of type `size_t`.
 
-*Returns:* A future, whose shared state is made ready when the future returned by `e.bulk_twoway_execute(f2, n, rf2, sf2)` is made ready, containing the result in `r1` (if `decltype(rf1())` is non-void) or any exception thrown by an invocation`f1`. [*Note:* `e2.bulk_twoway_execute(f2)` may return any future type that satisfies the Future requirements, and not necessarily `std::experimental::future`. One possible implementation approach is for the polymorphic wrapper to attach a continuation to the inner future via that object's `then()` member function. When invoked, this continuation stores the result in the outer future's associated shared and makes that shared state ready. *--end note*]
+*Returns:* A future, whose shared state is made ready when the future returned by `e.bulk_twoway_execute(f2, n, rf2, sf2)` is made ready, containing the result in `r1` (if `decltype(rf1())` is non-void) or any exception thrown by an invocation`f1`. [*Note:* `e.bulk_twoway_execute(f2)` may return any future type that satisfies the Future requirements, and not necessarily `std::experimental::future`. One possible implementation approach is for the polymorphic wrapper to attach a continuation to the inner future via that object's `then()` member function. When invoked, this continuation stores the result in the outer future's associated shared and makes that shared state ready. *--end note*]
 
 #### `executor` capacity
 
@@ -1149,17 +1139,13 @@ void swap(executor& a, executor& b) noexcept;
 *Effects:* `a.swap(b)`.
 
 ```
-executor prefer(const executor& e, continuation_t p);
-executor prefer(const executor& e, not_continuation_t p);
-executor prefer(const executor& e, outstanding_work_t p);
-executor prefer(const executor& e, not_outstanding_work_t p);
-executor prefer(const executor& e, bulk_sequenced_execution_t p);
-executor prefer(const executor& e, bulk_parallel_execution_t p);
-executor prefer(const executor& e, bulk_unsequenced_execution_t p);
-executor prefer(const executor& e, new_thread_execution_mapping_t p);
+template <class Property>
+executor prefer(const executor& e, Property p);
 ```
 
-*Returns:* A polymorphic wrapper whose target is `execution::prefer(e1, p)`, where `e1` is the target object of `e`.
+*Requires:* TODO: How to specify requirement that poly executor's type contains Property.
+
+*Returns:* A copy of `e`.
 
 ### Class `executor::context_type`
 
