@@ -350,7 +350,7 @@ The current value of an executor's properties can be queried by calling the `que
 
 | Expression | Comments |
 |------------|----------|
-| `x.query(p)` | Returns the current value of the requested property `p`. The expression is ill formed if an executor is unable to return the requested property. |
+| `x.query(p)` | Returns the current value of the requested property `p`. The value returned from `x.query(p)` must not change between calls, unless the property has been modified by a call to `require` or `prefer`. The expression is ill formed if an executor is unable to return the requested property. |
 
 ### Query-only properties
 
