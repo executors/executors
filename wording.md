@@ -169,7 +169,9 @@ The library defines several named customization point objects. In every translat
 
 ### `Future` requirements
 
-A type `F` meets the `Future` requirements for some value type `T` if `F` is `std::experimental::future<T>` (defined in the C++ Concurrency TS, ISO/IEC TS 19571:2016). Additionally, `std::experimental::future<T>::wait()` blocks with forward progress guarantee delegation until the shared state is ready. [*Note:* This concept is included as a placeholder to be elaborated, with the expectation that the elaborated requirements for `Future` will expand the applicability of some executor customization points. *--end note*]
+A type `F` meets the `Future` requirements for some value type `T` if `F` is `std::experimental::future<T>` (defined in the C++ Concurrency TS, ISO/IEC TS 19571:2016). [*Note:* This concept is included as a placeholder to be elaborated, with the expectation that the elaborated requirements for `Future` will expand the applicability of some executor customization points. *--end note*]
+
+Forward progress guarantees are a property of the concrete `Future` type. [*Note:* `std::experimental::future<T>::wait()` blocks with forward progress guarantee delegation until the shared state is ready. *--end note*]
 
 ### `ProtoAllocator` requirements
 
@@ -1219,7 +1221,7 @@ The `static_thread_pool` member functions `executor`, `attach`, `wait`, and
 do not introduce data races as a result of concurrent calls to those
 functions from different threads of execution.
 
-A `static_thread_pool`'s threads execute execution agents created via its associated executors with forward progress guarantee delegation.
+A `static_thread_pool`'s threads execute execution agents created via its associated executors with forward progress guarantee delegation. [*Note:* Forward progress is delegated to an execution agent for its lifetime. Because `static_thread_pool` guarantees only parallel forward progress to execution agents created via its executors, forward progress delegation does not apply to execution agents which have not yet begun their lifetime. *--end note*]
 
 #### Types
 
