@@ -12,23 +12,28 @@ namespace std {
 namespace experimental {
 inline namespace executors_v1 {
 namespace execution {
-
 namespace require_impl {
-
-template<class Executor, class Property>
-constexpr auto require(Executor&& ex, Property&& p)
-  -> decltype(std::forward<Executor>(ex).require(std::forward<Property>(p)))
-{
-  return std::forward<Executor>(ex).require(std::forward<Property>(p));
-}
 
 struct require_fn
 {
   template<class Executor, class Property>
   constexpr auto operator()(Executor&& ex, Property&& p) const
-    noexcept(noexcept(require(std::forward<Executor>(ex), std::forward<Property>(p))))
+    noexcept(noexcept(std::forward<Executor>(ex).require(std::forward<Property>(p))))
     -> typename std::enable_if<std::decay<Property>::type::is_requirable,
-      decltype(require(std::forward<Executor>(ex), std::forward<Property>(p)))>::type
+      decltype(std::forward<Executor>(ex).require(std::forward<Property>(p)))>::type
+  {
+    static_assert(std::decay<Property>::type::template is_supportable<
+      decltype(std::forward<Executor>(ex).require(std::forward<Property>(p)))>,
+        "requested property is not supportable by resulting executor type");
+    return std::forward<Executor>(ex).require(std::forward<Property>(p));
+  }
+
+  template<class Executor, class Property>
+  constexpr auto operator()(Executor&& ex, Property&& p) const
+    noexcept(noexcept(require(std::forward<Executor>(ex), std::forward<Property>(p))))
+    -> typename std::enable_if<std::decay<Property>::type::is_requirable
+      && !has_require_member_impl::eval<typename std::decay<Executor>::type, typename std::decay<Property>::type>::value,
+        decltype(require(std::forward<Executor>(ex), std::forward<Property>(p)))>::type
   {
     static_assert(std::decay<Property>::type::template is_supportable<
       decltype(require(std::forward<Executor>(ex), std::forward<Property>(p)))>,
