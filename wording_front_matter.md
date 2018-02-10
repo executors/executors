@@ -56,6 +56,7 @@ Abstract:           This paper proposes a programming model for executors, which
 * Based on feedback from LEWG, eliminated named `BaseExecutor` context
 * Renamed TS namespace from `concurrency_v21 to `executors_v1`
 * Based on feedback from LEWG, simplified general executor requirements
+* Based on feedback from LEWG, enhanced the `OneWayExecutor` introductory paragraph
 
 ### Revision 4
 

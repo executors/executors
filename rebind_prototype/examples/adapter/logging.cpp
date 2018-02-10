@@ -38,14 +38,14 @@ public:
     : prefix_(std::make_shared<std::string>(prefix)), inner_ex_(ex) {}
 
   template <class Property> auto require(const Property& p) const &
-    -> logging_executor<execution::require_member_result_t<InnerExecutor, Property>>
+    -> logging_executor<decltype(inner_declval<Property>().require(p))>
       { return { *prefix_, inner_ex_.require(p) }; }
   template <class Property> auto require(const Property& p) &&
-    -> logging_executor<execution::require_member_result_t<InnerExecutor, Property>>
+    -> logging_executor<decltype(inner_declval<Property>().require(p))>
       { return { *prefix_, std::move(inner_ex_).require(p) }; }
 
   template<class Property> auto query(const Property& p) const
-    -> typename execution::query_member_result<InnerExecutor, Property>::type
+    -> decltype(inner_declval<Property>().query(p))
       { return inner_ex_.query(p); }
 
   friend bool operator==(const logging_executor& a, const logging_executor& b) noexcept
