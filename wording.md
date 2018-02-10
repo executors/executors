@@ -210,9 +210,9 @@ Table: (General executor requirements) \label{base_executor_requirements}
 
 ### `OneWayExecutor` requirements
 
-The `OneWayExecutor` requirements specify requirements for executors which create execution agents without a channel for awaiting the completion of a submitted function object and obtaining its result. [*Note:* That is, the executor provides fire-and-forget semantics. *--end note*]
+The `OneWayExecutor` requirements specify requirements for executors which create execution agents. A type `X` satisfies the `OneWayExecutor` requirements if it satisfies the general requirements on executors, as well as the requirements in the table below.
 
-A type `X` satisfies the `OneWayExecutor` requirements if it satisfies the general requirements on executors, as well as the requirements in the table below.
+[*Note:* `OneWayExecutor`s provides fire-and-forget semantics without a channel for awaiting the completion of a submitted function object and obtaining its result. *--end note*]
 
 In the Table below, `x` denotes a (possibly const) executor object of type `X` and `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
 
@@ -222,7 +222,7 @@ In the Table below, `x` denotes a (possibly const) executor object of type `X` a
 
 ### `TwoWayExecutor` requirements
 
-The `TwoWayExecutor` requirements specify requirements for executors which creating execution agents with a channel for awaiting the completion of a submitted function object and obtaining its result.
+The `TwoWayExecutor` requirements specify requirements for executors which create execution agents with a channel for awaiting the completion of a submitted function object and obtaining its result.
 
 A type `X` satisfies the `TwoWayExecutor` requirements if it satisfies the general requirements on executors, as well as the requirements in the table below.
 
