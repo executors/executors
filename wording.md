@@ -628,31 +628,38 @@ agents. *--end note*]
 
 The `allocator_t` property conforms to the following specification:
 
-    template <typename Allocator>
+    template <typename ProtoAllocator>
     struct allocator_t
     {
         static constexpr bool is_requirable = true;
         static constexpr bool is_preferable = true;
 
         template<class Executor>
-        static constexpr bool is_supportable = see-below;
+        static constexpr bool static_query_v
+          = Executor::query(allocator_t);
 
-        template <typename ProtoAllocator, typename = typename std::enable_if_t<std::is_same_v<Allocator, void>>>
-        allocator_t<ProtoAllocator> operator()(const ProtoAllocator &a) const {
-        	return allocator_t<ProtoAllocator>{a};
+        template <typename OtherProtoAllocator>
+        allocator_t<OtherProtoAllocator> operator()(const OtherProtoAllocator &a) const {
+        	return allocator_t<OtherProtoAllocator>{a};
         }
+
+        static constexpr bool value() const { return a; }
     };
 
 | Property | Requirements | is_supportable                      |
 |----------|--------------| ------------------------------------|
-| `allocator_t<Allocator>` | Result of `allocator_t<void>::operator(ProtoAllocator)`. The executor type satisfies the `OneWayExecutor`, `TwoWayExecutor`, or `ThenExecutor` requirements. The executor implementation shall use the encapsulated allocator to allocate any memory required to store the submitted function object. | `can_query_v<Executor, allocator_t<Allocator>> && (is_oneway_executor_v<Executor> || is_twoway_executor_v<Executor> || is_then_executor_v<Executor>)` |
-| `allocator_t<void>` | Specialisation of `allocator_t<Allocator>`. The executor type satisfies the `OneWayExecutor`, `TwoWayExecutor`, or `ThenExecutor` requirements. The executor implementation shall use an implementation defined default allocator to allocate any memory required to store the submitted function object. | `can_query_v<Executor, allocator_t<void>> && (is_oneway_executor_v<Executor> || is_twoway_executor_v<Executor> || is_then_executor_v<Executor>)` |
+| `allocator_t<ProtoAllocator>` | Result of `allocator_t<void>::operator(OtherProtoAllocator)`. The executor type satisfies the `OneWayExecutor`, `TwoWayExecutor`, or `ThenExecutor` requirements. The executor implementation shall use the encapsulated allocator to allocate any memory required to store the submitted function object. | `can_query_v<Executor, allocator_t<ProtoAllocator>> && (is_oneway_executor_v<Executor> || is_twoway_executor_v<Executor> || is_then_executor_v<Executor>)` |
+| `allocator_t<void>` | Specialisation of `allocator_t<ProtoAllocator>`. The executor type satisfies the `OneWayExecutor`, `TwoWayExecutor`, or `ThenExecutor` requirements. The executor implementation shall use an implementation defined default allocator to allocate any memory required to store the submitted function object. | `can_query_v<Executor, allocator_t<void>> && (is_oneway_executor_v<Executor> || is_twoway_executor_v<Executor> || is_then_executor_v<Executor>)` |
 
-[*Note:* Where the `allocator_t` is queryable, it must be accepted as both `allocator_t<Allocator>` and `allocator_t<void>`. *--end note*]
+*Remarks:* `operator(OtherProtoAllocator)` and `value()` shall not participate in overload resolution unless `ProtoAllocator` is `void`.
 
-[*Note:* As the `allocator_t<Allocator>` property enapsulates a value which can be set and queried, it is required to be implemented such that it is callable with the `ProtoAllocator` parameter where the customization points accepts the result of `allocator_t<void>::operator(ProtoAllocator)`; `allocator_t<ProtoAllocator>` and is passable as an instance  where the customization points accept an instance of `allocator_t<void>`. *--end note*]
+*Postconditions:* `alloc.value()` returns `a`, where `alloc` is the result of `allocator(a)`.
 
-[*Note:* It is permitted for an allocator provided via the `allocator_t<void>` property to be the same type as the allocator provided by the `default_allocator` property. *--end note*]
+[*Note:* Where the `allocator_t` is queryable, it must be accepted as both `allocator_t<ProtoAllocator>` and `allocator_t<void>`. *--end note*]
+
+[*Note:* As the `allocator_t<ProtoAllocator>` property enapsulates a value which can be set and queried, it is required to be implemented such that it is callable with the `OtherProtoAllocator` parameter where the customization points accepts the result of `allocator_t<void>::operator(OtherProtoAllocator)`; `allocator_t<OtherProtoAllocator>` and is passable as an instance  where the customization points accept an instance of `allocator_t<void>`. *--end note*]
+
+[*Note:* It is permitted for an allocator provided via `allocator_t<void>::operator(OtherProtoAllocator)` property to be the same type as the default allocator provided by the implementation. *--end note*]
 
 ## Executor type traits
 
@@ -1468,12 +1475,13 @@ class C
     see-below require(execution::outstanding_work_t) const;
     see-below require(execution::not_outstanding_work_t) const;
     see-below require(const execution::allocator_t<void>& a) const;
-    template<class Allocator>
-    see-below require(const execution::allocator_t<Allocator>& a) const;
+    template<class ProtoAllocator>
+    see-below require(const execution::allocator_t<ProtoAllocator>& a) const;
 
     see-below query(execution::context_t) const noexcept;
     see-below query(execution::allocator_t<void>) const noexcept;
-    see-below query(execution::allocator_t<Allocator>) const noexcept;
+    template<class ProtoAllocator>
+    see-below query(execution::allocator_t<ProtoAllocator>) const noexcept;
 
     bool running_in_this_thread() const noexcept;
 
@@ -1579,13 +1587,13 @@ performed using a copy of an implementation deined default allocator. All other
 properties of the returned executor object are identical to those of `*this`.
 
 ```
-template<class Allocator>
-  see-below require(const execution::allocator_t<Allocator>& a) const;
+template<class ProtoAllocator>
+  see-below require(const execution::allocator_t<ProtoAllocator>& a) const;
 ```
 
 *Returns:* An executor object of an unspecified type conforming to these
 specifications, associated with the same thread pool as `*this`, with the
-`execution::allocator_t<Allocator>` property established such that
+`execution::allocator_t<ProtoAllocator>` property established such that
 allocation and deallocation associated with function submission will be
 performed using a copy of `a.alloc`. All other properties of the returned
 executor object are identical to those of `*this`.
@@ -1604,11 +1612,11 @@ see-below query(execution::allocator_t<void>) const noexcept;
 the executor.
 
 ```
-see-below query(execution::allocator_t<Allocator>) const noexcept;
+see-below query(execution::allocator_t<ProtoAllocator>) const noexcept;
 ```
 
 *Returns:* The allocator object associated with the executor, with type and
-value as previously established by the `execution::allocator_t<Allocator>`
+value as previously established by the `execution::allocator_t<ProtoAllocator>`
 property.
 
 ```
