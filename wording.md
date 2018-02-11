@@ -1363,18 +1363,16 @@ The `prefer_only` adapter addresses this by turning off the `is_requirable` attr
       static constexpr bool is_requirable = false;
       static constexpr bool is_preferable = InnerProperty::is_preferable;
 
-      using polymorphic_query_result_type =
-        typename InnerProperty::polymorphic_query_result_type;
+      using polymorphic_query_result_type = see-below; // not always defined
 
       template<class Executor>
-        static constexpr auto static_query_v =
-          InnerProperty::template static_query_v<Executor>;
+        static constexpr auto static_query_v = see-below; // not always defined
 
       constexpr prefer_only(const InnerProperty& p);
 
       constexpr auto value() const
-        noexcept(noexcept(property.value()))
-          -> decltype(property.value());
+        noexcept(noexcept(std::declval<const InnerProperty>().value()))
+          -> decltype(std::declval<const InnerProperty>().value());
 
       template<class Executor>
       friend auto prefer(Executor ex, const prefer_only& p)
@@ -1387,6 +1385,10 @@ The `prefer_only` adapter addresses this by turning off the `is_requirable` attr
           -> decltype(execution::query(ex, std::declval<const InnerProperty>()));
     };
 
+If `InnerProperty::polymorphic_query_result_type` is valid and denotes a type, the template instantiation `prefer_only<InnerProperty>` defines a nested type `polymorphic_query_result_type` as a synonym for `InnerProperty::polymorphic_query_result_type`.
+
+If `InnerProperty::static_query_v` is a variable template and `InnerProperty::static_query_v<E>` is well formed for some executor type `E`, the template instantiation `prefer_only<InnerProperty>` defines a nested variable template `static_query_v` as a synonym for `InnerProperty::static_query_v`.
+
 ```
 constexpr prefer_only(const InnerProperty& p);
 ```
@@ -1395,11 +1397,13 @@ constexpr prefer_only(const InnerProperty& p);
 
 ```
 constexpr auto value() const
-  noexcept(noexcept(property.value()))
-    -> decltype(property.value());
+  noexcept(noexcept(std::declval<const InnerProperty>().value()))
+    -> decltype(std::declval<const InnerProperty>().value());
 ```
 
 *Returns:* `property.value()`.
+
+*Remarks:* Shall not participate in overload resolution unless the expression `property.value()` is well-formed.
 
 ```
 template<class Executor>
@@ -1410,6 +1414,8 @@ friend auto prefer(Executor ex, const prefer_only& p)
 
 *Returns:* `execution::prefer(std::move(ex), p.property)`.
 
+*Remarks:* Shall not participate in overload resolution unless the expression `execution::prefer(std::move(ex), p.property)` is well-formed.
+
 ```
 template<class Executor>
 friend constexpr auto query(const Executor& ex, const prefer_only& p)
@@ -1418,6 +1424,8 @@ friend constexpr auto query(const Executor& ex, const prefer_only& p)
 ```
 
 *Returns:* `execution::query(ex, p.property)`.
+
+*Remarks:* Shall not participate in overload resolution unless the expression `execution::query(ex, p.property)` is well-formed.
 
 ## Thread pools
 
