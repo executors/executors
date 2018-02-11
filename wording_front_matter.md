@@ -74,6 +74,8 @@ Revision 5 of this proposal responds to feedback requested during the 2017 Albuq
         * Eliminated `has_*_member` type traits
 * Minor changes
     * Renamed TS namespace from `concurrency_v2` to `executors_v1`
+    * Introduced `static_query_v` enabling static queries
+    * Eliminated unused `property_value` trait
 
 ### Revision 4
 
