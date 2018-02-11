@@ -150,6 +150,7 @@ namespace execution {
 
   class bad_executor;
   class executor;
+  template<class Property> struct prefer_only;
 
 } // namespace execution
 } // inline namespace executors_v1
@@ -1255,6 +1256,168 @@ template<class Context> operator!=(const Context& a, const executor::context_typ
 ```
 
 *Returns:* `!(a == b)`.
+
+### Struct `prefer_only`
+
+The `prefer_only` struct is a property adapter that disables the `is_requirable` value.
+
+[*Example:*
+
+Consider a generic function that performs some task immediately if it can, and otherwise asynchronously in the background.
+
+    template<class Executor>
+    void do_async_work(
+        Executor ex,
+        Callback callback)
+    {
+      if (try_work() == done)
+      {
+        // Work completed immediately, invoke callback.
+        execution::require(ex,
+            execution::single,
+            execution::oneway,
+          ).execute(callback);
+      }
+      else
+      {
+        // Perform work in background. Track outstanding work.
+        start_background_work(
+            execution::prefer(ex,
+              execution::outstanding_work),
+            callback);
+      }
+    }
+
+This function can be used with an inline executor which is defined as follows:
+
+    struct inline_executor
+    {
+      constexpr bool operator==(const inline_executor&) const noexcept
+      {
+        return true;
+      }
+
+      constexpr bool operator!=(const inline_executor&) const noexcept
+      {
+        return false;
+      }
+
+      template<class Function> void execute(Function f) const noexcept
+      {
+        f();
+      }
+    };
+
+as, in the case of an unsupported property, the `execution::prefer` call will fall back to an identity operation.
+
+The polymorphic `executor` wrapper should be able to simply swap in, so that we could change `do_async_work` to the non-template function:
+
+    void do_async_work(
+        executor<
+          execution::single,
+          execution::oneway,
+          execution::outstanding_work> ex,
+        std::function<void()> callback)
+    {
+      if (try_work() == done)
+      {
+        // Work completed immediately, invoke callback.
+        execution::require(ex,
+            execution::single,
+            execution::oneway,
+          ).execute(callback);
+      }
+      else
+      {
+        // Perform work in background. Track outstanding work.
+        start_background_work(
+            execution::prefer(ex,
+              execution::outstanding_work),
+            callback);
+      }
+    }
+
+with no change in behavior or semantics.
+
+However, if we simply specify `execution::outstanding_work` in the `executor` template parameter list, we will get a compile error. This is because the `executor` template doesn't know that `execution::outstanding_work` is intended for use with `prefer` only. At the point of construction from an `inline_executor` called `ex`, `executor` will try to instantiate implementation templates that perform the ill-formed `execution::require(ex, execution::outstanding_work)`.
+
+The `prefer_only` adapter addresses this by turning off the `is_requirable` attribute for a specific property. It would be used in the above example as follows:
+
+    void do_async_work(
+        executor<
+          execution::single,
+          execution::oneway,
+          prefer_only<execution::outstanding_work>> ex,
+        std::function<void()> callback)
+    {
+      ...
+    }
+
+*-- end example*]
+
+    template<class InnerProperty>
+    struct prefer_only
+    {
+      InnerProperty property;
+
+      static constexpr bool is_requirable = false;
+      static constexpr bool is_preferable = InnerProperty::is_preferable;
+
+      using polymorphic_query_result_type =
+        typename InnerProperty::polymorphic_query_result_type;
+
+      template<class Executor>
+        static constexpr auto static_query_v =
+          InnerProperty::template static_query_v<Executor>;
+
+      constexpr prefer_only(const InnerProperty& p);
+
+      constexpr auto value() const
+        noexcept(noexcept(property.value()))
+          -> decltype(property.value());
+
+      template<class Executor>
+      friend auto prefer(Executor ex, const prefer_only& p)
+        noexcept(noexcept(execution::prefer(std::move(ex), std::declval<const InnerProperty>())))
+          -> decltype(execution::prefer(std::move(ex), std::declval<const InnerProperty>()));
+
+      template<class Executor>
+      friend constexpr auto query(const Executor& ex, const prefer_only& p)
+        noexcept(noexcept(execution::query(ex, std::declval<const InnerProperty>())))
+          -> decltype(execution::query(ex, std::declval<const InnerProperty>()));
+    };
+
+```
+constexpr prefer_only(const InnerProperty& p);
+```
+
+*Effects:* Initializes `property` with `p`.
+
+```
+constexpr auto value() const
+  noexcept(noexcept(property.value()))
+    -> decltype(property.value());
+```
+
+*Returns:* `property.value()`.
+
+```
+template<class Executor>
+friend auto prefer(Executor ex, const prefer_only& p)
+  noexcept(noexcept(execution::prefer(std::move(ex), std::declval<const InnerProperty>())))
+    -> decltype(execution::prefer(std::move(ex), std::declval<const InnerProperty>()));
+```
+
+*Returns:* `execution::prefer(std::move(ex), p.property)`.
+
+```
+template<class Executor>
+friend constexpr auto query(const Executor& ex, const prefer_only& p)
+  noexcept(noexcept(execution::query(ex, std::declval<const InnerProperty>())))
+    -> decltype(execution::query(ex, std::declval<const InnerProperty>()));
+```
+
+*Returns:* `execution::query(ex, p.property)`.
 
 ## Thread pools
 
