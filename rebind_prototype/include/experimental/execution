@@ -74,24 +74,6 @@ template<class Executor> struct executor_index;
 template<class Executor> using executor_shape_t = typename executor_shape<Executor>::type;
 template<class Executor> using executor_index_t = typename executor_index<Executor>::type;
 
-// Type traits to determine whether a require member invocation is valid, and what its result is.
-template<class Executor, class Property> struct has_require_member;
-template<class Executor, class Property> struct require_member_result;
-
-template<class Executor, class Property>
-  constexpr bool has_require_member_v = has_require_member<Executor, Property>::value;
-template<class Executor, class Property>
-  using require_member_result_t = typename require_member_result<Executor, Property>::type;
-
-// Type traits to determine whether a query member invocation is valid, and what its result is.
-template<class Executor, class Property> struct has_query_member;
-template<class Executor, class Property> struct query_member_result;
-
-template<class Executor, class Property>
-  constexpr bool has_query_members_v = has_query_member<Executor, Property>::value;
-template<class Executor, class Property>
-  using query_member_result_t = typename query_member_result<Executor, Property>::type;
-
 namespace
 {
   // Require customization point.
@@ -147,10 +129,6 @@ class executor;
 #include <experimental/bits/executor_future.h>
 #include <experimental/bits/executor_shape.h>
 #include <experimental/bits/executor_index.h>
-#include <experimental/bits/has_require_member.h>
-#include <experimental/bits/require_member_result.h>
-#include <experimental/bits/has_query_member.h>
-#include <experimental/bits/query_member_result.h>
 #include <experimental/bits/can_require.h>
 #include <experimental/bits/can_prefer.h>
 #include <experimental/bits/can_query.h>

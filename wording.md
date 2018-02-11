@@ -114,26 +114,6 @@ namespace execution {
   template<class Executor> using executor_shape_t = typename executor_shape<Executor>::type;
   template<class Executor> using executor_index_t = typename executor_index<Executor>::type;
 
-  // Member detection type traits for properties:
-
-  template<class Executor, class Property> struct has_require_member;
-  template<class Executor, class Property> struct has_query_member;
-
-  template<class Executor, class Property>
-    constexpr bool has_require_member_v = has_require_member<Executor, Property>::value;
-  template<class Executor, class Property>
-    constexpr bool has_query_member_v = has_query_member<Executor, Property>::value;
-
-  // Member return type traits for properties:
-
-  template<class Executor, class Property> struct require_member_result;
-  template<class Executor, class Property> struct query_member_result;
-
-  template<class Executor, class Property>
-    using require_member_result_t = typename require_member_result<Executor, Property>::type;
-  template<class Executor, class Property>
-    using query_member_result_t = typename query_member_result<Executor, Property>::type;
-
   // Property value types traits:
 
   template<class Executor, class Property> struct property_value;
@@ -203,32 +183,19 @@ A type `A` meets the `ProtoAllocator` requirements if `A` is `CopyConstructible`
 
 ### General requirements on executors
 
-An executor type `X` shall satisfy the requirements of `CopyConstructible` (C++Std [copyconstructible]), `Destructible` (C++Std [destructible]), and `EqualityComparable` (C++Std [equalitycomparable]), as well as the additional requirements listed below.
+An executor type shall satisfy the requirements of `CopyConstructible` (C++Std [copyconstructible]), `Destructible` (C++Std [destructible]), and `EqualityComparable` (C++Std [equalitycomparable]).
 
-No comparison operator, copy operation, move operation, swap operation, or member function `context` on these types shall exit via an exception.
+None of these concepts' operations, nor an executor type's swap operations, shall exit via an exception.
 
-The executor copy constructor, comparison operators, associated execution functions, associated query functions, and other member functions defined in executor type requirements shall not introduce data races as a result of concurrent calls to those functions from different threads.
+None of these concepts' operations, nor an executor type's associated execution functions, associated query functions, or other member functions defined in executor type requirements, shall introduce data races as a result of concurrent calls to those functions from different threads.
 
-The destructor shall not block pending completion of the submitted function objects. [*Note:* The ability to wait for completion of submitted function objects may be provided by the associated execution context. *--end note*]
-
-In the Table \ref{base_executor_requirements} below, `x1` and `x2` denote (possibly const) values of some executor type `X`, `mx1` denotes an xvalue of type `X`, and `u` denotes an identifier.
-
-Table: (General executor requirements) \label{base_executor_requirements}
-
-| Expression   | Type       | Assertion/note/pre-/post-condition |
-|--------------|------------|------------------------------------|
-| `X u(x1);` | | Shall not exit via an exception. <br/><br/>*Post:* `u == x1`. |
-| `X u(mx1);` | | Shall not exit via an exception. <br/><br/>*Post:* `u` equals the prior value of `mx1`. |
-| `x1 == x2` | `bool` | Returns `true` only if `x1` and `x2` can be interchanged with identical effects in any of the expressions defined in these type requirements (TODO and the other executor requirements defined in this Technical Specification). [*Note:* Returning `false` does not necessarily imply that the effects are not identical. *--end note*] `operator==` shall be reflexive, symmetric, and transitive, and shall not exit via an exception. |
-| `x1 != x2` | `bool` | Same as `!(x1 == x2)`. |
-
-[*Commentary: The equality operator is specified primarily as an aid to support postconditons on executor copy construction and move construction. The key word in supporting these postconditions is "interchanged". That is, if a copy is substituted for the original executor it shall produce identical effects, provided the expression, calling context, and program state are otherwise identical. Calls to the copied executor from a different context or program state are not required to produce identical effects, and this is not considered an "interchanged" use of an executor. In particular, even consecutive calls to the same executor need not produce identical effects since the program state has already altered.*]
+An executor type's destructor shall not block pending completion of the submitted function objects. [*Note:* The ability to wait for completion of submitted function objects may be provided by the associated execution context. *--end note*]
 
 ### `OneWayExecutor` requirements
 
-The `OneWayExecutor` requirements specify requirements for executors which create execution agents without a channel for awaiting the completion of a submitted function object and obtaining its result. [*Note:* That is, the executor provides fire-and-forget semantics. *--end note*]
+The `OneWayExecutor` requirements specify requirements for executors which create execution agents. A type `X` satisfies the `OneWayExecutor` requirements if it satisfies the general requirements on executors, as well as the requirements in the table below.
 
-A type `X` satisfies the `OneWayExecutor` requirements if it satisfies the general requirements on executors, as well as the requirements in the table below.
+[*Note:* `OneWayExecutor`s provides fire-and-forget semantics without a channel for awaiting the completion of a submitted function object and obtaining its result. *--end note*]
 
 In the Table below, `x` denotes a (possibly const) executor object of type `X` and `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
 
@@ -238,7 +205,7 @@ In the Table below, `x` denotes a (possibly const) executor object of type `X` a
 
 ### `TwoWayExecutor` requirements
 
-The `TwoWayExecutor` requirements specify requirements for executors which creating execution agents with a channel for awaiting the completion of a submitted function object and obtaining its result.
+The `TwoWayExecutor` requirements specify requirements for executors which create execution agents with a channel for awaiting the completion of a submitted function object and obtaining its result.
 
 A type `X` satisfies the `TwoWayExecutor` requirements if it satisfies the general requirements on executors, as well as the requirements in the table below.
 
@@ -354,15 +321,14 @@ The current value of an executor's properties can be queried by calling the `que
 
     struct context_t
     {
-      static constexpr bool is_requirable = true;
+      static constexpr bool is_requirable = false;
       static constexpr bool is_preferable = false;
 
       using polymorphic_query_result_type = any; // TODO: alternatively consider void*, or simply omitting the type.
 
       template<class Executor>
-        static constexpr bool is_supportable
-          = can_query_v<Executor, context_t>;
-            // TODO consider requiring the query result to be an lvalue reference.
+        static constexpr bool static_query_v
+          = Executor::query(context_t());
     };
 
 The `context_t` property can be used only with `query`, which returns the **execution context** associated with the executor.
@@ -387,17 +353,35 @@ The directionality properties conform to the following specification:
       using polymorphic_query_result_type = bool;
 
       template<class Executor>
-        static constexpr bool is_supportable
+        static constexpr bool static_query_v
           = see-below;
+
+      static constexpr bool value() const { return true; }
     };
 
-| Property | Requirements | is_supportable                 |
+| Property | Requirements | static_query_v value           |
 |----------|--------------| -------------------------------|
-| `oneway_t` | The executor type satisfies the `OneWayExecutor` or `BulkOneWayExecutor` requirements. | `can_query_v<Executor, S> && (is_oneway_executor_v<Executor> || is_bulk_oneway_executor_v<Executor>)` |
-| `twoway_t` | The executor type satisfies the `TwoWayExecutor` or `BulkTwoWayExecutor` requirements. | `can_query_v<Executor, S> && (is_twoway_executor_v<Executor> || is_bulk_twoway_executor_v<Executor>)` |
-| `then_t` | The executor type satisfies the `ThenExecutor` or `BulkThenExecutor` requirements. | `can_query_v<Executor, S> && (is_then_executor_v<Executor> || is_bulk_then_executor_v<Executor>)` |
+| `oneway_t` | The executor type satisfies the `OneWayExecutor` or `BulkOneWayExecutor` requirements. | `is_oneway_executor_v<Executor> || is_bulk_oneway_executor_v<Executor>` |
+| `twoway_t` | The executor type satisfies the `TwoWayExecutor` or `BulkTwoWayExecutor` requirements. | `is_twoway_executor_v<Executor> || is_bulk_twoway_executor_v<Executor>` |
+| `then_t` | The executor type satisfies the `ThenExecutor` or `BulkThenExecutor` requirements. | `is_then_executor_v<Executor> || is_bulk_then_executor_v<Executor>` |
 
 The `oneway_t`, `twoway_t` and `then_t` properties are not mutually exclusive.
+
+##### `twoway_t` customization points
+
+In addition to conforming to the above specification, the `twoway_t` property provides the following customization:
+
+    struct twoway_t
+    {
+      template<class Executor>
+        friend see-below require(Executor ex, twoway_t);
+    };
+
+If the executor has the `oneway_t` and `adaptable_blocking_t` properties, this customization returns an adapter that implements the twoway property and its requirements.
+
+*Returns:* A value `e1` of type `E1` that holds a copy of `ex`. If `Executor` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `OneWayExecutor` requirements by providing member functions `require`, `query`, and `execute` that forward to the corresponding member functions of the copy of `ex`, if present, and `E1` shall satisfy the `TwoWayExecutor` requirements by implementing `twoway_execute` in terms of `execute`. Similarly, if `Executor` satisfies the `BulkOneWayExecutor` requirements, `E1` shall satisfy the `BulkOneWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_execute` that forward to the corresponding member functions of the copy of `ex`, if present, and `E1` shall satisfy the `BulkTwoWayExecutor` requirements by implementing `bulk_twoway_execute` in terms of `bulk_execute`. For some type `T`, the type yielded by `executor_future_t<E1, T>` is `std::experimental::future<T>`. `e1` has the same executor properties as `ex`, except for the addition of the `twoway_t` property.
+
+*Remarks:* This function shall not participate in overload resolution unless `is_twoway_executor_v<Executor> ||` `is_bulk_twoway_executor_v<Executor>` is false, `is_oneway_executor_v<Executor>` `||` `is_bulk_oneway_executor_v<Executor>` is true, and `adaptable_blocking_t::static_query_v<Executor>` is a constant expression with value `true`.
 
 #### Cardinality properties
 
@@ -414,16 +398,39 @@ The cardinality properties conform to the following specification:
       using polymorphic_query_result_type = bool;
 
       template<class Executor>
-        static constexpr bool is_supportable
+        static constexpr bool static_query_v
           = see-below;
+
+      static constexpr bool value() const { return true; }
     };
 
-| Property | Requirements | is_supportable                      |
+| Property | Requirements | static_query_v value                |
 |----------|--------------| ------------------------------------|
-| `single_t` | The executor type satisfies the `OneWayExecutor`, `TwoWayExecutor`, or `ThenExecutor` requirements. | `can_query_v<Executor, S> && (is_oneway_executor_v<Executor> || is_twoway_executor_v<Executor> || is_then_executor_v<Executor>)` |
-| `bulk_t` | The executor type satisfies the `BulkOneWayExecutor`, `BulkTwoWayExecutor`, or `BulkThenExecutor` requirements. | `can_query_v<Executor, S> && (is_bulk_oneway_executor_v<Executor> || is_bulk_twoway_executor_v<Executor> || is_bulk_then_executor_v<Executor>)` |
+| `single_t` | The executor type satisfies the `OneWayExecutor`, `TwoWayExecutor`, or `ThenExecutor` requirements. | `is_oneway_executor_v<Executor> || is_twoway_executor_v<Executor> || is_then_executor_v<Executor>` |
+| `bulk_t` | The executor type satisfies the `BulkOneWayExecutor`, `BulkTwoWayExecutor`, or `BulkThenExecutor` requirements. | `is_bulk_oneway_executor_v<Executor> || is_bulk_twoway_executor_v<Executor> || is_bulk_then_executor_v<Executor>` |
 
 The `single_t` and `bulk_t` properties are not mutually exclusive.
+
+##### `bulk_t` customization points
+
+In addition to conforming to the above specification, the `bulk_t` property provides the following customization:
+
+    struct bulk_t
+    {
+      template<class Executor>
+        friend see-below require(Executor ex, bulk_t);
+    };
+
+If the executor has the `oneway_t` property, this customization returns an adapter that implements the bulk property and its requirements.
+
+```
+template<class Executor>
+  friend see-below require(Executor ex, bulk_t);
+```
+
+*Returns:* A value `e1` of type `E1` that holds a copy of `ex`. If `Executor` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `OneWayExecutor` requirements by providing member functions `require`, `query`, and `execute` that forward to the corresponding member functions of the copy of `ex`, if present, and `E1` shall satisfy the `BulkExecutor` requirements by implementing `bulk_execute` in terms of `execute`. If `Executor` also satisfies the `TwoWayExecutor` requirements, `E1` shall satisfy the `TwoWayExecutor` requirements by providing the member function `twoway_execute` that forwards to the corresponding member function of the copy of `ex`, if present, and `E1` shall satisfy the `BulkTwoWayExecutor` requirements by implementing `bulk_twoway_execute` in terms of `bulk_execute`. `e1` has the same executor properties as `ex`, except for the addition of the `bulk_t` property.
+
+*Remarks:* This function shall not participate in overload resolution unless `is_bulk_oneway_executor_v<Executor> ||` `is_bulk_twoway_executor_v<Executor>` is false, and `is_oneway_executor_v<Executor>` is true.
 
 ### Behavioral properties
 
@@ -437,8 +444,10 @@ Behavioral properties conform to the following specification:
       using polymorphic_query_result_type = bool;
 
       template<class Executor>
-        static constexpr bool is_supportable
-          = can_query_v<Executor, S>;
+        static constexpr bool static_query_v
+          = Executor::query(S());
+
+      static constexpr bool value() const { return true; }
     };
 
 The result of the `query` customization point for a behavioral property is
@@ -460,6 +469,48 @@ The `possibly_blocking_t`, `always_blocking_t` and `never_blocking_t` properties
 
 [*Note:* The guarantees of `possibly_blocking_t`, `always_blocking_t` and `never_blocking_t` implies the relationships: `possibly_blocking < always_blocking` and `possibly_blocking < never_blocking` *--end note*]
 
+##### `possibly_blocking_t` customization points
+
+In addition to conforming to the above specification, the `possibly_blocking_t` property provides the following customization:
+
+    struct possibly_blocking_t
+    {
+      template<class Executor>
+        friend constexpr bool query(const Executor& ex, possibly_blocking_t);
+    };
+
+This customization automatically enables the `possibly_blocking_t` property for all executors that do not otherwise support the `always_blocking_t` or `never_blocking_t` properties. [*Note:* That is, all executors are treated as possibly blocking unless otherwise specified. *--end note*]
+
+```
+template<class Executor>
+  friend constexpr bool query(const Executor& ex, possibly_blocking_t);
+```
+
+*Returns:* `true`.
+
+*Remarks:* This function shall not participate in overload resolution unless `can_query_v<Executor, always_blocking_t> || can_query_v<Executor, never_blocking_t>` is `false`.
+
+##### `always_blocking_t` customization points
+
+In addition to conforming to the above specification, the `always_blocking_t` property provides the following customization:
+
+    struct always_blocking_t
+    {
+      template<class Executor>
+        friend see-below require(Executor ex, always_blocking_t);
+    };
+
+If the executor has the `adaptable_blocking_t` property, this customization uses an adapter to implement the `always_blocking_t` property.
+
+```
+template<class Executor>
+  friend see-below require(Executor ex, always_blocking_t);
+```
+
+*Returns:* A value `e1` of type `E1` that holds a copy of `ex`. If `Executor` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `OneWayExecutor` requirements by providing member functions `require`, `query`, and `execute` that forward to the corresponding member functions of the copy of `ex`. If `Executor` satisfies the `TwoWayExecutor` requirements, `E1` shall satisfy the `TwoWayExecutor` requirements by providing member functions `require`, `query`, and `twoway_execute` that forward to the corresponding member functions of the copy of `ex`. If `Executor` satisfies the `BulkOneWayExecutor` requirements, `E1` shall satisfy the `BulkOneWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_execute` that forward to the corresponding member functions of the copy of `ex`. If `Executor` satisfies the `BulkTwoWayExecutor` requirements, `E1` shall satisfy the `BulkTwoWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_twoway_execute` that forward to the corresponding member functions of the copy of `ex`. In addition, `E1` provides an overload of `require` such that `E1.require(always_blocking)` returns a copy of `E1`, an overload of `query` such that `E1.query(always_blocking)` returns `true`, and all functions `execute`, `twoway_execute`, `bulk_execute`, and `bulk_twoway_execute` shall block the calling thread until the submitted functions have finished execution. `e1` has the same executor properties as `ex`, except for the addition of the `always_blocking_t` property, and removal of `never_blocking_t` and `possibly_blocking_t` properties if present.
+
+*Remarks:* This function shall not participate in overload resolution unless `adaptable_blocking_t::static_query_v<Executor>` is `true`.
+
 #### Properties to indicate if blocking and directionality may be adapted
 
     struct adaptable_blocking_t;
@@ -473,6 +524,25 @@ The `possibly_blocking_t`, `always_blocking_t` and `never_blocking_t` properties
 The `not_adaptable_blocking_t` and `adaptable_blocking_t` properties are mutually exclusive.
 
 [*Note:* The `two_way_t` property is included here as the `require` customization point's `two_way_t` adaptation is specified in terms of `std::experimental::future`, and that template supports blocking wait operations. *--end note*]
+
+##### `adaptable_blocking_t` customization points
+
+In addition to conforming to the above specification, the `adaptable_blocking_t` property provides the following customization:
+
+    struct adaptable_blocking_t
+    {
+      template<class Executor>
+        friend see-below require(Executor ex, adaptable_blocking_t);
+    };
+
+This customization uses an adapter to implement the `adaptable_blocking_t` property.
+
+```
+template<class Executor>
+  friend see-below require(Executor ex, adaptable_blocking_t);
+```
+
+*Returns:* A value `e1` of type `E1` that holds a copy of `ex`. If `Executor` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `OneWayExecutor` requirements by providing member functions `require`, `query`, and `execute` that forward to the corresponding member functions of the copy of `ex`. If `Executor` satisfies the `TwoWayExecutor` requirements, `E1` shall satisfy the `TwoWayExecutor` requirements by providing member functions `require`, `query`, and `twoway_execute` that forward to the corresponding member functions of the copy of `ex`. If `Executor` satisfies the `BulkOneWayExecutor` requirements, `E1` shall satisfy the `BulkOneWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_execute` that forward to the corresponding member functions of the copy of `ex`. If `Executor` satisfies the `BulkTwoWayExecutor` requirements, `E1` shall satisfy the `BulkTwoWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_twoway_execute` that forward to the corresponding member functions of the copy of `ex`. In addition, `adaptable_blocking_t::static_query_v<E1>` is `true`, and `e1.require(not_adaptable_blocking)` yields a copy of `ex`. `e1` has the same executor properties as `ex`, except for the addition of the `adaptable_blocking_t` property.
 
 #### Properties to indicate if submitted tasks represent continuations
 
@@ -652,30 +722,6 @@ This sub-clause contains templates that may be used to query the properties of a
         static_assert(std::is_integral_v<type>, "index type must be an integral type");
     };
 
-### Member detection type traits for properties
-
-    template<class Executor, class Property> struct has_require_member;
-    template<class Executor, class Property> struct has_query_member;
-
-This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
-
-| Template                   | Condition           | Preconditions  |
-|----------------------------|---------------------|----------------|
-| `template<class Executor, class Property>` <br/>`struct has_require_member` | The expression `declval<const Executor>().require( declval<Property>())` is well formed. | `Executor` is a complete type. |
-| `template<class Executor, class Property>` <br/>`struct has_query_member` | The expression `declval<const Executor>().query( declval<Property>())` is well formed. | `Executor` is a complete type. |
-
-### Member return type traits for properties
-
-    template<class Executor, class Property> struct require_member_result;
-    template<class Executor, class Property> struct query_member_result;
-
-This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a TransformationTrait (C++Std [meta.rqmts]).
-
-| Template                   | Condition           | Comments  |
-|----------------------------|---------------------|-----------|
-| `template<class Executor, class Property>` <br/>`struct require_member_result` | The expression `declval<const Executor>().require( declval<Property>())` is well formed. | The member typedef `type` shall name the type of the expression `declval<const Executor>().require( declval<Property())`. |
-| `template<class Executor, class Property>` <br/>`struct query_member_result` | The expression `declval<const Executor>().query( declval<Property>())` is well formed. | The member typedef `type` shall name the type of the expression `declval<const Executor>().query( declval<Property())`. |
-
 ## Property value types traits for properties
 
 This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a TransformationTrait (C++Std [meta.rqmts]).
@@ -702,26 +748,13 @@ Whenever `std::experimental::executors_v1::execution::`*NAME*`(`*ARGS*`)` is a v
 
 The name `require` denotes a customization point. The effect of the expression `std::experimental::executors_v1::execution::require(E, P0, Pn...)` for some expressions `E` and `P0`, and where `Pn...` represents `N` expressions (where `N` is 0 or more), is equivalent to:
 
-* `(E).require(P0)` if `N == 0` and `has_require_member_v<decay_t<decltype(E)>, decltype(P0)>` is true.
+* If `N == 0`, `P0::is_requirable` is true, and the expression `decay_t<decltype(P0)>::template static_query_v<decay_t<decltype(E)>> == decay_t<decltype(P0)>::value()` is a well-formed constant expression with value `true`, `E`.
 
-* Otherwise, `require(E, P0)` if `N == 0` and the expression is well formed.
+* If `N == 0`, `P0::is_requirable` is true, and the expression `(E).require(P0)` is well-formed, `(E).require(P0)`.
 
-* Otherwise, `E` if `N == 0` and:
-  * `is_same<decay_t<decltype(P0)>, oneway_t>` is true and `(is_oneway_executor_v<decay_t<decltype(E)>> || is_bulk_oneway_executor_v<decay_t<decltype(E)>>)` is true; or
-  * `is_same<decay_t<decltype(P0)>, twoway_t>` is true and `(is_twoway_executor_v<decay_t<decltype(E)>> || is_bulk_twoway_executor_v<decay_t<decltype(E)>>)` is true; or
-  * `is_same<decay_t<decltype(P0)>, single_t>` is true and `(is_oneway_executor_v<decay_t<decltype(E)>> || is_twoway_executor_v<decay_t<decltype(E)>>)` is true; or
-  * `is_same<decay_t<decltype(P0)>, bulk_t>` is true and `(is_bulk_oneway_executor_v<decay_t<decltype(E)>> || is_bulk_twoway_executor_v<decay_t<decltype(E)>>)` is true; or
-  * `is_same<decay_t<decltype(P0)>, possibly_blocking_t>` is true.
+* If `N == 0`, `P0::is_requirable` is true, and the expression `require(E, P0)` is well-formed, `require(E, P0)`.
 
-* Otherwise, a value `E1` of unspecified type that holds a copy of `E` if `N == 0`, `is_same<decay_t<decltype(P0)>, twoway_t>` is true, and `can_query_v<decltype(E), adaptable_blocking_t>` is true. If `E` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `OneWayExecutor` requirements by providing member functions `require`, `query`, and `execute` that forward to the corresponding member functions of the copy of `E`, if present, and `E1` shall satisfy the `TwoWayExecutor` requirements by implementing `twoway_execute` in terms of `execute`. Similarly, if `E` satisfies the `BulkOneWayExecutor` requirements, `E1` shall satisfy the `BulkOneWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_execute` that forward to the corresponding member functions of the copy of `E`, if present, and `E1` shall satisfy the `BulkTwoWayExecutor` requirements by implementing `bulk_twoway_execute` in terms of `bulk_execute`. For some type `T`, the type yielded by `executor_future_t<decltype(E1), T>` is `std::experimental::future<T>`. `E1` has the same executor properties as `E`, except for the addition of the `twoway_t` property.
-
-* Otherwise, a value `E1` of unspecified type that holds a copy of `E` if `N == 0` and `is_same<decay_t<decltype(P0)>, bulk_t>` is true. If `E` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `OneWayExecutor` requirements by providing member functions `require`, `query`, and `execute` that forward to the corresponding member functions of the copy of `E`, if present, and `E1` shall satisfy the `BulkExecutor` requirements by implementing `bulk_execute` in terms of `execute`. If `E` also satisfies the `TwoWayExecutor` requirements, `E1` shall satisfy the `TwoWayExecutor` requirements by providing the member function `twoway_execute` that forwards to the corresponding member function of the copy of `E`, if present, and `E1` shall satisfy the `BulkTwoWayExecutor` requirements by implementing `bulk_twoway_execute` in terms of `bulk_execute`. `E1` has the same executor properties as `E`, except for the addition of the `bulk_t` property.
-
-* Otherwise, a value `E1` of unspecified type that holds a copy of `E` if `N == 0`, `is_same<decay_t<decltype(P0)>, always_blocking_t>` is true, and `can_query_v<decltype(E), adaptable_blocking_t>` is true. If `E` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `OneWayExecutor` requirements by providing member functions `require`, `query`, and `execute` that forward to the corresponding member functions of the copy of `E`. If `E` satisfies the `TwoWayExecutor` requirements, `E1` shall satisfy the `TwoWayExecutor` requirements by providing member functions `require`, `query`, and `twoway_execute` that forward to the corresponding member functions of the copy of `E`. If `E` satisfies the `BulkOneWayExecutor` requirements, `E1` shall satisfy the `BulkOneWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_execute` that forward to the corresponding member functions of the copy of `E`. If `E` satisfies the `BulkTwoWayExecutor` requirements, `E1` shall satisfy the `BulkTwoWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_twoway_execute` that forward to the corresponding member functions of the copy of `E`. In addition, `E1` provides an overload of `require` such that `E1.require(always_blocking)` returns a copy of `E1`, and all functions `execute`, `twoway_execute`, `bulk_execute`, and `bulk_twoway_execute` shall block the calling thread until the submitted functions have finished execution. `E1` has the same executor properties as `E`, except for the addition of the `always_blocking_t` property, and removal of `never_blocking_t` and `possibly_blocking_t` properties if present.
-
-* Otherwise, a value `E1` of unspecified type that holds a copy of `E` if `N == 0` and `is_same<decay_t<decltype(P0)>, adaptable_blocking_t>` is true. If `E` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `OneWayExecutor` requirements by providing member functions `require`, `query`, and `execute` that forward to the corresponding member functions of the copy of `E`. If `E` satisfies the `TwoWayExecutor` requirements, `E1` shall satisfy the `TwoWayExecutor` requirements by providing member functions `require`, `query`, and `twoway_execute` that forward to the corresponding member functions of the copy of `E`. If `E` satisfies the `BulkOneWayExecutor` requirements, `E1` shall satisfy the `BulkOneWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_execute` that forward to the corresponding member functions of the copy of `E`. If `E` satisfies the `BulkTwoWayExecutor` requirements, `E1` shall satisfy the `BulkTwoWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_twoway_execute` that forward to the corresponding member functions of the copy of `E`. In addition, `can_query_v<decltype(E1), adaptable_blocking_t>` is true, and `E1.require(not_adaptable_blocking)` yields a copy of `E`. `E1` has the same executor properties as `E`, except for the addition of the `adaptable_blocking_t` property.
-
-* Otherwise, `std::experimental::executors_v1::execution::require( std::experimental::executors_v1::execution::require(E, P0), Pn...)` if `N > 0` and the expression is well formed.
+* If `N > 0` and the expression `std::experimental::executors_v1::execution::require( std::experimental::executors_v1::execution::require(E, P0), Pn...)` is well formed, `std::experimental::executors_v1::execution::require( std::experimental::executors_v1::execution::require(E, P0), Pn...)`.
 
 * Otherwise, `std::experimental::executors_v1::execution::require(E, P0, Pn...)` is ill-formed.
 
@@ -733,15 +766,17 @@ The name `require` denotes a customization point. The effect of the expression `
 
 The name `prefer` denotes a customization point. The effect of the expression `std::experimental::executors_v1::execution::prefer(E, P0, Pn...)` for some expressions `E` and `P0`, and where `Pn...` represents `N` expressions (where `N` is 0 or more), is equivalent to:
 
-* `(E).require(P0)` if `N == 0`, `P0::is_preferable == true`, and `has_require_member_v<decay_t<decltype(E)>, decltype(P0)>` is true.
+* If `N == 0`, `P0::is_preferable` is true, and the expression `decay_t<decltype(P0)>::template static_query_v<decay_t<decltype(E)>> == decay_t<decltype(P0)>::value()` is a well-formed constant expression with value `true`, `E`.
 
-* Otherwise, `prefer(E, P0)` if `N == 0`, `P0::is_preferable == true`, and the expression is well formed.
+* If `N == 0`, `P0::is_preferable` is true,  and the expression `(E).require(P0)` is well-formed, `(E).require(P0)`.
 
-* Otherwise, `E` if `N == 0` and `P0::is_preferable == true`.
+* If `N == 0`, `P0::is_preferable` is true, and the expression `prefer(E, P0)` is well-formed, `prefer(E, P0)`.
 
-* Otherwise, `std::experimental::executors_v1::execution::prefer( std::experimental::executors_v1::execution::prefer(E, P0), Pn...)` if the expression is well formed.
+* If `N == 0` and `P0::is_preferable` is true, `E`.
 
-* Otherwise, `std::experimental::executors_v1::execution::prefer(E, P0, Pn...)` is ill-formed.
+* If `N > 0` and the expression `std::experimental::executors_v1::execution::prefer( std::experimental::executors_v1::execution::prefer(E, P0), Pn...)` is well formed, `std::experimental::executors_v1::execution::prefer( std::experimental::executors_v1::execution::prefer(E, P0), Pn...)`.
+
+* Otherwise, `std::experimental::executors_v1::execution::require(E, P0, Pn...)` is ill-formed.
 
 ### `query`
 
@@ -751,9 +786,11 @@ The name `prefer` denotes a customization point. The effect of the expression `s
 
 The name `query` denotes a customization point. The effect of the expression `std::experimental::executors_v1::execution::query(E, P)` for some expressions `E` and `P` is equivalent to:
 
-* `(E).query(P)` if `has_query_member_v<decay_t<decltype(E)>, decltype(P)>` is true.
+* If the expression `decay_t<decltype(P0)>::template static_query_v<decay_t<decltype(E)>>` is a well-formed constant expression, `decay_t<decltype(P0)>::template static_query_v<decay_t<decltype(E)>>`.
 
-* Otherwise, `query(E, P)` if the expression is well formed.
+* If the expression `(E).query(P0)` is well-formed, `(E).query(P0)`.
+
+* If the expression `query(E, P0)` is well-formed, `query(E, P0)`.
 
 * Otherwise, `std::experimental::executors_v1::execution::query(E, P)` is ill-formed.
 

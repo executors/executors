@@ -24,6 +24,8 @@ class strand
   std::shared_ptr<strand_state> state_;
   Executor ex_;
 
+  template <class T> static auto inner_declval() -> decltype(std::declval<Executor>());
+
   strand(std::shared_ptr<strand_state> s, Executor ex)
     : state_(std::move(s)), ex_(std::move(ex))
   {
@@ -70,17 +72,17 @@ public:
   }
 
   template <class Property> auto require(const Property& p) const
-    -> strand<execution::require_member_result_t<Executor, Property>, Blocking>
+    -> strand<decltype(inner_declval<Property>().require(p)), Blocking>
       { return { state_, ex_.require(p) }; }
 
   auto require(execution::never_blocking_t) const
-    -> strand<execution::require_member_result_t<Executor, execution::never_blocking_t>, execution::never_blocking_t>
+    -> strand<decltype(std::declval<Executor>().require(execution::never_blocking)), execution::never_blocking_t>
   {
     return {state_, ex_.require(execution::never_blocking)};
   };
 
   auto require(execution::possibly_blocking_t) const
-    -> strand<execution::require_member_result_t<Executor, execution::possibly_blocking_t>, execution::never_blocking_t>
+    -> strand<decltype(std::declval<Executor>().require(execution::possibly_blocking)), execution::possibly_blocking_t>
   {
     return {state_, ex_.require(execution::possibly_blocking)};
   };
@@ -88,7 +90,7 @@ public:
   void require(execution::always_blocking_t) const = delete;
 
   template<class Property> auto query(const Property& p) const
-    -> typename execution::query_member_result<Executor, Property>::type
+    -> decltype(inner_declval<Property>().query(p))
       { return ex_.query(p); }
 
   friend bool operator==(const strand& a, const strand& b) noexcept
