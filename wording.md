@@ -6,6 +6,27 @@ namespace experimental {
 inline namespace executors_v1 {
 namespace execution {
 
+  // Customization points:
+
+  namespace {
+    constexpr unspecified require = unspecified;
+    constexpr unspecified prefer = unspecified;
+    constexpr unspecified query = unspecified;
+  }
+
+  // Customization point type traits:
+
+  template<class Executor, class... Properties> struct can_require;
+  template<class Executor, class... Properties> struct can_prefer;
+  template<class Executor, class Property> struct can_query;
+
+  template<class Executor, class... Properties>
+    constexpr bool can_require_v = can_require<Executor, Properties...>::value;
+  template<class Executor, class... Properties>
+    constexpr bool can_prefer_v = can_prefer<Executor, Properties...>::value;
+  template<class Executor, class Property>
+    constexpr bool can_query_v = can_query<Executor, Property>::value;
+
   // Associated execution context property:
   struct context_t;
 
@@ -117,27 +138,6 @@ namespace execution {
   template<class Executor, class T> using executor_future_t = typename executor_future<Executor, T>::type;
   template<class Executor> using executor_shape_t = typename executor_shape<Executor>::type;
   template<class Executor> using executor_index_t = typename executor_index<Executor>::type;
-
-  // Customization points:
-
-  namespace {
-    constexpr unspecified require = unspecified;
-    constexpr unspecified prefer = unspecified;
-    constexpr unspecified query = unspecified;
-  }
-
-  // Customization point type traits:
-
-  template<class Executor, class... Properties> struct can_require;
-  template<class Executor, class... Properties> struct can_prefer;
-  template<class Executor, class Property> struct can_query;
-
-  template<class Executor, class... Properties>
-    constexpr bool can_require_v = can_require<Executor, Properties...>::value;
-  template<class Executor, class... Properties>
-    constexpr bool can_prefer_v = can_prefer<Executor, Properties...>::value;
-  template<class Executor, class Property>
-    constexpr bool can_query_v = can_query<Executor, Property>::value;
 
   // Polymorphic executor wrappers:
 
@@ -292,6 +292,84 @@ In the Table below,
 |------------|-------------|---------------------- |
 | `x.bulk_then_execute(f, n, fut, rf, sf)` | A type that satisfies the `Future` requirements for the value type `R`. | If `R` is non-void, invokes `rf()` on an unspecified execution agent to produce the value `r`. Invokes `sf()` on an unspecified execution agent to produce the value `s`. When `fut` is ready, creates a group of execution agents of shape `n` which invokes `DECAY_COPY( std::forward<F>(f))(i, fut, r, s)` if `R` is non-void, and otherwise invokes `DECAY_COPY( std::forward<F>(f))(i, fut, s)`, at most once for each value of `i` in the range `[0,n)`, with the call to `DECAY_COPY` being evaluated in the thread that called `bulk_then_execute`. <br/> <br/> May block forward progress of the caller until one or more invocations of `f` finish execution. <br/> <br/> The invocation of `bulk_then_execute` synchronizes with (C++Std [intro.multithread]) the invocations of `f`. <br/> <br/> Once all invocations of `f` finish execution, stores `r`, or any exception thrown by an invocation of `f`, in the associated shared state of the resulting `Future`. |
 
+## Executor customization points
+
+*Executor customization points* are functions which adapt an executor's properties. Executor customization points enable uniform use of executors in generic contexts.
+
+When an executor customization point named *NAME* invokes a free execution function of the same name, overload resolution is performed in a context that includes the declaration `void` *NAME*`(auto&... args) = delete;`, where `sizeof...(args)` is the arity of the free execution function. This context also does not include a declaration of the executor customization point.
+
+[*Note:* This provision allows executor customization points to call the executor's free, non-member execution function of the same name without recursion. *--end note*]
+
+Whenever `std::experimental::executors_v1::execution::`*NAME*`(`*ARGS*`)` is a valid expression, that expression satisfies the syntactic requirements for the free execution function named *NAME* with arity `sizeof...(`*ARGS*`)` with that free execution function's semantics.
+
+### `require`
+
+    namespace {
+      constexpr unspecified require = unspecified;
+    }
+
+The name `require` denotes a customization point. The effect of the expression `std::experimental::executors_v1::execution::require(E, P0, Pn...)` for some expressions `E` and `P0`, and where `Pn...` represents `N` expressions (where `N` is 0 or more), is equivalent to:
+
+* If `N == 0`, `P0::is_requirable` is true, and the expression `decay_t<decltype(P0)>::template static_query_v<decay_t<decltype(E)>> == decay_t<decltype(P0)>::value()` is a well-formed constant expression with value `true`, `E`.
+
+* If `N == 0`, `P0::is_requirable` is true, and the expression `(E).require(P0)` is well-formed, `(E).require(P0)`.
+
+* If `N == 0`, `P0::is_requirable` is true, and the expression `require(E, P0)` is well-formed, `require(E, P0)`.
+
+* If `N > 0` and the expression `std::experimental::executors_v1::execution::require( std::experimental::executors_v1::execution::require(E, P0), Pn...)` is well formed, `std::experimental::executors_v1::execution::require( std::experimental::executors_v1::execution::require(E, P0), Pn...)`.
+
+* Otherwise, `std::experimental::executors_v1::execution::require(E, P0, Pn...)` is ill-formed.
+
+### `prefer`
+
+    namespace {
+      constexpr unspecified prefer = unspecified;
+    }
+
+The name `prefer` denotes a customization point. The effect of the expression `std::experimental::executors_v1::execution::prefer(E, P0, Pn...)` for some expressions `E` and `P0`, and where `Pn...` represents `N` expressions (where `N` is 0 or more), is equivalent to:
+
+* If `N == 0`, `P0::is_preferable` is true, and the expression `decay_t<decltype(P0)>::template static_query_v<decay_t<decltype(E)>> == decay_t<decltype(P0)>::value()` is a well-formed constant expression with value `true`, `E`.
+
+* If `N == 0`, `P0::is_preferable` is true,  and the expression `(E).require(P0)` is well-formed, `(E).require(P0)`.
+
+* If `N == 0`, `P0::is_preferable` is true, and the expression `prefer(E, P0)` is well-formed, `prefer(E, P0)`.
+
+* If `N == 0` and `P0::is_preferable` is true, `E`.
+
+* If `N > 0` and the expression `std::experimental::executors_v1::execution::prefer( std::experimental::executors_v1::execution::prefer(E, P0), Pn...)` is well formed, `std::experimental::executors_v1::execution::prefer( std::experimental::executors_v1::execution::prefer(E, P0), Pn...)`.
+
+* Otherwise, `std::experimental::executors_v1::execution::require(E, P0, Pn...)` is ill-formed.
+
+### `query`
+
+    namespace {
+      constexpr unspecified query = unspecified;
+    }
+
+The name `query` denotes a customization point. The effect of the expression `std::experimental::executors_v1::execution::query(E, P)` for some expressions `E` and `P` is equivalent to:
+
+* If the expression `decay_t<decltype(P0)>::template static_query_v<decay_t<decltype(E)>>` is a well-formed constant expression, `decay_t<decltype(P0)>::template static_query_v<decay_t<decltype(E)>>`.
+
+* If the expression `(E).query(P0)` is well-formed, `(E).query(P0)`.
+
+* If the expression `query(E, P0)` is well-formed, `query(E, P0)`.
+
+* Otherwise, `std::experimental::executors_v1::execution::query(E, P)` is ill-formed.
+
+### Customization point type traits
+
+    template<class Executor, class... Properties> struct can_require;
+    template<class Executor, class... Properties> struct can_prefer;
+    template<class Executor, class Property> struct can_query;
+
+This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
+
+| Template                   | Condition           | Preconditions  |
+|----------------------------|---------------------|----------------|
+| `template<class T>` <br/>`struct can_require` | The expression `std::experimental::executors_v1::execution::require( declval<const Executor>(), declval<Properties>()...)` is well formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_prefer` | The expression `std::experimental::executors_v1::execution::prefer( declval<const Executor>(), declval<Properties>()...)` is well formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_query` | The expression `std::experimental::executors_v1::execution::query( declval<const Executor>(), declval<Property>())` is well formed. | `T` is a complete type. |
+
 ## Executor properties
 
 ### In general
@@ -311,6 +389,26 @@ The current value of an executor's properties can be queried by calling the `que
 | Expression | Comments |
 |------------|----------|
 | `x.query(p)` | Returns the current value of the requested property `p`. The expression is ill formed if an executor is unable to return the requested property. |
+
+### Requirements on properties
+
+A property type `P` shall provide:
+
+* A nested constant expression named `is_requirable` of type `bool`, usable as `P::is_requirable`.
+* A nested constant expression named `is_preferable` of type `bool`, usable as `P::is_preferable`.
+
+[*Note:* These constants are used to determine whether the property can be used with the `require` and `prefer` customization points, respectively. *--end note*]
+
+A property type `P` may provide a nested type `polymorphic_query_result_type`. [*Note:* When present, this type allows the property to be used with the polymorphic `executor` wrapper. *--end note*]
+
+A property type `P` may provide:
+
+* A nested variable template `static_query_v`, usable as `P::static_query_v<Executor>`. This may be conditionally present.
+* A member function `value()`.
+
+If both `static_query_v` and `value()` are present, they shall return the same type and this type shall satisfy the `EqualityComparable` requirements.
+
+[*Note:* These are used to determine whether a `require` call would result in an identity transformation. *--end note*]
 
 ### Query-only properties
 
@@ -705,84 +803,6 @@ This sub-clause contains templates that may be used to query the properties of a
         // exposition only
         static_assert(std::is_integral_v<type>, "index type must be an integral type");
     };
-
-## Executor customization points
-
-*Executor customization points* are functions which adapt an executor's properties. Executor customization points enable uniform use of executors in generic contexts.
-
-When an executor customization point named *NAME* invokes a free execution function of the same name, overload resolution is performed in a context that includes the declaration `void` *NAME*`(auto&... args) = delete;`, where `sizeof...(args)` is the arity of the free execution function. This context also does not include a declaration of the executor customization point.
-
-[*Note:* This provision allows executor customization points to call the executor's free, non-member execution function of the same name without recursion. *--end note*]
-
-Whenever `std::experimental::executors_v1::execution::`*NAME*`(`*ARGS*`)` is a valid expression, that expression satisfies the syntactic requirements for the free execution function named *NAME* with arity `sizeof...(`*ARGS*`)` with that free execution function's semantics.
-
-### `require`
-
-    namespace {
-      constexpr unspecified require = unspecified;
-    }
-
-The name `require` denotes a customization point. The effect of the expression `std::experimental::executors_v1::execution::require(E, P0, Pn...)` for some expressions `E` and `P0`, and where `Pn...` represents `N` expressions (where `N` is 0 or more), is equivalent to:
-
-* If `N == 0`, `P0::is_requirable` is true, and the expression `decay_t<decltype(P0)>::template static_query_v<decay_t<decltype(E)>> == decay_t<decltype(P0)>::value()` is a well-formed constant expression with value `true`, `E`.
-
-* If `N == 0`, `P0::is_requirable` is true, and the expression `(E).require(P0)` is well-formed, `(E).require(P0)`.
-
-* If `N == 0`, `P0::is_requirable` is true, and the expression `require(E, P0)` is well-formed, `require(E, P0)`.
-
-* If `N > 0` and the expression `std::experimental::executors_v1::execution::require( std::experimental::executors_v1::execution::require(E, P0), Pn...)` is well formed, `std::experimental::executors_v1::execution::require( std::experimental::executors_v1::execution::require(E, P0), Pn...)`.
-
-* Otherwise, `std::experimental::executors_v1::execution::require(E, P0, Pn...)` is ill-formed.
-
-### `prefer`
-
-    namespace {
-      constexpr unspecified prefer = unspecified;
-    }
-
-The name `prefer` denotes a customization point. The effect of the expression `std::experimental::executors_v1::execution::prefer(E, P0, Pn...)` for some expressions `E` and `P0`, and where `Pn...` represents `N` expressions (where `N` is 0 or more), is equivalent to:
-
-* If `N == 0`, `P0::is_preferable` is true, and the expression `decay_t<decltype(P0)>::template static_query_v<decay_t<decltype(E)>> == decay_t<decltype(P0)>::value()` is a well-formed constant expression with value `true`, `E`.
-
-* If `N == 0`, `P0::is_preferable` is true,  and the expression `(E).require(P0)` is well-formed, `(E).require(P0)`.
-
-* If `N == 0`, `P0::is_preferable` is true, and the expression `prefer(E, P0)` is well-formed, `prefer(E, P0)`.
-
-* If `N == 0` and `P0::is_preferable` is true, `E`.
-
-* If `N > 0` and the expression `std::experimental::executors_v1::execution::prefer( std::experimental::executors_v1::execution::prefer(E, P0), Pn...)` is well formed, `std::experimental::executors_v1::execution::prefer( std::experimental::executors_v1::execution::prefer(E, P0), Pn...)`.
-
-* Otherwise, `std::experimental::executors_v1::execution::require(E, P0, Pn...)` is ill-formed.
-
-### `query`
-
-    namespace {
-      constexpr unspecified query = unspecified;
-    }
-
-The name `query` denotes a customization point. The effect of the expression `std::experimental::executors_v1::execution::query(E, P)` for some expressions `E` and `P` is equivalent to:
-
-* If the expression `decay_t<decltype(P0)>::template static_query_v<decay_t<decltype(E)>>` is a well-formed constant expression, `decay_t<decltype(P0)>::template static_query_v<decay_t<decltype(E)>>`.
-
-* If the expression `(E).query(P0)` is well-formed, `(E).query(P0)`.
-
-* If the expression `query(E, P0)` is well-formed, `query(E, P0)`.
-
-* Otherwise, `std::experimental::executors_v1::execution::query(E, P)` is ill-formed.
-
-### Customization point type traits
-
-    template<class Executor, class... Properties> struct can_require;
-    template<class Executor, class... Properties> struct can_prefer;
-    template<class Executor, class Property> struct can_query;
-
-This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
-
-| Template                   | Condition           | Preconditions  |
-|----------------------------|---------------------|----------------|
-| `template<class T>` <br/>`struct can_require` | The expression `std::experimental::executors_v1::execution::require( declval<const Executor>(), declval<Properties>()...)` is well formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_prefer` | The expression `std::experimental::executors_v1::execution::prefer( declval<const Executor>(), declval<Properties>()...)` is well formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_query` | The expression `std::experimental::executors_v1::execution::query( declval<const Executor>(), declval<Property>())` is well formed. | `T` is a complete type. |
 
 ## Polymorphic executor wrappers
 
