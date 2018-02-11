@@ -6,6 +6,8 @@
 #include <experimental/bits/is_twoway_executor.h>
 #include <experimental/bits/is_bulk_oneway_executor.h>
 #include <experimental/bits/is_bulk_twoway_executor.h>
+#include <experimental/bits/require_member_result.h>
+#include <experimental/bits/query_member_result.h>
 
 namespace std {
 namespace experimental {
@@ -29,14 +31,14 @@ public:
   bulk_adapter require(const bulk_t&) && { return std::move(*this); }
 
   template<class... T> auto require(T&&... t) const &
-    -> bulk_adapter<typename require_member_result<InnerExecutor, T...>::type>
+    -> bulk_adapter<typename require_member_result_impl::eval<InnerExecutor, T...>::type>
       { return { inner_ex_.require(std::forward<T>(t)...) }; }
   template<class... T> auto require(T&&... t) &&
-    -> bulk_adapter<typename require_member_result<InnerExecutor&&, T...>::type>
+    -> bulk_adapter<typename require_member_result_impl::eval<InnerExecutor&&, T...>::type>
       { return { std::move(inner_ex_).require(std::forward<T>(t)...) }; }
 
   template<class... T> auto query(T&&... t) const
-    -> typename query_member_result<InnerExecutor, T...>::type
+    -> typename query_member_result_impl::eval<InnerExecutor, T...>::type
       { return inner_ex_.query(std::forward<T>(t)...); }
 
   friend bool operator==(const bulk_adapter& a, const bulk_adapter& b) noexcept
