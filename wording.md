@@ -397,6 +397,26 @@ The current value of an executor's properties can be queried by calling the `que
 |------------|----------|
 | `x.query(p)` | Returns the current value of the requested property `p`. The expression is ill formed if an executor is unable to return the requested property. |
 
+### Requirements on properties
+
+A property type `P` shall provide:
+
+* A nested constant expression named `is_requirable` of type `bool`, usable as `P::is_requirable`.
+* A nested constant expression named `is_preferable` of type `bool`, usable as `P::is_preferable`.
+
+[*Note:* These constants are used to determine whether the property can be used with the `require` and `prefer` customization points, respectively. *--end note*]
+
+A property type `P` may provide a nested type `polymorphic_query_result_type`. [*Note:* When present, this type allows the property to be used with the polymorphic `executor` wrapper. *--end note*]
+
+A property type `P` may provide:
+
+* A nested variable template `static_query_v`, usable as `P::static_query_v<Executor>`. This may be conditionally present.
+* A member function `value()`.
+
+If both `static_query_v` and `value()` are present, they shall return the same type and this type shall satisfy the `EqualityComparable` requirements.
+
+[*Note:* These are used to determine whether a `require` call would result in an identity transformation. *--end note*]
+
 ### Query-only properties
 
 #### Associated execution context property
