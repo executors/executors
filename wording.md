@@ -1643,13 +1643,6 @@ class C
 
     // executor operations:
 
-    C require(execution::oneway_t) const;
-    C require(execution::twoway_t) const;
-    C require(execution::then_t) const;
-    C require(execution::single_t) const;
-    C require(execution::bulk_t) const;
-    C require(execution::bulk_parallel_execution_t) const;
-    C require(execution::thread_execution_mapping_t) const;
     see-below require(execution::never_blocking_t) const;
     see-below require(execution::possibly_blocking_t) const;
     see-below require(execution::always_blocking_t) const;
@@ -1660,13 +1653,8 @@ class C
     template<class ProtoAllocator>
     see-below require(const execution::allocator_t<ProtoAllocator>& a) const;
 
-    bool query(execution::oneway_t) const;
-    bool query(execution::twoway_t) const;
-    bool query(execution::then_t) const;
-    bool query(execution::single_t) const;
-    bool query(execution::bulk_t) const;
-    bool query(execution::bulk_parallel_execution_t) const;
-    bool query(execution::thread_execution_mapping_t) const;
+    static constexpr bool query(execution::bulk_parallel_execution_t) const;
+    static constexpr bool query(execution::thread_execution_mapping_t) const;
     bool query(execution::never_blocking_t) const;
     bool query(execution::possibly_blocking_t) const;
     bool query(execution::always_blocking_t) const;
@@ -1741,18 +1729,6 @@ C& operator=(C&& other) noexcept;
 #### Operations
 
 ```
-C require(execution::oneway_t) const;
-C require(execution::twoway_t) const;
-C require(execution::then_t) const;
-C require(execution::single_t) const;
-C require(execution::bulk_t) const;
-C require(execution::bulk_parallel_execution_t) const;
-C require(execution::thread_execution_mapping_t) const;
-```
-
-*Returns:* `*this`.
-
-```
 see-below require(execution::never_blocking_t) const;
 see-below require(execution::possibly_blocking_t) const;
 see-below require(execution::always_blocking_t) const;
@@ -1782,13 +1758,13 @@ performed using a copy of `a.alloc`. All other properties of the returned
 executor object are identical to those of `*this`.
 
 ```
-bool query(execution::oneway_t) const;
-bool query(execution::twoway_t) const;
-bool query(execution::then_t) const;
-bool query(execution::single_t) const;
-bool query(execution::bulk_t) const;
-bool query(execution::bulk_parallel_execution_t) const;
-bool query(execution::thread_execution_mapping_t) const;
+static constexpr bool query(execution::bulk_parallel_execution_t) const;
+static constexpr bool query(execution::thread_execution_mapping_t) const;
+```
+
+*Returns:* `true`.
+
+```
 bool query(execution::never_blocking_t) const;
 bool query(execution::possibly_blocking_t) const;
 bool query(execution::always_blocking_t) const;
@@ -1799,7 +1775,7 @@ bool query(execution::not_outstanding_work_t) const;
 ```
 
 *Returns:* `true` if `*this` has the property established such that it meets
-that properies requirements.
+that properties requirements.
 
 ```
 static_thread_pool& query(execution::context_t) const noexcept;
