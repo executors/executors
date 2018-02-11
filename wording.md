@@ -149,6 +149,8 @@ namespace execution {
   // Polymorphic executor wrappers:
 
   class bad_executor;
+
+  template <class... SupportableProperties>
   class executor;
 
 } // namespace execution
@@ -801,6 +803,8 @@ This sub-clause contains templates that may be used to query the properties of a
 
 ## Polymorphic executor wrappers
 
+The polymorphic executor wrapper class has been written such that it could be separated from the rest of the proposal if nessesary.
+
 ### Class `bad_executor`
 
 An exception of type `bad_executor` is thrown by `executor` member functions `execute`, `twoway_execute`, `bulk_execute`, and `bulk_twoway_execute` when the executor object has no target.
@@ -829,7 +833,10 @@ bad_executor() noexcept;
 The `executor` class template provides a polymorphic wrapper for executor types.
 
 ```
-template <class... Properties>
+// macro for testing whether a property parameter pack contains a particular property
+#define CONTAINS_PROPERTY(property, property_parameter_pack) td::disjunction_v<std::is_same<property, property_parameter_pack>...>
+
+template <class... SupportableProperties>
 class executor
 {
 public:
@@ -842,6 +849,7 @@ public:
   executor(const executor& e) noexcept;
   executor(executor&& e) noexcept;
   template<class Executor> executor(Executor e);
+  template<class... OtherSupportableProperties> executor(executor<OtherSupportableProperties...> e);
 
   executor& operator=(const executor& e) noexcept;
   executor& operator=(executor&& e) noexcept;
@@ -858,9 +866,6 @@ public:
 
   template <class Property>
   executor require(Property) const;
-
-  template <class Property>
-  executor prefer(Property) const;
 
   template <class Property>
   executor query(Property) const;
@@ -892,19 +897,26 @@ public:
 
 // executor comparisons:
 
-bool operator==(const executor& a, const executor& b) noexcept;
-bool operator==(const executor& e, nullptr_t) noexcept;
-bool operator==(nullptr_t, const executor& e) noexcept;
-bool operator!=(const executor& a, const executor& b) noexcept;
-bool operator!=(const executor& e, nullptr_t) noexcept;
-bool operator!=(nullptr_t, const executor& e) noexcept;
+template <class... SupportableProperties>
+bool operator==(const executor<SupportableProperties...>& a, const executor<SupportableProperties...>& b) noexcept;
+template <class... SupportableProperties>
+bool operator==(const executor<SupportableProperties...>& e, nullptr_t) noexcept;
+template <class... SupportableProperties>
+bool operator==(nullptr_t, const executor<SupportableProperties...>& e) noexcept;
+template <class... SupportableProperties>
+bool operator!=(const executor<SupportableProperties...>& a, const executor<SupportableProperties...>& b) noexcept;
+template <class... SupportableProperties>
+bool operator!=(const executor<SupportableProperties...>& e, nullptr_t) noexcept;
+template <class... SupportableProperties>
+bool operator!=(nullptr_t, const executor<SupportableProperties...>& e) noexcept;
 
 // executor specialized algorithms:
 
-void swap(executor& a, executor& b) noexcept;
+template <class... SupportableProperties>
+void swap(executor<SupportableProperties...>& a, executor<SupportableProperties...>& b) noexcept;
 
-template <class Property>
-executor prefer(const executor& e, Property p);
+template <class Property, class... SupportableProperties>
+executor prefer(const executor<SupportableProperties>& e, Property p);
 ```
 
 The `executor` class satisfies the general requirements on executors.
@@ -943,11 +955,24 @@ executor(executor&& e) noexcept;
 template<class Executor> executor(Executor e);
 ```
 
-*Requires:*
+*Remarks:* This function shall not participate in overload resolution unless:
+* `can_require_v<Executor, P`, if `P::is_requireable`, where `P` is each property in `SupportableProperties...`.
+* `can_prefer_v<Executor, P`, if `P::is_preferable`, where `P` is each property in `SupportableProperties...`.
+* and `can_query_v<Executor, P`, where `P` is each property in `SupportableProperties...`.
 
-* `can_require_v<Executor, P`, if `P::is_requireable`, where `P` is each property in `Properties...`.
-* `can_prefer_v<Executor, P`, if `P::is_preferable`, where `P` is each property in `Properties...`.
-* `can_query_v<Executor, P`, where `P` is each property in `Properties...`.
+*Effects:*
+* `*this` targets a copy of `e4` initialized with `std::move(e4)`, where:
+* If `CONTAINS_PROPERTY(execution::single_t, SupportableProperties)`, `e1` is the result of `execution::require(e, single_t)`, otherwise `e1` is `e`,
+* If `CONTAINS_PROPERTY(execution::bulk_t, SupportableProperties)`, `e2` is the result of `execution::require(e, bulk_t)`, otherwise `e2` is `e1`
+* If `CONTAINS_PROPERTY(execution::oneway_t, SupportableProperties)`, `e3` is the result of `execution::require(e, oneway_t)`, otherwise `e3` is `e2`
+* If `CONTAINS_PROPERTY(execution::twoway_t, SupportableProperties)`, `e4` is the result of `execution::require(e, twoway_t)`, otherwise `e4` is `e3`.
+
+```
+template<class... OtherSupportableProperties> executor(executor<OtherSupportableProperties...> e);
+```
+
+*Remarks:* This function shall not participate in overload resolution unless:
+* `CONTAINS_PROPERTY(p, OtherSupportableProperties)` , where `p` is each property in `SupportableProperties...`.
 
 *Effects:* `*this` targets a copy of `e` initialized with `std::move(e)`.
 
@@ -1010,31 +1035,18 @@ template <class Property>
 executor require(Property p) const;
 ```
 
-*Requires:* `std::disjunction_v<std::is_same<Property, Properties>...> && Property::is_requirable`.
+*Remarks:* This function shall not participate in overload resolution unless: `CONTAINS_PROPERTY(Property, SupportableProperties) && Property::is_requirable`.
 
-*Effects:* Performs `e.require(p)`, where `e` is the target object of `*this`.
-
-*Returns:* `*this`.
-
-```
-template <class Property>
-executor prefer(Property p) const;
-```
-
-*Requires:* `std::disjunction_v<std::is_same<Property, Properties>...> && Property::is_preferable`.
-
-*Effects:* Performs `e.prefer(p)`, where `e` is the target object of `*this`.
-
-*Returns:* `*this`.
+*Returns:* A polymorphic wrapper whose target is is the result of `execution::require(e, p)`, where `e` is the target object of `*this`.
 
 ```
 template <class Property>
 executor query(Property p) const;
 ```
 
-*Requires:* `std::disjunction_v<std::is_same<Property, Properties>...>`.
+*Remarks:* This function shall not participate in overload resolution unless: `CONTAINS_PROPERTY(Property, SupportableProperties)`.
 
-*Effects:* Performs `e.query(p)`, where `e` is the target object of `*this`.
+*Effects:* Performs `execution::query(e, p)`, where `e` is the target object of `*this`.
 
 *Returns:* `static_cast<Property::polymorphic_query_result_type>(e.query(p))`.
 
@@ -1043,7 +1055,9 @@ template<class Function>
   void execute(Function&& f) const;
 ```
 
-*Requires:* `std::disjunction_v<std::is_same<execution::oneway_t, Properties>...> && std::disjunction_v<std::is_same<execution::single_t, Properties>...>`.
+*Remarks:* This function shall not participate in overload resolution unless:
+* `CONTAINS_PROPERTY(execution::oneway_t, SupportableProperties)`,
+* and `CONTAINS_PROPERTY(execution::single_t, SupportableProperties)`.
 
 *Effects:* Performs `e.execute(f2)`, where:
 
@@ -1057,7 +1071,9 @@ template<class Function>
     twoway_execute(Function&& f) const
 ```
 
-*Requires:* `std::disjunction_v<std::is_same<execution::twoway_t, Properties>...> && std::disjunction_v<std::is_same<execution::single_t, Properties>...>`.
+*Remarks:* This function shall not participate in overload resolution unless:
+* `CONTAINS_PROPERTY(execution::twoway_t, SupportableProperties)`,
+* and `CONTAINS_PROPERTY(execution::single_t, SupportableProperties)`.
 
 *Effects:* Performs `e.twoway_execute(f2)`, where:
 
@@ -1072,7 +1088,9 @@ template<class Function, class SharedFactory>
   void bulk_execute(Function&& f, size_t n, SharedFactory&& sf) const;
 ```
 
-*Requires:* `std::disjunction_v<std::is_same<execution::oneway_t, Properties>...> && std::disjunction_v<std::is_same<execution::bulk_t, Properties>...>`.
+*Remarks:* This function shall not participate in overload resolution unless:
+* `CONTAINS_PROPERTY(execution::oneway_t, SupportableProperties)`,
+* and `CONTAINS_PROPERTY(execution::bulk_t, SupportableProperties)`.
 
 *Effects:* Performs `e.bulk_execute(f2, n, sf2)`, where:
 
@@ -1090,7 +1108,9 @@ template<class Function, class ResultFactory, class SharedFactory>
     void bulk_twoway_execute(Function&& f, size_t n, ResultFactory&& rf, SharedFactory&& sf) const;
 ```
 
-*Requires:* `std::disjunction_v<std::is_same<execution::twoway_t, Properties>...> && std::disjunction_v<std::is_same<execution::bulk_t, Properties>...>`.
+*Remarks:* This function shall not participate in overload resolution unless:
+* `CONTAINS_PROPERTY(execution::twoway_t, SupportableProperties)`,
+* and `CONTAINS_PROPERTY(execution::bulk_t, SupportableProperties)`.
 
 *Effects:* Performs `e.bulk_twoway_execute(f2, n, rf2, sf2)`, where:
 
@@ -1137,7 +1157,8 @@ template<class Executor> const Executor* target() const noexcept;
 #### `executor` comparisons
 
 ```
-bool operator==(const executor& a, const executor& b) noexcept;
+template<class... SupportableProperties>
+bool operator==(const executor<SupportableProperties...>& a, const executor<SupportableProperties...>& b) noexcept;
 ```
 
 *Returns:*
@@ -1148,21 +1169,26 @@ bool operator==(const executor& a, const executor& b) noexcept;
 - otherwise `false`.
 
 ```
-bool operator==(const executor& e, nullptr_t) noexcept;
-bool operator==(nullptr_t, const executor& e) noexcept;
+template<class... SupportableProperties>
+bool operator==(const executor<SupportableProperties...>& e, nullptr_t) noexcept;
+template<class... SupportableProperties>
+bool operator==(nullptr_t, const executor<SupportableProperties...>& e) noexcept;
 ```
 
 *Returns:* `!e`.
 
 ```
-bool operator!=(const executor& a, const executor& b) noexcept;
+template<class... SupportableProperties>
+bool operator!=(const executor<SupportableProperties...>& a, const executor<SupportableProperties...>& b) noexcept;
 ```
 
 *Returns:* `!(a == b)`.
 
 ```
-bool operator!=(const executor& e, nullptr_t) noexcept;
-bool operator!=(nullptr_t, const executor& e) noexcept;
+template<class... SupportableProperties>
+bool operator!=(const executor<SupportableProperties...>& e, nullptr_t) noexcept;
+template<class... SupportableProperties>
+bool operator!=(nullptr_t, const executor<SupportableProperties...>& e) noexcept;
 ```
 
 *Returns:* `(bool) e`.
@@ -1170,19 +1196,20 @@ bool operator!=(nullptr_t, const executor& e) noexcept;
 #### `executor` specialized algorithms
 
 ```
-void swap(executor& a, executor& b) noexcept;
+template<class... SupportableProperties>
+void swap(executor<SupportableProperties...>& a, executor<SupportableProperties...>& b) noexcept;
 ```
 
 *Effects:* `a.swap(b)`.
 
 ```
-template <class Property>
-executor prefer(const executor& e, Property p);
+template <class Property, class... SupportableProperties>
+executor prefer(const executor<SupportableProperties...>& e, Property p);
 ```
 
-*Requires:* TODO: How to specify requirement that poly executor's type contains Property.
+*Remarks:* This function shall not participate in overload resolution unless: `CONTAINS_PROPERTY(Property, SupportableProperties)`.
 
-*Returns:* A copy of `e`.
+*Returns:* A polymorphic wrapper whose target is is the result of `execution::prefer(e, p)`, where `e` is the target object of `*this`.
 
 ### Class `executor::context_type`
 
