@@ -803,7 +803,9 @@ This sub-clause contains templates that may be used to query the properties of a
 
 ## Polymorphic executor wrappers
 
-The polymorphic executor wrapper class has been written such that it could be separated from the rest of the proposal if nessesary.
+[*Commentary: The polymorphic executor wrapper class has been written such that it could be separated from the rest of the proposal if necessary.*]
+
+In several places in this section the operation `CONTAINS_PROPERTY(p, pn)` is used. All such uses mean `std::disjunction_v<std::is_same<p, pn>...>`.
 
 ### Class `bad_executor`
 
@@ -1038,7 +1040,7 @@ executor require(Property p) const;
 
 *Remarks:* This function shall not participate in overload resolution unless: `CONTAINS_PROPERTY(Property, SupportableProperties) && Property::is_requirable`.
 
-*Returns:* A polymorphic wrapper whose target is is the result of `execution::require(e, p)`, where `e` is the target object of `*this`.
+*Returns:* A polymorphic wrapper whose target is the result of `execution::require(e, p)`, where `e` is the target object of `*this`.
 
 ```
 template <class Property>
@@ -1203,14 +1205,14 @@ void swap(executor<SupportableProperties...>& a, executor<SupportableProperties.
 
 *Effects:* `a.swap(b)`.
 
-```
+```s
 template <class Property, class... SupportableProperties>
 executor prefer(const executor<SupportableProperties...>& e, Property p);
 ```
 
 *Remarks:* This function shall not participate in overload resolution unless: `CONTAINS_PROPERTY(Property, SupportableProperties)`.
 
-*Returns:* A polymorphic wrapper whose target is is the result of `execution::prefer(e, p)`, where `e` is the target object of `*this`.
+*Returns:* A polymorphic wrapper whose target is the result of `execution::prefer(e, p)`, where `e` is the target object of `*this`.
 
 ### Class `executor::context_type`
 
