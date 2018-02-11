@@ -233,11 +233,6 @@ void static_thread_pool_compile_test()
   static_thread_pool_bulk_oneway_executor_compile_test(pool1.executor().require(execution::bulk));
   static_thread_pool_bulk_twoway_executor_compile_test(pool1.executor());
   static_thread_pool_bulk_twoway_executor_compile_test(pool1.executor().require(execution::bulk));
-
-  static_assert(execution::has_require_member_v<executor_type, execution::oneway_t>, "oneway must be a natively supported property");
-  static_assert(execution::has_require_member_v<executor_type, execution::twoway_t>, "twoway must be a natively supported property");
-  static_assert(execution::has_require_member_v<executor_type, execution::single_t>, "single must be a natively supported property");
-  static_assert(execution::has_require_member_v<executor_type, execution::bulk_t>, "bulk must be a natively supported property");
 }
 
 int main()
