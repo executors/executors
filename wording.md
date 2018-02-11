@@ -1606,18 +1606,12 @@ static_thread_pool& query(execution::context_t) const noexcept;
 
 ```
 see-below query(execution::allocator_t<void>) const noexcept;
-```
-
-*Returns:* The implementation defined default allocator object associated with
-the executor.
-
-```
 see-below query(execution::allocator_t<ProtoAllocator>) const noexcept;
 ```
 
 *Returns:* The allocator object associated with the executor, with type and
-value as previously established by the `execution::allocator_t<ProtoAllocator>`
-property.
+value as either previously established by the `execution::allocator_t<ProtoAllocator>`
+property or the implementation defined default allocator established by the `execution::allocator_t<void>` property.
 
 ```
 bool running_in_this_thread() const noexcept;
