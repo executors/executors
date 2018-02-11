@@ -139,13 +139,6 @@ namespace execution {
   template<class Executor> using executor_shape_t = typename executor_shape<Executor>::type;
   template<class Executor> using executor_index_t = typename executor_index<Executor>::type;
 
-  // Property value types traits:
-
-  template<class Executor, class Property> struct property_value;
-
-  template<class Executor, class Property>
-    using property_value_t = typename property_value<Executor, Property>::type;
-
   // Polymorphic executor wrappers:
 
   class bad_executor;
@@ -810,14 +803,6 @@ This sub-clause contains templates that may be used to query the properties of a
         // exposition only
         static_assert(std::is_integral_v<type>, "index type must be an integral type");
     };
-
-## Property value types traits for properties
-
-This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a TransformationTrait (C++Std [meta.rqmts]).
-
-| Template                   | Condition           | Comments  |
-|----------------------------|---------------------|-----------|
-| `template<class Executor, class Property>` <br/>`struct property_value` | | The member typedef `type` shall name the type of the value associated with the property `Property`. |
 
 ## Polymorphic executor wrappers
 
