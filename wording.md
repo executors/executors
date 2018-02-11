@@ -323,7 +323,7 @@ The current value of an executor's properties can be queried by calling the `que
 
 A property type `P` shall provide:
 
-* A nested constant expression named `is_requirable, of type `bool`, usable as `P::is_requirable`.
+* A nested constant expression named `is_requirable` of type `bool`, usable as `P::is_requirable`.
 * A nested constant expression named `is_preferable` of type `bool`, usable as `P::is_preferable`.
 
 [*Note:* These constants are used to determine whether the property can be used with the `require` and `prefer` customization points, respectively. *--end note*]
