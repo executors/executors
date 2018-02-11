@@ -456,11 +456,13 @@ The directionality properties conform to the following specification:
       static constexpr bool value() const { return true; }
     };
 
-| Property | Requirements | static_query_v value           |
-|----------|--------------| -------------------------------|
-| `oneway_t` | The executor type satisfies the `OneWayExecutor` or `BulkOneWayExecutor` requirements. | `is_oneway_executor_v<Executor> || is_bulk_oneway_executor_v<Executor>` |
-| `twoway_t` | The executor type satisfies the `TwoWayExecutor` or `BulkTwoWayExecutor` requirements. | `is_twoway_executor_v<Executor> || is_bulk_twoway_executor_v<Executor>` |
-| `then_t` | The executor type satisfies the `ThenExecutor` or `BulkThenExecutor` requirements. | `is_then_executor_v<Executor> || is_bulk_then_executor_v<Executor>` |
+| Property | Requirements |
+|----------|--------------|
+| `oneway_t` | The executor type satisfies the `OneWayExecutor` or `BulkOneWayExecutor` requirements. |
+| `twoway_t` | The executor type satisfies the `TwoWayExecutor` or `BulkTwoWayExecutor` requirements. |
+| `then_t` | The executor type satisfies the `ThenExecutor` or `BulkThenExecutor` requirements. |
+
+`S::static_query_v<Executor>` is true if and only if `Executor` fulfills `S`'s requirements.
 
 The `oneway_t`, `twoway_t` and `then_t` properties are not mutually exclusive.
 
@@ -501,10 +503,12 @@ The cardinality properties conform to the following specification:
       static constexpr bool value() const { return true; }
     };
 
-| Property | Requirements | static_query_v value                |
-|----------|--------------| ------------------------------------|
-| `single_t` | The executor type satisfies the `OneWayExecutor`, `TwoWayExecutor`, or `ThenExecutor` requirements. | `is_oneway_executor_v<Executor> || is_twoway_executor_v<Executor> || is_then_executor_v<Executor>` |
-| `bulk_t` | The executor type satisfies the `BulkOneWayExecutor`, `BulkTwoWayExecutor`, or `BulkThenExecutor` requirements. | `is_bulk_oneway_executor_v<Executor> || is_bulk_twoway_executor_v<Executor> || is_bulk_then_executor_v<Executor>` |
+| Property | Requirements |
+|----------|--------------|
+| `single_t` | The executor type satisfies the `OneWayExecutor`, `TwoWayExecutor`, or `ThenExecutor` requirements. |
+| `bulk_t` | The executor type satisfies the `BulkOneWayExecutor`, `BulkTwoWayExecutor`, or `BulkThenExecutor` requirements. |
+
+`S::static_query_v<Executor>` is true if and only if `Executor` fulfills `S`'s requirements.
 
 The `single_t` and `bulk_t` properties are not mutually exclusive.
 
