@@ -76,6 +76,7 @@ Revision 5 of this proposal responds to feedback requested during the 2017 Albuq
     * Renamed TS namespace from `concurrency_v2` to `executors_v1`
     * Introduced `static_query_v` enabling static queries
     * Eliminated unused `property_value` trait
+    * Eliminated the names `allocator_wrapper_t` and `default_allocator`
 
 ### Revision 4
 
