@@ -26,10 +26,6 @@ struct eval<Executor, Property,
   )>::type> : std::true_type {};
 
 } // namespace has_query_member_impl
-
-template<class Executor, class Property>
-struct has_query_member : has_query_member_impl::eval<Executor, Property> {};
-
 } // namespace execution
 } // inline namespace executors_v1
 } // namespace experimental

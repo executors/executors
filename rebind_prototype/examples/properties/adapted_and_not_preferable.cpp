@@ -39,10 +39,10 @@ namespace custom_props
 
     // Forward other kinds of require to the inner executor.
     template <class Property> auto require(const Property& p) const &
-      -> tracing_executor<execution::require_member_result_t<InnerExecutor, Property>>
+      -> tracing_executor<decltype(inner_declval<Property>().require(p))>
         { return { tracing_, inner_ex_.require(p) }; }
     template <class Property> auto require(const Property& p) &&
-      -> tracing_executor<execution::require_member_result_t<InnerExecutor&&, Property>>
+      -> tracing_executor<decltype(inner_declval<Property>().require(p))>
         { return { tracing_, std::move(inner_ex_).require(p) }; }
 
     // Intercept query requests for tracing.
@@ -50,7 +50,7 @@ namespace custom_props
 
     // Forward other kinds of query to the inner executor.
     template<class Property> auto query(const Property& p) const
-      -> typename execution::query_member_result<InnerExecutor, Property>::type
+      -> decltype(inner_declval<Property>().query(p))
         { return inner_ex_.query(p); }
 
     friend bool operator==(const tracing_executor& a, const tracing_executor& b) noexcept
@@ -89,8 +89,8 @@ namespace custom_props
   };
 
   template <class Executor>
-    std::enable_if_t<!execution::has_require_member_v<Executor, tracing>, tracing_executor<Executor>>
-      require(Executor ex, tracing t) { return { t.on, std::move(ex) }; }
+    tracing_executor<Executor> require(Executor ex, tracing t)
+      { return { t.on, std::move(ex) }; }
 };
 
 class inline_executor
