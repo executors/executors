@@ -746,10 +746,10 @@ The `allocator_t` property conforms to the following specification:
         static constexpr bool value() const { return a; }
     };
 
-| Property | Requirements | is_supportable                      |
-|----------|--------------| ------------------------------------|
-| `allocator_t<ProtoAllocator>` | Result of `allocator_t<void>::operator(OtherProtoAllocator)`. The executor type satisfies the `OneWayExecutor`, `TwoWayExecutor`, or `ThenExecutor` requirements. The executor implementation shall use the encapsulated allocator to allocate any memory required to store the submitted function object. | `can_query_v<Executor, allocator_t<ProtoAllocator>> && (is_oneway_executor_v<Executor> || is_twoway_executor_v<Executor> || is_then_executor_v<Executor>)` |
-| `allocator_t<void>` | Specialisation of `allocator_t<ProtoAllocator>`. The executor type satisfies the `OneWayExecutor`, `TwoWayExecutor`, or `ThenExecutor` requirements. The executor implementation shall use an implementation defined default allocator to allocate any memory required to store the submitted function object. | `can_query_v<Executor, allocator_t<void>> && (is_oneway_executor_v<Executor> || is_twoway_executor_v<Executor> || is_then_executor_v<Executor>)` |
+| Property | Requirements |
+|----------|--------------|
+| `allocator_t<ProtoAllocator>` | Result of `allocator_t<void>::operator(OtherProtoAllocator)`. The executor type satisfies the `OneWayExecutor`, `TwoWayExecutor`, or `ThenExecutor` requirements. The executor implementation shall use the encapsulated allocator to allocate any memory required to store the submitted function object. |
+| `allocator_t<void>` | Specialisation of `allocator_t<ProtoAllocator>`. The executor type satisfies the `OneWayExecutor`, `TwoWayExecutor`, or `ThenExecutor` requirements. The executor implementation shall use an implementation defined default allocator to allocate any memory required to store the submitted function object. |
 
 *Remarks:* `operator(OtherProtoAllocator)` and `value()` shall not participate in overload resolution unless `ProtoAllocator` is `void`.
 
@@ -1779,12 +1779,7 @@ returned executor object are identical to those of `*this`.
 see-below require(const execution::allocator_t<void>& a) const;
 ```
 
-*Returns:* An executor object of an unspecified type conforming to these
-specifications, associated with the same thread pool as `*this`, with the
-`execution::allocator_t<void>` property established such that
-allocation and deallocation associated with function submission will be
-performed using a copy of an implementation deined default allocator. All other
-properties of the returned executor object are identical to those of `*this`.
+*Returns:* `require(execution::allocator(x))`, where `x` is an implementation-defined default allocator.
 
 ```
 template<class ProtoAllocator>
