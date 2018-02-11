@@ -28,6 +28,7 @@ namespace execution {
     constexpr bool can_query_v = can_query<Executor, Property>::value;
 
   // Associated execution context property:
+
   struct context_t;
 
   constexpr context_t context;
@@ -863,9 +864,6 @@ bad_executor() noexcept;
 The `executor` class template provides a polymorphic wrapper for executor types.
 
 ```
-// macro for testing whether a property parameter pack contains a particular property
-#define CONTAINS_PROPERTY(property, property_parameter_pack) td::disjunction_v<std::is_same<property, property_parameter_pack>...>
-
 template <class... SupportableProperties>
 class executor
 {
