@@ -17,13 +17,13 @@ Authors:            Jared Hoberock, jhoberock@nvidia.com
 
                     Michael Wong, michael@codeplay.com
 
-Date:               2018-02-??
+Date:               2018-02-12
 
-Audience:           SG1 - Concurrency and Parallelism
+Audience:           SG1 - Concurrency and Parallelism, LEWG
 
 Reply-to:           sg1-exec@googlegroups.com
 
-Abstract:           This paper is a companion to [P0443](http://wg21.link/P0443) and describes the executors programming model it specifies. This paper is directed toward readers who want to understand in detail the mechanics of P0443's programming model, and the rationale underpinning the choices of that model's design.
+Abstract:           This paper is a companion to [P0443R4](http://wg21.link/P0443R4) and describes the executors programming model it specifies. This paper is directed toward readers who want to understand in detail the mechanics of P0443's programming model, and the rationale underpinning the choices of that model's design.
 
 ------------------------------------------------------
 
