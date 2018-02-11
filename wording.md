@@ -868,8 +868,6 @@ template <class... SupportableProperties>
 class executor
 {
 public:
-  class context_type;
-
   // construct / copy / destroy:
 
   executor() noexcept;
@@ -1239,64 +1237,6 @@ executor prefer(const executor<SupportableProperties...>& e, Property p);
 *Remarks:* This function shall not participate in overload resolution unless: `CONTAINS_PROPERTY(Property, SupportableProperties)`.
 
 *Returns:* A polymorphic wrapper whose target is the result of `execution::prefer(e, p)`, where `e` is the target object of `*this`.
-
-### Class `executor::context_type`
-
-The `executor::context_type` class provides a polymorphic wrapper for the execution context associated with a polymorphic executor.
-
-```
-class executor::context_type
-{
-public:
-  context_type(const context_type&) = delete;
-  context_type& operator=(const context_type&) = delete;
-};
-
-// executor context_type comparisons:
-
-bool operator==(const executor::context_type& a, const executor::context_type& b) noexcept;
-template<class Context> operator==(const executor::context_type& a, const Context& b) noexcept;
-template<class Context> operator==(const Context& a, const executor::context_type& b) noexcept;
-bool operator!=(const executor::context_type& a, const executor::context_type& b) noexcept;
-template<class Context> operator!=(const executor::context_type& a, const Context& b) noexcept;
-template<class Context> operator!=(const Context& a, const executor::context_type& b) noexcept;
-```
-
-The *target* is the execution context that is associated with the target of the `executor` that created the `context_type` wrapper.
-
-#### `executor::context_type` comparisons
-
-```
-bool operator==(const executor::context_type& a, const executor::context_type& b) noexcept;
-```
-
-*Returns:*
-- `true` if `!a` and `!b`;
-- `true` if `a` and `b` share a target;
-- `true` if `c` and `d` are the same type and `c == d`, where `c` is the target of `a` and `d` is the target of `b`;
-- otherwise `false`.
-
-```
-template<class Context> operator==(const executor::context_type& a, const Context& b) noexcept;
-```
-
-*Returns:*
-- `true` if `c` and `b` are the same type and `c == b`, where `c` is the target of `a`;
-- otherwise `false`.
-
-```
-template<class Context> operator==(const Context& a, const executor::context_type& b) noexcept;
-```
-
-*Returns:* `b == a`.
-
-```
-bool operator!=(const executor::context_type& a, const executor::context_type& b) noexcept;
-template<class Context> operator!=(const executor::context_type& a, const Context& b) noexcept;
-template<class Context> operator!=(const Context& a, const executor::context_type& b) noexcept;
-```
-
-*Returns:* `!(a == b)`.
 
 ### Struct `prefer_only`
 
