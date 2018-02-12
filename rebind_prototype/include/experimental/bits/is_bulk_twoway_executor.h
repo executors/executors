@@ -5,7 +5,7 @@
 
 namespace std {
 namespace experimental {
-inline namespace concurrency_v2 {
+inline namespace executors_v1 {
 namespace execution {
 namespace is_bulk_twoway_executor_impl {
 
@@ -48,7 +48,7 @@ struct eval<T,
             1, std::declval<result_factory>(), std::declval<shared_factory>()).get())),
     decltype(static_cast<const result&>(std::declval<const T&>().bulk_twoway_execute(std::declval<bulk_function&&>(),
             1, std::declval<result_factory>(), std::declval<shared_factory>()).get()))
-	>::type> : is_executor<T> {};
+	>::type> : is_executor_impl::eval<T> {};
 
 } // namespace is_bulk_twoway_executor_impl
 
@@ -56,7 +56,7 @@ template<class Executor>
 struct is_bulk_twoway_executor : is_bulk_twoway_executor_impl::eval<Executor> {};
 
 } // namespace execution
-} // inline namespace concurrency_v2
+} // inline namespace executors_v1
 } // namespace experimental
 } // namespace std
 

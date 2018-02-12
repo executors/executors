@@ -3,67 +3,64 @@
 
 #include <experimental/bits/require.h>
 #include <experimental/bits/prefer.h>
+#include <experimental/bits/query.h>
 
 namespace std {
 namespace experimental {
-inline namespace concurrency_v2 {
+inline namespace executors_v1 {
 namespace execution {
 
-// Directionality.
-constexpr struct oneway_t {} oneway;
-constexpr struct twoway_t {} twoway;
+// Associated execution context.
+struct context_t;
 
-// Allow adaptation of blocking and directionality (e.g. twoway in terms of oneway).
-constexpr struct adaptable_blocking_t {} adaptable_blocking;
-constexpr struct not_adaptable_blocking_t {} not_adaptable_blocking;
+// Directionality.
+struct oneway_t;
+struct twoway_t;
 
 // Cardinality.
-constexpr struct single_t {} single;
-constexpr struct bulk_t {} bulk;
+struct single_t;
+struct bulk_t;
 
 // Blocking behaviour.
-constexpr struct never_blocking_t {} never_blocking;
-constexpr struct possibly_blocking_t {} possibly_blocking;
-constexpr struct always_blocking_t {} always_blocking;
+struct never_blocking_t;
+struct possibly_blocking_t;
+struct always_blocking_t;
+
+// Allow adaptation of blocking and directionality (e.g. twoway in terms of oneway).
+struct adaptable_blocking_t;
+struct not_adaptable_blocking_t;
 
 // Whether submitted tasks represent a continuation.
-constexpr struct continuation_t {} continuation;
-constexpr struct not_continuation_t {} not_continuation;
+struct continuation_t;
+struct not_continuation_t;
 
 // Whether there is outstanding work, i.e. an indication of likely task submission in the future.
-constexpr struct outstanding_work_t {} outstanding_work;
-constexpr struct not_outstanding_work_t {} not_outstanding_work;
+struct outstanding_work_t;
+struct not_outstanding_work_t;
 
 // Properties for bulk execution forward progress guarantees.
-constexpr struct bulk_sequenced_execution_t {} bulk_sequenced_execution;
-constexpr struct bulk_parallel_execution_t {} bulk_parallel_execution;
-constexpr struct bulk_unsequenced_execution_t {} bulk_unsequenced_execution;
+struct bulk_sequenced_execution_t;
+struct bulk_parallel_execution_t;
+struct bulk_unsequenced_execution_t;
 
 // Properties for mapping of execution on to threads.
-constexpr struct thread_execution_mapping_t {} thread_execution_mapping;
-constexpr struct new_thread_execution_mapping_t {} new_thread_execution_mapping;
+struct thread_execution_mapping_t;
+struct new_thread_execution_mapping_t;
 
 // Memory allocations.
-template<class ProtoAllocator> struct allocator_t { ProtoAllocator alloc; };
-template<class ProtoAllocator> constexpr allocator_t<ProtoAllocator> allocator(const ProtoAllocator& a) { return {a}; }
+struct default_allocator_t;
+template<class ProtoAllocator> struct allocator_t;
 
 // Type traits to determine conformance to executor type requirements.
-template<class Executor> struct is_executor;
 template<class Executor> struct is_oneway_executor;
 template<class Executor> struct is_twoway_executor;
 template<class Executor> struct is_bulk_oneway_executor;
 template<class Executor> struct is_bulk_twoway_executor;
 
-template<class Executor> constexpr bool is_executor_v = is_executor<Executor>::value;
 template<class Executor> constexpr bool is_oneway_executor_v = is_oneway_executor<Executor>::value;
 template<class Executor> constexpr bool is_twoway_executor_v = is_twoway_executor<Executor>::value;
 template<class Executor> constexpr bool is_bulk_oneway_executor_v = is_bulk_oneway_executor<Executor>::value;
 template<class Executor> constexpr bool is_bulk_twoway_executor_v = is_bulk_twoway_executor<Executor>::value;
-
-// Type trait to obtain an executor's associated context type.
-template<class Executor> struct executor_context;
-
-template<class Executor> using executor_context_t = typename executor_context<Executor>::type;
 
 // Type trait to obtain a two way executor's future type.
 template<class Executor, class T> struct executor_future;
@@ -77,15 +74,6 @@ template<class Executor> struct executor_index;
 template<class Executor> using executor_shape_t = typename executor_shape<Executor>::type;
 template<class Executor> using executor_index_t = typename executor_index<Executor>::type;
 
-// Type traits to determine whether a require member invocation is valid, and what its result is.
-template<class Executor, class... Properties> struct has_require_members;
-template<class Executor, class Property> struct require_member_result;
-
-template<class Executor, class... Properties>
-  constexpr bool has_require_members_v = has_require_members<Executor, Properties...>::value;
-template<class Executor, class Property>
-  using require_member_result_t = typename require_member_result<Executor, Property>::type;
-
 namespace
 {
   // Require customization point.
@@ -93,6 +81,9 @@ namespace
 
   // Prefer customization point.
   constexpr const auto& prefer = prefer_impl::customization_point<>;
+
+  // Query customization point.
+  constexpr const auto& query = query_impl::customization_point<>;
 }
 
 // Type trait to determine whether the require customization point is valid for the specified arguments.
@@ -107,29 +98,40 @@ template<class Executor, class... Properties> struct can_prefer;
 template<class Executor, class... Properties>
   constexpr bool can_prefer_v = can_prefer<Executor, Properties...>::value;
 
+// Type trait to determine whether the query customization point is valid for the specified arguments.
+template<class Executor, class Property> struct can_query;
+
+template<class Executor, class Property>
+  constexpr bool can_query_v = can_query<Executor, Property>::value;
+
 // Polymorphic wrappers.
 class bad_executor;
 class executor;
 
 } // namespace execution
-} // inline namespace concurrency_v2
+} // inline namespace executors_v1
 } // namespace experimental
 } // namespace std
 
-#include <experimental/bits/is_executor.h>
 #include <experimental/bits/is_oneway_executor.h>
 #include <experimental/bits/is_twoway_executor.h>
 #include <experimental/bits/is_bulk_oneway_executor.h>
 #include <experimental/bits/is_bulk_twoway_executor.h>
-#include <experimental/bits/executor_context.h>
+#include <experimental/bits/context.h>
+#include <experimental/bits/directionality.h>
+#include <experimental/bits/cardinality.h>
+#include <experimental/bits/continuation.h>
+#include <experimental/bits/blocking.h>
+#include <experimental/bits/outstanding_work.h>
+#include <experimental/bits/bulk_execution.h>
+#include <experimental/bits/thread_execution.h>
+#include <experimental/bits/allocator.h>
 #include <experimental/bits/executor_future.h>
 #include <experimental/bits/executor_shape.h>
 #include <experimental/bits/executor_index.h>
-#include <experimental/bits/has_require_members.h>
-#include <experimental/bits/require_member_result.h>
-#include <experimental/bits/require_adaptations.h>
 #include <experimental/bits/can_require.h>
 #include <experimental/bits/can_prefer.h>
+#include <experimental/bits/can_query.h>
 #include <experimental/bits/executor.h>
 
 #endif // STD_EXPERIMENTAL_EXECUTION

@@ -4,17 +4,14 @@
 namespace execution = std::experimental::execution;
 using execution::executor;
 using std::experimental::static_thread_pool;
-using std::experimental::concurrency_v2::future;
+using std::experimental::executors_v1::future;
 
 void executor_compile_test()
 {
-  static_assert(execution::is_executor_v<executor>, "is_executor must evaluate true");
   static_assert(execution::is_oneway_executor_v<executor>, "is_oneway_executor must evaluate true");
   static_assert(execution::is_twoway_executor_v<executor>, "is_twoway_executor must evaluate true");
 
   static_thread_pool pool(0);
-
-  using context_type = executor::context_type;
 
   static_assert(noexcept(executor()), "default constructor must not throw");
   static_assert(noexcept(executor(nullptr)), "nullptr constructor must not throw");
@@ -70,15 +67,15 @@ void executor_compile_test()
   ex1 = execution::prefer(cex1, execution::bulk_unsequenced_execution);
   ex1 = execution::prefer(cex1, execution::new_thread_execution_mapping);
 
-  const context_type& context = cex1.context();
+  auto& context = execution::query(cex1, execution::context);
   (void)context;
 
   cex1.execute([]{});
 
-  std::experimental::concurrency_v2::future<int> f1 = cex1.twoway_execute([]{ return 42; });
+  std::experimental::executors_v1::future<int> f1 = cex1.twoway_execute([]{ return 42; });
   (void)f1;
 
-  std::experimental::concurrency_v2::future<void> f2 = cex1.twoway_execute([]{});
+  std::experimental::executors_v1::future<void> f2 = cex1.twoway_execute([]{});
   (void)f2;
 
   cex1.bulk_execute([](std::size_t, int&){}, 1, []{ return 42; });

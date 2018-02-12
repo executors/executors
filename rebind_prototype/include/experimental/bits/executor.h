@@ -9,7 +9,7 @@
 
 namespace std {
 namespace experimental {
-inline namespace concurrency_v2 {
+inline namespace executors_v1 {
 namespace execution {
 
 class executor
@@ -95,6 +95,17 @@ class executor
     virtual impl_base* executor_prefer(bulk_parallel_execution_t) const = 0;
     virtual impl_base* executor_prefer(bulk_unsequenced_execution_t) const = 0;
     virtual impl_base* executor_prefer(new_thread_execution_mapping_t) const = 0;
+    virtual bool executor_query(never_blocking_t) const = 0;
+    virtual bool executor_query(possibly_blocking_t) const = 0;
+    virtual bool executor_query(always_blocking_t) const = 0;
+    virtual bool executor_query(continuation_t) const = 0;
+    virtual bool executor_query(not_continuation_t) const = 0;
+    virtual bool executor_query(outstanding_work_t) const = 0;
+    virtual bool executor_query(not_outstanding_work_t) const = 0;
+    virtual bool executor_query(bulk_sequenced_execution_t) const = 0;
+    virtual bool executor_query(bulk_parallel_execution_t) const = 0;
+    virtual bool executor_query(bulk_unsequenced_execution_t) const = 0;
+    virtual bool executor_query(new_thread_execution_mapping_t) const = 0;
     virtual const type_info& context_target_type() const = 0;
     virtual const void* context_target() const = 0;
     virtual bool context_equals(const impl_base* e) const noexcept = 0;
@@ -229,14 +240,81 @@ class executor
       return new impl<decltype(execution::prefer(executor_, new_thread_execution_mapping))>(execution::prefer(executor_, new_thread_execution_mapping));
     }
 
+    virtual bool executor_query(never_blocking_t) const
+    {
+      return execution::query(executor_, never_blocking);
+    }
+
+    virtual bool executor_query(possibly_blocking_t) const
+    {
+      return execution::query(executor_, possibly_blocking);
+    }
+
+    virtual bool executor_query(always_blocking_t) const
+    {
+      return execution::query(executor_, always_blocking);
+    }
+
+    template<class Property>
+    typename enable_if<can_query_v<Executor, Property>, bool>::type prefer_query(const Property& p) const
+    {
+      return execution::query(executor_, p);
+    }
+
+    template<class Property>
+    typename enable_if<!can_query_v<Executor, Property>, bool>::type prefer_query(const Property&) const
+    {
+      return false;
+    }
+
+    virtual bool executor_query(continuation_t) const
+    {
+      return this->prefer_query(continuation);
+    }
+
+    virtual bool executor_query(not_continuation_t) const
+    {
+      return this->prefer_query(not_continuation);
+    }
+
+    virtual bool executor_query(outstanding_work_t) const
+    {
+      return this->prefer_query(outstanding_work);
+    }
+
+    virtual bool executor_query(not_outstanding_work_t) const
+    {
+      return this->prefer_query(not_outstanding_work);
+    }
+
+    virtual bool executor_query(bulk_sequenced_execution_t) const
+    {
+      return this->prefer_query(bulk_sequenced_execution);
+    }
+
+    virtual bool executor_query(bulk_parallel_execution_t) const
+    {
+      return this->prefer_query(bulk_parallel_execution);
+    }
+
+    virtual bool executor_query(bulk_unsequenced_execution_t) const
+    {
+      return this->prefer_query(bulk_unsequenced_execution);
+    }
+
+    virtual bool executor_query(new_thread_execution_mapping_t) const
+    {
+      return this->prefer_query(new_thread_execution_mapping);
+    }
+
     virtual const type_info& context_target_type() const
     {
-      return typeid(executor_.context());
+      return typeid(execution::query(executor_, execution::context));
     }
 
     virtual const void* context_target() const
     {
-      return &executor_.context();
+      return &execution::query(executor_, execution::context);
     }
 
     virtual bool context_equals(const impl_base* i) const noexcept
@@ -245,7 +323,8 @@ class executor
         return true;
       if (context_target_type() != i->context_target_type())
         return false;
-      return executor_.context() == *static_cast<const executor_context_t<Executor>*>(i->context_target());
+      using context_type = typename decay<decltype(execution::query(executor_, execution::context))>::type;
+      return &execution::query(executor_, execution::context) == static_cast<const context_type*>(i->context_target());
     }
   };
 
@@ -390,11 +469,28 @@ public:
   friend executor prefer(const executor& e, bulk_parallel_execution_t) { return e.get_impl() ? e.get_impl()->executor_prefer(bulk_parallel_execution) : e.get_impl()->clone(); }
   friend executor prefer(const executor& e, bulk_unsequenced_execution_t) { return e.get_impl() ? e.get_impl()->executor_prefer(bulk_unsequenced_execution) : e.get_impl()->clone(); }
   friend executor prefer(const executor& e, new_thread_execution_mapping_t) { return e.get_impl() ? e.get_impl()->executor_prefer(new_thread_execution_mapping) : e.get_impl()->clone(); }
-  
-  const context_type& context() const noexcept
+
+  const context_type& query(context_t) const noexcept
   {
     return context_;
   }
+
+  bool query(oneway_t) const { return true; }
+  bool query(twoway_t) const { return true; }
+  bool query(single_t) const { return true; }
+  bool query(bulk_t) const { return true; }
+  bool query(thread_execution_mapping_t) const { return true; }
+  bool query(never_blocking_t) const { return context_.impl_ ? context_.impl_->executor_query(never_blocking) : false; }
+  bool query(possibly_blocking_t) const { return context_.impl_ ? context_.impl_->executor_query(possibly_blocking) : false; }
+  bool query(always_blocking_t) const { return context_.impl_ ? context_.impl_->executor_query(always_blocking) : false; }
+  bool query(continuation_t) const { return context_.impl_ ? context_.impl_->executor_query(continuation) : false; }
+  bool query(not_continuation_t) const { return context_.impl_ ? context_.impl_->executor_query(not_continuation) : false; }
+  bool query(outstanding_work_t) const { return context_.impl_ ? context_.impl_->executor_query(outstanding_work) : false; }
+  bool query(not_outstanding_work_t) const { return context_.impl_ ? context_.impl_->executor_query(not_outstanding_work) : false; }
+  bool query(bulk_sequenced_execution_t) const { return context_.impl_ ? context_.impl_->executor_query(bulk_sequenced_execution) : false; }
+  bool query(bulk_parallel_execution_t) const { return context_.impl_ ? context_.impl_->executor_query(bulk_parallel_execution) : false; }
+  bool query(bulk_unsequenced_execution_t) const { return context_.impl_ ? context_.impl_->executor_query(bulk_unsequenced_execution) : false; }
+  bool query(new_thread_execution_mapping_t) const { return context_.impl_ ? context_.impl_->executor_query(new_thread_execution_mapping) : false; }
 
   template<class Function> void execute(Function f) const
   {
@@ -551,7 +647,7 @@ inline void swap(executor& a, executor& b) noexcept
 }
 
 } // namespace execution
-} // inline namespace concurrency_v2
+} // inline namespace executors_v1
 } // namespace experimental
 } // namespace std
 

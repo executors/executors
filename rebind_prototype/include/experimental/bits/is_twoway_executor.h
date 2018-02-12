@@ -5,7 +5,7 @@
 
 namespace std {
 namespace experimental {
-inline namespace concurrency_v2 {
+inline namespace executors_v1 {
 namespace execution {
 namespace is_twoway_executor_impl {
 
@@ -32,7 +32,7 @@ struct eval<T,
     decltype(static_cast<const dummy&>(std::declval<const T&>().twoway_execute(std::declval<nullary_function&>()).get())),
     decltype(static_cast<const dummy&>(std::declval<const T&>().twoway_execute(std::declval<const nullary_function&>()).get())),
     decltype(static_cast<const dummy&>(std::declval<const T&>().twoway_execute(std::declval<nullary_function&&>()).get()))
-	>::type> : is_executor<T> {};
+	>::type> : is_executor_impl::eval<T> {};
 
 } // namespace is_twoway_executor_impl
 
@@ -40,7 +40,7 @@ template<class Executor>
 struct is_twoway_executor : is_twoway_executor_impl::eval<Executor> {};
 
 } // namespace execution
-} // inline namespace concurrency_v2
+} // inline namespace executors_v1
 } // namespace experimental
 } // namespace std
 

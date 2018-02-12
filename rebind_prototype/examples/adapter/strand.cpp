@@ -1,3 +1,4 @@
+#include <cassert>
 #include <chrono>
 #include <experimental/thread_pool>
 #include <iostream>
@@ -22,6 +23,8 @@ class strand
 
   std::shared_ptr<strand_state> state_;
   Executor ex_;
+
+  template <class T> static auto inner_declval() -> decltype(std::declval<Executor>());
 
   strand(std::shared_ptr<strand_state> s, Executor ex)
     : state_(std::move(s)), ex_(std::move(ex))
@@ -69,27 +72,26 @@ public:
   }
 
   template <class Property> auto require(const Property& p) const
-    -> strand<execution::require_member_result_t<Executor, Property>, Blocking>
+    -> strand<decltype(inner_declval<Property>().require(p)), Blocking>
       { return { state_, ex_.require(p) }; }
 
   auto require(execution::never_blocking_t) const
-    -> strand<execution::require_member_result_t<Executor, execution::never_blocking_t>, execution::never_blocking_t>
+    -> strand<decltype(std::declval<Executor>().require(execution::never_blocking)), execution::never_blocking_t>
   {
     return {state_, ex_.require(execution::never_blocking)};
   };
 
   auto require(execution::possibly_blocking_t) const
-    -> strand<execution::require_member_result_t<Executor, execution::possibly_blocking_t>, execution::never_blocking_t>
+    -> strand<decltype(std::declval<Executor>().require(execution::possibly_blocking)), execution::possibly_blocking_t>
   {
     return {state_, ex_.require(execution::possibly_blocking)};
   };
 
   void require(execution::always_blocking_t) const = delete;
 
-  auto& context() const
-  {
-    return ex_.context();
-  }
+  template<class Property> auto query(const Property& p) const
+    -> decltype(inner_declval<Property>().query(p))
+      { return ex_.query(p); }
 
   friend bool operator==(const strand& a, const strand& b) noexcept
   {
@@ -162,6 +164,7 @@ int main()
 {
   static_thread_pool pool{2};
   strand<static_thread_pool::executor_type> s1(pool.executor());
+  assert(&execution::query(s1, execution::context) == &pool);
   s1.require(execution::never_blocking).execute(foo{s1});
   s1.require(execution::possibly_blocking).execute([]{ std::cout << "After 0, before 1\n"; });
   pool.wait();

@@ -4,7 +4,7 @@ DIRS = \
 	async \
 	async_ops \
 	for_each \
-	hints \
+	properties \
 	inline \
 	invoke \
 	nested \

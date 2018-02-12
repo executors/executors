@@ -8,7 +8,7 @@
 
 namespace std {
 namespace experimental {
-inline namespace concurrency_v2 {
+inline namespace executors_v1 {
 namespace future_impl {
 
 template<class R, class... Args>
@@ -55,10 +55,11 @@ template<class R> inline future<R> unwrap(future<future<R>> f) { return {std::mo
 struct default_executor
 {
 public:
-  auto& context() const noexcept { return *this; }
   friend bool operator==(const default_executor&, const default_executor&) noexcept { return true; }
   friend bool operator!=(const default_executor&, const default_executor&) noexcept { return false; }
   template<class Function> void execute(Function f) const noexcept { f(); }
+  constexpr bool query(execution::oneway_t) { return true; }
+  constexpr bool query(execution::single_t) { return true; }
 };
 
 } // namespace future_impl
@@ -285,7 +286,7 @@ public:
   }
 };
 
-} // inline namespace concurrency_v2
+} // inline namespace executors_v1
 } // namespace experimental
 } // namespace std
 

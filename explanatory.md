@@ -1,7 +1,7 @@
 ----------------    -------------------------------------
 Title:              Executors Design Document
 
-Document Number:    P0761R1
+Document Number:    P0761R2
 
 Authors:            Jared Hoberock, jhoberock@nvidia.com
 
@@ -17,15 +17,21 @@ Authors:            Jared Hoberock, jhoberock@nvidia.com
 
                     Michael Wong, michael@codeplay.com
 
-Date:               2017-10-16
+Date:               2018-02-12
 
-Audience:           SG1 - Concurrency and Parallelism
+Audience:           SG1 - Concurrency and Parallelism, LEWG
 
 Reply-to:           sg1-exec@googlegroups.com
 
-Abstract:           This paper is a companion to [P0443](http://wg21.link/P0443) and describes the executors programming model it specifies. This paper is directed toward readers who want to understand in detail the mechanics of P0443's programming model, and the rationale underpinning the choices of that model's design.
+Abstract:           This paper is a companion to [P0443R4](http://wg21.link/P0443R4) and describes the executors programming model it specifies. This paper is directed toward readers who want to understand in detail the mechanics of P0443's programming model, and the rationale underpinning the choices of that model's design.
 
 ------------------------------------------------------
+
+# Changelog
+
+## Revision 2
+
+* Acknowledge the issue of interoperation between executors and coroutines in Envisioned Extensions section.
 
 
 # Introduction
@@ -1697,6 +1703,17 @@ Transactional Memory TS can be integrated with executors. As TM constructs are
 compound statements of the form `atomic_noexcept  | atomic_commit |
 atomic_cancel  {<compound-statement> }` and `synchronized
 {<compound-statement> }`, it seems they can also apply with executors.
+
+**Coroutines.** Our proposal seeks to establish a uniform interface for
+supporting a variety of modes of execution for C++. Our design work has been
+driven primarily by the application areas spanned by the Concurrency,
+Parallelism, and Networking Technical Specifications. Meanwhile, the C++
+Coroutines Technical Specification, which represents another important
+mode of execution, has progressed independently. Robust interoperability
+between executors and coroutines ought to be explored. Based on prior
+experience with a similar executor model [@Kohlhoff16:P0286], we believe
+that interoperation is possible, although the exact form is still to be
+determined.
 
 # Acknowledgements
 

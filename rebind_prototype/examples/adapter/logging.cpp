@@ -1,3 +1,4 @@
+#include <cassert>
 #include <experimental/thread_pool>
 #include <iostream>
 #include <memory>
@@ -5,7 +6,7 @@
 
 namespace execution = std::experimental::execution;
 using std::experimental::static_thread_pool;
-using std::experimental::concurrency_v2::future;
+using std::experimental::executors_v1::future;
 
 template <class InnerExecutor>
 class logging_executor
@@ -37,13 +38,15 @@ public:
     : prefix_(std::make_shared<std::string>(prefix)), inner_ex_(ex) {}
 
   template <class Property> auto require(const Property& p) const &
-    -> logging_executor<execution::require_member_result_t<InnerExecutor, Property>>
+    -> logging_executor<decltype(inner_declval<Property>().require(p))>
       { return { *prefix_, inner_ex_.require(p) }; }
   template <class Property> auto require(const Property& p) &&
-    -> logging_executor<execution::require_member_result_t<InnerExecutor, Property>>
+    -> logging_executor<decltype(inner_declval<Property>().require(p))>
       { return { *prefix_, std::move(inner_ex_).require(p) }; }
 
-  auto& context() const noexcept { return inner_ex_.context(); }
+  template<class Property> auto query(const Property& p) const
+    -> decltype(inner_declval<Property>().query(p))
+      { return inner_ex_.query(p); }
 
   friend bool operator==(const logging_executor& a, const logging_executor& b) noexcept
   {
@@ -81,6 +84,7 @@ int main()
 {
   static_thread_pool pool{1};
   logging_executor<static_thread_pool::executor_type> ex1("LOG", pool.executor());
+  assert(&execution::query(ex1, execution::context) == &pool);
   ex1.execute([]{ std::cout << "we made it\n"; });
   auto ex2 = ex1.require(execution::always_blocking);
   ex2.execute([]{ std::cout << "we made it again\n"; });
