@@ -409,8 +409,6 @@ A property type `P` may provide:
 
 If both `static_query_v` and `value()` are present, they shall return the same type and this type shall satisfy the `EqualityComparable` requirements.
 
-The value returned from `execution::query(e, p)`, where `e` is an executor and `p` is an instance of a property type `P`, must not change between calls, unless that value has been modified by a call to `execution::require` or `execution::prefer` with a property which is permitted to modify it. [*Note:* A property which is permitted to modify a value could be `p` or another property within a mutually exclusive group. *--end note*]
-
 [*Note:* These are used to determine whether a `require` call would result in an identity transformation. *--end note*]
 
 ### Query-only properties
@@ -432,6 +430,8 @@ The value returned from `execution::query(e, p)`, where `e` is an executor and `
 The `context_t` property can be used only with `query`, which returns the **execution context** associated with the executor.
 
 An execution context is a program object that represents a specific collection of execution resources and the **execution agents** that exist within those resources. Execution agents are units of execution, and a 1-to-1 mapping exists between an execution agent and an invocation of a callable function object submitted via the executor.
+
+The value returned from `execution::query(e, context_t)`, where `e` is an executor, must not change between calls.
 
 ### Interface-changing properties
 
@@ -466,6 +466,8 @@ The directionality properties conform to the following specification:
 `S::static_query_v<Executor>` is true if and only if `Executor` fulfills `S`'s requirements.
 
 The `oneway_t`, `twoway_t` and `then_t` properties are not mutually exclusive.
+
+The value returned from `execution::query(e, p)` must not change between calls, unless that value has been modified by a call to `execution::require(e, p)` or `execution::prefer(e, p)`, where `e` is an executor and `p` is `execution::oneway`, `execution::twoway` or `execution::then`.
 
 ##### `twoway_t` customization points
 
@@ -512,6 +514,8 @@ The cardinality properties conform to the following specification:
 `S::static_query_v<Executor>` is true if and only if `Executor` fulfills `S`'s requirements.
 
 The `single_t` and `bulk_t` properties are not mutually exclusive.
+
+The value returned from `execution::query(e, p)` must not change between calls, unless that value has been modified by a call to `execution::require(e, p)` or `execution::prefer(e, p)`, where `e` is an executor and `p` is `execution::single` or `execution::bulk`.
 
 ##### `bulk_t` customization points
 
@@ -571,6 +575,12 @@ The `possibly_blocking_t`, `always_blocking_t` and `never_blocking_t` properties
 
 [*Note:* The guarantees of `possibly_blocking_t`, `always_blocking_t` and `never_blocking_t` implies the relationships: `possibly_blocking < always_blocking` and `possibly_blocking < never_blocking` *--end note*]
 
+The value returned from `execution::query(e, p1)` must not change between calls, unless that value has been modified by a call to `execution::require(e, p2)` or `execution::prefer(e, p2)`, where:
+* `e` is an executor,
+* `p1` is `execution::possibly_blocking`, `execution::always_blocking` or `execution::never_blocking`,
+* `p2` is `execution::possibly_blocking`, `execution::always_blocking` or `execution::never_blocking`,
+* and `p1` and `p2` are different types.
+
 ##### `possibly_blocking_t` customization points
 
 In addition to conforming to the above specification, the `possibly_blocking_t` property provides the following customization:
@@ -627,6 +637,12 @@ The `not_adaptable_blocking_t` and `adaptable_blocking_t` properties are mutuall
 
 [*Note:* The `two_way_t` property is included here as the `require` customization point's `two_way_t` adaptation is specified in terms of `std::experimental::future`, and that template supports blocking wait operations. *--end note*]
 
+The value returned from `execution::query(e, p1)` must not change between calls, unless that value has been modified by a call to `execution::require(e, p2)` or `execution::prefer(e, p2)`, where:
+* `e` is an executor,
+* `p1` is `execution::adaptable_blocking` or `execution::not_adaptable_blocking`,
+* `p2` is `execution::adaptable_blocking` or `execution::not_adaptable_blocking`,
+* and `p1` and `p2` are different types.
+
 ##### `adaptable_blocking_t` customization points
 
 In addition to conforming to the above specification, the `adaptable_blocking_t` property provides the following customization:
@@ -657,6 +673,12 @@ template<class Executor>
 | `not_continuation_t` | Function objects submitted through the executor do not represent continuations of the caller. |
 
 The `not_continuation_t` and `continuation_t` properties are mutually exclusive.
+
+The value returned from `execution::query(e, p1)` must not change between calls, unless that value has been modified by a call to `execution::require(e, p2)` or `execution::prefer(e, p2)`, where:
+* `e` is an executor,
+* `p1` is `execution::continuation` or `execution::not_continuation`,
+* `p2` is `execution::continuation` or `execution::not_continuation`,
+* and `p1` and `p2` are different types.
 
 #### Properties to indicate likely task submission in the future
 
@@ -700,6 +722,12 @@ Execution agents created by executors with the `bulk_unsequenced_execution_t` pr
 
 The `bulk_unsequenced_execution_t`, `bulk_parallel_execution_t`, and `bulk_sequenced_execution_t` properties are mutually exclusive.
 
+The value returned from `execution::query(e, p1)` must not change between calls, unless that value has been modified by a call to `execution::require(e, p2)` or `execution::prefer(e, p2)`, where:
+* `e` is an executor,
+* `p1` is `execution::bulk_unsequenced_execution`, `execution::bulk_parallel_execution` or `execution::bulk_sequenced_execution`,
+* `p2` is `execution::bulk_unsequenced_execution`, `execution::bulk_parallel_execution` or `execution::bulk_sequenced_execution`,
+* and `p1` and `p2` are different types.
+
 #### Properties for mapping of execution on to threads
 
     struct other_execution_mapping_t;
@@ -722,6 +750,12 @@ agent executes as-if on a `std::thread`. Therefore, the facilities provided by
 `new_thread_execution_mapping_t` provides stronger guarantees, in
 particular that thread-local storage will not be shared between execution
 agents. *--end note*]
+
+The value returned from `execution::query(e, p1)` must not change between calls, unless that value has been modified by a call to `execution::require(e, p2)` or `execution::prefer(e, p2)`, where:
+* `e` is an executor,
+* `p1` is `execution::other_execution_mapping`, `execution::thread_execution_mapping` or `execution::new_thread_execution_mapping`,
+* `p2` is `execution::other_execution_mapping`, `execution::thread_execution_mapping` or `execution::new_thread_execution_mapping`,
+* and `p1` and `p2` are different types.
 
 ### Properties for customizing memory allocation
 
@@ -762,6 +796,11 @@ The `allocator_t` property conforms to the following specification:
 [*Note:* As the `allocator_t<ProtoAllocator>` property enapsulates a value which can be set and queried, it is required to be implemented such that it is callable with the `OtherProtoAllocator` parameter where the customization points accepts the result of `allocator_t<void>::operator(OtherProtoAllocator)`; `allocator_t<OtherProtoAllocator>` and is passable as an instance  where the customization points accept an instance of `allocator_t<void>`. *--end note*]
 
 [*Note:* It is permitted for an allocator provided via `allocator_t<void>::operator(OtherProtoAllocator)` property to be the same type as the default allocator provided by the implementation. *--end note*]
+
+The value returned from `execution::query(e, p1)` must not change between calls, unless that value has been modified by a call to `execution::require(e, p2)` or `execution::prefer(e, p2)`, where:
+* `e` is an executor,
+* `p1` is `execution::allocator` or `execution::allocator(ProtoAllocator)`,
+* and `p2` is `execution::allocator` or `execution::allocator(ProtoAllocator)`.
 
 ## Executor type traits
 
