@@ -37,9 +37,9 @@ Other Contributors: Hans Boehm, hboehm@google.com
 
 Document Number:    P0443R5
 
-Date:               2018-02-XX
+Date:               2018-02-12
 
-Audience:           SG1 - Concurrency and Parallelism
+Audience:           SG1 - Concurrency and Parallelism, LEWG
 
 Reply-to:           sg1-exec@googlegroups.com
 
@@ -51,16 +51,32 @@ Abstract:           This paper proposes a programming model for executors, which
 
 ### Revision 5
 
-* Based on feedback from SG1, execution contexts are now optional properties of executors
-* Based on feedback from SG1, eliminated ill-specified caller-agent forward progress properties
-* Based on feedback from SG1, `Future`'s requirements have been elaborated to allow boost-blocking
-* Based on feedback from SG1, operational semantics of execution functions have been reworded to use similar language as the blocking properties
-* Based on feedback from SG1, `static_thread_pool`'s specification has been elaborated to guarantee that threads in the pool boost-block their work
-* Based on feedback from SG1, the operational semantics of one-way execution functions have been elaborated to note that forward progress guarantees are specific to the concrete executor type
-* Based on feedback from LEWG, eliminated named `BaseExecutor` context
-* Based on feedback from LEWG, simplified general executor requirements
-* Based on feedback from LEWG, enhanced the `OneWayExecutor` introductory paragraph
-* Renamed TS namespace from `concurrency_v21 to `executors_v1`
+Revision 5 of this proposal responds to feedback requested during the 2017 Albuquerque ISO C++ Standards Committee meeting and introduces changes which allow properties to better interoperate with polymorphic executor wrappers and also simplify `execution::require`'s behavior.
+
+* Defined general property type requirements
+* Elaborated specification of standard property types
+* Simplified `execution::prefer`'s specification
+* Enhanced polymorphic executor wrapper
+    * Templatized `execution::executor<SupportableProperties...>`
+    * Introduced `prefer_only` property adaptor
+* Responded to Albuquerque feedback
+    * From SG1
+        * Execution contexts are now optional properties of executors
+        * Eliminated ill-specified caller-agent forward progress properties
+        * Elaborated `Future`'s requirements to incorporate forward progress
+        * Reworded operational semantics of execution functions to use similar language as the blocking properties
+        * Elaborated `static_thread_pool`'s specification to guarantee that threads in the bool boost-block their work
+        * Elaborated operational semantics of execution functions to note that forward progress guarantees are specific to the concrete executor type
+    * From LEWG
+        * Eliminated named `BaseExecutor` concept
+        * Simplified general executor requirements
+        * Enhanced the `OneWayExecutor` introductory paragraph
+        * Eliminated `has_*_member` type traits
+* Minor changes
+    * Renamed TS namespace from `concurrency_v2` to `executors_v1`
+    * Introduced `static_query_v` enabling static queries
+    * Eliminated unused `property_value` trait
+    * Eliminated the names `allocator_wrapper_t` and `default_allocator`
 
 ### Revision 4
 
