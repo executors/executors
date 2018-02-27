@@ -53,13 +53,12 @@ namespace execution {
 
   // Blocking properties:
 
-  struct possibly_blocking_t;
-  struct always_blocking_t;
-  struct never_blocking_t;
+  struct blocking_t;
 
-  constexpr possibly_blocking_t possibly_blocking;
-  constexpr always_blocking_t always_blocking;
-  constexpr never_blocking_t never_blocking;
+  constexpr blocking_t blocking;
+  constexpr blocking_t::possibly_t blocking_t::possibly;
+  constexpr blocking_t::always_t blocking_t::always;
+  constexpr blocking_t::never_t blocking_t::never;
 
   // Properties to allow adaptation of blocking and directionality:
 
@@ -539,87 +538,128 @@ template<class Executor>
 
 ### Behavioral properties
 
-Behavioral properties conform to the following specification:
+Behavioral properties define a set of mutually-exclusive enumerator properties describing executor behavior.
+
+All behavioral properties `S`, and their enumerators `S::E`*i*, conform to the following specification:
 
     struct S
     {
-      static constexpr bool is_requirable = true;
-      static constexpr bool is_preferable = true;
-
-      using polymorphic_query_result_type = bool;
+      static constexpr bool is_requirable = false;
+      static constexpr bool is_preferable = false;
+      using polymorphic_query_result_type = S;
 
       template<class Executor>
-        static constexpr bool static_query_v
+        static constexpr S static_query_v
           = Executor::query(S());
 
-      static constexpr bool value() const { return true; }
+      friend constexpr bool operator==(const S& a, const S& b);
+      friend constexpr bool operator!=(const S& a, const S& b) { return !operator==(a, b); }
+
+      constexpr S();
+
+      struct E1
+      {
+        static constexpr bool is_requirable = true;
+        static constexpr bool is_preferable = true;
+        using polymorphic_query_result_type = S;
+
+        template<class Executor>
+          static constexpr S static_query_v
+            = Executor::query(E1());
+
+        static constexpr S value() { return S(E1()); }
+      };
+
+      constexpr S(const E1);
+
+      ...
+
+      struct EN
+      {
+        static constexpr bool is_requirable = true;
+        static constexpr bool is_preferable = true;
+        using polymorphic_query_result_type = S;
+
+        template<class Executor>
+          static constexpr S static_query_v
+            = Executor::query(EN());
+
+        static constexpr S value() { return S(EN()); }
+      };
+
+      constexpr S(const EN);
     };
 
-The result of the `query` customization point for a behavioral property is
-`true` if the property is present in the executor, and `false` if it is not.
+
+```
+bool operator==(const S& a, const S& b);
+```
+
+*Returns:* `true` if `a` and `b` were constructed from the same enumerator; `false`, otherwise.
 
 #### Blocking properties
 
-    struct possibly_blocking_t;
-    struct always_blocking_t;
-    struct never_blocking_t;
+In addition to conforming to the above specification, the `blocking_t` property defines property enumerators `possibly_t`, `always_t`, `never_t`, and the following members:
+
+    struct blocking_t
+    {
+      static constexpr possibly_t possibly;
+      static constexpr always_t always;
+      static constexpr never_t never;
+    };
 
 | Property | Requirements |
 |----------|--------------|
-| `possibly_blocking_t` | A call to an executor's execution function may block pending completion of one or more of the execution agents created by that execution function. |
-| `always_blocking_t` | A call to an executor's execution function shall block until completion of all execution agents created by that execution function. |
-| `never_blocking_t` | A call to an executor's execution function shall not block pending completion of the execution agents created by that execution function. |
-
-The `possibly_blocking_t`, `always_blocking_t` and `never_blocking_t` properties are mutually exclusive.
-
-[*Note:* The guarantees of `possibly_blocking_t`, `always_blocking_t` and `never_blocking_t` implies the relationships: `possibly_blocking < always_blocking` and `possibly_blocking < never_blocking` *--end note*]
+| `blocking_t::possibly_t` | A call to an executor's execution function may block pending completion of one or more of the execution agents created by that execution function. |
+| `blocking_t::always_t` | A call to an executor's execution function shall block until completion of all execution agents created by that execution function. |
+| `blocking_t::never_t` | A call to an executor's execution function shall not block pending completion of the execution agents created by that execution function. |
 
 The value returned from `execution::query(e, p)` shall not change between calls unless `e` is assigned another executor which has a different value for `p`. The value returned from `execution::query(e, p1)` and a subsequent call `execution::query(e1, p1)` where:
-* `p1` is `execution::possibly_blocking`, `execution::always_blocking` or `execution::never_blocking`, and
+* `p1` is `execution::blocking.possibly`, `execution::blocking.always` or `execution::blocking.never`, and
 * `e1` is the result of `execution::require(e, p2)` or `execution::prefer(e, p2)`,
 shall compare equal unless:
-* `p2` is `execution::possibly_blocking`, `execution::always_blocking` or `execution::never_blocking`, and
+* `p2` is `execution::blocking.possibly`, `execution::blocking.always` or `execution::blocking.never`, and
 * `p1` and `p2` are different types.
 
-##### `possibly_blocking_t` customization points
+##### `blocking_t::possibly_t` customization points
 
-In addition to conforming to the above specification, the `possibly_blocking_t` property provides the following customization:
+In addition to conforming to the above specification, the `blocking_t::possibly_t` property provides the following customization:
 
-    struct possibly_blocking_t
+    struct possibly_t
     {
       template<class Executor>
-        friend constexpr bool query(const Executor& ex, possibly_blocking_t);
+        friend constexpr bool query(const Executor& ex, blocking_t::possibly_t);
     };
 
-This customization automatically enables the `possibly_blocking_t` property for all executors that do not otherwise support the `always_blocking_t` or `never_blocking_t` properties. [*Note:* That is, all executors are treated as possibly blocking unless otherwise specified. *--end note*]
+This customization automatically enables the `blocking_t::possibly_t` property for all executors that do not otherwise support the `blocking_t::always_t` or `blocking_t::never_t` properties. [*Note:* That is, all executors are treated as possibly blocking unless otherwise specified. *--end note*]
 
 ```
 template<class Executor>
-  friend constexpr bool query(const Executor& ex, possibly_blocking_t);
+  friend constexpr bool query(const Executor& ex, blocking_t::possibly_t);
 ```
 
 *Returns:* `true`.
 
-*Remarks:* This function shall not participate in overload resolution unless `can_query_v<Executor, always_blocking_t> || can_query_v<Executor, never_blocking_t>` is `false`.
+*Remarks:* This function shall not participate in overload resolution unless `can_query_v<Executor, blocking_t::always_t> || can_query_v<Executor, blocking_t::never_t>` is `false`.
 
-##### `always_blocking_t` customization points
+##### `blocking_t::always_t` customization points
 
-In addition to conforming to the above specification, the `always_blocking_t` property provides the following customization:
+In addition to conforming to the above specification, the `blocking_t::always_t` property provides the following customization:
 
-    struct always_blocking_t
+    struct always_t
     {
       template<class Executor>
-        friend see-below require(Executor ex, always_blocking_t);
+        friend see-below require(Executor ex, blocking_t::always_t);
     };
 
-If the executor has the `adaptable_blocking_t` property, this customization uses an adapter to implement the `always_blocking_t` property.
+If the executor has the `blocking_t::adaptable_t` property, this customization uses an adapter to implement the `blocking_t::always_t` property.
 
 ```
 template<class Executor>
-  friend see-below require(Executor ex, always_blocking_t);
+  friend see-below require(Executor ex, blocking_t::always_t);
 ```
 
-*Returns:* A value `e1` of type `E1` that holds a copy of `ex`. If `Executor` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `OneWayExecutor` requirements by providing member functions `require`, `query`, and `execute` that forward to the corresponding member functions of the copy of `ex`. If `Executor` satisfies the `TwoWayExecutor` requirements, `E1` shall satisfy the `TwoWayExecutor` requirements by providing member functions `require`, `query`, and `twoway_execute` that forward to the corresponding member functions of the copy of `ex`. If `Executor` satisfies the `BulkOneWayExecutor` requirements, `E1` shall satisfy the `BulkOneWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_execute` that forward to the corresponding member functions of the copy of `ex`. If `Executor` satisfies the `BulkTwoWayExecutor` requirements, `E1` shall satisfy the `BulkTwoWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_twoway_execute` that forward to the corresponding member functions of the copy of `ex`. In addition, `E1` provides an overload of `require` such that `e1.require(always_blocking)` returns a copy of `e1`, an overload of `query` such that `e1.query(always_blocking)` returns `true`, and all functions `execute`, `twoway_execute`, `bulk_execute`, and `bulk_twoway_execute` shall block the calling thread until the submitted functions have finished execution. `e1` has the same executor properties as `ex`, except for the addition of the `always_blocking_t` property, and removal of `never_blocking_t` and `possibly_blocking_t` properties if present.
+*Returns:* A value `e1` of type `E1` that holds a copy of `ex`. If `Executor` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `OneWayExecutor` requirements by providing member functions `require`, `query`, and `execute` that forward to the corresponding member functions of the copy of `ex`. If `Executor` satisfies the `TwoWayExecutor` requirements, `E1` shall satisfy the `TwoWayExecutor` requirements by providing member functions `require`, `query`, and `twoway_execute` that forward to the corresponding member functions of the copy of `ex`. If `Executor` satisfies the `BulkOneWayExecutor` requirements, `E1` shall satisfy the `BulkOneWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_execute` that forward to the corresponding member functions of the copy of `ex`. If `Executor` satisfies the `BulkTwoWayExecutor` requirements, `E1` shall satisfy the `BulkTwoWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_twoway_execute` that forward to the corresponding member functions of the copy of `ex`. In addition, `E1` provides an overload of `require` such that `e1.require(blocking.always)` returns a copy of `e1`, an overload of `query` such that `e1.query(blocking.always)` returns `true`, and all functions `execute`, `twoway_execute`, `bulk_execute`, and `bulk_twoway_execute` shall block the calling thread until the submitted functions have finished execution. `e1` has the same executor properties as `ex`, except for the addition of the `blocking_t::always_t` property, and removal of `blocking_t::never_t` and `blocking_t::possibly_t` properties if present.
 
 *Remarks:* This function shall not participate in overload resolution unless `adaptable_blocking_t::static_query_v<Executor>` is `true`.
 
@@ -630,8 +670,8 @@ template<class Executor>
 
 | Property | Requirements |
 |----------|--------------|
-| `adaptable_blocking_t` | The `require` customization point may adapt the executor to add the `two_way_t` or `always_blocking_t` properties. |
-| `not_adaptable_blocking_t` | The `require` customization point may not adapt the executor to add the `two_way_t` or `always_blocking_t` properties. |
+| `adaptable_blocking_t` | The `require` customization point may adapt the executor to add the `two_way_t` or `blocking_t::always_t` properties. |
+| `not_adaptable_blocking_t` | The `require` customization point may not adapt the executor to add the `two_way_t` or `blocking_t::always_t` properties. |
 
 The `not_adaptable_blocking_t` and `adaptable_blocking_t` properties are mutually exclusive.
 
@@ -1621,7 +1661,7 @@ established:
   * `execution::then`
   * `execution::single`
   * `execution::bulk`
-  * `execution::possibly_blocking`
+  * `execution::blocking.possibly`
   * `execution::not_continuation`
   * `execution::not_outstanding_work`
   * `execution::allocator`
@@ -1650,9 +1690,9 @@ class C
 
     // executor operations:
 
-    see-below require(execution::never_blocking_t) const;
-    see-below require(execution::possibly_blocking_t) const;
-    see-below require(execution::always_blocking_t) const;
+    see-below require(execution::blocking_t::never_t) const;
+    see-below require(execution::blocking_t::possibly_t) const;
+    see-below require(execution::blocking_t::always_t) const;
     see-below require(execution::continuation_t) const;
     see-below require(execution::not_continuation_t) const;
     see-below require(execution::outstanding_work_t) const;
@@ -1663,9 +1703,9 @@ class C
 
     static constexpr bool query(execution::bulk_parallel_execution_t) const;
     static constexpr bool query(execution::thread_execution_mapping_t) const;
-    bool query(execution::never_blocking_t) const;
-    bool query(execution::possibly_blocking_t) const;
-    bool query(execution::always_blocking_t) const;
+    bool query(execution::blocking_t::never_t) const;
+    bool query(execution::blocking_t::possibly_t) const;
+    bool query(execution::blocking_t::always_t) const;
     bool query(execution::continuation_t) const;
     bool query(execution::not_continuation_t) const;
     bool query(execution::outstanding_work_t) const;
@@ -1739,9 +1779,9 @@ C& operator=(C&& other) noexcept;
 #### Operations
 
 ```
-see-below require(execution::never_blocking_t) const;
-see-below require(execution::possibly_blocking_t) const;
-see-below require(execution::always_blocking_t) const;
+see-below require(execution::blocking_t::never_t) const;
+see-below require(execution::blocking_t::possibly_t) const;
+see-below require(execution::blocking_t::always_t) const;
 see-below require(execution::continuation_t) const;
 see-below require(execution::not_continuation_t) const;
 see-below require(execution::outstanding_work_t) const;
@@ -1781,9 +1821,9 @@ static constexpr bool query(execution::thread_execution_mapping_t) const;
 *Returns:* `true`.
 
 ```
-bool query(execution::never_blocking_t) const;
-bool query(execution::possibly_blocking_t) const;
-bool query(execution::always_blocking_t) const;
+bool query(execution::blocking_t::never_t) const;
+bool query(execution::blocking_t::possibly_t) const;
+bool query(execution::blocking_t::always_t) const;
 bool query(execution::continuation_t) const;
 bool query(execution::not_continuation_t) const;
 bool query(execution::outstanding_work_t) const;
