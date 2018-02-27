@@ -1120,7 +1120,7 @@ executor require(Property p) const;
 
 ```
 template <class Property>
-executor query(Property p) const;
+typename Property::polymorphic_query_result_type query(Property p) const;
 ```
 
 *Remarks:* This function shall not participate in overload resolution unless: `CONTAINS_PROPERTY(Property, SupportableProperties)`.
