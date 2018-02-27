@@ -63,10 +63,9 @@ namespace execution {
   // Properties to allow adaptation of blocking and directionality:
 
   struct adaptable_blocking_t;
-  struct not_adaptable_blocking_t;
 
-  constexpr adaptable_blocking_t adaptable_blocking;
-  constexpr not_adaptable_blocking_t not_adaptable_blocking;
+  constexpr adaptable_blocking_t::allowed_t adaptable_blocking_t::allowed;
+  constexpr adaptable_blocking_t::allowed_t adaptable_blocking_t::disallowed;
 
   // Properties to indicate if submitted tasks represent continuations:
 
@@ -479,11 +478,11 @@ In addition to conforming to the above specification, the `twoway_t` property pr
         friend see-below require(Executor ex, twoway_t);
     };
 
-If the executor has the `oneway_t` and `adaptable_blocking_t` properties, this customization returns an adapter that implements the twoway property and its requirements.
+If the executor has the `oneway_t` and `adaptable_blocking_t::allowed_t` properties, this customization returns an adapter that implements the twoway property and its requirements.
 
 *Returns:* A value `e1` of type `E1` that holds a copy of `ex`. If `Executor` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `OneWayExecutor` requirements by providing member functions `require`, `query`, and `execute` that forward to the corresponding member functions of the copy of `ex`, if present, and `E1` shall satisfy the `TwoWayExecutor` requirements by implementing `twoway_execute` in terms of `execute`. Similarly, if `Executor` satisfies the `BulkOneWayExecutor` requirements, `E1` shall satisfy the `BulkOneWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_execute` that forward to the corresponding member functions of the copy of `ex`, if present, and `E1` shall satisfy the `BulkTwoWayExecutor` requirements by implementing `bulk_twoway_execute` in terms of `bulk_execute`. For some type `T`, the type yielded by `executor_future_t<E1, T>` is `std::experimental::future<T>`. `e1` has the same executor properties as `ex`, except for the addition of the `twoway_t` property.
 
-*Remarks:* This function shall not participate in overload resolution unless `is_twoway_executor_v<Executor> ||` `is_bulk_twoway_executor_v<Executor>` is false, `is_oneway_executor_v<Executor>` `||` `is_bulk_oneway_executor_v<Executor>` is true, and `adaptable_blocking_t::static_query_v<Executor>` is a constant expression with value `true`.
+*Remarks:* This function shall not participate in overload resolution unless `is_twoway_executor_v<Executor> ||` `is_bulk_twoway_executor_v<Executor>` is false, `is_oneway_executor_v<Executor>` `||` `is_bulk_oneway_executor_v<Executor>` is true, and `adaptable_blocking_t::static_query_v<Executor>` is a constant expression with value `adaptable_blocking.allowed`.
 
 #### Cardinality properties
 
@@ -661,47 +660,50 @@ template<class Executor>
 
 *Returns:* A value `e1` of type `E1` that holds a copy of `ex`. If `Executor` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `OneWayExecutor` requirements by providing member functions `require`, `query`, and `execute` that forward to the corresponding member functions of the copy of `ex`. If `Executor` satisfies the `TwoWayExecutor` requirements, `E1` shall satisfy the `TwoWayExecutor` requirements by providing member functions `require`, `query`, and `twoway_execute` that forward to the corresponding member functions of the copy of `ex`. If `Executor` satisfies the `BulkOneWayExecutor` requirements, `E1` shall satisfy the `BulkOneWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_execute` that forward to the corresponding member functions of the copy of `ex`. If `Executor` satisfies the `BulkTwoWayExecutor` requirements, `E1` shall satisfy the `BulkTwoWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_twoway_execute` that forward to the corresponding member functions of the copy of `ex`. In addition, `E1` provides an overload of `require` such that `e1.require(blocking.always)` returns a copy of `e1`, an overload of `query` such that `e1.query(blocking.always)` returns `true`, and all functions `execute`, `twoway_execute`, `bulk_execute`, and `bulk_twoway_execute` shall block the calling thread until the submitted functions have finished execution. `e1` has the same executor properties as `ex`, except for the addition of the `blocking_t::always_t` property, and removal of `blocking_t::never_t` and `blocking_t::possibly_t` properties if present.
 
-*Remarks:* This function shall not participate in overload resolution unless `adaptable_blocking_t::static_query_v<Executor>` is `true`.
+*Remarks:* This function shall not participate in overload resolution unless `adaptable_blocking_t::static_query_v<Executor>` is `adaptable_blocking.allowed`.
 
 #### Properties to indicate if blocking and directionality may be adapted
 
-    struct adaptable_blocking_t;
-    struct not_adaptable_blocking_t;
-
-| Property | Requirements |
-|----------|--------------|
-| `adaptable_blocking_t` | The `require` customization point may adapt the executor to add the `two_way_t` or `blocking_t::always_t` properties. |
-| `not_adaptable_blocking_t` | The `require` customization point may not adapt the executor to add the `two_way_t` or `blocking_t::always_t` properties. |
-
-The `not_adaptable_blocking_t` and `adaptable_blocking_t` properties are mutually exclusive.
-
-[*Note:* The `two_way_t` property is included here as the `require` customization point's `two_way_t` adaptation is specified in terms of `std::experimental::future`, and that template supports blocking wait operations. *--end note*]
-
-The value returned from `execution::query(e, p)` shall not change between calls unless `e` is assigned another executor which has a different value for `p`. The value returned from `execution::query(e, p1)` and a subsequent call `execution::query(e1, p1)` where:
-* `p1` is `execution::adaptable_blocking` or `execution::not_adaptable_blocking`, and
-* `e1` is the result of `execution::require(e, p2)` or `execution::prefer(e, p2)`,
-shall compare equal unless:
-* `p2` is `execution::adaptable_blocking` or `execution::not_adaptable_blocking`, and
-* `p1` and `p2` are different types.
-
-##### `adaptable_blocking_t` customization points
-
-In addition to conforming to the above specification, the `adaptable_blocking_t` property provides the following customization:
+In addition to conforming to the above specification, the `adaptable_blocking_t` property defines property enumerators `allowed_t` and `disallowed_t`, and the following members.
 
     struct adaptable_blocking_t
     {
-      template<class Executor>
-        friend see-below require(Executor ex, adaptable_blocking_t);
+      static constexpr allowed_t allowed;
+      static constexpr disallowed_t disallowed;
     };
 
-This customization uses an adapter to implement the `adaptable_blocking_t` property.
+| Property | Requirements |
+|----------|--------------|
+| `adaptable_blocking_t::allowed_t` | The `require` customization point may adapt the executor to add the `two_way_t` or `blocking_t::always_t` properties. |
+| `adaptable_blocking_t::disallowed_t` | The `require` customization point may not adapt the executor to add the `two_way_t` or `blocking_t::always_t` properties. |
+
+[*Note:* The `twoway_t` property is included here as the `require` customization point's `twoway_t` adaptation is specified in terms of `std::experimental::future`, and that template supports blocking wait operations. *--end note*]
+
+The value returned from `execution::query(e, p)` shall not change between calls unless `e` is assigned another executor which has a different value for `p`. The value returned from `execution::query(e, p1)` and a subsequent call `execution::query(e1, p1)` where:
+* `p1` is `execution::adaptable_blocking.allowed` or `execution::adaptable_blocking.disallowed`, and
+* `e1` is the result of `execution::require(e, p2)` or `execution::prefer(e, p2)`,
+shall compare equal unless:
+* `p2` is `execution::adaptable_blocking.allowed` or `execution::adaptable_blocking.disallowed`, and
+* `p1` and `p2` are different types.
+
+##### `adaptable_blocking_t::allowed_t` customization points
+
+In addition to conforming to the above specification, the `adaptable_blocking_t::allowed_t` property provides the following customization:
+
+    struct allowed_t
+    {
+      template<class Executor>
+        friend see-below require(Executor ex, adaptable_blocking_t::allowed_t);
+    };
+
+This customization uses an adapter to implement the `adaptable_blocking_t::allowed_t` property.
 
 ```
 template<class Executor>
-  friend see-below require(Executor ex, adaptable_blocking_t);
+  friend see-below require(Executor ex, adaptable_blocking_t::allowed_t);
 ```
 
-*Returns:* A value `e1` of type `E1` that holds a copy of `ex`. If `Executor` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `OneWayExecutor` requirements by providing member functions `require`, `query`, and `execute` that forward to the corresponding member functions of the copy of `ex`. If `Executor` satisfies the `TwoWayExecutor` requirements, `E1` shall satisfy the `TwoWayExecutor` requirements by providing member functions `require`, `query`, and `twoway_execute` that forward to the corresponding member functions of the copy of `ex`. If `Executor` satisfies the `BulkOneWayExecutor` requirements, `E1` shall satisfy the `BulkOneWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_execute` that forward to the corresponding member functions of the copy of `ex`. If `Executor` satisfies the `BulkTwoWayExecutor` requirements, `E1` shall satisfy the `BulkTwoWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_twoway_execute` that forward to the corresponding member functions of the copy of `ex`. In addition, `adaptable_blocking_t::static_query_v<E1>` is `true`, and `e1.require(not_adaptable_blocking)` yields a copy of `ex`. `e1` has the same executor properties as `ex`, except for the addition of the `adaptable_blocking_t` property.
+*Returns:* A value `e1` of type `E1` that holds a copy of `ex`. If `Executor` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `OneWayExecutor` requirements by providing member functions `require`, `query`, and `execute` that forward to the corresponding member functions of the copy of `ex`. If `Executor` satisfies the `TwoWayExecutor` requirements, `E1` shall satisfy the `TwoWayExecutor` requirements by providing member functions `require`, `query`, and `twoway_execute` that forward to the corresponding member functions of the copy of `ex`. If `Executor` satisfies the `BulkOneWayExecutor` requirements, `E1` shall satisfy the `BulkOneWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_execute` that forward to the corresponding member functions of the copy of `ex`. If `Executor` satisfies the `BulkTwoWayExecutor` requirements, `E1` shall satisfy the `BulkTwoWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_twoway_execute` that forward to the corresponding member functions of the copy of `ex`. In addition, `adaptable_blocking_t::static_query_v<E1>` is `adaptable_blocking.allowed`, and `e1.require(adaptable_blocking.disallowed)` yields a copy of `ex`. `e1` has the same executor properties as `ex`, except for the addition of the `adaptable_blocking_t::allowed_t` property.
 
 #### Properties to indicate if submitted tasks represent continuations
 
