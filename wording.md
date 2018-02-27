@@ -94,13 +94,12 @@ namespace execution {
 
   // Properties for mapping of execution on to threads:
 
-  struct other_execution_mapping_t;
-  struct thread_execution_mapping_t;
-  struct new_thread_execution_mapping_t;
+  struct execution_mapping_t;
 
-  constexpr other_execution_mapping_t other_execution_mapping;
-  constexpr thread_execution_mapping_t thread_execution_mapping;
-  constexpr new_thread_execution_mapping_t new_thread_execution_mapping;
+  constexpr execution_mapping_t execution_mapping;
+  constexpr execution_mapping_t::other_t execution_mapping_t::other;
+  constexpr execution_mapping_t::thread_t execution_mapping_t::thread;
+  constexpr execution_mapping_t::new_thread_t execution_mapping_t::new_thread;
 
   // Memory allocation properties:
 
@@ -786,32 +785,33 @@ shall compare equal unless:
 
 #### Properties for mapping of execution on to threads
 
-    struct other_execution_mapping_t;
-    struct thread_execution_mapping_t;
-    struct new_thread_execution_mapping_t;
+In addition to conforming to the above specification, the `execution_mapping_t` property defines property enumerators `other_t`, `thread_t`, `new_thread_t`, and the following members:
+
+    struct execution_mapping_t
+    {
+      static constexpr other_t other;
+      static constexpr thread_t thread;
+      static constexpr new_thread_t new_thread;
+    };
 
 | Property | Requirements |
 |----------|--------------|
-| `other_execution_mapping_t` | Mapping of each execution agent created by the executor is implementation defined. |
-| `thread_execution_mapping_t` | Execution agents created by the executor are mapped onto threads of execution. |
-| `new_thread_execution_mapping_t` | Each execution agent created by the executor is mapped onto a new thread of execution. |
-
-The `other_execution_mapping_t`, `thread_execution_mapping_t` and `new_thread_execution_mapping_t` properties are mutually exclusive.
-
-[*Note:* The guarantees of `other_execution_mapping_t`, `thread_execution_mapping_t` and `new_thread_execution_mapping_t` implies the relationship: `other_execution_mapping_t < thread_execution_mapping_t < new_thread_execution_mapping_t` *--end note*]
+| `execution_mapping_t::other_t` | Mapping of each execution agent created by the executor is implementation-defined. |
+| `execution_mapping_t::thread_t` | Execution agents created by the executor are mapped onto threads of execution. |
+| `execution_mapping_t::new_thread_t` | Each execution agent created by the executor is mapped onto a new thread of execution. |
 
 [*Note:* A mapping of an execution agent onto a thread of execution implies the
 agent executes as-if on a `std::thread`. Therefore, the facilities provided by
 `std::thread`, such as thread-local storage, are available.
-`new_thread_execution_mapping_t` provides stronger guarantees, in
+`execution_mapping_t::new_thread_t` provides stronger guarantees, in
 particular that thread-local storage will not be shared between execution
 agents. *--end note*]
 
 The value returned from `execution::query(e, p)` shall not change between calls unless `e` is assigned another executor which has a different value for `p`. The value returned from `execution::query(e, p1)` and a subsequent call `execution::query(e1, p1)` where:
-* `p1` is `execution::other_execution_mapping`, `execution::thread_execution_mapping` or `execution::new_thread_execution_mapping`, and
+* `p1` is `execution::execution_mapping.other`, `execution::execution_mapping.thread` or `execution::execution_mapping.new_thread`, and
 * `e1` is the result of `execution::require(e, p2)` or `execution::prefer(e, p2)`,
 shall compare equal unless:
-* `p2` is `execution::other_execution_mapping`, `execution::thread_execution_mapping` or `execution::new_thread_execution_mapping`, and
+* `p2` is `execution::execution_mapping.other`, `execution::execution_mapping.thread` or `execution::execution_mapping.new_thread`, and
 * `p1` and `p2` are different types.
 
 ### Properties for customizing memory allocation
@@ -1708,7 +1708,7 @@ class C
     see-below require(const execution::allocator_t<ProtoAllocator>& a) const;
 
     static constexpr bool query(execution::bulk_execution_guarantee_t::parallel_t) const;
-    static constexpr bool query(execution::thread_execution_mapping_t) const;
+    static constexpr bool query(execution::execution_mapping_t::thread_t) const;
     bool query(execution::blocking_t::never_t) const;
     bool query(execution::blocking_t::possibly_t) const;
     bool query(execution::blocking_t::always_t) const;
@@ -1821,7 +1821,7 @@ executor object are identical to those of `*this`.
 
 ```
 static constexpr bool query(execution::bulk_execution_guarantee::parallel_t) const;
-static constexpr bool query(execution::thread_execution_mapping_t) const;
+static constexpr bool query(execution::execution_mapping_t::thread_t) const;
 ```
 
 *Returns:* `true`.
