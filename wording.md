@@ -77,21 +77,20 @@ namespace execution {
 
   // Properties to indicate likely task submission in the future:
 
-  struct not_outstanding_work_t;
   struct outstanding_work_t;
 
-  constexpr not_outstanding_work_t not_outstanding_work;
   constexpr outstanding_work_t outstanding_work;
+  constexpr outstanding_work_t::no_t outstanding_work_t::no;
+  constexpr outstanding_work_t::yes_t outstanding_work_t::yes;
 
   // Properties for bulk execution guarantees:
 
-  struct bulk_sequenced_execution_t;
-  struct bulk_parallel_execution_t;
-  struct bulk_unsequenced_execution_t;
+  struct bulk_guarantee_t;
 
-  constexpr bulk_sequenced_execution_t bulk_sequenced_execution;
-  constexpr bulk_parallel_execution_t bulk_parallel_execution;
-  constexpr bulk_unsequenced_execution_t bulk_unsequenced_execution;
+  constexpr bulk_guarantee_t bulk_guarantee_t;
+  constexpr bulk_guarantee_t::sequenced_t bulk_guarantee_t::sequenced;
+  constexpr bulk_guarantee_t::parallel_t bulk_guarantee_t::parallel;
+  constexpr bulk_guarantee_t::unsequenced_t bulk_guarantee_t::unsequenced;
 
   // Properties for mapping of execution on to threads:
 
@@ -729,58 +728,60 @@ shall compare equal unless:
 
 #### Properties to indicate likely task submission in the future
 
-    struct not_outstanding_work_t;
-    struct outstanding_work_t;
+In addition to conforming to the above specification, the `outstanding_work_t` property defines property enumerators `yes_t`, `no_t`, and the following members:
+
+    struct outstanding_work_t
+    {
+      static constexpr yes_t yes;
+      static constexpr no_t no;
+    };
 
 | Property | Requirements |
 |----------|--------------|
-| `outstanding_work_t` | The existence of the executor object represents an indication of likely future submission of a function object. The executor or its associated execution context may choose to maintain execution resources in anticipation of this submission. |
-| `not_outstanding_work_t` | The existence of the executor object does not indicate any likely future submission of a function object. |
+| `outstanding_work_t::yes_t` | The existence of the executor object represents an indication of likely future submission of a function object. The executor or its associated execution context may choose to maintain execution resources in anticipation of this submission. |
+| `outstanding_work_t::no_t` | The existence of the executor object does not indicate any likely future submission of a function object. |
 
-The `not_outstanding_work_t` and `outstanding_work_t` properties are mutually exclusive.
-
-[*Note:* The `outstanding_work_t` and `not_outstanding_work_t` properties are use to communicate to the associated execution context intended future work submission on the executor. The intended effect of the properties is the behavior of execution context's facilities for awaiting outstanding work; specifically whether it considers the existance of the executor object with the `outstanding_work_t` property enabled outstanding work when deciding what to wait on. However this will be largely defined by the execution context implementation. It is intended that the execution context will define its wait facilities and on-destruction behaviour and provide an interface for querying this. An initial work towards this is included in P0737r0. *--end note*]
+[*Note:* The `outstanding_work_t::yes_t` and `outstanding_work_t::no_t` properties are used to communicate to the associated execution context intended future work submission on the executor. The intended effect of the properties is the behavior of execution context's facilities for awaiting outstanding work; specifically whether it considers the existance of the executor object with the `outstanding_work_t::yes_t` property enabled outstanding work when deciding what to wait on. However this will be largely defined by the execution context implementation. It is intended that the execution context will define its wait facilities and on-destruction behaviour and provide an interface for querying this. An initial work towards this is included in P0737r0. *--end note*]
 
 The value returned from `execution::query(e, p)` shall not change between calls unless `e` is assigned another executor which has a different value for `p`. The value returned from `execution::query(e, p1)` and a subsequent call `execution::query(e1, p1)` where:
-* `p1` is `execution::outstanding_work` or `execution::not_outstanding_work`, and
+* `p1` is `execution::outstanding_work.yes` or `execution::outstanding_work.no`, and
 * `e1` is the result of `execution::require(e, p2)` or `execution::prefer(e, p2)`,
 shall compare equal unless:
-* `p2` is `execution::outstanding_work` or `execution::not_outstanding_work`, and
+* `p2` is `execution::outstanding_work.yes` or `execution::outstanding_work.no`, and
 * `p1` and `p2` are different types.
 
 #### Properties for bulk execution guarantees
 
-These properties communicate the forward progress and ordering guarantees of execution agents with respect to other agents within the same bulk submission.
+Bulk execution guarantee properties communicate the forward progress and ordering guarantees of execution agents with respect to other agents within the same bulk submission.
 
-    struct bulk_sequenced_execution_t;
-    struct bulk_parallel_execution_t;
-    struct bulk_unsequenced_execution_t;
+In addition to conforming to the above specification, the `bulk_guarantee_t` property defines property enumerators `sequenced_t`, `parallel_t`, `unsequenced_t`, and the following members:
+
+    struct bulk_guarantee_t
+    {
+      static constexpr sequenced_t sequenced;
+      static constexpr parallel_t parallel;
+      static constexpr unsequenced_t unsequenced;
+    };
 
 | Property | Requirements |
 |----------|--------------|
-| `bulk_sequenced_execution_t` | Execution agents within the same bulk execution may not be parallelized. |
-| `bulk_parallel_execution_t` | Execution agents within the same bulk execution may be parallelized. |
-| `bulk_unsequenced_execution_t` | Execution agents within the same bulk execution may be parallelized and vectorized. |
+| `bulk_guarantee_t::sequenced_t` | Execution agents within the same bulk execution may not be parallelized. |
+| `bulk_guarantee_t::parallel_t` | Execution agents within the same bulk execution may be parallelized. |
+| `bulk_guarantee_t::unsequenced_t` | Execution agents within the same bulk execution may be parallelized and vectorized. |
 
-Execution agents created by executors with the `bulk_sequenced_execution_t` property execute in sequence in lexicographic order of their indices.
+Execution agents created by executors with the `bulk_guarantee_t::sequenced_t` property execute in sequence in lexicographic order of their indices.
 
-Execution agents created by executors with the `bulk_parallel_execution_t` property execute with a parallel forward progress guarantee. Any such agents executing in the same thread of execution are indeterminately sequenced with respect to each other. [*Note:* It is the caller's responsibility to ensure that the invocation does not introduce data races or deadlocks. *--end note*]
+Execution agents created by executors with the `bulk_guarantee_t::parallel_t` property execute with a parallel forward progress guarantee. Any such agents executing in the same thread of execution are indeterminately sequenced with respect to each other. [*Note:* It is the caller's responsibility to ensure that the invocation does not introduce data races or deadlocks. *--end note*]
 
-Execution agents created by executors with the `bulk_unsequenced_execution_t` property may execute in an unordered fashion. Any such agents executing in the same thread of execution are unsequenced with respect to each other. [*Note:* This means that multiple execution agents may be interleaved on a single thread of execution, which overrides the usual guarantee from [intro.execution] that function executions do not interleave with one another. *--end note*]
+Execution agents created by executors with the `bulk_guarantee_t::unsequenced_t` property may execute in an unordered fashion. Any such agents executing in the same thread of execution are unsequenced with respect to each other. [*Note:* This means that multiple execution agents may be interleaved on a single thread of execution, which overrides the usual guarantee from [intro.execution] that function executions do not interleave with one another. *--end note*]
 
 [*Editorial note:* The descriptions of these properties were ported from [algorithms.parallel.user]. The intention is that a future standard will specify execution policy behavior in terms of the fundamental properties of their associated executors. We did not include the accompanying code examples from [algorithms.parallel.user] because the examples seem easier to understand when illustrated by `std::for_each`. *--end editorial note*]
 
-[*Note:* The guarantees provided by these properties implies the relationship: `bulk_unsequenced_execution < bulk_parallel_execution < bulk_sequenced_execution`. *--end note*]
-
-[*Editorial note:* The note above is intended to describe when one bulk executor can be substituted for another and provide the required semantics. For example, if a user needs sequenced execution, then only an executor with the `bulk_sequenced_execution_t` property will do. On the other hand, if a user only needs `bulk_unsequenced_execution_t`, then an executor with any of the above properties will suffice. *--end editorial note*]
-
-The `bulk_unsequenced_execution_t`, `bulk_parallel_execution_t`, and `bulk_sequenced_execution_t` properties are mutually exclusive.
-
 The value returned from `execution::query(e, p)` shall not change between calls unless `e` is assigned another executor which has a different value for `p`. The value returned from `execution::query(e, p1)` and a subsequent call `execution::query(e1, p1)` where:
-* `p1` is `execution::bulk_unsequenced_execution`, `execution::bulk_parallel_execution` or `execution::bulk_sequenced_execution`, and
+* `p1` is `execution::bulk_guarantee.sequenced`, `execution::bulk_guarantee.parallel` or `execution::bulk_guarantee.unsequenced`, and
 * `e1` is the result of `execution::require(e, p2)` or `execution::prefer(e, p2)`,
 shall compare equal unless:
-* `p2` is `execution::bulk_unsequenced_execution`, `execution::bulk_parallel_execution` or `execution::bulk_sequenced_execution`, and
+* `p2` is `execution::bulk_guarantee.sequenced`, `execution::bulk_guarantee.parallel` or `execution::bulk_guarantee.unsequenced`, and
 * `p1` and `p2` are different types.
 
 #### Properties for mapping of execution on to threads
@@ -1706,7 +1707,7 @@ class C
     template<class ProtoAllocator>
     see-below require(const execution::allocator_t<ProtoAllocator>& a) const;
 
-    static constexpr bool query(execution::bulk_parallel_execution_t) const;
+    static constexpr bool query(execution::bulk_execution_guarantee_t::parallel_t) const;
     static constexpr bool query(execution::thread_execution_mapping_t) const;
     bool query(execution::blocking_t::never_t) const;
     bool query(execution::blocking_t::possibly_t) const;
@@ -1819,7 +1820,7 @@ performed using a copy of `a.alloc`. All other properties of the returned
 executor object are identical to those of `*this`.
 
 ```
-static constexpr bool query(execution::bulk_parallel_execution_t) const;
+static constexpr bool query(execution::bulk_execution_guarantee::parallel_t) const;
 static constexpr bool query(execution::thread_execution_mapping_t) const;
 ```
 
