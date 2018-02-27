@@ -69,11 +69,11 @@ namespace execution {
 
   // Properties to indicate if submitted tasks represent continuations:
 
-  struct not_continuation_t;
   struct continuation_t;
 
-  constexpr not_continuation_t not_continuation;
   constexpr continuation_t continuation;
+  constexpr continuation_t::no_t continuation_t::no;
+  constexpr continuation_t::yes_t continuation_t::yes;
 
   // Properties to indicate likely task submission in the future:
 
@@ -674,8 +674,8 @@ In addition to conforming to the above specification, the `blocking_adaptation_t
 
 | Property | Requirements |
 |----------|--------------|
-| `blocking_adaptation_t::allowed_t` | The `require` customization point may adapt the executor to add the `two_way_t` or `blocking_t::always_t` properties. |
-| `blocking_adaptation_t::disallowed_t` | The `require` customization point may not adapt the executor to add the `two_way_t` or `blocking_t::always_t` properties. |
+| `blocking_adaptation_t::allowed_t` | The `require` customization point may adapt the executor to add the `twoway_t` or `blocking_t::always_t` properties. |
+| `blocking_adaptation_t::disallowed_t` | The `require` customization point may not adapt the executor to add the `twoway_t` or `blocking_t::always_t` properties. |
 
 [*Note:* The `twoway_t` property is included here as the `require` customization point's `twoway_t` adaptation is specified in terms of `std::experimental::future`, and that template supports blocking wait operations. *--end note*]
 
@@ -707,21 +707,24 @@ template<class Executor>
 
 #### Properties to indicate if submitted tasks represent continuations
 
-    struct continuation_t;
-    struct not_continuation_t;
+In addition to conforming to the above specification, the `continuation_t` property defines property enumerators `yes_t`, `no_t`, and the following members:
+
+    struct continuation_t
+    {
+      static constexpr yes_t yes;
+      static constexpr no_t no;
+    };
 
 | Property | Requirements |
 |----------|--------------|
-| `continuation_t` | Function objects submitted through the executor represent continuations of the caller. If the caller is a lightweight execution agent managed by the executor or its associated execution context, the execution of the submitted function object may be deferred until the caller completes. |
-| `not_continuation_t` | Function objects submitted through the executor do not represent continuations of the caller. |
-
-The `not_continuation_t` and `continuation_t` properties are mutually exclusive.
+| `continuation_t::yes_t` | Function objects submitted through the executor represent continuations of the caller. If the caller is a lightweight execution agent managed by the executor or its associated execution context, the execution of the submitted function object may be deferred until the caller completes. |
+| `continuation_t::no_t` | Function objects submitted through the executor do not represent continuations of the caller. |
 
 The value returned from `execution::query(e, p)` shall not change between calls unless `e` is assigned another executor which has a different value for `p`. The value returned from `execution::query(e, p1)` and a subsequent call `execution::query(e1, p1)` where:
-* `p1` is `execution::continuation` or `execution::not_continuation`, and
+* `p1` is `execution::continuation` or `execution::continuation.no`, and
 * `e1` is the result of `execution::require(e, p2)` or `execution::prefer(e, p2)`,
 shall compare equal unless:
-* `p2` is `execution::continuation` or `execution::not_continuation`, and
+* `p2` is `execution::continuation.yes` or `execution::continuation.no`, and
 * `p1` and `p2` are different types.
 
 #### Properties to indicate likely task submission in the future
@@ -1664,7 +1667,7 @@ established:
   * `execution::single`
   * `execution::bulk`
   * `execution::blocking.possibly`
-  * `execution::not_continuation`
+  * `execution::continuation.no`
   * `execution::not_outstanding_work`
   * `execution::allocator`
   * `execution::allocator(std::allocator<void>())`
@@ -1695,8 +1698,8 @@ class C
     see-below require(execution::blocking_t::never_t) const;
     see-below require(execution::blocking_t::possibly_t) const;
     see-below require(execution::blocking_t::always_t) const;
-    see-below require(execution::continuation_t) const;
-    see-below require(execution::not_continuation_t) const;
+    see-below require(execution::continuation_t::yes_t) const;
+    see-below require(execution::continuation_t::no_t) const;
     see-below require(execution::outstanding_work_t) const;
     see-below require(execution::not_outstanding_work_t) const;
     see-below require(const execution::allocator_t<void>& a) const;
@@ -1708,8 +1711,8 @@ class C
     bool query(execution::blocking_t::never_t) const;
     bool query(execution::blocking_t::possibly_t) const;
     bool query(execution::blocking_t::always_t) const;
-    bool query(execution::continuation_t) const;
-    bool query(execution::not_continuation_t) const;
+    bool query(execution::continuation_t::yes_t) const;
+    bool query(execution::continuation_t::no_t) const;
     bool query(execution::outstanding_work_t) const;
     bool query(execution::not_outstanding_work_t) const;
     see-below query(execution::context_t) const noexcept;
@@ -1784,8 +1787,8 @@ C& operator=(C&& other) noexcept;
 see-below require(execution::blocking_t::never_t) const;
 see-below require(execution::blocking_t::possibly_t) const;
 see-below require(execution::blocking_t::always_t) const;
-see-below require(execution::continuation_t) const;
-see-below require(execution::not_continuation_t) const;
+see-below require(execution::continuation_t::yes_t) const;
+see-below require(execution::continuation_t::no_t) const;
 see-below require(execution::outstanding_work_t) const;
 see-below require(execution::not_outstanding_work_t) const;
 ```
@@ -1826,8 +1829,8 @@ static constexpr bool query(execution::thread_execution_mapping_t) const;
 bool query(execution::blocking_t::never_t) const;
 bool query(execution::blocking_t::possibly_t) const;
 bool query(execution::blocking_t::always_t) const;
-bool query(execution::continuation_t) const;
-bool query(execution::not_continuation_t) const;
+bool query(execution::continuation_t::yes_t) const;
+bool query(execution::continuation_t_t::no_t) const;
 bool query(execution::outstanding_work_t) const;
 bool query(execution::not_outstanding_work_t) const;
 ```
