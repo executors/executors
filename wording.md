@@ -625,14 +625,14 @@ In addition to conforming to the above specification, the `blocking_t::possibly_
     struct possibly_t
     {
       template<class Executor>
-        friend constexpr bool query(const Executor& ex, blocking_t::possibly_t);
+        friend constexpr blocking_t query(const Executor& ex, blocking_t::possibly_t);
     };
 
 This customization automatically enables the `blocking_t::possibly_t` property for all executors that do not otherwise support the `blocking_t::always_t` or `blocking_t::never_t` properties. [*Note:* That is, all executors are treated as possibly blocking unless otherwise specified. *--end note*]
 
 ```
 template<class Executor>
-  friend constexpr bool query(const Executor& ex, blocking_t::possibly_t);
+  friend constexpr blocking_t query(const Executor& ex, blocking_t::possibly_t);
 ```
 
 *Returns:* `true`.
@@ -656,7 +656,7 @@ template<class Executor>
   friend see-below require(Executor ex, blocking_t::always_t);
 ```
 
-*Returns:* A value `e1` of type `E1` that holds a copy of `ex`. If `Executor` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `OneWayExecutor` requirements by providing member functions `require`, `query`, and `execute` that forward to the corresponding member functions of the copy of `ex`. If `Executor` satisfies the `TwoWayExecutor` requirements, `E1` shall satisfy the `TwoWayExecutor` requirements by providing member functions `require`, `query`, and `twoway_execute` that forward to the corresponding member functions of the copy of `ex`. If `Executor` satisfies the `BulkOneWayExecutor` requirements, `E1` shall satisfy the `BulkOneWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_execute` that forward to the corresponding member functions of the copy of `ex`. If `Executor` satisfies the `BulkTwoWayExecutor` requirements, `E1` shall satisfy the `BulkTwoWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_twoway_execute` that forward to the corresponding member functions of the copy of `ex`. In addition, `E1` provides an overload of `require` such that `e1.require(blocking.always)` returns a copy of `e1`, an overload of `query` such that `e1.query(blocking.always)` returns `true`, and all functions `execute`, `twoway_execute`, `bulk_execute`, and `bulk_twoway_execute` shall block the calling thread until the submitted functions have finished execution. `e1` has the same executor properties as `ex`, except for the addition of the `blocking_t::always_t` property, and removal of `blocking_t::never_t` and `blocking_t::possibly_t` properties if present.
+*Returns:* A value `e1` of type `E1` that holds a copy of `ex`. If `Executor` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `OneWayExecutor` requirements by providing member functions `require`, `query`, and `execute` that forward to the corresponding member functions of the copy of `ex`. If `Executor` satisfies the `TwoWayExecutor` requirements, `E1` shall satisfy the `TwoWayExecutor` requirements by providing member functions `require`, `query`, and `twoway_execute` that forward to the corresponding member functions of the copy of `ex`. If `Executor` satisfies the `BulkOneWayExecutor` requirements, `E1` shall satisfy the `BulkOneWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_execute` that forward to the corresponding member functions of the copy of `ex`. If `Executor` satisfies the `BulkTwoWayExecutor` requirements, `E1` shall satisfy the `BulkTwoWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_twoway_execute` that forward to the corresponding member functions of the copy of `ex`. In addition, `E1` provides an overload of `require` such that `e1.require(blocking.always)` returns a copy of `e1`, an overload of `query` such that `e1.query(blocking)` returns `blocking.always`, and all functions `execute`, `twoway_execute`, `bulk_execute`, and `bulk_twoway_execute` shall block the calling thread until the submitted functions have finished execution. `e1` has the same executor properties as `ex`, except for the addition of the `blocking_t::always_t` property, and removal of `blocking_t::never_t` and `blocking_t::possibly_t` properties if present.
 
 *Remarks:* This function shall not participate in overload resolution unless `blocking_adaptation_t::static_query_v<Executor>` is `blocking_adaptation.allowed`.
 
@@ -828,7 +828,7 @@ The `allocator_t` property conforms to the following specification:
         static constexpr bool is_preferable = true;
 
         template<class Executor>
-        static constexpr bool static_query_v
+        static constexpr ProtoAllocator static_query_v
           = Executor::query(allocator_t);
 
         template <typename OtherProtoAllocator>
@@ -836,7 +836,7 @@ The `allocator_t` property conforms to the following specification:
         	return allocator_t<OtherProtoAllocator>{a};
         }
 
-        static constexpr bool value() const { return a; }
+        static constexpr ProtoAllocator value() const { return a; }
     };
 
 | Property | Requirements |
@@ -1707,15 +1707,11 @@ class C
     template<class ProtoAllocator>
     see-below require(const execution::allocator_t<ProtoAllocator>& a) const;
 
-    static constexpr bool query(execution::bulk_execution_guarantee_t::parallel_t) const;
-    static constexpr bool query(execution::execution_mapping_t::thread_t) const;
-    bool query(execution::blocking_t::never_t) const;
-    bool query(execution::blocking_t::possibly_t) const;
-    bool query(execution::blocking_t::always_t) const;
-    bool query(execution::continuation_t::yes_t) const;
-    bool query(execution::continuation_t::no_t) const;
-    bool query(execution::outstanding_work_t) const;
-    bool query(execution::not_outstanding_work_t) const;
+    static constexpr execution::bulk_execution_guarantee_t query(execution::bulk_execution_guarantee_t::parallel_t) const;
+    static constexpr execution::execution_mapping_t query(execution::execution_mapping_t::thread_t) const;
+    execution::blocking_t query(execution::blocking_t) const;
+    execution::continuation_t query(execution::continuation_t) const;
+    execution::outstanding_work_t query(execution::outstanding_work_t) const;
     see-below query(execution::context_t) const noexcept;
     see-below query(execution::allocator_t<void>) const noexcept;
     template<class ProtoAllocator>
@@ -1820,24 +1816,24 @@ performed using a copy of `a.alloc`. All other properties of the returned
 executor object are identical to those of `*this`.
 
 ```
-static constexpr bool query(execution::bulk_execution_guarantee::parallel_t) const;
-static constexpr bool query(execution::execution_mapping_t::thread_t) const;
+static constexpr execution::bulk_execution_guarantee_t query(execution::bulk_execution_guarantee) const;
 ```
 
-*Returns:* `true`.
+*Returns:* `execution::bulk_execution_guarantee.parallel`
 
 ```
-bool query(execution::blocking_t::never_t) const;
-bool query(execution::blocking_t::possibly_t) const;
-bool query(execution::blocking_t::always_t) const;
-bool query(execution::continuation_t::yes_t) const;
-bool query(execution::continuation_t_t::no_t) const;
-bool query(execution::outstanding_work_t) const;
-bool query(execution::not_outstanding_work_t) const;
+static constexpr execution::execution_mapping_t query(execution::execution_mapping_t) const;
 ```
 
-*Returns:* `true` if `*this` has the property established such that it meets
-that properties requirements.
+*Returns:* `execution::execution_mapping.thread`.
+
+```
+execution::blocking_t query(execution::blocking_t) const;
+execution::continuation_t query(execution::continuation_t) const;
+execution::outstanding_work_t query(execution::outstanding_work_t) const;
+```
+
+*Returns:* The value of the given property of `*this`.
 
 ```
 static_thread_pool& query(execution::context_t) const noexcept;
