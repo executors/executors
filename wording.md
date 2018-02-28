@@ -537,7 +537,7 @@ template<class Executor>
 
 Behavioral properties define a set of mutually-exclusive enumerator properties describing executor behavior.
 
-All behavioral properties `S`, their enumerator types `S::E`*i*, and enumerator objects `S::e`*i* conform to the following specification:
+All behavioral property types `S`, their enumerator property types `S::E`*i*, and enumerator property objects `S::e`*i* conform to the following specification:
 
     struct S
     {
@@ -591,7 +591,7 @@ All behavioral properties `S`, their enumerator types `S::E`*i*, and enumerator 
       constexpr S(const EN);
     };
 
-Queries for an executor's behavioral properties shall not change between calls unless the executor is assigned another executor with a different property value.
+Queries for the value of an executor's behavioral property shall not change between calls unless the executor is assigned another executor with a different value of that behavioral property.
 
 The value returned from `execution::query(e1, p1)` and a subsequent call `execution::query(e1, p1)`, where
 
@@ -608,7 +608,7 @@ shall compare equal unless
 bool operator==(const S& a, const S& b);
 ```
 
-*Returns:* `true` if `a` and `b` were constructed from the same enumerator; `false`, otherwise.
+*Returns:* `true` if `a` and `b` were constructed from the same constructor; `false`, otherwise.
 
 #### Blocking properties
 
