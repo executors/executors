@@ -612,20 +612,15 @@ bool operator==(const S& a, const S& b);
 
 #### Blocking properties
 
-In addition to conforming to the above specification, the `blocking_t` property defines property enumerators `possibly_t`, `always_t`, `never_t`, and the following members:
+The `blocking_t` property describes what guarantees executors provide about the blocking behavior of their execution functions.
 
-    struct blocking_t
-    {
-      static constexpr possibly_t possibly;
-      static constexpr always_t always;
-      static constexpr never_t never;
-    };
+`blocking_t` provides property enumerator types and objects as described below.
 
-| Property | Requirements |
-|----------|--------------|
-| `blocking_t::possibly_t` | A call to an executor's execution function may block pending completion of one or more of the execution agents created by that execution function. |
-| `blocking_t::always_t` | A call to an executor's execution function shall block until completion of all execution agents created by that execution function. |
-| `blocking_t::never_t` | A call to an executor's execution function shall not block pending completion of the execution agents created by that execution function. |
+| Property Enumerator Type | Property Enumerator Object Name | Requirements |
+|--------------------------|------------------------|--------------|
+| `blocking_t::possibly_t` | `blocking_t::possibly` | A call to an executor's execution function may block pending completion of one or more of the execution agents created by that execution function. |
+| `blocking_t::always_t` | `blocking_t::always` | A call to an executor's execution function shall block until completion of all execution agents created by that execution function. |
+| `blocking_t::never_t` | `blocking_t::never` | A call to an executor's execution function shall not block pending completion of the execution agents created by that execution function. |
 
 ##### `blocking_t::possibly_t` customization points
 
@@ -671,18 +666,14 @@ template<class Executor>
 
 #### Properties to indicate if blocking and directionality may be adapted
 
-In addition to conforming to the above specification, the `blocking_adaptation_t` property defines property enumerators `allowed_t` and `disallowed_t`, and the following members.
+The `blocking_adaptation_t` property allows or disallows blocking or directionality adaptation via `execution::require`.
 
-    struct blocking_adaptation_t
-    {
-      static constexpr allowed_t allowed;
-      static constexpr disallowed_t disallowed;
-    };
+`blocking_adaptation_t` provides property enumerator types and objects as described below.
 
-| Property | Requirements |
-|----------|--------------|
-| `blocking_adaptation_t::allowed_t` | The `require` customization point may adapt the executor to add the `twoway_t` or `blocking_t::always_t` properties. |
-| `blocking_adaptation_t::disallowed_t` | The `require` customization point may not adapt the executor to add the `twoway_t` or `blocking_t::always_t` properties. |
+| Property Enumerator Type | Property Enumerator Object Name | Requirements |
+|--------------------------|---------------------------------|--------------|
+| `blocking_adaptation_t::allowed_t` | `blocking_adaptation::allowed` | The `require` customization point may adapt the executor to add the `twoway_t` or `blocking_t::always_t` properties. |
+| `blocking_adaptation_t::disallowed_t` | `blocking_adaptation::disallowed` | The `require` customization point may not adapt the executor to add the `twoway_t` or `blocking_t::always_t` properties. |
 
 [*Note:* The `twoway_t` property is included here as the `require` customization point's `twoway_t` adaptation is specified in terms of `std::experimental::future`, and that template supports blocking wait operations. *--end note*]
 
@@ -707,33 +698,25 @@ template<class Executor>
 
 #### Properties to indicate if submitted tasks represent continuations
 
-In addition to conforming to the above specification, the `continuation_t` property defines property enumerators `yes_t`, `no_t`, and the following members:
+The `continuation_t` property allows users of executors to indicate that submitted tasks represent continuations.
 
-    struct continuation_t
-    {
-      static constexpr yes_t yes;
-      static constexpr no_t no;
-    };
+`continuations_t` provides property enumerator types and objects as indicated below.
 
-| Property | Requirements |
-|----------|--------------|
-| `continuation_t::yes_t` | Function objects submitted through the executor represent continuations of the caller. If the caller is a lightweight execution agent managed by the executor or its associated execution context, the execution of the submitted function object may be deferred until the caller completes. |
-| `continuation_t::no_t` | Function objects submitted through the executor do not represent continuations of the caller. |
+| Property Enumerator Type | Property Enumerator Object Name | Requirements |
+|--------------------------|---------------------------------|--------------|
+| `continuation_t::yes_t` | `continuation_t::yes` | Function objects submitted through the executor represent continuations of the caller. If the caller is a lightweight execution agent managed by the executor or its associated execution context, the execution of the submitted function object may be deferred until the caller completes. |
+| `continuation_t::no_t` | `continuation_t::no` | Function objects submitted through the executor do not represent continuations of the caller. |
 
 #### Properties to indicate likely task submission in the future
 
-In addition to conforming to the above specification, the `outstanding_work_t` property defines property enumerators `yes_t`, `no_t`, and the following members:
+The `outstanding_work_t` property allows users of executors to indicate that task submission is likely in the future.
 
-    struct outstanding_work_t
-    {
-      static constexpr yes_t yes;
-      static constexpr no_t no;
-    };
+`outstanding_work_t` provides property enumerator types and objects as indicated below.
 
-| Property | Requirements |
-|----------|--------------|
-| `outstanding_work_t::yes_t` | The existence of the executor object represents an indication of likely future submission of a function object. The executor or its associated execution context may choose to maintain execution resources in anticipation of this submission. |
-| `outstanding_work_t::no_t` | The existence of the executor object does not indicate any likely future submission of a function object. |
+| Property Enumerator Type| Property Enumerator Object Name | Requirements |
+|-------------------------|---------------------------------|--------------|
+| `outstanding_work_t::yes_t` | `outstanding_work::yes` | The existence of the executor object represents an indication of likely future submission of a function object. The executor or its associated execution context may choose to maintain execution resources in anticipation of this submission. |
+| `outstanding_work_t::no_t` | `outstanding_work::no` | The existence of the executor object does not indicate any likely future submission of a function object. |
 
 [*Note:* The `outstanding_work_t::yes_t` and `outstanding_work_t::no_t` properties are used to communicate to the associated execution context intended future work submission on the executor. The intended effect of the properties is the behavior of execution context's facilities for awaiting outstanding work; specifically whether it considers the existance of the executor object with the `outstanding_work_t::yes_t` property enabled outstanding work when deciding what to wait on. However this will be largely defined by the execution context implementation. It is intended that the execution context will define its wait facilities and on-destruction behaviour and provide an interface for querying this. An initial work towards this is included in P0737r0. *--end note*]
 
@@ -741,20 +724,13 @@ In addition to conforming to the above specification, the `outstanding_work_t` p
 
 Bulk execution guarantee properties communicate the forward progress and ordering guarantees of execution agents with respect to other agents within the same bulk submission.
 
-In addition to conforming to the above specification, the `bulk_guarantee_t` property defines property enumerators `sequenced_t`, `parallel_t`, `unsequenced_t`, and the following members:
+`bulk_guarantee_t` provides property enumerator types and objects as indicated below.
 
-    struct bulk_guarantee_t
-    {
-      static constexpr sequenced_t sequenced;
-      static constexpr parallel_t parallel;
-      static constexpr unsequenced_t unsequenced;
-    };
-
-| Property | Requirements |
-|----------|--------------|
-| `bulk_guarantee_t::sequenced_t` | Execution agents within the same bulk execution may not be parallelized. |
-| `bulk_guarantee_t::parallel_t` | Execution agents within the same bulk execution may be parallelized. |
-| `bulk_guarantee_t::unsequenced_t` | Execution agents within the same bulk execution may be parallelized and vectorized. |
+| Property Enumerator Type | Property Enumerator Object Name | Requirements |
+|--------------------------|---------------------------------|--------------|
+| `bulk_guarantee_t::sequenced_t` | `bulk_guarantee_t::sequenced` | Execution agents within the same bulk execution may not be parallelized. |
+| `bulk_guarantee_t::parallel_t` | `bulk_guarantee_t::parallel` | Execution agents within the same bulk execution may be parallelized. |
+| `bulk_guarantee_t::unsequenced_t` | `bulk_guarantee_t::unsequenced` | Execution agents within the same bulk execution may be parallelized and vectorized. |
 
 Execution agents created by executors with the `bulk_guarantee_t::sequenced_t` property execute in sequence in lexicographic order of their indices.
 
@@ -766,20 +742,15 @@ Execution agents created by executors with the `bulk_guarantee_t::unsequenced_t`
 
 #### Properties for mapping of execution on to threads
 
-In addition to conforming to the above specification, the `execution_mapping_t` property defines property enumerators `other_t`, `thread_t`, `new_thread_t`, and the following members:
+The `execution_mapping_t` property describes what guarantees executors provide about the mapping of execution agents onto threads of execution.
 
-    struct execution_mapping_t
-    {
-      static constexpr other_t other;
-      static constexpr thread_t thread;
-      static constexpr new_thread_t new_thread;
-    };
+`execution_mapping_t` provides property enumerator types and objects as indicated below.
 
-| Property | Requirements |
-|----------|--------------|
-| `execution_mapping_t::other_t` | Mapping of each execution agent created by the executor is implementation-defined. |
-| `execution_mapping_t::thread_t` | Execution agents created by the executor are mapped onto threads of execution. |
-| `execution_mapping_t::new_thread_t` | Each execution agent created by the executor is mapped onto a new thread of execution. |
+| Property Enumerator Type| Property Enumerator Object Name | Requirements |
+|-------------------------|---------------------------------|--------------|
+| `execution_mapping_t::other_t` | `execution_mapping::other` | Mapping of each execution agent created by the executor is implementation-defined. |
+| `execution_mapping_t::thread_t` | `execution_mapping::thread` | Execution agents created by the executor are mapped onto threads of execution. |
+| `execution_mapping_t::new_thread_t` | `execution_mapping::new_thread` | Each execution agent created by the executor is mapped onto a new thread of execution. |
 
 [*Note:* A mapping of an execution agent onto a thread of execution implies the
 agent executes as-if on a `std::thread`. Therefore, the facilities provided by
