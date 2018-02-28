@@ -80,8 +80,8 @@ namespace execution {
   struct outstanding_work_t;
 
   constexpr outstanding_work_t outstanding_work;
-  constexpr outstanding_work_t::no_t outstanding_work_t::no;
-  constexpr outstanding_work_t::yes_t outstanding_work_t::yes;
+  constexpr outstanding_work_t::tracked_t outstanding_work_t::tracked;
+  constexpr outstanding_work_t::untracked_t outstanding_work_t::untracked;
 
   // Properties for bulk execution guarantees:
 
@@ -715,10 +715,10 @@ The `outstanding_work_t` property allows users of executors to indicate that tas
 
 | Property Enumerator Type| Property Enumerator Object Name | Requirements |
 |-------------------------|---------------------------------|--------------|
-| `outstanding_work_t::yes_t` | `outstanding_work::yes` | The existence of the executor object represents an indication of likely future submission of a function object. The executor or its associated execution context may choose to maintain execution resources in anticipation of this submission. |
-| `outstanding_work_t::no_t` | `outstanding_work::no` | The existence of the executor object does not indicate any likely future submission of a function object. |
+| `outstanding_work_t::tracked_t` | `outstanding_work::tracked` | The existence of the executor object represents an indication of likely future submission of a function object. The executor or its associated execution context may choose to maintain execution resources in anticipation of this submission. |
+| `outstanding_work_t::untracked_t` | `outstanding_work::untracked` | The existence of the executor object does not indicate any likely future submission of a function object. |
 
-[*Note:* The `outstanding_work_t::yes_t` and `outstanding_work_t::no_t` properties are used to communicate to the associated execution context intended future work submission on the executor. The intended effect of the properties is the behavior of execution context's facilities for awaiting outstanding work; specifically whether it considers the existance of the executor object with the `outstanding_work_t::yes_t` property enabled outstanding work when deciding what to wait on. However this will be largely defined by the execution context implementation. It is intended that the execution context will define its wait facilities and on-destruction behaviour and provide an interface for querying this. An initial work towards this is included in P0737r0. *--end note*]
+[*Note:* The `outstanding_work_t::tracked_t` and `outstanding_work_t::untracked_t` properties are used to communicate to the associated execution context intended future work submission on the executor. The intended effect of the properties is the behavior of execution context's facilities for awaiting outstanding work; specifically whether it considers the existance of the executor object with the `outstanding_work_t::tracked_t` property enabled outstanding work when deciding what to wait on. However this will be largely defined by the execution context implementation. It is intended that the execution context will define its wait facilities and on-destruction behaviour and provide an interface for querying this. An initial work towards this is included in P0737r0. *--end note*]
 
 #### Properties for bulk execution guarantees
 
@@ -1301,7 +1301,7 @@ Consider a generic function that performs some task immediately if it can, and o
         // Perform work in background. Track outstanding work.
         start_background_work(
             execution::prefer(ex,
-              execution::outstanding_work),
+              execution::outstanding_work.tracked),
             callback);
       }
     }
@@ -1334,7 +1334,7 @@ The polymorphic `executor` wrapper should be able to simply swap in, so that we 
         executor<
           execution::single,
           execution::oneway,
-          execution::outstanding_work> ex,
+          execution::outstanding_work.tracked> ex,
         std::function<void()> callback)
     {
       if (try_work() == done)
@@ -1350,14 +1350,14 @@ The polymorphic `executor` wrapper should be able to simply swap in, so that we 
         // Perform work in background. Track outstanding work.
         start_background_work(
             execution::prefer(ex,
-              execution::outstanding_work),
+              execution::outstanding_work.tracked),
             callback);
       }
     }
 
 with no change in behavior or semantics.
 
-However, if we simply specify `execution::outstanding_work` in the `executor` template parameter list, we will get a compile error. This is because the `executor` template doesn't know that `execution::outstanding_work` is intended for use with `prefer` only. At the point of construction from an `inline_executor` called `ex`, `executor` will try to instantiate implementation templates that perform the ill-formed `execution::require(ex, execution::outstanding_work)`.
+However, if we simply specify `execution::outstanding_work.tracked` in the `executor` template parameter list, we will get a compile error. This is because the `executor` template doesn't know that `execution::outstanding_work.tracked` is intended for use with `prefer` only. At the point of construction from an `inline_executor` called `ex`, `executor` will try to instantiate implementation templates that perform the ill-formed `execution::require(ex, execution::outstanding_work.tracked)`.
 
 The `prefer_only` adapter addresses this by turning off the `is_requirable` attribute for a specific property. It would be used in the above example as follows:
 
@@ -1365,7 +1365,7 @@ The `prefer_only` adapter addresses this by turning off the `is_requirable` attr
         executor<
           execution::single,
           execution::oneway,
-          prefer_only<execution::outstanding_work>> ex,
+          prefer_only<execution::outstanding_work.tracked>> ex,
         std::function<void()> callback)
     {
       ...
@@ -1514,7 +1514,7 @@ For an object of type `static_thread_pool`, *outstanding work* is defined as the
 of:
 
 * the number of existing executor objects associated with the
-  `static_thread_pool` for which the `execution::outstanding_work` property is
+  `static_thread_pool` for which the `execution::outstanding_work.tracked` property is
   established;
 
 * the number of function objects that have been added to the `static_thread_pool`
@@ -1608,7 +1608,7 @@ established:
   * `execution::bulk`
   * `execution::blocking.possibly`
   * `execution::continuation.no`
-  * `execution::not_outstanding_work`
+  * `execution::outstanding_work.untracked`
   * `execution::allocator`
   * `execution::allocator(std::allocator<void>())`
 
@@ -1640,8 +1640,8 @@ class C
     see-below require(execution::blocking_t::always_t) const;
     see-below require(execution::continuation_t::yes_t) const;
     see-below require(execution::continuation_t::no_t) const;
-    see-below require(execution::outstanding_work_t) const;
-    see-below require(execution::not_outstanding_work_t) const;
+    see-below require(execution::outstanding_work_t::tracked_t) const;
+    see-below require(execution::outstanding_work_t::untracked_t) const;
     see-below require(const execution::allocator_t<void>& a) const;
     template<class ProtoAllocator>
     see-below require(const execution::allocator_t<ProtoAllocator>& a) const;
@@ -1725,8 +1725,8 @@ see-below require(execution::blocking_t::possibly_t) const;
 see-below require(execution::blocking_t::always_t) const;
 see-below require(execution::continuation_t::yes_t) const;
 see-below require(execution::continuation_t::no_t) const;
-see-below require(execution::outstanding_work_t) const;
-see-below require(execution::not_outstanding_work_t) const;
+see-below require(execution::outstanding_work_t::tracked_t) const;
+see-below require(execution::outstanding_work_t::untracked_t) const;
 ```
 
 *Returns:* An executor object of an unspecified type conforming to these
