@@ -1646,7 +1646,7 @@ class C
     template<class ProtoAllocator>
     see-below require(const execution::allocator_t<ProtoAllocator>& a) const;
 
-    static constexpr execution::bulk_execution_guarantee_t query(execution::bulk_execution_guarantee_t::parallel_t) const;
+    static constexpr execution::bulk_guarantee_t query(execution::bulk_guarantee_t::parallel_t) const;
     static constexpr execution::mapping_t query(execution::mapping_t::thread_t) const;
     execution::blocking_t query(execution::blocking_t) const;
     execution::continuation_t query(execution::continuation_t) const;
@@ -1755,10 +1755,10 @@ performed using a copy of `a.alloc`. All other properties of the returned
 executor object are identical to those of `*this`.
 
 ```
-static constexpr execution::bulk_execution_guarantee_t query(execution::bulk_execution_guarantee) const;
+static constexpr execution::bulk_guarantee_t query(execution::bulk_guarantee_t) const;
 ```
 
-*Returns:* `execution::bulk_execution_guarantee.parallel`
+*Returns:* `execution::bulk_guarantee.parallel`
 
 ```
 static constexpr execution::mapping_t query(execution::mapping_t) const;
