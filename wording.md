@@ -94,12 +94,12 @@ namespace execution {
 
   // Properties for mapping of execution on to threads:
 
-  struct execution_mapping_t;
+  struct mapping_t;
 
-  constexpr execution_mapping_t execution_mapping;
-  constexpr execution_mapping_t::other_t execution_mapping_t::other;
-  constexpr execution_mapping_t::thread_t execution_mapping_t::thread;
-  constexpr execution_mapping_t::new_thread_t execution_mapping_t::new_thread;
+  constexpr mapping_t mapping;
+  constexpr mapping_t::other_t mapping_t::other;
+  constexpr mapping_t::thread_t mapping_t::thread;
+  constexpr mapping_t::new_thread_t mapping_t::new_thread;
 
   // Memory allocation properties:
 
@@ -742,20 +742,20 @@ Execution agents created by executors with the `bulk_guarantee_t::unsequenced_t`
 
 #### Properties for mapping of execution on to threads
 
-The `execution_mapping_t` property describes what guarantees executors provide about the mapping of execution agents onto threads of execution.
+The `mapping_t` property describes what guarantees executors provide about the mapping of execution agents onto threads of execution.
 
-`execution_mapping_t` provides property enumerator types and objects as indicated below.
+`mapping_t` provides property enumerator types and objects as indicated below.
 
 | Property Enumerator Type| Property Enumerator Object Name | Requirements |
 |-------------------------|---------------------------------|--------------|
-| `execution_mapping_t::other_t` | `execution_mapping::other` | Mapping of each execution agent created by the executor is implementation-defined. |
-| `execution_mapping_t::thread_t` | `execution_mapping::thread` | Execution agents created by the executor are mapped onto threads of execution. |
-| `execution_mapping_t::new_thread_t` | `execution_mapping::new_thread` | Each execution agent created by the executor is mapped onto a new thread of execution. |
+| `mapping_t::other_t` | `mapping::other` | Mapping of each execution agent created by the executor is implementation-defined. |
+| `mapping_t::thread_t` | `mapping::thread` | Execution agents created by the executor are mapped onto threads of execution. |
+| `mapping_t::new_thread_t` | `mapping::new_thread` | Each execution agent created by the executor is mapped onto a new thread of execution. |
 
 [*Note:* A mapping of an execution agent onto a thread of execution implies the
 agent executes as-if on a `std::thread`. Therefore, the facilities provided by
 `std::thread`, such as thread-local storage, are available.
-`execution_mapping_t::new_thread_t` provides stronger guarantees, in
+`mapping_t::new_thread_t` provides stronger guarantees, in
 particular that thread-local storage will not be shared between execution
 agents. *--end note*]
 
@@ -1647,7 +1647,7 @@ class C
     see-below require(const execution::allocator_t<ProtoAllocator>& a) const;
 
     static constexpr execution::bulk_execution_guarantee_t query(execution::bulk_execution_guarantee_t::parallel_t) const;
-    static constexpr execution::execution_mapping_t query(execution::execution_mapping_t::thread_t) const;
+    static constexpr execution::mapping_t query(execution::mapping_t::thread_t) const;
     execution::blocking_t query(execution::blocking_t) const;
     execution::continuation_t query(execution::continuation_t) const;
     execution::outstanding_work_t query(execution::outstanding_work_t) const;
@@ -1761,10 +1761,10 @@ static constexpr execution::bulk_execution_guarantee_t query(execution::bulk_exe
 *Returns:* `execution::bulk_execution_guarantee.parallel`
 
 ```
-static constexpr execution::execution_mapping_t query(execution::execution_mapping_t) const;
+static constexpr execution::mapping_t query(execution::mapping_t) const;
 ```
 
-*Returns:* `execution::execution_mapping.thread`.
+*Returns:* `execution::mapping.thread`.
 
 ```
 execution::blocking_t query(execution::blocking_t) const;
