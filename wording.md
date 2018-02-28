@@ -537,7 +537,7 @@ template<class Executor>
 
 Behavioral properties define a set of mutually-exclusive enumerator properties describing executor behavior.
 
-All behavioral properties `S`, and their enumerators `S::E`*i*, conform to the following specification:
+All behavioral properties `S`, their enumerator types `S::E`*i*, and enumerator objects `S::e`*i* conform to the following specification:
 
     struct S
     {
@@ -567,6 +567,8 @@ All behavioral properties `S`, and their enumerators `S::E`*i*, conform to the f
         static constexpr S value() { return S(E1()); }
       };
 
+      static constexpr e1;
+
       constexpr S(const E1);
 
       ...
@@ -584,8 +586,22 @@ All behavioral properties `S`, and their enumerators `S::E`*i*, conform to the f
         static constexpr S value() { return S(EN()); }
       };
 
+      static constexpr eN;
+
       constexpr S(const EN);
     };
+
+Queries for an executor's behavioral properties shall not change between calls unless the executor is assigned another executor with a different property value.
+
+The value returned from `execution::query(e1, p1)` and a subsequent call `execution::query(e1, p1)`, where
+
+* `p1` is an instance of `S` or `S::E`*i*, and
+* `e2` is the result of `execution::require(e1, p2)` or `execution::prefer(e1, p2)`,
+
+shall compare equal unless
+
+* `p2` is an instance of `S::E`*i*, and
+* `p1` and `p2` are different types.
 
 
 ```
@@ -610,13 +626,6 @@ In addition to conforming to the above specification, the `blocking_t` property 
 | `blocking_t::possibly_t` | A call to an executor's execution function may block pending completion of one or more of the execution agents created by that execution function. |
 | `blocking_t::always_t` | A call to an executor's execution function shall block until completion of all execution agents created by that execution function. |
 | `blocking_t::never_t` | A call to an executor's execution function shall not block pending completion of the execution agents created by that execution function. |
-
-The value returned from `execution::query(e, p)` shall not change between calls unless `e` is assigned another executor which has a different value for `p`. The value returned from `execution::query(e, p1)` and a subsequent call `execution::query(e1, p1)` where:
-* `p1` is `execution::blocking.possibly`, `execution::blocking.always` or `execution::blocking.never`, and
-* `e1` is the result of `execution::require(e, p2)` or `execution::prefer(e, p2)`,
-shall compare equal unless:
-* `p2` is `execution::blocking.possibly`, `execution::blocking.always` or `execution::blocking.never`, and
-* `p1` and `p2` are different types.
 
 ##### `blocking_t::possibly_t` customization points
 
@@ -677,13 +686,6 @@ In addition to conforming to the above specification, the `blocking_adaptation_t
 
 [*Note:* The `twoway_t` property is included here as the `require` customization point's `twoway_t` adaptation is specified in terms of `std::experimental::future`, and that template supports blocking wait operations. *--end note*]
 
-The value returned from `execution::query(e, p)` shall not change between calls unless `e` is assigned another executor which has a different value for `p`. The value returned from `execution::query(e, p1)` and a subsequent call `execution::query(e1, p1)` where:
-* `p1` is `execution::blocking_adaptation.allowed` or `execution::blocking_adaptation.disallowed`, and
-* `e1` is the result of `execution::require(e, p2)` or `execution::prefer(e, p2)`,
-shall compare equal unless:
-* `p2` is `execution::blocking_adaptation.allowed` or `execution::blocking_adaptation.disallowed`, and
-* `p1` and `p2` are different types.
-
 ##### `blocking_adaptation_t::allowed_t` customization points
 
 In addition to conforming to the above specification, the `blocking_adaptation_t::allowed_t` property provides the following customization:
@@ -718,13 +720,6 @@ In addition to conforming to the above specification, the `continuation_t` prope
 | `continuation_t::yes_t` | Function objects submitted through the executor represent continuations of the caller. If the caller is a lightweight execution agent managed by the executor or its associated execution context, the execution of the submitted function object may be deferred until the caller completes. |
 | `continuation_t::no_t` | Function objects submitted through the executor do not represent continuations of the caller. |
 
-The value returned from `execution::query(e, p)` shall not change between calls unless `e` is assigned another executor which has a different value for `p`. The value returned from `execution::query(e, p1)` and a subsequent call `execution::query(e1, p1)` where:
-* `p1` is `execution::continuation` or `execution::continuation.no`, and
-* `e1` is the result of `execution::require(e, p2)` or `execution::prefer(e, p2)`,
-shall compare equal unless:
-* `p2` is `execution::continuation.yes` or `execution::continuation.no`, and
-* `p1` and `p2` are different types.
-
 #### Properties to indicate likely task submission in the future
 
 In addition to conforming to the above specification, the `outstanding_work_t` property defines property enumerators `yes_t`, `no_t`, and the following members:
@@ -741,13 +736,6 @@ In addition to conforming to the above specification, the `outstanding_work_t` p
 | `outstanding_work_t::no_t` | The existence of the executor object does not indicate any likely future submission of a function object. |
 
 [*Note:* The `outstanding_work_t::yes_t` and `outstanding_work_t::no_t` properties are used to communicate to the associated execution context intended future work submission on the executor. The intended effect of the properties is the behavior of execution context's facilities for awaiting outstanding work; specifically whether it considers the existance of the executor object with the `outstanding_work_t::yes_t` property enabled outstanding work when deciding what to wait on. However this will be largely defined by the execution context implementation. It is intended that the execution context will define its wait facilities and on-destruction behaviour and provide an interface for querying this. An initial work towards this is included in P0737r0. *--end note*]
-
-The value returned from `execution::query(e, p)` shall not change between calls unless `e` is assigned another executor which has a different value for `p`. The value returned from `execution::query(e, p1)` and a subsequent call `execution::query(e1, p1)` where:
-* `p1` is `execution::outstanding_work.yes` or `execution::outstanding_work.no`, and
-* `e1` is the result of `execution::require(e, p2)` or `execution::prefer(e, p2)`,
-shall compare equal unless:
-* `p2` is `execution::outstanding_work.yes` or `execution::outstanding_work.no`, and
-* `p1` and `p2` are different types.
 
 #### Properties for bulk execution guarantees
 
@@ -776,13 +764,6 @@ Execution agents created by executors with the `bulk_guarantee_t::unsequenced_t`
 
 [*Editorial note:* The descriptions of these properties were ported from [algorithms.parallel.user]. The intention is that a future standard will specify execution policy behavior in terms of the fundamental properties of their associated executors. We did not include the accompanying code examples from [algorithms.parallel.user] because the examples seem easier to understand when illustrated by `std::for_each`. *--end editorial note*]
 
-The value returned from `execution::query(e, p)` shall not change between calls unless `e` is assigned another executor which has a different value for `p`. The value returned from `execution::query(e, p1)` and a subsequent call `execution::query(e1, p1)` where:
-* `p1` is `execution::bulk_guarantee.sequenced`, `execution::bulk_guarantee.parallel` or `execution::bulk_guarantee.unsequenced`, and
-* `e1` is the result of `execution::require(e, p2)` or `execution::prefer(e, p2)`,
-shall compare equal unless:
-* `p2` is `execution::bulk_guarantee.sequenced`, `execution::bulk_guarantee.parallel` or `execution::bulk_guarantee.unsequenced`, and
-* `p1` and `p2` are different types.
-
 #### Properties for mapping of execution on to threads
 
 In addition to conforming to the above specification, the `execution_mapping_t` property defines property enumerators `other_t`, `thread_t`, `new_thread_t`, and the following members:
@@ -806,13 +787,6 @@ agent executes as-if on a `std::thread`. Therefore, the facilities provided by
 `execution_mapping_t::new_thread_t` provides stronger guarantees, in
 particular that thread-local storage will not be shared between execution
 agents. *--end note*]
-
-The value returned from `execution::query(e, p)` shall not change between calls unless `e` is assigned another executor which has a different value for `p`. The value returned from `execution::query(e, p1)` and a subsequent call `execution::query(e1, p1)` where:
-* `p1` is `execution::execution_mapping.other`, `execution::execution_mapping.thread` or `execution::execution_mapping.new_thread`, and
-* `e1` is the result of `execution::require(e, p2)` or `execution::prefer(e, p2)`,
-shall compare equal unless:
-* `p2` is `execution::execution_mapping.other`, `execution::execution_mapping.thread` or `execution::execution_mapping.new_thread`, and
-* `p1` and `p2` are different types.
 
 ### Properties for customizing memory allocation
 
@@ -853,12 +827,6 @@ The `allocator_t` property conforms to the following specification:
 [*Note:* As the `allocator_t<ProtoAllocator>` property enapsulates a value which can be set and queried, it is required to be implemented such that it is callable with the `OtherProtoAllocator` parameter where the customization points accepts the result of `allocator_t<void>::operator(OtherProtoAllocator)`; `allocator_t<OtherProtoAllocator>` and is passable as an instance  where the customization points accept an instance of `allocator_t<void>`. *--end note*]
 
 [*Note:* It is permitted for an allocator provided via `allocator_t<void>::operator(OtherProtoAllocator)` property to be the same type as the default allocator provided by the implementation. *--end note*]
-
-The value returned from `execution::query(e, p)` shall not change between calls unless `e` is assigned another executor which has a different value for `p`. The value returned from `execution::query(e, p1)` and a subsequent call `execution::query(e1, p1)` where:
-* `p1` is `execution::allocator` or `execution::allocator(ProtoAllocator)`, and
- `e1` is the result of `execution::require(e, p2)` or `execution::prefer(e, p2)`,
-shall compare equal unless:
-* `p2` is `execution::allocator` or `execution::allocator(ProtoAllocator)`.
 
 ## Executor type traits
 
