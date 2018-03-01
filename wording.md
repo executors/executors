@@ -69,11 +69,11 @@ namespace execution {
 
   // Properties to indicate if submitted tasks represent continuations:
 
-  struct continuation_t;
+  struct relationship_t;
 
-  constexpr continuation_t continuation;
-  constexpr continuation_t::no_t continuation_t::no;
-  constexpr continuation_t::yes_t continuation_t::yes;
+  constexpr relationship_t relationship_t;
+  constexpr relationship_t::fork_t relationship_t::fork;
+  constexpr relationship_t::continuation_t relationship_t::continuation;
 
   // Properties to indicate likely task submission in the future:
 
@@ -698,14 +698,14 @@ template<class Executor>
 
 #### Properties to indicate if submitted tasks represent continuations
 
-The `continuation_t` property allows users of executors to indicate that submitted tasks represent continuations.
+The `relationship_t` property allows users of executors to indicate that submitted tasks represent continuations.
 
-`continuations_t` provides property enumerator types and objects as indicated below.
+`relationship_t` provides property enumerator types and objects as indicated below.
 
 | Property Enumerator Type | Property Enumerator Object Name | Requirements |
 |--------------------------|---------------------------------|--------------|
-| `continuation_t::yes_t` | `continuation_t::yes` | Function objects submitted through the executor represent continuations of the caller. If the caller is a lightweight execution agent managed by the executor or its associated execution context, the execution of the submitted function object may be deferred until the caller completes. |
-| `continuation_t::no_t` | `continuation_t::no` | Function objects submitted through the executor do not represent continuations of the caller. |
+| `relationship_t::continuation_t` | `relationship_t::yes` | Function objects submitted through the executor represent continuations of the caller. If the caller is a lightweight execution agent managed by the executor or its associated execution context, the execution of the submitted function object may be deferred until the caller completes. |
+| `relationship_t::fork_t` | `relationship_t::no` | Function objects submitted through the executor do not represent continuations of the caller. |
 
 #### Properties to indicate likely task submission in the future
 
@@ -1638,8 +1638,8 @@ class C
     see-below require(execution::blocking_t::never_t) const;
     see-below require(execution::blocking_t::possibly_t) const;
     see-below require(execution::blocking_t::always_t) const;
-    see-below require(execution::continuation_t::yes_t) const;
-    see-below require(execution::continuation_t::no_t) const;
+    see-below require(execution::relationship_t::continuation_t) const;
+    see-below require(execution::relationship_t::fork_t) const;
     see-below require(execution::outstanding_work_t::tracked_t) const;
     see-below require(execution::outstanding_work_t::untracked_t) const;
     see-below require(const execution::allocator_t<void>& a) const;
@@ -1649,7 +1649,7 @@ class C
     static constexpr execution::bulk_guarantee_t query(execution::bulk_guarantee_t::parallel_t) const;
     static constexpr execution::mapping_t query(execution::mapping_t::thread_t) const;
     execution::blocking_t query(execution::blocking_t) const;
-    execution::continuation_t query(execution::continuation_t) const;
+    execution::relationship_t query(execution::relationship_t) const;
     execution::outstanding_work_t query(execution::outstanding_work_t) const;
     see-below query(execution::context_t) const noexcept;
     see-below query(execution::allocator_t<void>) const noexcept;
@@ -1723,8 +1723,8 @@ C& operator=(C&& other) noexcept;
 see-below require(execution::blocking_t::never_t) const;
 see-below require(execution::blocking_t::possibly_t) const;
 see-below require(execution::blocking_t::always_t) const;
-see-below require(execution::continuation_t::yes_t) const;
-see-below require(execution::continuation_t::no_t) const;
+see-below require(execution::relationship_t::continuation_t) const;
+see-below require(execution::relationship_t::fork_t) const;
 see-below require(execution::outstanding_work_t::tracked_t) const;
 see-below require(execution::outstanding_work_t::untracked_t) const;
 ```
@@ -1768,7 +1768,7 @@ static constexpr execution::mapping_t query(execution::mapping_t) const;
 
 ```
 execution::blocking_t query(execution::blocking_t) const;
-execution::continuation_t query(execution::continuation_t) const;
+execution::relationship_t query(execution::relationship_t) const;
 execution::outstanding_work_t query(execution::outstanding_work_t) const;
 ```
 
