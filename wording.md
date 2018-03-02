@@ -403,7 +403,7 @@ A property type `P` shall provide:
 
 [*Note:* These constants are used to determine whether the property can be used with the `require` and `prefer` customization points, respectively. *--end note*]
 
-A property type `P` may provide a nested type `polymorphic_query_result_type`. [*Note:* When present, this type allows the property to be used with the polymorphic `executor` wrapper. *--end note*]
+A property type `P` may provide a nested type `polymorphic_query_result_type` that satisfies the `DefaultConstructible`, `CopyConstructible` and `Destructible` requirements. [*Note:* When present, this type allows the property to be used with the polymorphic `executor` wrapper. *--end note*]
 
 A property type `P` may provide:
 
@@ -1125,9 +1125,7 @@ executor query(Property p) const;
 
 *Remarks:* This function shall not participate in overload resolution unless: `CONTAINS_PROPERTY(Property, SupportableProperties)`.
 
-*Effects:* Performs `execution::query(e, p)`, where `e` is the target object of `*this`.
-
-*Returns:* `static_cast<Property::polymorphic_query_result_type>(e.query(p))`.
+*Returns:* If `executor::query(e, p)` is well-formed, `static_cast<Property::polymorphic_query_result_type>(executor::query(e, p))`, where `e` is the target object of `*this`. Otherwise, `Property::polymorphic_query_result_type{}`.
 
 ```
 template<class Function>
