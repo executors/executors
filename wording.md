@@ -928,6 +928,7 @@ public:
   executor(executor&& e) noexcept;
   template<class Executor> executor(Executor e);
   template<class... OtherSupportableProperties> executor(executor<OtherSupportableProperties...> e);
+  template<class... OtherSupportableProperties> executor(executor<OtherSupportableProperties...> e) = delete;
 
   executor& operator=(const executor& e) noexcept;
   executor& operator=(executor&& e) noexcept;
@@ -1054,6 +1055,12 @@ template<class... OtherSupportableProperties> executor(executor<OtherSupportable
 * `CONTAINS_PROPERTY(p, OtherSupportableProperties)` , where `p` is each property in `SupportableProperties...`.
 
 *Effects:* `*this` targets a copy of `e` initialized with `std::move(e)`.
+
+```
+template<class... OtherSupportableProperties> executor(executor<OtherSupportableProperties...> e) = delete;
+```
+
+*Remarks:* This function shall not participate in overload resolution unless `CONTAINS_PROPERTY(p, OtherSupportableProperties)` is `false` for some property `p` in `SupportableProperties...`.
 
 #### `executor` assignment
 
