@@ -539,7 +539,7 @@ template<class Executor>
 
 ### Behavioral properties
 
-Behavioral properties conform to the following specification:
+Unless otherwise specified, behavioral properties conform to the following specification:
 
     struct S
     {
@@ -583,24 +583,24 @@ shall compare equal unless:
 
 ##### `possibly_blocking_t` customization points
 
-In addition to conforming to the above specification, the `possibly_blocking_t` property provides the following customization:
+The `possibly_blocking_t` conforms to the above specification, with the exception of the `static_query_v` member which is specified as follows.
 
     struct possibly_blocking_t
     {
       template<class Executor>
-        friend constexpr bool query(const Executor& ex, possibly_blocking_t);
+        static constexpr bool static_query_v
+          = see-below;
     };
 
-This customization automatically enables the `possibly_blocking_t` property for all executors that do not otherwise support the `always_blocking_t` or `never_blocking_t` properties. [*Note:* That is, all executors are treated as possibly blocking unless otherwise specified. *--end note*]
+The `static_query_v` member is:
 
-```
-template<class Executor>
-  friend constexpr bool query(const Executor& ex, possibly_blocking_t);
-```
+* `Executor::query(possibly_blocking_t{})` if that is a well-formed constant expression.
+* ill-formed if `declval<Executor>.query(possibly_blocking_t{})` is well-formed;
+* ill-formed if `can_query_v<Executor, always_blocking_t>` is `true`;
+* ill-formed if `can_query_v<Executor, never_blocking_t>` is `true`;
+* otherwise `true`.
 
-*Returns:* `true`.
-
-*Remarks:* This function shall not participate in overload resolution unless `can_query_v<Executor, always_blocking_t> || can_query_v<Executor, never_blocking_t>` is `false`.
+[*Note:* This specification for `static_query_v` automatically enables the `possibly_blocking_t` property for all executors that do not otherwise support the `always_blocking_t` or `never_blocking_t` properties. That is, all executors are treated as possibly blocking unless otherwise specified. *--end note*]
 
 ##### `always_blocking_t` customization points
 
