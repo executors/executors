@@ -1414,13 +1414,13 @@ The `prefer_only` adapter addresses this by turning off the `is_requirable` attr
         noexcept(noexcept(std::declval<const InnerProperty>().value()))
           -> decltype(std::declval<const InnerProperty>().value());
 
-      template<class Executor>
-      friend auto prefer(Executor ex, const prefer_only& p)
+      template<class Executor, class Property>
+      friend auto prefer(Executor ex, const Property& p)
         noexcept(noexcept(execution::prefer(std::move(ex), std::declval<const InnerProperty>())))
           -> decltype(execution::prefer(std::move(ex), std::declval<const InnerProperty>()));
 
-      template<class Executor>
-      friend constexpr auto query(const Executor& ex, const prefer_only& p)
+      template<class Executor, class Property>
+      friend constexpr auto query(const Executor& ex, const Property& p)
         noexcept(noexcept(execution::query(ex, std::declval<const InnerProperty>())))
           -> decltype(execution::query(ex, std::declval<const InnerProperty>()));
     };
@@ -1446,26 +1446,26 @@ constexpr auto value() const
 *Remarks:* Shall not participate in overload resolution unless the expression `property.value()` is well-formed.
 
 ```
-template<class Executor>
-friend auto prefer(Executor ex, const prefer_only& p)
+template<class Executor, class Property>
+friend auto prefer(Executor ex, const Property& p)
   noexcept(noexcept(execution::prefer(std::move(ex), std::declval<const InnerProperty>())))
     -> decltype(execution::prefer(std::move(ex), std::declval<const InnerProperty>()));
 ```
 
 *Returns:* `execution::prefer(std::move(ex), p.property)`.
 
-*Remarks:* Shall not participate in overload resolution unless the expression `execution::prefer(std::move(ex), p.property)` is well-formed.
+*Remarks:* Shall not participate in overload resolution unless `std::is_same_v<Property, prefer_only>` is `true`, and the expression `execution::prefer(std::move(ex), p.property)` is well-formed.
 
 ```
-template<class Executor>
-friend constexpr auto query(const Executor& ex, const prefer_only& p)
+template<class Executor, class Property>
+friend constexpr auto query(const Executor& ex, const Property& p)
   noexcept(noexcept(execution::query(ex, std::declval<const InnerProperty>())))
     -> decltype(execution::query(ex, std::declval<const InnerProperty>()));
 ```
 
 *Returns:* `execution::query(ex, p.property)`.
 
-*Remarks:* Shall not participate in overload resolution unless the expression `execution::query(ex, p.property)` is well-formed.
+*Remarks:* Shall not participate in overload resolution unless `std::is_same_v<Property, prefer_only>` is `true`, and the expression `execution::query(ex, p.property)` is well-formed.
 
 ## Thread pools
 
