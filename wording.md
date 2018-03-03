@@ -949,7 +949,7 @@ public:
   executor require(Property) const;
 
   template <class Property>
-  executor query(Property) const;
+  typename Property::polymorphic_query_result_type query(Property) const;
 
   template<class Function>
     void execute(Function&& f) const;
@@ -1003,6 +1003,8 @@ executor prefer(const executor<SupportableProperties>& e, Property p);
 The `executor` class satisfies the general requirements on executors.
 
 [*Note:* To meet the `noexcept` requirements for executor copy constructors and move constructors, implementations may share a target between two or more `executor` objects. *--end note*]
+
+Each property type in the `SupportableProperties...` pack shall provide a nested type `polymorphic_query_result_type`.
 
 The *target* is the executor object that is held by the wrapper.
 
@@ -1129,7 +1131,7 @@ executor require(Property p) const;
 
 ```
 template <class Property>
-executor query(Property p) const;
+typename Property::polymorphic_query_result_type query(Property p) const;
 ```
 
 *Remarks:* This function shall not participate in overload resolution unless `FIND_CONVERTIBLE_PROPERTY(Property, SupportableProperties)` is well-formed.
