@@ -51,7 +51,9 @@ Abstract:           This paper proposes a programming model for executors, which
 
 ### Revision 6
 
-TODO
+Revision 6 of this proposal corrects bugs and omissions discovered by the authors after Revision 5's publication, and introduces enhancements which enforce mutual exclusion of behavioral properties.
+
+TODO: Elaborated changelog
 
 ### Revision 5
 
@@ -59,7 +61,7 @@ Revision 5 of this proposal responds to feedback requested during the 2017 Albuq
 
 * Defined general property type requirements
 * Elaborated specification of standard property types
-* Simplified `execution::prefer`'s specification
+* Simplified `execution::require`'s specification
 * Enhanced polymorphic executor wrapper
     * Templatized `execution::executor<SupportableProperties...>`
     * Introduced `prefer_only` property adaptor

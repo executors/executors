@@ -399,7 +399,7 @@ A property type `P` shall provide:
 
 [*Note:* These constants are used to determine whether the property can be used with the `require` and `prefer` customization points, respectively. *--end note*]
 
-A property type `P` may provide a nested type `polymorphic_query_result_type`. [*Note:* When present, this type allows the property to be used with the polymorphic `executor` wrapper. *--end note*]
+A property type `P` may provide a nested type `polymorphic_query_result_type` that satisfies the `DefaultConstructible`, `CopyConstructible` and `Destructible` requirements. [*Note:* When present, this type allows the property to be used with the polymorphic `executor` wrapper. *--end note*]
 
 A property type `P` may provide:
 
@@ -537,7 +537,7 @@ template<class Executor>
 
 Behavioral properties define a set of mutually-exclusive enumerator properties describing executor behavior.
 
-All behavioral property types `S`, their enumerator property types `S::E`*i*, and enumerator property objects `S::e`*i* conform to the following specification:
+Unless otherwise specified, behavioral property types `S`, their enumerator property types `S::E`*i*, and enumerator property objects `S::e`*i* conform to the following specification:
 
     struct S
     {
@@ -629,17 +629,29 @@ In addition to conforming to the above specification, the `blocking_t::possibly_
     struct possibly_t
     {
       template<class Executor>
+      static constexpr blocking_t static_query_v
+        = see-below;
+
+      template<class Executor>
         friend constexpr blocking_t query(const Executor& ex, blocking_t::possibly_t);
     };
 
-This customization automatically enables the `blocking_t::possibly_t` property for all executors that do not otherwise support the `blocking_t::always_t` or `blocking_t::never_t` properties. [*Note:* That is, all executors are treated as possibly blocking unless otherwise specified. *--end note*]
+These members automatically enable the `blocking_t::possibly_t` property for all executors that do not otherwise support the `blocking_t::always_t` or `blocking_t::never_t` properties. [*Note:* That is, all executors are treated as possibly blocking unless otherwise specified. *--end note*]
+
+The `static_query_v` member is:
+
+* `Executor::query(blocking_t::possibly_t{})` if that is a well-formed constant expression.
+* ill-formed if `declval<Executor>.query(blocking_t::possibly_t{})` is well-formed;
+* ill-formed if `can_query_v<Executor, blocking_t::always_t>` is `true`;
+* ill-formed if `can_query_v<Executor, blocking_t::never_t>` is `true`;
+* otherwise `blocking.possibly`.
 
 ```
 template<class Executor>
   friend constexpr blocking_t query(const Executor& ex, blocking_t::possibly_t);
 ```
 
-*Returns:* `true`.
+*Returns:* `blocking.possibly`.
 
 *Remarks:* This function shall not participate in overload resolution unless `can_query_v<Executor, blocking_t::always_t> || can_query_v<Executor, blocking_t::never_t>` is `false`.
 
@@ -873,6 +885,8 @@ This sub-clause contains templates that may be used to query the properties of a
 
 In several places in this section the operation `CONTAINS_PROPERTY(p, pn)` is used. All such uses mean `std::disjunction_v<std::is_same<p, pn>...>`.
 
+In several places in this section the operation `FIND_CONVERTIBLE_PROPERTY(p, pn)` is used. All such uses mean the first type `P` in the parameter pack `pn` for which `std::is_convertible_v<p, P>` is `true`. If no such type `P` exists, the operation `FIND_CONVERTIBLE_PROPERTY(p, pn)` is ill-formed.
+
 ### Class `bad_executor`
 
 An exception of type `bad_executor` is thrown by `executor` member functions `execute`, `twoway_execute`, `bulk_execute`, and `bulk_twoway_execute` when the executor object has no target.
@@ -913,6 +927,7 @@ public:
   executor(executor&& e) noexcept;
   template<class Executor> executor(Executor e);
   template<class... OtherSupportableProperties> executor(executor<OtherSupportableProperties...> e);
+  template<class... OtherSupportableProperties> executor(executor<OtherSupportableProperties...> e) = delete;
 
   executor& operator=(const executor& e) noexcept;
   executor& operator=(executor&& e) noexcept;
@@ -931,7 +946,7 @@ public:
   executor require(Property) const;
 
   template <class Property>
-  executor query(Property) const;
+  typename Property::polymorphic_query_result_type query(Property) const;
 
   template<class Function>
     void execute(Function&& f) const;
@@ -986,6 +1001,8 @@ The `executor` class satisfies the general requirements on executors.
 
 [*Note:* To meet the `noexcept` requirements for executor copy constructors and move constructors, implementations may share a target between two or more `executor` objects. *--end note*]
 
+Each property type in the `SupportableProperties...` pack shall provide a nested type `polymorphic_query_result_type`.
+
 The *target* is the executor object that is held by the wrapper.
 
 #### `executor` constructors
@@ -1039,6 +1056,12 @@ template<class... OtherSupportableProperties> executor(executor<OtherSupportable
 * `CONTAINS_PROPERTY(p, OtherSupportableProperties)` , where `p` is each property in `SupportableProperties...`.
 
 *Effects:* `*this` targets a copy of `e` initialized with `std::move(e)`.
+
+```
+template<class... OtherSupportableProperties> executor(executor<OtherSupportableProperties...> e) = delete;
+```
+
+*Remarks:* This function shall not participate in overload resolution unless `CONTAINS_PROPERTY(p, OtherSupportableProperties)` is `false` for some property `p` in `SupportableProperties...`.
 
 #### `executor` assignment
 
@@ -1099,20 +1122,18 @@ template <class Property>
 executor require(Property p) const;
 ```
 
-*Remarks:* This function shall not participate in overload resolution unless: `CONTAINS_PROPERTY(Property, SupportableProperties) && Property::is_requirable`.
+*Remarks:* This function shall not participate in overload resolution unless `FIND_CONVERTIBLE_PROPERTY(Property, SupportableProperties)::is_requirable` is well-formed and has the value `true`.
 
 *Returns:* A polymorphic wrapper whose target is the result of `execution::require(e, p)`, where `e` is the target object of `*this`.
 
 ```
 template <class Property>
-executor query(Property p) const;
+typename Property::polymorphic_query_result_type query(Property p) const;
 ```
 
-*Remarks:* This function shall not participate in overload resolution unless: `CONTAINS_PROPERTY(Property, SupportableProperties)`.
+*Remarks:* This function shall not participate in overload resolution unless `FIND_CONVERTIBLE_PROPERTY(Property, SupportableProperties)` is well-formed.
 
-*Effects:* Performs `execution::query(e, p)`, where `e` is the target object of `*this`.
-
-*Returns:* `static_cast<Property::polymorphic_query_result_type>(e.query(p))`.
+*Returns:* If `executor::query(e, p)` is well-formed, `static_cast<Property::polymorphic_query_result_type>(executor::query(e, p))`, where `e` is the target object of `*this`. Otherwise, `Property::polymorphic_query_result_type{}`.
 
 ```
 template<class Function>
@@ -1271,7 +1292,7 @@ template <class Property, class... SupportableProperties>
 executor prefer(const executor<SupportableProperties...>& e, Property p);
 ```
 
-*Remarks:* This function shall not participate in overload resolution unless: `CONTAINS_PROPERTY(Property, SupportableProperties)`.
+*Remarks:* This function shall not participate in overload resolution unless `FIND_CONVERTIBLE_PROPERTY(Property, SupportableProperties)::is_preferable` is well-formed and has the value `true`.
 
 *Returns:* A polymorphic wrapper whose target is the result of `execution::prefer(e, p)`, where `e` is the target object of `*this`.
 
@@ -1392,13 +1413,13 @@ The `prefer_only` adapter addresses this by turning off the `is_requirable` attr
         noexcept(noexcept(std::declval<const InnerProperty>().value()))
           -> decltype(std::declval<const InnerProperty>().value());
 
-      template<class Executor>
-      friend auto prefer(Executor ex, const prefer_only& p)
+      template<class Executor, class Property>
+      friend auto prefer(Executor ex, const Property& p)
         noexcept(noexcept(execution::prefer(std::move(ex), std::declval<const InnerProperty>())))
           -> decltype(execution::prefer(std::move(ex), std::declval<const InnerProperty>()));
 
-      template<class Executor>
-      friend constexpr auto query(const Executor& ex, const prefer_only& p)
+      template<class Executor, class Property>
+      friend constexpr auto query(const Executor& ex, const Property& p)
         noexcept(noexcept(execution::query(ex, std::declval<const InnerProperty>())))
           -> decltype(execution::query(ex, std::declval<const InnerProperty>()));
     };
@@ -1424,26 +1445,26 @@ constexpr auto value() const
 *Remarks:* Shall not participate in overload resolution unless the expression `property.value()` is well-formed.
 
 ```
-template<class Executor>
-friend auto prefer(Executor ex, const prefer_only& p)
+template<class Executor, class Property>
+friend auto prefer(Executor ex, const Property& p)
   noexcept(noexcept(execution::prefer(std::move(ex), std::declval<const InnerProperty>())))
     -> decltype(execution::prefer(std::move(ex), std::declval<const InnerProperty>()));
 ```
 
 *Returns:* `execution::prefer(std::move(ex), p.property)`.
 
-*Remarks:* Shall not participate in overload resolution unless the expression `execution::prefer(std::move(ex), p.property)` is well-formed.
+*Remarks:* Shall not participate in overload resolution unless `std::is_same_v<Property, prefer_only>` is `true`, and the expression `execution::prefer(std::move(ex), p.property)` is well-formed.
 
 ```
-template<class Executor>
-friend constexpr auto query(const Executor& ex, const prefer_only& p)
+template<class Executor, class Property>
+friend constexpr auto query(const Executor& ex, const Property& p)
   noexcept(noexcept(execution::query(ex, std::declval<const InnerProperty>())))
     -> decltype(execution::query(ex, std::declval<const InnerProperty>()));
 ```
 
 *Returns:* `execution::query(ex, p.property)`.
 
-*Remarks:* Shall not participate in overload resolution unless the expression `execution::query(ex, p.property)` is well-formed.
+*Remarks:* Shall not participate in overload resolution unless `std::is_same_v<Property, prefer_only>` is `true`, and the expression `execution::query(ex, p.property)` is well-formed.
 
 ## Thread pools
 
