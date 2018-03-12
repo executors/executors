@@ -535,6 +535,9 @@ Unless otherwise specified, behavioral property types `S`, their nested property
         static constexpr S static_query_v
           = Executor::query(S());
 
+      template<class Executor>
+      friend constexpr S query(const Executor& ex, const Property& p) noexcept(see-below);
+
       friend constexpr bool operator==(const S& a, const S& b);
       friend constexpr bool operator!=(const S& a, const S& b) { return !operator==(a, b); }
 
@@ -590,6 +593,17 @@ shall compare equal unless
 
 * `p2` is an instance of `S::E`*i*, and
 * `p1` and `p2` are different types.
+
+```
+template<class Executor>
+  friend constexpr S query(const Executor& ex, const Property& p) noexcept(noexcept(execution::query(ex, std::declval<const S::Nk>())));
+```
+
+Let *k* be the least value of *i* for which `can_query_v<Executor,S::N`*i*`>` is true, if such a value of *i* exists.
+
+*Returns:* `execution::query(ex, S::N`*k*`())`.
+
+*Remarks:* This function shall not participate in overload resolution unless `is_same_v<Property,S> && can_query_v<Executor,S::N`*i*`>` is true for at least one `S::N`*i*`. 
 
 
 ```
