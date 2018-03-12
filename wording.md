@@ -521,9 +521,9 @@ template<class Executor>
 
 ### Behavioral properties
 
-Behavioral properties define a set of mutually-exclusive enumerator properties describing executor behavior.
+Behavioral properties define a set of mutually-exclusive nested properties describing executor behavior.
 
-Unless otherwise specified, behavioral property types `S`, their enumerator property types `S::E`*i*, and enumerator property objects `S::e`*i* conform to the following specification:
+Unless otherwise specified, behavioral property types `S`, their nested property types `S::N`*i*, and nested property objects `S::n`*i* conform to the following specification:
 
     struct S
     {
@@ -540,7 +540,7 @@ Unless otherwise specified, behavioral property types `S`, their enumerator prop
 
       constexpr S();
 
-      struct E1
+      struct N1
       {
         static constexpr bool is_requirable = true;
         static constexpr bool is_preferable = true;
@@ -550,16 +550,16 @@ Unless otherwise specified, behavioral property types `S`, their enumerator prop
           static constexpr S static_query_v
             = Executor::query(E1());
 
-        static constexpr S value() { return S(E1()); }
+        static constexpr S value() { return S(N1()); }
       };
 
-      static constexpr e1;
+      static constexpr n1;
 
-      constexpr S(const E1);
+      constexpr S(const N1);
 
       ...
 
-      struct EN
+      struct NN
       {
         static constexpr bool is_requirable = true;
         static constexpr bool is_preferable = true;
@@ -567,14 +567,14 @@ Unless otherwise specified, behavioral property types `S`, their enumerator prop
 
         template<class Executor>
           static constexpr S static_query_v
-            = Executor::query(EN());
+            = Executor::query(NN());
 
-        static constexpr S value() { return S(EN()); }
+        static constexpr S value() { return S(NN()); }
       };
 
-      static constexpr eN;
+      static constexpr nN;
 
-      constexpr S(const EN);
+      constexpr S(const NN);
     };
 
 Queries for the value of an executor's behavioral property shall not change between calls unless the executor is assigned another executor with a different value of that behavioral property.
@@ -600,9 +600,9 @@ bool operator==(const S& a, const S& b);
 
 The `blocking_t` property describes what guarantees executors provide about the blocking behavior of their execution functions.
 
-`blocking_t` provides property enumerator types and objects as described below.
+`blocking_t` provides nested property types and objects as described below.
 
-| Property Enumerator Type | Property Enumerator Object Name | Requirements |
+| Nested Property Type | Nested Property Object Name | Requirements |
 |--------------------------|------------------------|--------------|
 | `blocking_t::possibly_t` | `blocking_t::possibly` | A call to an executor's execution function may block pending completion of one or more of the execution agents created by that execution function. |
 | `blocking_t::always_t` | `blocking_t::always` | A call to an executor's execution function shall block until completion of all execution agents created by that execution function. |
@@ -666,9 +666,9 @@ template<class Executor>
 
 The `blocking_adaptation_t` property allows or disallows blocking or directionality adaptation via `execution::require`.
 
-`blocking_adaptation_t` provides property enumerator types and objects as described below.
+`blocking_adaptation_t` provides nested property types and objects as described below.
 
-| Property Enumerator Type | Property Enumerator Object Name | Requirements |
+| Nested Property Type | Nested Property Object Name | Requirements |
 |--------------------------|---------------------------------|--------------|
 | `blocking_adaptation_t::allowed_t` | `blocking_adaptation::allowed` | The `require` customization point may adapt the executor to add the `twoway_t` or `blocking_t::always_t` properties. |
 | `blocking_adaptation_t::disallowed_t` | `blocking_adaptation::disallowed` | The `require` customization point may not adapt the executor to add the `twoway_t` or `blocking_t::always_t` properties. |
@@ -698,9 +698,9 @@ template<class Executor>
 
 The `relationship_t` property allows users of executors to indicate that submitted tasks represent continuations.
 
-`relationship_t` provides property enumerator types and objects as indicated below.
+`relationship_t` provides nested property types and objects as indicated below.
 
-| Property Enumerator Type | Property Enumerator Object Name | Requirements |
+| Nested Property Type | Nested Property Object Name | Requirements |
 |--------------------------|---------------------------------|--------------|
 | `relationship_t::continuation_t` | `relationship_t::yes` | Function objects submitted through the executor represent continuations of the caller. If the caller is a lightweight execution agent managed by the executor or its associated execution context, the execution of the submitted function object may be deferred until the caller completes. |
 | `relationship_t::fork_t` | `relationship_t::no` | Function objects submitted through the executor do not represent continuations of the caller. |
@@ -709,9 +709,9 @@ The `relationship_t` property allows users of executors to indicate that submitt
 
 The `outstanding_work_t` property allows users of executors to indicate that task submission is likely in the future.
 
-`outstanding_work_t` provides property enumerator types and objects as indicated below.
+`outstanding_work_t` provides nested property types and objects as indicated below.
 
-| Property Enumerator Type| Property Enumerator Object Name | Requirements |
+| Nested Property Type| Nested Property Object Name | Requirements |
 |-------------------------|---------------------------------|--------------|
 | `outstanding_work_t::tracked_t` | `outstanding_work::tracked` | The existence of the executor object represents an indication of likely future submission of a function object. The executor or its associated execution context may choose to maintain execution resources in anticipation of this submission. |
 | `outstanding_work_t::untracked_t` | `outstanding_work::untracked` | The existence of the executor object does not indicate any likely future submission of a function object. |
@@ -722,9 +722,9 @@ The `outstanding_work_t` property allows users of executors to indicate that tas
 
 Bulk execution guarantee properties communicate the forward progress and ordering guarantees of execution agents with respect to other agents within the same bulk submission.
 
-`bulk_guarantee_t` provides property enumerator types and objects as indicated below.
+`bulk_guarantee_t` provides nested property types and objects as indicated below.
 
-| Property Enumerator Type | Property Enumerator Object Name | Requirements |
+| Nested Property Type | Nested Property Object Name | Requirements |
 |--------------------------|---------------------------------|--------------|
 | `bulk_guarantee_t::sequenced_t` | `bulk_guarantee_t::sequenced` | Execution agents within the same bulk execution may not be parallelized. |
 | `bulk_guarantee_t::parallel_t` | `bulk_guarantee_t::parallel` | Execution agents within the same bulk execution may be parallelized. |
@@ -742,9 +742,9 @@ Execution agents created by executors with the `bulk_guarantee_t::unsequenced_t`
 
 The `mapping_t` property describes what guarantees executors provide about the mapping of execution agents onto threads of execution.
 
-`mapping_t` provides property enumerator types and objects as indicated below.
+`mapping_t` provides nested property types and objects as indicated below.
 
-| Property Enumerator Type| Property Enumerator Object Name | Requirements |
+| Nested Property Type| Nested Property Object Name | Requirements |
 |-------------------------|---------------------------------|--------------|
 | `mapping_t::other_t` | `mapping::other` | Mapping of each execution agent created by the executor is implementation-defined. |
 | `mapping_t::thread_t` | `mapping::thread` | Execution agents created by the executor are mapped onto threads of execution. |
