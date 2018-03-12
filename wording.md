@@ -690,8 +690,8 @@ The `relationship_t` property allows users of executors to indicate that submitt
 
 | Nested Property Type | Nested Property Object Name | Requirements |
 |--------------------------|---------------------------------|--------------|
-| `relationship_t::continuation_t` | `relationship_t::yes` | Function objects submitted through the executor represent continuations of the caller. If the caller is a lightweight execution agent managed by the executor or its associated execution context, the execution of the submitted function object may be deferred until the caller completes. |
-| `relationship_t::fork_t` | `relationship_t::no` | Function objects submitted through the executor do not represent continuations of the caller. |
+| `relationship_t::continuation_t` | `relationship_t::continuation` | Function objects submitted through the executor represent continuations of the caller. If the caller is a lightweight execution agent managed by the executor or its associated execution context, the execution of the submitted function object may be deferred until the caller completes. |
+| `relationship_t::fork_t` | `relationship_t::fork` | Function objects submitted through the executor do not represent continuations of the caller. |
 
 #### Properties to indicate likely task submission in the future
 
