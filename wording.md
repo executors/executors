@@ -56,50 +56,36 @@ namespace execution {
   struct blocking_t;
 
   constexpr blocking_t blocking;
-  constexpr blocking_t::possibly_t blocking_t::possibly;
-  constexpr blocking_t::always_t blocking_t::always;
-  constexpr blocking_t::never_t blocking_t::never;
 
   // Properties to allow adaptation of blocking and directionality:
 
   struct blocking_adaptation_t;
 
-  constexpr blocking_adaptation_t::allowed_t blocking_adaptation_t::allowed;
-  constexpr blocking_adaptation_t::allowed_t blocking_adaptation_t::disallowed;
+  constexpr blocking_adaptation_t blocking_adaptation;
 
   // Properties to indicate if submitted tasks represent continuations:
 
   struct relationship_t;
 
-  constexpr relationship_t relationship_t;
-  constexpr relationship_t::fork_t relationship_t::fork;
-  constexpr relationship_t::continuation_t relationship_t::continuation;
+  constexpr relationship_t relationship;
 
   // Properties to indicate likely task submission in the future:
 
   struct outstanding_work_t;
 
   constexpr outstanding_work_t outstanding_work;
-  constexpr outstanding_work_t::tracked_t outstanding_work_t::tracked;
-  constexpr outstanding_work_t::untracked_t outstanding_work_t::untracked;
 
   // Properties for bulk execution guarantees:
 
   struct bulk_guarantee_t;
 
-  constexpr bulk_guarantee_t bulk_guarantee_t;
-  constexpr bulk_guarantee_t::sequenced_t bulk_guarantee_t::sequenced;
-  constexpr bulk_guarantee_t::parallel_t bulk_guarantee_t::parallel;
-  constexpr bulk_guarantee_t::unsequenced_t bulk_guarantee_t::unsequenced;
+  constexpr bulk_guarantee_t bulk_guarantee;
 
   // Properties for mapping of execution on to threads:
 
   struct mapping_t;
 
   constexpr mapping_t mapping;
-  constexpr mapping_t::other_t mapping_t::other;
-  constexpr mapping_t::thread_t mapping_t::thread;
-  constexpr mapping_t::new_thread_t mapping_t::new_thread;
 
   // Memory allocation properties:
 
