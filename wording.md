@@ -617,12 +617,9 @@ In addition to conforming to the above specification, the `blocking_t::possibly_
       template<class Executor>
       static constexpr blocking_t static_query_v
         = see-below;
-
-      template<class Executor>
-        friend constexpr blocking_t query(const Executor& ex, blocking_t::possibly_t);
     };
 
-These members automatically enable the `blocking_t::possibly_t` property for all executors that do not otherwise support the `blocking_t::always_t` or `blocking_t::never_t` properties. [*Note:* That is, all executors are treated as possibly blocking unless otherwise specified. *--end note*]
+`static_query_v` automatically enables the `blocking_t::possibly_t` property for all executors that do not otherwise support the `blocking_t::always_t` or `blocking_t::never_t` properties. [*Note:* That is, all executors are treated as possibly blocking unless otherwise specified. *--end note*]
 
 The `static_query_v` member is:
 
@@ -631,15 +628,6 @@ The `static_query_v` member is:
 * ill-formed if `can_query_v<Executor, blocking_t::always_t>` is `true`;
 * ill-formed if `can_query_v<Executor, blocking_t::never_t>` is `true`;
 * otherwise `blocking.possibly`.
-
-```
-template<class Executor>
-  friend constexpr blocking_t query(const Executor& ex, blocking_t::possibly_t);
-```
-
-*Returns:* `blocking.possibly`.
-
-*Remarks:* This function shall not participate in overload resolution unless `can_query_v<Executor, blocking_t::always_t> || can_query_v<Executor, blocking_t::never_t>` is `false`.
 
 ##### `blocking_t::always_t` customization points
 
