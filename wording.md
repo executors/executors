@@ -408,7 +408,7 @@ If both `static_query_v` and `value()` are present, they shall return the same t
       using polymorphic_query_result_type = any; // TODO: alternatively consider void*, or simply omitting the type.
 
       template<class Executor>
-        static constexpr bool static_query_v
+        static constexpr decltype(auto) static_query_v
           = Executor::query(context_t());
     };
 
