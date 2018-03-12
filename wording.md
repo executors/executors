@@ -579,6 +579,8 @@ Unless otherwise specified, behavioral property types `S`, their nested property
 
 Queries for the value of an executor's behavioral property shall not change between calls unless the executor is assigned another executor with a different value of that behavioral property.
 
+`S()` and `S(S::E`*i*`())` are all distinct values of `S`. [*Note:* This means they compare unequal. *--end note.*]
+
 The value returned from `execution::query(e1, p1)` and a subsequent call `execution::query(e1, p1)`, where
 
 * `p1` is an instance of `S` or `S::E`*i*, and
