@@ -639,7 +639,7 @@ In addition to conforming to the above specification, the `blocking_t::always_t`
         friend see-below require(Executor ex, blocking_t::always_t);
     };
 
-If the executor has the `blocking_t::adaptable_t` property, this customization uses an adapter to implement the `blocking_t::always_t` property.
+If the executor has the `blocking_adaptation_t::allowed_t` property, this customization uses an adapter to implement the `blocking_t::always_t` property.
 
 ```
 template<class Executor>
