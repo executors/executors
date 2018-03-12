@@ -1329,7 +1329,7 @@ The polymorphic `executor` wrapper should be able to simply swap in, so that we 
         executor<
           execution::single,
           execution::oneway,
-          execution::outstanding_work.tracked> ex,
+          execution::outstanding_work_t::tracked_t> ex,
         std::function<void()> callback)
     {
       if (try_work() == done)
@@ -1360,7 +1360,7 @@ The `prefer_only` adapter addresses this by turning off the `is_requirable` attr
         executor<
           execution::single,
           execution::oneway,
-          prefer_only<execution::outstanding_work.tracked>> ex,
+          prefer_only<execution::outstanding_work_t::tracked_t>> ex,
         std::function<void()> callback)
     {
       ...
