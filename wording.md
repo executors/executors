@@ -798,7 +798,7 @@ The `allocator_t` property conforms to the following specification:
         static constexpr bool is_preferable = true;
 
         template<class Executor>
-        static constexpr ProtoAllocator static_query_v
+        static constexpr auto static_query_v
           = Executor::query(allocator_t);
 
         template <typename OtherProtoAllocator>
@@ -806,7 +806,12 @@ The `allocator_t` property conforms to the following specification:
         	return allocator_t<OtherProtoAllocator>{a};
         }
 
-        static constexpr ProtoAllocator value() const { return a; }
+        static constexpr ProtoAllocator value() const {
+          return a_; // exposition only
+        }
+
+    private:
+        ProtoAllocator a_; // exposition only
     };
 
 | Property | Requirements |
