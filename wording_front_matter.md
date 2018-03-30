@@ -53,7 +53,7 @@ Abstract:           This paper proposes a programming model for executors, which
 
 Revision 6 of this proposal corrects bugs and omissions discovered by the authors after Revision 5's publication, and introduces an enhancement improving the safety of the design.
 
-* Enforce mutual exclusion of behavior properties via the type system instead of via convention
+* Enforce mutual exclusion of behavioral properties via the type system instead of via convention
 * Introduce missing `execution::require` adaptations
 * Allow executors to opt-out of invoking factory functions when appropriate
 * Various bug fixes and corrections
