@@ -807,11 +807,11 @@ The `allocator_t` property conforms to the following specification:
         }
 
         static constexpr ProtoAllocator value() const {
-          return a; // exposition only
+          return a_; // exposition only
         }
 
     private:
-        ProtoAllocator a; // exposition only
+        ProtoAllocator a_; // exposition only
     };
 
 | Property | Requirements |
