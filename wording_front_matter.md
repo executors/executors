@@ -37,7 +37,7 @@ Other Contributors: Hans Boehm, hboehm@google.com
 
 Document Number:    P0443R6
 
-Date:               2018-??-??
+Date:               2018-04-02
 
 Audience:           SG1 - Concurrency and Parallelism, LEWG
 
@@ -51,9 +51,12 @@ Abstract:           This paper proposes a programming model for executors, which
 
 ### Revision 6
 
-Revision 6 of this proposal corrects bugs and omissions discovered by the authors after Revision 5's publication, and introduces enhancements which enforce mutual exclusion of behavioral properties.
+Revision 6 of this proposal corrects bugs and omissions discovered by the authors after Revision 5's publication, and introduces an enhancement improving the safety of the design.
 
-TODO: Elaborated changelog
+* Enforce mutual exclusion of behavior properties via the type system instead of via convention
+* Introduce missing `execution::require` adaptations
+* Allow executors to opt-out of invoking factory functions when appropriate
+* Various bug fixes and corrections
 
 ### Revision 5
 
