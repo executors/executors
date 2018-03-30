@@ -1,4 +1,4 @@
-% A Unified Executors Proposal for C++ | P0443R5
+% A Unified Executors Proposal for C++ | P0443R6
 
 ----------------    -------------------------------------
 Title:              A Unified Executors Proposal for C++
@@ -35,9 +35,9 @@ Other Contributors: Hans Boehm, hboehm@google.com
 
                     Michael Wong, michael@codeplay.com
 
-Document Number:    P0443R5
+Document Number:    P0443R6
 
-Date:               2018-02-12
+Date:               2018-04-02
 
 Audience:           SG1 - Concurrency and Parallelism, LEWG
 
@@ -49,13 +49,22 @@ Abstract:           This paper proposes a programming model for executors, which
 
 ## Changelog
 
+### Revision 6
+
+Revision 6 of this proposal corrects bugs and omissions discovered by the authors after Revision 5's publication, and introduces an enhancement improving the safety of the design.
+
+* Enforce mutual exclusion of behavioral properties via the type system instead of via convention
+* Introduce missing `execution::require` adaptations
+* Allow executors to opt-out of invoking factory functions when appropriate
+* Various bug fixes and corrections
+
 ### Revision 5
 
 Revision 5 of this proposal responds to feedback requested during the 2017 Albuquerque ISO C++ Standards Committee meeting and introduces changes which allow properties to better interoperate with polymorphic executor wrappers and also simplify `execution::require`'s behavior.
 
 * Defined general property type requirements
 * Elaborated specification of standard property types
-* Simplified `execution::prefer`'s specification
+* Simplified `execution::require`'s specification
 * Enhanced polymorphic executor wrapper
     * Templatized `execution::executor<SupportableProperties...>`
     * Introduced `prefer_only` property adaptor
