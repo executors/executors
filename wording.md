@@ -164,7 +164,7 @@ Forward progress guarantees are a property of the concrete `Future` type. [*Note
 
 ### `Promise` requirements
 
-A type `P` meets the `Promise` requirements for some value `T` if an instance `p` of `P` is callable as `DECAY_COPY(std::forward<P>(p))(std::variant<T, std::exception_ptr>)` and if `P` has a method `get_future()` that returns a `Future` of type `T` that completes on a call to `p(v)` with the value or exception stored within `v`.
+A type `P` meets the `Promise` requirements for some value type `T` if an instance `p` of `P` is callable as `DECAY_COPY(std::forward<P>(p))(RFR)` where `RFR` is a `ReadyFuture` of type `T` and if `P` has a method `get_future()` that returns a `Future` of type `T` that completes on a call to `p(rfr)` with the value or exception stored within `rfr`.
 
 ### `ProtoAllocator` requirements
 
@@ -212,11 +212,11 @@ The `ThenExecutor` requirements specify requirements for executors which create 
 
 A type `X` satisfies the `ThenExecutor` requirements if it satisfies the general requirements on executors, as well as the requirements in the table below.
 
-In the Table below, `x` denotes a (possibly const) executor object of type `X`, `fut` denotes a future object satisfying the Future requirements, `v` denotes a value convertible to `std::variant<T, std::exception_ptr>` for some type `T`, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))(v)` and where `decay_t<F>` satisfies the `MoveConstructible` requirements, and `R` denotes the type of the expression `DECAY_COPY(std::forward<F>(f))(fut)`.
+In the Table below, `x` denotes a (possibly const) executor object of type `X`, `fut` denotes a future object satisfying the Future requirements, `rfr` denotes a value convertible to a `ReadyFuture` `RFR` for some type `T`, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))(rfr)` and where `decay_t<F>` satisfies the `MoveConstructible` requirements, and `R` denotes the type of the expression `DECAY_COPY(std::forward<F>(f))(rfr)`.
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.then_execute(f, fut)` | A type that satisfies the `Future` requirements for the value type `R`. | When `fut` is ready, creates an execution agent which constructs `v`, a `std::variant<fut::value_type, std::exception_ptr>` from the value or exception stored in `fut`, invokes `DECAY_COPY( std::forward<F>(f))(v)` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `then_execute`. <br/> <br/> May block pending completion of `DECAY_COPY( std::forward<F>(f))(v)`. <br/> <br/> The invocation of `then_execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. <br/> <br/> Stores the result of `DECAY_COPY( std::forward<F>(f))(v)`, or any exception thrown by `DECAY_COPY( std::forward<F>(f))(v)`, in the associated shared state of the resulting `Future`. |
+| `x.then_execute(f, fut)` | A type that satisfies the `Future` requirements for the value type `R`. | When `fut` is ready, creates an execution agent which constructs `rfr`, a `ReadyFuture` with value type `T` from the value or exception stored in `fut`, invokes `DECAY_COPY( std::forward<F>(f))(rfr)` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `then_execute`. <br/> <br/> May block pending completion of `DECAY_COPY( std::forward<F>(f))(rfr)`. <br/> <br/> The invocation of `then_execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. <br/> <br/> Stores the result of `DECAY_COPY( std::forward<F>(f))(rfr)`, or any exception thrown by `DECAY_COPY(std::forward<F>(f))(rfr)`, in the associated shared state of the resulting `Future`. |
 
 ### `BulkOneWayExecutor` requirements
 
@@ -276,7 +276,7 @@ In the Table below,
   * `sf` denotes a `CopyConstructible` function object with zero arguments whose result type is `S`,
   * `i` denotes a (possibly const) object whose type is `executor_index_t<X>`,
   * `s` denotes an object whose type is `S`,
-  * `v` denotes an object whose value is convertible to `std::variant<T, std::exception_ptr>` for some type `T`.
+  * `rfr` denotes an object whose value is convertible to a `ReadyFuture` of some type `T`.
   * if `R` is non-void,
     * `r` denotes an object whose type is `R`,
     * `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))(i, v, r, s)` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
@@ -285,7 +285,7 @@ In the Table below,
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.bulk_then_execute(f, n, fut, rf, sf)` | A type that satisfies the `Future` requirements for the value type `R`. | If `R` is non-void, invokes `rf()` at most once on an unspecified execution agent to produce the value `r`. Invokes `sf()` at most once on an unspecified execution agent to produce the value `s`. When `fut` is ready, creates a group of execution agents of shape `n` and which constructs `v`, a `std::variant<fut::value_type, std::exception_ptr>` from the value or exception stored in `fut`, which invokes `DECAY_COPY( std::forward<F>(f))(i, v, r, s)` if `R` is non-void, and otherwise invokes `DECAY_COPY( std::forward<F>(f))(i, v, s)`, at most once for each value of `i` in the range `[0,n)`, with the call to `DECAY_COPY` being evaluated in the thread that called `bulk_then_execute`. <br/> <br/> May block pending completion of one or more invocations of `f`. <br/> <br/> The invocation of `bulk_then_execute` synchronizes with (C++Std [intro.multithread]) the invocations of `f`. <br/> <br/> Once all invocations of `f` finish execution, stores `r`, or any exception thrown by an invocation of `f`, in the associated shared state of the resulting `Future`. |
+| `x.bulk_then_execute(f, n, fut, rf, sf)` | A type that satisfies the `Future` requirements for the value type `R`. | If `R` is non-void, invokes `rf()` at most once on an unspecified execution agent to produce the value `r`. Invokes `sf()` at most once on an unspecified execution agent to produce the value `s`. When `fut` is ready, creates a group of execution agents of shape `n` and which constructs `rfr`, a `ReadyFuture` of type `T` from the value or exception stored in `fut`, which invokes `DECAY_COPY( std::forward<F>(f))(i, rfr, r, s)` if `R` is non-void, and otherwise invokes `DECAY_COPY( std::forward<F>(f))(i, v, s)`, at most once for each value of `i` in the range `[0,n)`, with the call to `DECAY_COPY` being evaluated in the thread that called `bulk_then_execute`. <br/> <br/> May block pending completion of one or more invocations of `f`. <br/> <br/> The invocation of `bulk_then_execute` synchronizes with (C++Std [intro.multithread]) the invocations of `f`. <br/> <br/> Once all invocations of `f` finish execution, stores `r`, or any exception thrown by an invocation of `f`, in the associated shared state of the resulting `Future`. |
 
 ### `PromiseExecutor` requirements
 
