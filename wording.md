@@ -166,6 +166,22 @@ Forward progress guarantees are a property of the concrete `Future` type. [*Note
 
 A type `P` meets the `Promise` requirements for some value type `T` if an instance `p` of `P` is callable as `DECAY_COPY(std::forward<P>(p))(RFR)` where `RFR` is a `ReadyFuture` of type `T` and if `P` has a method `get_future()` that returns a `Future` of type `T` that completes on a call to `p(rfr)` with the value or exception stored within `rfr`.
 
+### `ReadyFuture` requirements
+
+A type `RFR` meets the `ReadyFuture` requirements for some value type `T` if an instance `rfr` of `RFR` satisfies the requirements in the table below.
+
+In the table below `RFR2` is a type that meet the `ReadyFuture` requirements, and may be distinct from `RFR`. `e` is a value that meets the `OneWayExecutor` or `PromiseExecutor` requirements.
+
+| Expression | Return Type | Operational semantics |
+|------------|-------------|---------------------- |
+| `rfr(const RFR2&)` | None | Copy-construction from `RFR` or from another `ReadyFuture` type if `T` is copy-constructible. |
+| `rfr(RFR2&&)` | None | Move-construction from `RFR` or from another `ReadyFuture` type if `T` is move-constructible. |
+| `rfr.has_value()` | `bool` | Returns true if `rfr` carries a value. |
+| `rfr.has_exception()` | `bool` | Returns true if `rfr` carries an exception. |
+| `rfr.get()` | `T&` | Returns a reference to the value stored within `rfr` if `rfr.has_value()` returns `true`. Throws the exception returned by `rfr.exception()` otherwise.  |
+| `rfr.exception()` | `std::exception_ptr` | Returns the stored `exception_ptr` if present, otherwise returns a null `exception_ptr`. |
+| `rfr.via(e)` | A value of some type meeting the `Future` requirements. | Specified as for `via` on `SemiFuture` |
+
 ### `ProtoAllocator` requirements
 
 A type `A` meets the `ProtoAllocator` requirements if `A` is `CopyConstructible` (C++Std [copyconstructible]), `Destructible` (C++Std [destructible]), and `allocator_traits<A>::rebind_alloc<U>` meets the allocator requirements (C++Std [allocator.requirements]), where `U` is an object type. [*Note:* For example, `std::allocator<void>` meets the proto-allocator requirements but not the allocator requirements. *--end note*] No comparison operator, copy operation, move operation, or swap operation on these types shall exit via an exception.
