@@ -555,8 +555,8 @@ Unless otherwise specified, behavioral property types `S`, their nested property
       using polymorphic_query_result_type = S;
 
       template<class Executor>
-        static constexpr S static_query_v
-          = Executor::query(S());
+        static constexpr auto static_query_v
+          = see-below;
 
       template<class Executor>
       friend constexpr S query(const Executor& ex, const Property& p) noexcept(see-below);
@@ -619,10 +619,23 @@ shall compare equal unless
 
 ```
 template<class Executor>
-  friend constexpr S query(const Executor& ex, const Property& p) noexcept(noexcept(execution::query(ex, std::declval<const S::Nk>())));
+  static constexpr auto static_query_v = see-below;
 ```
 
+The value of the expression `S::static_query_v<Executor>` is
+
+* `Executor::query(S())`, if that expression is a well-formed constant expression.
+* Otherwise, `S::N1()`, if that expression is a well-formed constant expression, and if `can_query_v<Executor,S>` is false and if `can_query_v<Executor,S::N`*i*`>` is false for all *i*.
+* Otherwise, ill-formed.
+
+[*Note:* These rules allow `S::N1()` to be the default property value for executors which do not provide a `query` function for property `S`. *--end note*]
+
 Let *k* be the least value of *i* for which `can_query_v<Executor,S::N`*i*`>` is true, if such a value of *i* exists.
+
+```
+template<class Executor>
+  friend constexpr S query(const Executor& ex, const Property& p) noexcept(noexcept(execution::query(ex, std::declval<const S::Nk>())));
+```
 
 *Returns:* `execution::query(ex, S::N`*k*`())`.
 
