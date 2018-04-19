@@ -115,10 +115,12 @@ namespace execution {
   template<class Executor> constexpr bool is_bulk_then_executor_v = is_bulk_then_executor<Executor>::value;
 
   template<class Executor, class T> struct executor_future;
+  template<class Executor, class T> struct executor_ready_future;
   template<class Executor> struct executor_shape;
   template<class Executor> struct executor_index;
 
   template<class Executor, class T> using executor_future_t = typename executor_future<Executor, T>::type;
+  template<class Executor, class T> using executor_ready_future_t = typename executor_ready_future<Executor, T>::type;
   template<class Executor> using executor_shape_t = typename executor_shape<Executor>::type;
   template<class Executor> using executor_index_t = typename executor_index<Executor>::type;
 
@@ -235,7 +237,6 @@ In the Table below, `x` denotes a (possibly const) executor object of type `X`, 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
 | `x.then_execute(f, fut)` | A type that satisfies the `Future` requirements for the value type `R`. | When `fut` is ready, creates an execution agent which constructs `rfr`, a `ReadyFuture` with value type `T` from the value or exception stored in `fut`, invokes `DECAY_COPY( std::forward<F>(f))(rfr)` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `then_execute`. <br/> <br/> May block pending completion of `DECAY_COPY( std::forward<F>(f))(rfr)`. <br/> <br/> The invocation of `then_execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. <br/> <br/> Stores the result of `DECAY_COPY( std::forward<F>(f))(rfr)`, or any exception thrown by `DECAY_COPY(std::forward<F>(f))(rfr)`, in the associated shared state of the resulting `Future`. |
-| `X::ready_future_t<T>` | A type satisfying the requirements of `ReadyFuture`. | The `ReadyFuture` type returned matches the type of the `rfr` parameter to the callback provided to `then_execute`. |
 
 ### `BulkOneWayExecutor` requirements
 
@@ -514,7 +515,7 @@ In addition to conforming to the above specification, the `twoway_t` property pr
 
 This customization point returns an executor that satisfies the `twoway_t` requirements by adapting the native functionality of an executor that does not satisfy the `twoway_t` requirements.
 
-*Returns:* A value `e1` of type `E1` that holds a copy of `ex`. `E1` has member functions `require` and `query` that forward to the corresponding members of the copy of `ex`, if present. For some type `T`, the type yielded by `executor_future_t<E1, T>` is `executor_future_t<Executor, T>` if `then_t::static_query_v<Executor>` is true; otherwise, it is `std::experimental::future<T>`. `e1` has the same properties as `ex`, except for the addition of the `twoway_t` property. Additional `twoway_t` requirements are satisfied as follows:
+*Returns:* A value `e1` of type `E1` that holds a copy of `ex`. `E1` has member functions `require` and `query` that forward to the corresponding members of the copy of `ex`, if present. For some type `T`, the type yielded by `executor_future_t<E1, T>` is `executor_future_t<Executor, T>` if `then_t::static_query_v<Executor>` is true; otherwise, it is `std::experimental::future<T>`. For some type `T`, the type yielded by `executor_ready_future_t<E1, T>` is `executor_ready_future_t<Executor, T>` if `then_t::static_query_v<Executor>` is true; otherwise, it is `std::experimental::future<T>`. `e1` has the same properties as `ex`, except for the addition of the `twoway_t` property. Additional `twoway_t` requirements are satisfied as follows:
 
   * If `single_t::static_query_v<Executor> && then_t::static_query_v<Executor>` is true, then `E1` has member function `twoway_execute` implemented in terms of `then_execute`. Otherwise, if `single_t::static_query_v<Executor> && oneway_t::static_query_v<Executor> && adaptable_blocking_t::static_query_v<Executor>` is true, then `E1` has member function `twoway_execute` implemented in terms of `execute`.
   * If `bulk_t::static_query_v<Executor> && then_t::static_query_v<Executor>` is true, then `E1` has member function `bulk_twoway_execute` implemented in terms of `bulk_then_execute`. Otherwise, if `bulk_t::static_query_v<Executor> && oneway_t::static_query_v<Executor> && adaptable_blocking_t::static_query_v<Executor>` is true, then `E1` has member function `bulk_twoway_execute` implemented in terms of `bulk_execute`.
@@ -563,7 +564,7 @@ In addition to conforming to the above specification, the `single_t` property pr
 
 This customization point returns an executor that satisfies the `single_t` requirements by adapting the native functionality of an executor that does not satisfy the `single_t` requirements.
 
-*Returns:* A value `e1` of type `E1` that holds a copy of `ex`. `E1` has member functions `require` and `query` that forward to the corresponding members of the copy of `ex`, if present. For some type `T`, the type yielded by `executor_future_t<E1, T>` is `executor_future_t<Executor, T>` if `twoway_t::static_query_v<Executor> || then_t::static_query_v<Executor>` is true; otherwise, it is `std::experimental::future<T>`. `e1` has the same properties as `ex`, except for the addition of the `single_t` property. Additional `single_t` requirements are satisfied as follows:
+*Returns:* A value `e1` of type `E1` that holds a copy of `ex`. `E1` has member functions `require` and `query` that forward to the corresponding members of the copy of `ex`, if present. For some type `T`, the type yielded by `executor_future_t<E1, T>` is `executor_future_t<Executor, T>` if `twoway_t::static_query_v<Executor> || then_t::static_query_v<Executor>` is true; otherwise, it is `std::experimental::future<T>`. For some type `T`, the type yielded by `executor_ready_future_t<E1, T>` is `executor_ready_future_t<Executor, T>` if `then_t::static_query_v<Executor>` is true; otherwise, it is `std::experimental::future<T>`. `e1` has the same properties as `ex`, except for the addition of the `single_t` property. Additional `single_t` requirements are satisfied as follows:
 
   * If `oneway_t::static_query_v<Executor> && bulk_t::static_query_v<Executor>` is true, then `E1` has member function `execute` implemented in terms of `bulk_execute`.
   * If `twoway_t::static_query_v<Executor> && bulk_t::static_query_v<Executor>` is true, then `E1` has member function `twoway_execute` implemented in terms of `bulk_twoway_execute`.
@@ -588,7 +589,7 @@ template<class Executor>
   friend see-below require(Executor ex, bulk_t);
 ```
 
-*Returns:* A value `e1` of type `E1` that holds a copy of `ex`. If `Executor` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `OneWayExecutor` requirements by providing member functions `require`, `query`, and `execute` that forward to the corresponding member functions of the copy of `ex`, if present, and `E1` shall satisfy the `BulkExecutor` requirements by implementing `bulk_execute` in terms of `execute`. If `Executor` also satisfies the `TwoWayExecutor` requirements, `E1` shall satisfy the `TwoWayExecutor` requirements by providing the member function `twoway_execute` that forwards to the corresponding member function of the copy of `ex`, if present, and `E1` shall satisfy the `BulkTwoWayExecutor` requirements by implementing `bulk_twoway_execute` in terms of `bulk_execute`. `e1` has the same executor properties as `ex`, except for the addition of the `bulk_t` property.
+*Returns:* A value `e1` of type `E1` that holds a copy of `ex`. If `Executor` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `OneWayExecutor` requirements by providing member functions `require`, `query`, and `execute` that forward to the corresponding member functions of the copy of `ex`, if present, and `E1` shall satisfy the `BulkExecutor` requirements by implementing `bulk_execute` in terms of `execute`. If `Executor` also satisfies the `TwoWayExecutor` requirements, `E1` shall satisfy the `TwoWayExecutor` requirements by providing the member function `twoway_execute` that forwards to the corresponding member function of the copy of `ex`, if present, and `E1` shall satisfy the `BulkTwoWayExecutor` requirements by implementing `bulk_twoway_execute` in terms of `bulk_execute`. `e1` has the same executor properties as `ex`, except for the addition of the `bulk_t` property. For some type `T`, the type yielded by `executor_ready_future_t<E1, T>` is `executor_ready_future_t<Executor, T>` if `then_t::static_query_v<Executor>` is true; otherwise, it is `std::experimental::future<T>`.
 
 *Remarks:* This function shall not participate in overload resolution unless `is_bulk_oneway_executor_v<Executor> ||` `is_bulk_twoway_executor_v<Executor>` is false, and `is_oneway_executor_v<Executor>` is true.
 
