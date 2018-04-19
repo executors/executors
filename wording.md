@@ -164,7 +164,12 @@ Forward progress guarantees are a property of the concrete `Future` type. [*Note
 
 ### `Promise` requirements
 
-A type `P` meets the `Promise` requirements for some value type `T` if an instance `p` of `P` is callable as `DECAY_COPY(std::forward<P>(p))(RFR)` where `RFR` is a `ReadyFuture` of type `T` and if `P` has a method `get_future()` that returns a `Future` of type `T` that completes on a call to `p(rfr)` with the value or exception stored within `rfr`.
+A type `P` meets the `Promise` requirements for some value type `T` if an instance `p` of `P` satisfies the requirements in the table below.
+
+| Expression | Return Type | Operational semantics |
+|------------|-------------|---------------------- |
+| `p.set_value(T)` | void | Completes the promise with a value. |
+| `p.set_exception(std::exception_ptr)` | void | Completes the promise with an exception wrapped in a std::exception_ptr. |
 
 ### `ReadyFuture` requirements
 
@@ -174,13 +179,10 @@ In the table below `RFR2` is a type that meet the `ReadyFuture` requirements, an
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `rfr(const RFR2&)` | None | Copy-construction from `RFR` or from another `ReadyFuture` type if `T` is copy-constructible. |
-| `rfr(RFR2&&)` | None | Move-construction from `RFR` or from another `ReadyFuture` type if `T` is move-constructible. |
 | `rfr.has_value()` | `bool` | Returns true if `rfr` carries a value. |
 | `rfr.has_exception()` | `bool` | Returns true if `rfr` carries an exception. |
 | `rfr.get()` | `T&` | Returns a reference to the value stored within `rfr` if `rfr.has_value()` returns `true`. Throws the exception returned by `rfr.exception()` otherwise.  |
 | `rfr.exception()` | `std::exception_ptr` | Returns the stored `exception_ptr` if present, otherwise returns a null `exception_ptr`. |
-| `rfr.via(e)` | A value of some type meeting the `Future` requirements. | Specified as for `via` on `SemiFuture` |
 
 ### `ProtoAllocator` requirements
 
@@ -228,11 +230,12 @@ The `ThenExecutor` requirements specify requirements for executors which create 
 
 A type `X` satisfies the `ThenExecutor` requirements if it satisfies the general requirements on executors, as well as the requirements in the table below.
 
-In the Table below, `x` denotes a (possibly const) executor object of type `X`, `fut` denotes a future object satisfying the Future requirements, `rfr` denotes a value convertible to a `ReadyFuture` `RFR` for some type `T`, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))(rfr)` and where `decay_t<F>` satisfies the `MoveConstructible` requirements, and `R` denotes the type of the expression `DECAY_COPY(std::forward<F>(f))(rfr)`.
+In the Table below, `x` denotes a (possibly const) executor object of type `X`, `fut` denotes a future object satisfying the Future requirements, `rfr` denotes a value convertible to a `ReadyFuture` `RFR` for some type `T`, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))(std::move(rfr))` and where `decay_t<F>` satisfies the `MoveConstructible` requirements, and `R` denotes the type of the expression `DECAY_COPY(std::forward<F>(f))(std::move(rfr))`.
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
 | `x.then_execute(f, fut)` | A type that satisfies the `Future` requirements for the value type `R`. | When `fut` is ready, creates an execution agent which constructs `rfr`, a `ReadyFuture` with value type `T` from the value or exception stored in `fut`, invokes `DECAY_COPY( std::forward<F>(f))(rfr)` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `then_execute`. <br/> <br/> May block pending completion of `DECAY_COPY( std::forward<F>(f))(rfr)`. <br/> <br/> The invocation of `then_execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. <br/> <br/> Stores the result of `DECAY_COPY( std::forward<F>(f))(rfr)`, or any exception thrown by `DECAY_COPY(std::forward<F>(f))(rfr)`, in the associated shared state of the resulting `Future`. |
+| `X::ready_future_t<T>` | A type satisfying the requirements of `ReadyFuture`. | The `ReadyFuture` type returned matches the type of the `rfr` parameter to the callback provided to `then_execute`. |
 
 ### `BulkOneWayExecutor` requirements
 
@@ -277,6 +280,7 @@ In the Table below,
 |------------|-------------|---------------------- |
 | `x.bulk_twoway_execute(f, n, rf, sf)` | A type that satisfies the `Future` requirements for the value type `R`. | If `R` is non-void, invokes `rf()` at most once on an unspecified execution agent to produce the value `r`. Invokes `sf()` at most once on an unspecified execution agent to produce the value `s`. Creates a group of execution agents of shape `n` which invokes `DECAY_COPY( std::forward<F>(f))(i, r, s)` if `R` is non-void, and otherwise invokes `DECAY_COPY( std::forward<F>(f))(i, s)`, at most once for each value of `i` in the range `[0,n)`, with the call to `DECAY_COPY` being evaluated in the thread that called `bulk_twoway_execute`. <br/> <br/> May block pending completion of one or more invocations of `f`. <br/> <br/> The invocation of `bulk_twoway_execute` synchronizes with (C++Std [intro.multithread]) the invocations of `f`. <br/> <br/> Once all invocations of `f` finish execution, stores `r`, or any exception thrown by an invocation of `f`, in the associated shared state of the resulting `Future`. |
 
+
 ### `BulkThenExecutor` requirements
 
 The `BulkThenExecutor` requirements specify requirements for executors which create execution agents whose initiation is predicated on the readiness of a specified future, and which provide a channel for awaiting the completion of the submitted function object and obtaining its result.
@@ -302,6 +306,7 @@ In the Table below,
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
 | `x.bulk_then_execute(f, n, fut, rf, sf)` | A type that satisfies the `Future` requirements for the value type `R`. | If `R` is non-void, invokes `rf()` at most once on an unspecified execution agent to produce the value `r`. Invokes `sf()` at most once on an unspecified execution agent to produce the value `s`. When `fut` is ready, creates a group of execution agents of shape `n` and which constructs `rfr`, a `ReadyFuture` of type `T` from the value or exception stored in `fut`, which invokes `DECAY_COPY( std::forward<F>(f))(i, rfr, r, s)` if `R` is non-void, and otherwise invokes `DECAY_COPY( std::forward<F>(f))(i, v, s)`, at most once for each value of `i` in the range `[0,n)`, with the call to `DECAY_COPY` being evaluated in the thread that called `bulk_then_execute`. <br/> <br/> May block pending completion of one or more invocations of `f`. <br/> <br/> The invocation of `bulk_then_execute` synchronizes with (C++Std [intro.multithread]) the invocations of `f`. <br/> <br/> Once all invocations of `f` finish execution, stores `r`, or any exception thrown by an invocation of `f`, in the associated shared state of the resulting `Future`. |
+| `X::ready_future_t<T>` | A type satisfying the requirements of `ReadyFuture`. | The `ReadyFuture` type returned matches the type of the `rfr` parameter to the callback provided to `bulk_then_execute`. |
 
 ### `PromiseExecutor` requirements
 
@@ -319,7 +324,7 @@ In the Table below,
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.get_promise<T>` | A type that satisfies the `Promise` requirements. | Returns a `Promise` or type `T`, from which can be obtained a `Future` of type `T` that can be passed as `fut` to a subsequent call to `x.then_execute(f, fut)` or to `x.bulk_then_execute(f, n, fut, rf, sf)` for some `f`, `n`, `rf` and `sf`.|
+| `x.get_promise<T>` | A pair of a value of a type that satisfies the `Promise` requirements and a value of a type that satisfies the `Future` requirements. | Returns a `Promise` `p` and a `Future` f such that calling `p.set_value(v)` completes `f` with a value and calling `p.set_exception(e)` completes `f` with an exception. |
 
 ## Executor customization points
 
