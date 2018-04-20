@@ -664,27 +664,6 @@ The `blocking_t` property describes what guarantees executors provide about the 
 | `blocking_t::always_t` | `blocking_t::always` | A call to an executor's execution function shall block until completion of all execution agents created by that execution function. |
 | `blocking_t::never_t` | `blocking_t::never` | A call to an executor's execution function shall not block pending completion of the execution agents created by that execution function. |
 
-##### `blocking_t::possibly_t` customization points
-
-In addition to conforming to the above specification, the `blocking_t::possibly_t` property provides the following customization:
-
-    struct possibly_t
-    {
-      template<class Executor>
-      static constexpr blocking_t static_query_v
-        = see-below;
-    };
-
-`static_query_v` automatically enables the `blocking_t::possibly_t` property for all executors that do not otherwise support the `blocking_t::always_t` or `blocking_t::never_t` properties. [*Note:* That is, all executors are treated as possibly blocking unless otherwise specified. *--end note*]
-
-The `static_query_v` member is:
-
-* `Executor::query(blocking_t::possibly_t{})` if that is a well-formed constant expression.
-* ill-formed if `declval<Executor>.query(blocking_t::possibly_t{})` is well-formed;
-* ill-formed if `can_query_v<Executor, blocking_t::always_t>` is `true`;
-* ill-formed if `can_query_v<Executor, blocking_t::never_t>` is `true`;
-* otherwise `blocking.possibly`.
-
 ##### `blocking_t::always_t` customization points
 
 In addition to conforming to the above specification, the `blocking_t::always_t` property provides the following customization:
