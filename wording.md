@@ -573,8 +573,8 @@ Unless otherwise specified, behavioral property types `S`, their nested property
         using polymorphic_query_result_type = S;
 
         template<class Executor>
-          static constexpr S static_query_v
-            = Executor::query(E1());
+          static constexpr auto static_query_v
+            = see-below;
 
         static constexpr S value() { return S(N1()); }
       };
@@ -592,8 +592,8 @@ Unless otherwise specified, behavioral property types `S`, their nested property
         using polymorphic_query_result_type = S;
 
         template<class Executor>
-          static constexpr S static_query_v
-            = Executor::query(NN());
+          static constexpr auto static_query_v
+            = see-below;
 
         static constexpr S value() { return S(NN()); }
       };
@@ -617,13 +617,22 @@ shall compare equal unless
 * `p2` is an instance of `S::E`*i*, and
 * `p1` and `p2` are different types.
 
+The value of the expression `S::N`*i*`::static_query_v<Executor>` is
+
+* `Executor::query(S::N`*i*`())`, if that expression is a well-formed constant expression;
+* ill-formed if `declval<Executor>().query(S::N`*i*`())` is well-formed;
+* ill-formed if `can_query_v<Executor, S::N`*i*`>` is `true` for all `1 <` *i* `<= N`;
+* otherwise `S::N1()`.
+
+[*Note:* These rules automatically enable the `S::N1` property by default for executors which do not provide a `query` function for properties `S::N`*i*`. *--end note*]
+
 The value of the expression `S::static_query_v<Executor>` is
 
-* `Executor::query(S())`, if that expression is a well-formed constant expression.
-* Otherwise, `S::N1()`, if that expression is a well-formed constant expression, and if `can_query_v<Executor,S>` is false and if `can_query_v<Executor,S::N`*i*`>` is false for all *i*.
-* Otherwise, ill-formed.
+* `Executor::query(S())`, if that expression is a well-formed constant expression;
+* otherwise, `S::N`*i*`::static_query_v<Executor>` for the least *i* `<= N` for which this expression is a well-formed constant expression;
+* otherwise, ill-formed.
 
-[*Note:* These rules allow `S::N1()` to be the default property value for executors which do not provide a `query` function for property `S`. *--end note*]
+[*Note:* These rules automatically enable the `S::N1` property by default for executors which do not provide a `query` function for properties `S` or `S::N`*i*`. *--end note*]
 
 Let *k* be the least value of *i* for which `can_query_v<Executor,S::N`*i*`>` is true, if such a value of *i* exists.
 
