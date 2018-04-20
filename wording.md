@@ -629,6 +629,7 @@ The value of the expression `S::N`*i*`::static_query_v<Executor>` is
 The value of the expression `S::static_query_v<Executor>` is
 
 * `Executor::query(S())`, if that expression is a well-formed constant expression;
+* otherwise, ill-formed if `declval<Executor>().query(S())` is well-formed;
 * otherwise, `S::N`*i*`::static_query_v<Executor>` for the least *i* `<= N` for which this expression is a well-formed constant expression;
 * otherwise, ill-formed.
 
