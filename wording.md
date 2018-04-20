@@ -786,9 +786,9 @@ The `mapping_t` property describes what guarantees executors provide about the m
 
 | Nested Property Type| Nested Property Object Name | Requirements |
 |-------------------------|---------------------------------|--------------|
-| `mapping_t::other_t` | `mapping::other` | Mapping of each execution agent created by the executor is implementation-defined. |
 | `mapping_t::thread_t` | `mapping::thread` | Execution agents created by the executor are mapped onto threads of execution. |
 | `mapping_t::new_thread_t` | `mapping::new_thread` | Each execution agent created by the executor is mapped onto a new thread of execution. |
+| `mapping_t::other_t` | `mapping::other` | Mapping of each execution agent created by the executor is implementation-defined. |
 
 [*Note:* A mapping of an execution agent onto a thread of execution implies the
 agent executes as-if on a `std::thread`. Therefore, the facilities provided by
