@@ -617,11 +617,6 @@ shall compare equal unless
 * `p2` is an instance of `S::E`*i*, and
 * `p1` and `p2` are different types.
 
-```
-template<class Executor>
-  static constexpr auto static_query_v = see-below;
-```
-
 The value of the expression `S::static_query_v<Executor>` is
 
 * `Executor::query(S())`, if that expression is a well-formed constant expression.
