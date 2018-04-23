@@ -1,4 +1,4 @@
-### Header `<execution>` synopsis
+### Header `<exception>` synopsis
 
 ```
 namespace std {
@@ -9,6 +9,21 @@ inline namespace executors_v1 {
   struct exception_arg_t { explicit exception_arg_t() = default; };
   inline constexpr exception_arg_t exception_arg{};
 
+}
+}
+}
+```
+
+## Exception argument tag
+
+The `exception_arg_t` struct is an empty structure type used as a unique type to disambiguate constructor and function overloading. Specifically, functions passed to `then_execute` and `bulk_then_execute` may have `exception_arg_t` as an argument, immediately followed by an argument that should be interpreted as an exception thrown from a preceding function invocation.
+
+### Header `<execution>` synopsis
+
+```
+namespace std {
+namespace experimental {
+inline namespace executors_v1 {
 namespace execution {
 
   // Customization points:
