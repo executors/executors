@@ -4,6 +4,11 @@
 namespace std {
 namespace experimental {
 inline namespace executors_v1 {
+
+  // Exception argument tag
+  struct exception_arg_t { explicit exception_arg_t() = default; };
+  inline constexpr exception_arg_t exception_arg{};
+
 namespace execution {
 
   // Customization points:
