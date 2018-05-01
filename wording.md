@@ -1,3 +1,23 @@
+### Header `<exception>` synopsis
+
+```
+namespace std {
+namespace experimental {
+inline namespace executors_v1 {
+
+  // Exception argument tag
+  struct exception_arg_t { explicit exception_arg_t() = default; };
+  inline constexpr exception_arg_t exception_arg{};
+
+}
+}
+}
+```
+
+## Exception argument tag
+
+The `exception_arg_t` struct is an empty structure type used as a unique type to disambiguate constructor and function overloading. Specifically, functions passed to `then_execute` and `bulk_then_execute` may have `exception_arg_t` as an argument, immediately followed by an argument that should be interpreted as an exception thrown from a preceding function invocation.
+
 ### Header `<execution>` synopsis
 
 ```
@@ -204,11 +224,20 @@ The `ThenExecutor` requirements specify requirements for executors which create 
 
 A type `X` satisfies the `ThenExecutor` requirements if it satisfies the general requirements on executors, as well as the requirements in the table below.
 
-In the Table below, `x` denotes a (possibly const) executor object of type `X`, `fut` denotes a future object satisfying the Future requirements, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))(fut)` and where `decay_t<F>` satisfies the `MoveConstructible` requirements, and `R` denotes the type of the expression `DECAY_COPY(std::forward<F>(f))(fut)`.
+In the Table below,
+   
+  * `x` denotes a (possibly const) executor object of type `X`,
+  * `fut` denotes a future object satisfying the `Future` requirements,
+  * `val` denotes any object stored in `fut`'s associated shared state when it becomes nonexceptionally ready,
+  * `e` denotes the object stored in `fut`'s associated shared state when it becomes exceptionally ready,
+  * `NORMAL` denotes the expression `DECAY_COPY(std::forward<F>(f))(val)` if `fut`'s value type is non-`void` and `DECAY_COPY(std::forward<F>(f))()` if `fut`'s value type is `void`,
+  * `EXCEPTIONAL` denotes the expression `DECAY_COPY(std::forward<F>(f))(exception_arg, e)`,
+  * `f` denotes a function object of type `F&&` callable as `NORMAL` or `EXCEPTIONAL` and where `decay_t<F>` satisfies the `MoveConstructible` requirements,
+  *  and `R` denotes the type of the expression `NORMAL`.
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.then_execute(f, fut)` | A type that satisfies the `Future` requirements for the value type `R`. | When `fut` is ready, creates an execution agent which invokes `DECAY_COPY( std::forward<F>(f))(fut)` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `then_execute`. <br/> <br/> May block pending completion of `DECAY_COPY( std::forward<F>(f))(fut)`. <br/> <br/> The invocation of `then_execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. <br/> <br/> Stores the result of `DECAY_COPY( std::forward<F>(f))(fut)`, or any exception thrown by `DECAY_COPY( std::forward<F>(f))(fut)`, in the associated shared state of the resulting `Future`. |
+| `x.then_execute(f, fut)` | A type that satisfies the `Future` requirements for the value type `R`. | When `fut` becomes nonexceptionally ready, and if `NORMAL` is a well-formed expression, creates an execution agent which invokes `NORMAL` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `then_execute`. <br/> <br/> Otherwise, when `fut` becomes exceptionally ready, if `EXCEPTIONAL` is a well-formed expression, creates an execution agent which invokes `EXCEPTIONAL` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `then_execute`. <br/> <br/> If `NORMAL` and `EXCEPTIONAL` are both well-formed expressions, `decltype(EXCEPTIONAL)` shall be convertible to `R`. <br/> <br/> If `NORMAL` is not a well-formed expression and `EXCEPTIONAL` is a well-formed expression, `decltype(EXCEPTIONAL)` shall be convertible to `decltype(val)`. <br/> <br/> If neither `NORMAL` nor `EXCEPTIONAL` are well-formed expresions, the invocation of `then_execute` shall be ill-formed. <br/> <br/> May block pending completion of `NORMAL` or `EXCEPTIONAL`. <br/> <br/> The invocation of `then_execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. <br/> <br/> Stores the result of either the `NORMAL` or `EXCEPTIONAL` expression, or any exception thrown by either, in the associated shared state of the resulting `Future`. Otherwise, stores either `val` or `e` in the associated shared state of the resulting `Future`. |
 
 ### `BulkOneWayExecutor` requirements
 
@@ -264,19 +293,24 @@ In the Table below,
   * `x` denotes a (possibly const) executor object of type `X`,
   * `n` denotes a shape object whose type is `executor_shape_t<X>`,
   * `fut` denotes a future object satisfying the Future requirements,
+  * `val` denotes any object stored in `fut`'s associated shared state when it becomes nonexceptionally ready,
+  * `e` denotes the object stored in `fut`'s associated shared state when it becomes exceptionally ready,
   * `rf` denotes a `CopyConstructible` function object with zero arguments whose result type is `R`,
   * `sf` denotes a `CopyConstructible` function object with zero arguments whose result type is `S`,
   * `i` denotes a (possibly const) object whose type is `executor_index_t<X>`,
   * `s` denotes an object whose type is `S`,
   * if `R` is non-void,
     * `r` denotes an object whose type is `R`,
-    * `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))(i, fut, r, s)` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
+    * `NORMAL` denotes the expression `DECAY_COPY(std::forward<F>(f))(i, val, r, s)`,
+    * `EXCEPTIONAL` denotes the expression `DECAY_COPY(std::forward<F>(f))(i, exception_arg, e, r, s)`,
   * if `R` is void,
-    * `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))(i, fut, s)` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
+    * `NORMAL` denotes the expression `DECAY_COPY(std::forward<F>(f))(i, val, s)`,
+    * `EXCEPTIONAL` denotes the expression `DECAY_COPY(std::forward<F>(f))(i, exception_arg, e, s)`,
+  * and `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))(i, fut, s)` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.bulk_then_execute(f, n, fut, rf, sf)` | A type that satisfies the `Future` requirements for the value type `R`. | If `R` is non-void, invokes `rf()` at most once on an unspecified execution agent to produce the value `r`. Invokes `sf()` at most once on an unspecified execution agent to produce the value `s`. When `fut` is ready, creates a group of execution agents of shape `n` which invokes `DECAY_COPY( std::forward<F>(f))(i, fut, r, s)` if `R` is non-void, and otherwise invokes `DECAY_COPY( std::forward<F>(f))(i, fut, s)`, at most once for each value of `i` in the range `[0,n)`, with the call to `DECAY_COPY` being evaluated in the thread that called `bulk_then_execute`. <br/> <br/> May block pending completion of one or more invocations of `f`. <br/> <br/> The invocation of `bulk_then_execute` synchronizes with (C++Std [intro.multithread]) the invocations of `f`. <br/> <br/> Once all invocations of `f` finish execution, stores `r`, or any exception thrown by an invocation of `f`, in the associated shared state of the resulting `Future`. |
+| `x.bulk_then_execute(f, n, fut, rf, sf)` | A type that satisfies the `Future` requirements for the value type `R`. | If `R` is non-void, invokes `rf()` at most once on an unspecified execution agent to produce the value `r`. Invokes `sf()` at most once on an unspecified execution agent to produce the value `s`. <br/> <br/> When `fut` becomes nonexceptionally ready, and if `NORMAL` is a well-formed expression, creates a group of execution agents of shape `n` which invokes `NORMAL` at most once for each value of `i` in the range `[0,n)`, with the call to `DECAY_COPY` being evaluated in the thread that called `bulk_then_execute`. <br/> </br> Otherwise, when `fut` becomes exceptionally ready, and if `EXCEPTIONAL` is a well-formed expression, creates a group of execution agents of shape `n` which invokes `EXCEPTIONAL` at most once for each value of `i` in the range `[0,n)`, with the call to `DECAY_COPY` being evaluated in the thread that called `bulk_then_execute`. <br/> <br/> If neither `NORMAL` nor `EXCEPTIONAL` are well-formed expressions, the invocation of `bulk_then_execute` shall be ill-formed <br/> <br/> May block pending completion of one or more invocations of `f`. <br/> <br/> The invocation of `bulk_then_execute` synchronizes with (C++Std [intro.multithread]) the invocations of `f`. <br/> <br/> Once all invocations of `f` finish execution, stores `r`, or any exception thrown by an invocation of `f`, in the associated shared state of the resulting `Future`. Otherwise, when `fut` becomes exceptionally ready, and if `EXCEPTIONAL` is an ill-formed expression, stores `e` in the associated shared state of the resulting `Future`. |
 
 ## Executor customization points
 
