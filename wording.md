@@ -617,23 +617,28 @@ shall compare equal unless
 * `p2` is an instance of `S::E`*i*, and
 * `p1` and `p2` are different types.
 
-The value of the expression `S::N`*i*`::static_query_v<Executor>` is
+The value of the expression `S::N1::static_query_v<Executor>` is
 
-* `Executor::query(S::N`*i*`())`, if that expression is a well-formed constant expression;
-* ill-formed if `declval<Executor>().query(S::N`*i*`())` is well-formed;
-* ill-formed if `can_query_v<Executor, S::N`*i*`>` is `true` for all `1 <` *i* `<= N`;
+* `Executor::query(S::N1())`, if that expression is a well-formed expression;
+* ill-formed if `declval<Executor>().query(S::N1())` is well-formed;
+* ill-formed if `can_query_v<Executor,S::N`*i*`>` is `true` for any `1 < ` *i* `<= N`;
 * otherwise `S::N1()`.
 
-[*Note:* These rules automatically enable the `S::N1` property by default for executors which do not provide a `query` function for properties `S::N`*i*`. *--end note*]
+[*Note:* These rules automatically enable the `S::N1` property by default for executors which do not provide a `query` function for properties `S::N`*i*. *--end note*]
+
+The value of the expression `S::N`*i*`::static_query_v<Executor>`, for all `1 < ` *i* `<= N`, is
+
+* `Executor::query(S::N`*i*`())`, if that expression is a well-formed constant expression;
+* otherwise ill-formed.
 
 The value of the expression `S::static_query_v<Executor>` is
 
 * `Executor::query(S())`, if that expression is a well-formed constant expression;
 * otherwise, ill-formed if `declval<Executor>().query(S())` is well-formed;
 * otherwise, `S::N`*i*`::static_query_v<Executor>` for the least *i* `<= N` for which this expression is a well-formed constant expression;
-* otherwise, ill-formed.
+* otherwise ill-formed.
 
-[*Note:* These rules automatically enable the `S::N1` property by default for executors which do not provide a `query` function for properties `S` or `S::N`*i*`. *--end note*]
+[*Note:* These rules automatically enable the `S::N1` property by default for executors which do not provide a `query` function for properties `S` or `S::N`*i*. *--end note*]
 
 Let *k* be the least value of *i* for which `can_query_v<Executor,S::N`*i*`>` is true, if such a value of *i* exists.
 
