@@ -51,8 +51,9 @@ Abstract:           This paper proposes a programming model for executors, which
 
 ### Revision 7
 
-TODO
+Revision 7 of this proposal corrects wording bugs discovered by the authors after Revision 6's publication.
 
+* Enhanced `static_query_v` to result in a default property value for executors which do not provide a `query` function for the property of interest
 * Revise `then_execute` and `bulk_then_execute`'s operational semantics to allow user functions to handle incoming exceptions thrown by preceding execution agents
 * Introduce `exception_arg` to disambiguate the user function's exceptional overload from its nonexceptional overload in `then_execute` and `bulk_then_execute`
 

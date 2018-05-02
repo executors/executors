@@ -589,8 +589,8 @@ Unless otherwise specified, behavioral property types `S`, their nested property
       using polymorphic_query_result_type = S;
 
       template<class Executor>
-        static constexpr S static_query_v
-          = Executor::query(S());
+        static constexpr auto static_query_v
+          = see-below;
 
       template<class Executor>
       friend constexpr S query(const Executor& ex, const Property& p) noexcept(see-below);
@@ -607,8 +607,8 @@ Unless otherwise specified, behavioral property types `S`, their nested property
         using polymorphic_query_result_type = S;
 
         template<class Executor>
-          static constexpr S static_query_v
-            = Executor::query(E1());
+          static constexpr auto static_query_v
+            = see-below;
 
         static constexpr S value() { return S(N1()); }
       };
@@ -626,8 +626,8 @@ Unless otherwise specified, behavioral property types `S`, their nested property
         using polymorphic_query_result_type = S;
 
         template<class Executor>
-          static constexpr S static_query_v
-            = Executor::query(NN());
+          static constexpr auto static_query_v
+            = see-below;
 
         static constexpr S value() { return S(NN()); }
       };
@@ -651,12 +651,35 @@ shall compare equal unless
 * `p2` is an instance of `S::E`*i*, and
 * `p1` and `p2` are different types.
 
+The value of the expression `S::N1::static_query_v<Executor>` is
+
+* `Executor::query(S::N1())`, if that expression is a well-formed expression;
+* ill-formed if `declval<Executor>().query(S::N1())` is well-formed;
+* ill-formed if `can_query_v<Executor,S::N`*i*`>` is `true` for any `1 < ` *i* `<= N`;
+* otherwise `S::N1()`.
+
+[*Note:* These rules automatically enable the `S::N1` property by default for executors which do not provide a `query` function for properties `S::N`*i*. *--end note*]
+
+The value of the expression `S::N`*i*`::static_query_v<Executor>`, for all `1 < ` *i* `<= N`, is
+
+* `Executor::query(S::N`*i*`())`, if that expression is a well-formed constant expression;
+* otherwise ill-formed.
+
+The value of the expression `S::static_query_v<Executor>` is
+
+* `Executor::query(S())`, if that expression is a well-formed constant expression;
+* otherwise, ill-formed if `declval<Executor>().query(S())` is well-formed;
+* otherwise, `S::N`*i*`::static_query_v<Executor>` for the least *i* `<= N` for which this expression is a well-formed constant expression;
+* otherwise ill-formed.
+
+[*Note:* These rules automatically enable the `S::N1` property by default for executors which do not provide a `query` function for properties `S` or `S::N`*i*. *--end note*]
+
+Let *k* be the least value of *i* for which `can_query_v<Executor,S::N`*i*`>` is true, if such a value of *i* exists.
+
 ```
 template<class Executor>
   friend constexpr S query(const Executor& ex, const Property& p) noexcept(noexcept(execution::query(ex, std::declval<const S::Nk>())));
 ```
-
-Let *k* be the least value of *i* for which `can_query_v<Executor,S::N`*i*`>` is true, if such a value of *i* exists.
 
 *Returns:* `execution::query(ex, S::N`*k*`())`.
 
@@ -680,27 +703,6 @@ The `blocking_t` property describes what guarantees executors provide about the 
 | `blocking_t::possibly_t` | `blocking_t::possibly` | A call to an executor's execution function may block pending completion of one or more of the execution agents created by that execution function. |
 | `blocking_t::always_t` | `blocking_t::always` | A call to an executor's execution function shall block until completion of all execution agents created by that execution function. |
 | `blocking_t::never_t` | `blocking_t::never` | A call to an executor's execution function shall not block pending completion of the execution agents created by that execution function. |
-
-##### `blocking_t::possibly_t` customization points
-
-In addition to conforming to the above specification, the `blocking_t::possibly_t` property provides the following customization:
-
-    struct possibly_t
-    {
-      template<class Executor>
-      static constexpr blocking_t static_query_v
-        = see-below;
-    };
-
-`static_query_v` automatically enables the `blocking_t::possibly_t` property for all executors that do not otherwise support the `blocking_t::always_t` or `blocking_t::never_t` properties. [*Note:* That is, all executors are treated as possibly blocking unless otherwise specified. *--end note*]
-
-The `static_query_v` member is:
-
-* `Executor::query(blocking_t::possibly_t{})` if that is a well-formed constant expression.
-* ill-formed if `declval<Executor>.query(blocking_t::possibly_t{})` is well-formed;
-* ill-formed if `can_query_v<Executor, blocking_t::always_t>` is `true`;
-* ill-formed if `can_query_v<Executor, blocking_t::never_t>` is `true`;
-* otherwise `blocking.possibly`.
 
 ##### `blocking_t::always_t` customization points
 
@@ -731,8 +733,8 @@ The `blocking_adaptation_t` property allows or disallows blocking or directional
 
 | Nested Property Type | Nested Property Object Name | Requirements |
 |--------------------------|---------------------------------|--------------|
-| `blocking_adaptation_t::allowed_t` | `blocking_adaptation::allowed` | The `require` customization point may adapt the executor to add the `twoway_t` or `blocking_t::always_t` properties. |
 | `blocking_adaptation_t::disallowed_t` | `blocking_adaptation::disallowed` | The `require` customization point may not adapt the executor to add the `twoway_t` or `blocking_t::always_t` properties. |
+| `blocking_adaptation_t::allowed_t` | `blocking_adaptation::allowed` | The `require` customization point may adapt the executor to add the `twoway_t` or `blocking_t::always_t` properties. |
 
 [*Note:* The `twoway_t` property is included here as the `require` customization point's `twoway_t` adaptation is specified in terms of `std::experimental::future`, and that template supports blocking wait operations. *--end note*]
 
@@ -763,8 +765,8 @@ The `relationship_t` property allows users of executors to indicate that submitt
 
 | Nested Property Type | Nested Property Object Name | Requirements |
 |--------------------------|---------------------------------|--------------|
-| `relationship_t::continuation_t` | `relationship_t::continuation` | Function objects submitted through the executor represent continuations of the caller. If the caller is a lightweight execution agent managed by the executor or its associated execution context, the execution of the submitted function object may be deferred until the caller completes. |
 | `relationship_t::fork_t` | `relationship_t::fork` | Function objects submitted through the executor do not represent continuations of the caller. |
+| `relationship_t::continuation_t` | `relationship_t::continuation` | Function objects submitted through the executor represent continuations of the caller. If the caller is a lightweight execution agent managed by the executor or its associated execution context, the execution of the submitted function object may be deferred until the caller completes. |
 
 #### Properties to indicate likely task submission in the future
 
@@ -774,8 +776,8 @@ The `outstanding_work_t` property allows users of executors to indicate that tas
 
 | Nested Property Type| Nested Property Object Name | Requirements |
 |-------------------------|---------------------------------|--------------|
-| `outstanding_work_t::tracked_t` | `outstanding_work::tracked` | The existence of the executor object represents an indication of likely future submission of a function object. The executor or its associated execution context may choose to maintain execution resources in anticipation of this submission. |
 | `outstanding_work_t::untracked_t` | `outstanding_work::untracked` | The existence of the executor object does not indicate any likely future submission of a function object. |
+| `outstanding_work_t::tracked_t` | `outstanding_work::tracked` | The existence of the executor object represents an indication of likely future submission of a function object. The executor or its associated execution context may choose to maintain execution resources in anticipation of this submission. |
 
 [*Note:* The `outstanding_work_t::tracked_t` and `outstanding_work_t::untracked_t` properties are used to communicate to the associated execution context intended future work submission on the executor. The intended effect of the properties is the behavior of execution context's facilities for awaiting outstanding work; specifically whether it considers the existance of the executor object with the `outstanding_work_t::tracked_t` property enabled outstanding work when deciding what to wait on. However this will be largely defined by the execution context implementation. It is intended that the execution context will define its wait facilities and on-destruction behaviour and provide an interface for querying this. An initial work towards this is included in P0737r0. *--end note*]
 
@@ -787,15 +789,15 @@ Bulk execution guarantee properties communicate the forward progress and orderin
 
 | Nested Property Type | Nested Property Object Name | Requirements |
 |--------------------------|---------------------------------|--------------|
+| `bulk_guarantee_t::unsequenced_t` | `bulk_guarantee_t::unsequenced` | Execution agents within the same bulk execution may be parallelized and vectorized. |
 | `bulk_guarantee_t::sequenced_t` | `bulk_guarantee_t::sequenced` | Execution agents within the same bulk execution may not be parallelized. |
 | `bulk_guarantee_t::parallel_t` | `bulk_guarantee_t::parallel` | Execution agents within the same bulk execution may be parallelized. |
-| `bulk_guarantee_t::unsequenced_t` | `bulk_guarantee_t::unsequenced` | Execution agents within the same bulk execution may be parallelized and vectorized. |
+
+Execution agents created by executors with the `bulk_guarantee_t::unsequenced_t` property may execute in an unordered fashion. Any such agents executing in the same thread of execution are unsequenced with respect to each other. [*Note:* This means that multiple execution agents may be interleaved on a single thread of execution, which overrides the usual guarantee from [intro.execution] that function executions do not interleave with one another. *--end note*]
 
 Execution agents created by executors with the `bulk_guarantee_t::sequenced_t` property execute in sequence in lexicographic order of their indices.
 
 Execution agents created by executors with the `bulk_guarantee_t::parallel_t` property execute with a parallel forward progress guarantee. Any such agents executing in the same thread of execution are indeterminately sequenced with respect to each other. [*Note:* It is the caller's responsibility to ensure that the invocation does not introduce data races or deadlocks. *--end note*]
-
-Execution agents created by executors with the `bulk_guarantee_t::unsequenced_t` property may execute in an unordered fashion. Any such agents executing in the same thread of execution are unsequenced with respect to each other. [*Note:* This means that multiple execution agents may be interleaved on a single thread of execution, which overrides the usual guarantee from [intro.execution] that function executions do not interleave with one another. *--end note*]
 
 [*Editorial note:* The descriptions of these properties were ported from [algorithms.parallel.user]. The intention is that a future standard will specify execution policy behavior in terms of the fundamental properties of their associated executors. We did not include the accompanying code examples from [algorithms.parallel.user] because the examples seem easier to understand when illustrated by `std::for_each`. *--end editorial note*]
 
@@ -807,9 +809,9 @@ The `mapping_t` property describes what guarantees executors provide about the m
 
 | Nested Property Type| Nested Property Object Name | Requirements |
 |-------------------------|---------------------------------|--------------|
-| `mapping_t::other_t` | `mapping::other` | Mapping of each execution agent created by the executor is implementation-defined. |
 | `mapping_t::thread_t` | `mapping::thread` | Execution agents created by the executor are mapped onto threads of execution. |
 | `mapping_t::new_thread_t` | `mapping::new_thread` | Each execution agent created by the executor is mapped onto a new thread of execution. |
+| `mapping_t::other_t` | `mapping::other` | Mapping of each execution agent created by the executor is implementation-defined. |
 
 [*Note:* A mapping of an execution agent onto a thread of execution implies the
 agent executes as-if on a `std::thread`. Therefore, the facilities provided by
