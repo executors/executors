@@ -1,4 +1,4 @@
-% A Unified Executors Proposal for C++ | P0443R6
+% A Unified Executors Proposal for C++ | P0443R7
 
 ----------------    -------------------------------------
 Title:              A Unified Executors Proposal for C++
@@ -35,9 +35,9 @@ Other Contributors: Hans Boehm, hboehm@google.com
 
                     Michael Wong, michael@codeplay.com
 
-Document Number:    P0443R6
+Document Number:    P0443R7
 
-Date:               2018-04-02
+Date:               2018-05-07
 
 Audience:           SG1 - Concurrency and Parallelism, LEWG
 
@@ -48,6 +48,14 @@ Abstract:           This paper proposes a programming model for executors, which
 ------------------------------------------------------
 
 ## Changelog
+
+### Revision 7
+
+Revision 7 of this proposal corrects wording bugs discovered by the authors after Revision 6's publication.
+
+* Enhanced `static_query_v` to result in a default property value for executors which do not provide a `query` function for the property of interest
+* Revise `then_execute` and `bulk_then_execute`'s operational semantics to allow user functions to handle incoming exceptions thrown by preceding execution agents
+* Introduce `exception_arg` to disambiguate the user function's exceptional overload from its nonexceptional overload in `then_execute` and `bulk_then_execute`
 
 ### Revision 6
 
