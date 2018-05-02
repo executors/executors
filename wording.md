@@ -368,11 +368,11 @@ The name `prefer` denotes a customization point. The effect of the expression `s
 
 The name `query` denotes a customization point. The effect of the expression `std::experimental::executors_v1::execution::query(E, P)` for some expressions `E` and `P` is equivalent to:
 
-* If the expression `decay_t<decltype(P0)>::template static_query_v<decay_t<decltype(E)>>` is a well-formed constant expression, `decay_t<decltype(P0)>::template static_query_v<decay_t<decltype(E)>>`.
+* If the expression `decay_t<decltype(P)>::template static_query_v<decay_t<decltype(E)>>` is a well-formed constant expression, `decay_t<decltype(P)>::template static_query_v<decay_t<decltype(E)>>`.
 
-* If the expression `(E).query(P0)` is well-formed, `(E).query(P0)`.
+* If the expression `(E).query(P)` is well-formed, `(E).query(P)`.
 
-* If the expression `query(E, P0)` is well-formed, `query(E, P0)`.
+* If the expression `query(E, P)` is well-formed, `query(E, P)`.
 
 * Otherwise, `std::experimental::executors_v1::execution::query(E, P)` is ill-formed.
 
