@@ -1090,9 +1090,9 @@ template<class Executor> executor(Executor e);
 ```
 
 *Remarks:* This function shall not participate in overload resolution unless:
-* `can_require_v<Executor, P`, if `P::is_requireable`, where `P` is each property in `SupportableProperties...`.
-* `can_prefer_v<Executor, P`, if `P::is_preferable`, where `P` is each property in `SupportableProperties...`.
-* and `can_query_v<Executor, P`, where `P` is each property in `SupportableProperties...`.
+* `can_require_v<Executor, P>`, if `P::is_requireable`, where `P` is each property in `SupportableProperties...`.
+* `can_prefer_v<Executor, P>`, if `P::is_preferable`, where `P` is each property in `SupportableProperties...`.
+* and `can_query_v<Executor, P>`, where `P` is each property in `SupportableProperties...`.
 
 *Effects:*
 * `*this` targets a copy of `e5` initialized with `std::move(e5)`, where:
