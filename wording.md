@@ -1090,7 +1090,7 @@ template<class Executor> executor(Executor e);
 ```
 
 *Remarks:* This function shall not participate in overload resolution unless:
-* `can_require_v<Executor, P>`, if `P::is_requireable`, where `P` is each property in `SupportableProperties...`.
+* `can_require_v<Executor, P>`, if `P::is_requirable`, where `P` is each property in `SupportableProperties...`.
 * `can_prefer_v<Executor, P>`, if `P::is_preferable`, where `P` is each property in `SupportableProperties...`.
 * and `can_query_v<Executor, P>`, where `P` is each property in `SupportableProperties...`.
 
