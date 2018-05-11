@@ -419,7 +419,7 @@ A property type `P` shall provide:
 
 [*Note:* These constants are used to determine whether the property can be used with the `require` and `prefer` customization points, respectively. *--end note*]
 
-A property type `P` may provide a nested type `polymorphic_query_result_type` that satisfies the `DefaultConstructible`, `CopyConstructible` and `Destructible` requirements. [*Note:* When present, this type allows the property to be used with the polymorphic `executor` wrapper. *--end note*]
+A property type `P` may provide a nested type `polymorphic_query_result_type` that satisfies the `CopyConstructible` and `Destructible` requirements. If `P::is_requirable == true` or `P::is_preferable == true`, `polymorphic_query_result_type` shall also satisfy the `DefaultConstructible` requirements. [*Note:* When present, this type allows the property to be used with the polymorphic `executor` wrapper. *--end note*]
 
 A property type `P` may provide:
 
@@ -1092,7 +1092,7 @@ template<class Executor> executor(Executor e);
 *Remarks:* This function shall not participate in overload resolution unless:
 * `can_require_v<Executor, P>`, if `P::is_requirable`, where `P` is each property in `SupportableProperties...`.
 * `can_prefer_v<Executor, P>`, if `P::is_preferable`, where `P` is each property in `SupportableProperties...`.
-* and `can_query_v<Executor, P>`, where `P` is each property in `SupportableProperties...`.
+* and `can_query_v<Executor, P>`, if `P::is_requirable == false` and `P::is_preferable == false`, where `P` is each property in `SupportableProperties...`.
 
 *Effects:*
 * `*this` targets a copy of `e5` initialized with `std::move(e5)`, where:
