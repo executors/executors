@@ -18,6 +18,21 @@ inline namespace executors_v1 {
 
 The `exception_arg_t` struct is an empty structure type used as a unique type to disambiguate constructor and function overloading. Specifically, functions passed to `then_execute` and `bulk_then_execute` may have `exception_arg_t` as an argument, immediately followed by an argument that should be interpreted as an exception thrown from a preceding function invocation.
 
+## Execution Support Library
+
+### General
+
+This Clause describes components supporting execution of a callable object [func.def].
+
+As defined in [thread.req.lockable.general]:
+
+> "An *execution agent* is an entity such as a thread that may perform work in parallel with other execution agents. [*Note:* Implementations or users may introduce other kinds of agents such as processes or thread-pool tasks. *--end note*] The calling agent is determined by context; e.g., the calling thread that contains the call, and so on." 
+
+An execution agent supports execution by invoking a callable within an *execution context* such as as the calling thread or thread-pool.  An *executor* submits a callable to an execution context to be invoked by an execution agent within an associated execution context. [*Note:* Invocation of the callable may be inlined such as when the execution context is the calling thread, or may be scheduled such as when the execution context is a thread-pool with task scheduler. *--end note*] An executor may submit a callable with *execution properties* that specify how the submission and invocation of the callable interacts with the submitting thread and execution context, including forward progress guarantees [intro.progress]. 
+
+For the intent of this library and extensions to this library, the observable *lifetime of an execution agent* begins immediately before the callable is invoked and ends immediately after the callable completes, either normally or having thrown an exception.
+
+
 ### Header `<execution>` synopsis
 
 ```
@@ -196,52 +211,62 @@ An executor type's destructor shall not block pending completion of the submitte
 
 ### `OneWayExecutor` requirements
 
-The `OneWayExecutor` requirements specify requirements for executors which create execution agents. A type `X` satisfies the `OneWayExecutor` requirements if it satisfies the general requirements on executors, as well as the requirements in the Table below.
+A type `X` satisfies the `OneWayExecutor` requirements if it satisfies the general requirements on executors, as well as the requirements in the Table below.
 
 [*Note:* `OneWayExecutor`s provides fire-and-forget semantics without a channel for awaiting the completion of a submitted function object and obtaining its result. *--end note*]
 
-In the Table below, `x` denotes a (possibly const) executor object of type `X` and `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
+In the Table below, 
+
+- `x` denotes a (possibly const) executor object of type `X`,
+- `cf` denotes the callable  `DECAY_COPY(std::forward<F>(f))` 
+- `f` denotes a function object of type `F&&` callable as `cf()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.execute(f)` | `void` | Creates an execution agent which invokes `DECAY_COPY(std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `execute`. <br/> <br/> May block pending completion of `DECAY_COPY(std::forward<F>(f))()`. <br/> <br/> The invocation of `execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. <br/> <br/> `execute` shall not propagate any exception thrown by `DECAY_COPY(std::forward<F>(f))()` or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by one-way submitted functions and the forward progress guarantee of execution agents created by one-way execution functions are specific to the concrete executor type. *--end note.*] |
+| `x.execute(f)` | `void` | Evaluates `DECAY_COPY(std::forward<F>(f))` on the calling thread to create `cf` that will be invoked at most once by an execution agent. <br/> May block pending completion of this callable. <br/> Synchronizes with [intro.multithread] the invocation of `f`. <br/>Shall not propagate any exception thrown by the callable or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by one-way submitted functions and the forward progress guarantee of the associated execution agent(s) are implementation defined. *--end note.*] |
 
 ### `TwoWayExecutor` requirements
 
-The `TwoWayExecutor` requirements specify requirements for executors which create execution agents with a channel for awaiting the completion of a submitted function object and obtaining its result.
+The `TwoWayExecutor` requirements specify requirements for executors which submit callable objects with a channel for awaiting the completion of a submitted callable object and obtaining its result.
 
 A type `X` satisfies the `TwoWayExecutor` requirements if it satisfies the general requirements on executors, as well as the requirements in the Table below.
 
-In the Table below, `x` denotes a (possibly const) executor object of type `X`, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements, and `R` denotes the type of the expression `DECAY_COPY(std::forward<F>(f))()`.
+In the Table below, 
+
+- `x` denotes a (possibly const) executor object of type `X`, 
+- `cf` denotes the callable `DECAY_COPY(std::forward<F>(f))`
+- `f` denotes a function object of type `F&&` callable as `cf()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements, 
+- `R` denotes the type of the expression `cf()`.
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.twoway_execute(f)` | A type that satisfies the `Future` requirements for the value type `R`. | Creates an execution agent which invokes `DECAY_COPY(std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `twoway_execute`. <br/> <br/> May block pending completion of `DECAY_COPY(std::forward<F>(f))()`. <br/> <br/> The invocation of `twoway_execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. <br/> <br/> Stores the result of `DECAY_COPY(std::forward<F>(f))()`, or any exception thrown by `DECAY_COPY(std::forward<F>(f))()`, in the associated shared state of the resulting `Future`. |
+| `x.twoway_execute(f)` | A type that satisfies the `Future` requirements for the value type `R`. | Evaluates `DECAY_COPY(std::forward<F>(f))` on the calling thread to create `cf` that will be invoked at most once by an execution agent. <br/>May block pending completion of this callable. <br/> Synchronizes with [intro.multithread] the invocation of `f`. <br/> Stores the result of the callable, or any exception thrown by the callable, in the associated shared state of the returned `Future`. |
 
 ### `ThenExecutor` requirements
 
-The `ThenExecutor` requirements specify requirements for executors which create execution agents whose initiation is predicated on the readiness of a specified future, and which provide a channel for awaiting the completion of the submitted function object and obtaining its result.
+The `ThenExecutor` requirements specify requirements for executors which submit callable objects whose invocation is predicated on the readiness of a specified future, and which provide a channel for awaiting the completion of the submitted callable object and obtaining its result.
 
 A type `X` satisfies the `ThenExecutor` requirements if it satisfies the general requirements on executors, as well as the requirements in the Table below.
 
 In the Table below,
-   
+
   * `x` denotes a (possibly const) executor object of type `X`,
   * `fut` denotes a future object satisfying the `Future` requirements,
   * `val` denotes any object stored in `fut`'s associated shared state when it becomes nonexceptionally ready,
   * `e` denotes the object stored in `fut`'s associated shared state when it becomes exceptionally ready,
-  * `NORMAL` denotes the expression `DECAY_COPY(std::forward<F>(f))(val)` if `fut`'s value type is non-`void` and `DECAY_COPY(std::forward<F>(f))()` if `fut`'s value type is `void`,
-  * `EXCEPTIONAL` denotes the expression `DECAY_COPY(std::forward<F>(f))(exception_arg, e)`,
+  * `cf` denotes the callable `DECAY_COPY(std::forward<F>(f))`,
+  * `NORMAL` denotes the expression `cf(val)` if `fut`'s value type is non-`void` and `cf()` if `fut`'s value type is `void`,
+  * `EXCEPTIONAL` denotes the expression `cf(exception_arg, e)`,
   * `f` denotes a function object of type `F&&` callable as `NORMAL` or `EXCEPTIONAL` and where `decay_t<F>` satisfies the `MoveConstructible` requirements,
   *  and `R` denotes the type of the expression `NORMAL`.
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.then_execute(f, fut)` | A type that satisfies the `Future` requirements for the value type `R`. | When `fut` becomes nonexceptionally ready, and if `NORMAL` is a well-formed expression, creates an execution agent which invokes `NORMAL` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `then_execute`. <br/> <br/> Otherwise, when `fut` becomes exceptionally ready, if `EXCEPTIONAL` is a well-formed expression, creates an execution agent which invokes `EXCEPTIONAL` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `then_execute`. <br/> <br/> If `NORMAL` and `EXCEPTIONAL` are both well-formed expressions, `decltype(EXCEPTIONAL)` shall be convertible to `R`. <br/> <br/> If `NORMAL` is not a well-formed expression and `EXCEPTIONAL` is a well-formed expression, `decltype(EXCEPTIONAL)` shall be convertible to `decltype(val)`. <br/> <br/> If neither `NORMAL` nor `EXCEPTIONAL` are well-formed expresions, the invocation of `then_execute` shall be ill-formed. <br/> <br/> May block pending completion of `NORMAL` or `EXCEPTIONAL`. <br/> <br/> The invocation of `then_execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. <br/> <br/> Stores the result of either the `NORMAL` or `EXCEPTIONAL` expression, or any exception thrown by either, in the associated shared state of the resulting `Future`. Otherwise, stores either `val` or `e` in the associated shared state of the resulting `Future`. |
+| `x.then_execute(f, fut)` | A type that satisfies the `Future` requirements for the value type `R`. | Evaluates `DECAY_COPY(std::forward<F>(f))` on the calling thread to create `cf`. When `fut` becomes nonexceptionaly ready and if `NORMAL` is a well-formed expression then `NORMAL` is invoked by an execution agent at most once. <br/> Otherwise, when `fut` becomes exceptionally ready, if `EXCEPTIONAL` is a well-formed expression then `EXCEPTIONAL` is invoked at most once by an execution agent. <br/> If `NORMAL` and `EXCEPTIONAL` are both well-formed expressions, `decltype(EXCEPTIONAL)` shall be convertible to `R`. <br/> If `NORMAL` is not a well-formed expression and `EXCEPTIONAL` is a well-formed expression, `decltype(EXCEPTIONAL)` shall be convertible to `decltype(val)`. <br/> <br/> If neither `NORMAL` nor `EXCEPTIONAL` are well-formed expressions, the invocation of `then_execute` is ill-formed. <br/> May block pending completion of `NORMAL` or `EXCEPTIONAL`. <br/>Synchronizes with [intro.multithread] the invocation of `f`. <br/> Stores the result of either the `NORMAL` or `EXCEPTIONAL` expression, or any exception thrown by either, in the associated shared state of the returned `Future`. Otherwise, stores either `val` or `e` in the associated shared state of the returned `Future`. |
 
 ### `BulkOneWayExecutor` requirements
 
-The `BulkOneWayExecutor` requirements specify requirements for executors which create groups of execution agents in bulk from a single execution function, without a channel for awaiting the completion of the submitted function object invocations and obtaining their result. [*Note:* That is, the executor provides fire-and-forget semantics. *--end note*]
+The `BulkOneWayExecutor` requirements specify requirements for executors which submit a callable object to be invoked multiple times without a channel for awaiting the completion of the submitted callable object invocations and obtaining their result. [*Note:* That is, the executor provides fire-and-forget semantics. *--end note*]
 
 A type `X` satisfies the `BulkOneWayExecutor` requirements if it satisfies the general requirements on executors, as well as the requirements in the Table below.
 
@@ -252,15 +277,17 @@ In the Table below,
   * `sf` denotes a `CopyConstructible` function object with zero arguments whose result type is `S`,
   * `i` denotes a (possibly const) object whose type is `executor_index_t<X>`,
   * `s` denotes an object whose type is `S`,
-  * `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))(i, s)` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
+  * `cf` denotes the callable `DECAY_COPY(std::forward<F>(f))(i,s)`,
+  * `f` denotes a function object of type `F&&` callable as `cf(i, s)` and where `decay_t<F>` satisfies the `MoveConstructible` requirements,
+  * 
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.bulk_execute(f, n, sf)` | `void` | Invokes `sf()` at most once on an unspecified execution agent to produce the value `s`. Creates a group of execution agents of shape `n` which invokes `DECAY_COPY(std::forward<F>(f))(i, s)` at most once for each value of `i` in the range `[0,n)`, with the call to `DECAY_COPY` being evaluated in the thread that called `bulk_execute`. <br/> <br/> May block pending completion of one or more calls to `DECAY_COPY(std::forward<F>(f))(i, s)`. <br/> <br/> The invocation of `bulk_execute` synchronizes with (C++Std [intro.multithread]) the invocations of `f`. <br/> <br/> `bulk_execute` shall not propagate any exception thrown by `DECAY_COPY(std::forward<F>(f))(i, s)` or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by bulk one-way submitted functions and the forward progress guarantee of execution agents created by one-way execution functions is specific to the concrete executor type. *--end note.*] |
+| `x.bulk_execute(f, n, sf)` | `void` | Evaluates `DECAY_COPY(std::forward<F>(f))` on the calling thread to create a callable `cf` that will be invoked by a group of execution agents at most once for each value of `i` in shape `n`.  `sf()` will be invoked at most once to produce value `s` before any invocation of `cf`. <br/> May block pending completion of one or more calls to `cf`. <br/> Synchronizes with (C++Std [intro.multithread]) the invocations of `f`. <br/> Shall not propagate any exception thrown by `cf` or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by bulk one-way submitted functions and the forward progress guarantee of the associated execution agent(s) are implementation defined. *--end note.*] |
 
 ### `BulkTwoWayExecutor` requirements
 
-The `BulkTwoWayExecutor` requirements specify requirements for executors which create groups of execution agents in bulk from a single execution function with a channel for awaiting the completion of a submitted function object invoked by those execution agents and obtaining its result.
+The `BulkTwoWayExecutor` requirements specify requirements for executors which submit a callable object with a channel for awaiting the completion of the submitted callable object and obtaining its result.
 
 A type `X` satisfies the `BulkTwoWayExecutor` requirements if it satisfies the general requirements on executors, as well as the requirements in the Table below.
 
@@ -272,19 +299,20 @@ In the Table below,
   * `sf` denotes a `CopyConstructible` function object with zero arguments whose result type is `S`,
   * `i` denotes a (possibly const) object whose type is `executor_index_t<X>`,
   * `s` denotes an object whose type is `S`,
+  * `cf` denotes the callable `DECAY_COPY(std::forward<F>(f))`,
   * if `R` is non-void,
     * `r` denotes an object whose type is `R`,
-    * `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))(i, r, s)` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
+    * `f` denotes a function object of type `F&&` callable as `cf(i, r, s)` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
   * if `R` is void,
-    * `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))(i, s)` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
+    * `f` denotes a function object of type `F&&` callable as `cf(i, s)` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.bulk_twoway_execute(f, n, rf, sf)` | A type that satisfies the `Future` requirements for the value type `R`. | If `R` is non-void, invokes `rf()` at most once on an unspecified execution agent to produce the value `r`. Invokes `sf()` at most once on an unspecified execution agent to produce the value `s`. Creates a group of execution agents of shape `n` which invokes `DECAY_COPY(std::forward<F>(f))(i, r, s)` if `R` is non-void, and otherwise invokes `DECAY_COPY(std::forward<F>(f))(i, s)`, at most once for each value of `i` in the range `[0,n)`, with the call to `DECAY_COPY` being evaluated in the thread that called `bulk_twoway_execute`. <br/> <br/> May block pending completion of one or more invocations of `f`. <br/> <br/> The invocation of `bulk_twoway_execute` synchronizes with (C++Std [intro.multithread]) the invocations of `f`. <br/> <br/> Once all invocations of `f` finish execution, stores `r`, or any exception thrown by an invocation of `f`, in the associated shared state of the resulting `Future`. |
+| `x.bulk_twoway_execute(f, n, rf, sf)` | A type that satisfies the `Future` requirements for the value type `R`. | Evaluates `DECAY_COPY(std::forward<F>(f))` on the calling thread to create a callable `cf` that will be invoked by a group of execution agents at most once for each value of `i` in shape `n`.  If `R` is non-void, `rf()` will be invoked at most once to produce the value `r`. `sf()` will be invoked at most once to produce the value `s`.  <br/> May block pending completion of one or more invocations of `cf`. <br/> Synchronizes with [intro.multithread] the invocations of `f`.  <br/> Once all invocations of `f` finish execution, `r` or any exception thrown by an invocation of `f` are stored in the associated shared state of the returned `Future`. |
 
 ### `BulkThenExecutor` requirements
 
-The `BulkThenExecutor` requirements specify requirements for executors which create execution agents whose initiation is predicated on the readiness of a specified future, and which provide a channel for awaiting the completion of the submitted function object and obtaining its result.
+The `BulkThenExecutor` requirements specify requirements for executors which submit callable objects whose initiation is predicated on the readiness of a specified future, and which provide a channel for awaiting the completion of the submitted callable object and obtaining its result.
 
 A type `X` satisfies the `BulkThenExecutor` requirements if it satisfies the general requirements on executors, as well as the requirements in the Table below.
 
@@ -299,18 +327,19 @@ In the Table below,
   * `sf` denotes a `CopyConstructible` function object with zero arguments whose result type is `S`,
   * `i` denotes a (possibly const) object whose type is `executor_index_t<X>`,
   * `s` denotes an object whose type is `S`,
+  * `cf` denotes the callable `DECAY_COPY(std::forward<F>(f))`,
   * if `R` is non-void,
     * `r` denotes an object whose type is `R`,
-    * `NORMAL` denotes the expression `DECAY_COPY(std::forward<F>(f))(i, val, r, s)`,
-    * `EXCEPTIONAL` denotes the expression `DECAY_COPY(std::forward<F>(f))(i, exception_arg, e, r, s)`,
+    * `NORMAL` denotes the expression `cf(i, val, r, s)`,
+    * `EXCEPTIONAL` denotes the expression `cf(i, exception_arg, e, r, s)`,
   * if `R` is void,
-    * `NORMAL` denotes the expression `DECAY_COPY(std::forward<F>(f))(i, val, s)`,
-    * `EXCEPTIONAL` denotes the expression `DECAY_COPY(std::forward<F>(f))(i, exception_arg, e, s)`,
+    * `NORMAL` denotes the expression `cf(i, val, s)`,
+    * `EXCEPTIONAL` denotes the expression `cf(i, exception_arg, e, s)`,
   * `f` denotes a function object of type `F&&` callable as `NORMAL` or `EXCEPTIONAL` and where `decay_t<F>` satisfies the `MoveConstructible` requirements,
 
-| Expression | Return Type | Operational semantics |
-|------------|-------------|---------------------- |
-| `x.bulk_then_execute(f, n, fut, rf, sf)` | A type that satisfies the `Future` requirements for the value type `R`. | If `R` is non-void, invokes `rf()` at most once on an unspecified execution agent to produce the value `r`. Invokes `sf()` at most once on an unspecified execution agent to produce the value `s`. <br/> <br/> When `fut` becomes nonexceptionally ready, and if `NORMAL` is a well-formed expression, creates a group of execution agents of shape `n` which invokes `NORMAL` at most once for each value of `i` in the range `[0,n)`, with the call to `DECAY_COPY` being evaluated in the thread that called `bulk_then_execute`. <br/> </br> Otherwise, when `fut` becomes exceptionally ready, and if `EXCEPTIONAL` is a well-formed expression, creates a group of execution agents of shape `n` which invokes `EXCEPTIONAL` at most once for each value of `i` in the range `[0,n)`, with the call to `DECAY_COPY` being evaluated in the thread that called `bulk_then_execute`. <br/> <br/> If neither `NORMAL` nor `EXCEPTIONAL` are well-formed expressions, the invocation of `bulk_then_execute` shall be ill-formed <br/> <br/> May block pending completion of one or more invocations of `f`. <br/> <br/> The invocation of `bulk_then_execute` synchronizes with (C++Std [intro.multithread]) the invocations of `f`. <br/> <br/> Once all invocations of `f` finish execution, stores `r`, or any exception thrown by an invocation of `f`, in the associated shared state of the resulting `Future`. Otherwise, when `fut` becomes exceptionally ready, and if `EXCEPTIONAL` is an ill-formed expression, stores `e` in the associated shared state of the resulting `Future`. |
+| Expression                               | Return Type                                                  | Operational semantics                                        |
+| ---------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| `x.bulk_then_execute(f, n, fut, rf, sf)` | A type that satisfies the `Future` requirements for the value type `R`. | Evaluates `DECAY_COPY(std::forward<F>(f))` on the calling thread to create callable `cf`. <br/> When `fut` becomes nonexceptionaly ready and if `NORMAL` is a well-formed expression then `NORMAL` is invoked by a group of execution agents at most once for each value of `i` in shape `n`;  if `R` is non-void then `rf()` will be invoked at most once to produce the value `r`; and `sf()` will be invoked at most once to produce the value `s`. <br/> Otherwise, when `fut` becomes exceptionally ready and if `EXCEPTIONAL` is a well-formed expression then `EXCEPTIONAL` is invoked at most once by an execution agent. <br/> If `NORMAL` and `EXCEPTIONAL` are both well-formed expressions, `decltype(EXCEPTIONAL)` shall be convertible to `R`.<br/> If `NORMAL` is not a well-formed expression and `EXCEPTIONAL` is a well-formed expression, `decltype(EXCEPTIONAL)` shall be convertible to `decltype(val)`. <br/> If neither `NORMAL` nor `EXCEPTIONAL` are well-formed expressions, the invocation of `then_execute` is ill-formed. <br/> May block pending completion of `NORMAL` or `EXCEPTIONAL`. <br/> Synchronizes with (C++Std [intro.multithread]) the invocation of `f`.  <br/> Stores the result of either the `NORMAL` or `EXCEPTIONAL` expression, or any exception thrown by either, in the associated shared state of the returned `Future`. Otherwise, stores either `val` or `e` in the associated shared state of the returned `Future`. |
 
 ## Executor customization points
 
@@ -438,17 +467,15 @@ If both `static_query_v` and `value()` are present, they shall return the same t
     {
       static constexpr bool is_requirable = false;
       static constexpr bool is_preferable = false;
-
+    
       using polymorphic_query_result_type = any; // TODO: alternatively consider void*, or simply omitting the type.
-
+    
       template<class Executor>
         static constexpr decltype(auto) static_query_v
           = Executor::query(context_t());
     };
 
-The `context_t` property can be used only with `query`, which returns the **execution context** associated with the executor.
-
-An execution context is a program object that represents a specific collection of execution resources and the **execution agents** that exist within those resources. Execution agents are units of execution, and a 1-to-1 mapping exists between an execution agent and an invocation of a callable function object submitted via the executor.
+The `context_t` property can be used only with `query`, which returns the execution context associated with the executor.
 
 The value returned from `execution::query(e, context_t)`, where `e` is an executor, shall not change between calls.
 
@@ -466,13 +493,13 @@ The directionality properties conform to the following specification:
     {
       static constexpr bool is_requirable = true;
       static constexpr bool is_preferable = false;
-
+    
       using polymorphic_query_result_type = bool;
-
+    
       template<class Executor>
         static constexpr bool static_query_v
           = see-below;
-
+    
       static constexpr bool value() const { return true; }
     };
 
@@ -516,13 +543,13 @@ The cardinality properties conform to the following specification:
     {
       static constexpr bool is_requirable = true;
       static constexpr bool is_preferable = false;
-
+    
       using polymorphic_query_result_type = bool;
-
+    
       template<class Executor>
         static constexpr bool static_query_v
           = see-below;
-
+    
       static constexpr bool value() const { return true; }
     };
 
@@ -587,53 +614,53 @@ Unless otherwise specified, behavioral property types `S`, their nested property
       static constexpr bool is_requirable = false;
       static constexpr bool is_preferable = false;
       using polymorphic_query_result_type = S;
-
+    
       template<class Executor>
         static constexpr auto static_query_v
           = see-below;
-
+    
       template<class Executor>
       friend constexpr S query(const Executor& ex, const Property& p) noexcept(see-below);
-
+    
       friend constexpr bool operator==(const S& a, const S& b);
       friend constexpr bool operator!=(const S& a, const S& b) { return !operator==(a, b); }
-
+    
       constexpr S();
-
+    
       struct N1
       {
         static constexpr bool is_requirable = true;
         static constexpr bool is_preferable = true;
         using polymorphic_query_result_type = S;
-
+    
         template<class Executor>
           static constexpr auto static_query_v
             = see-below;
-
+    
         static constexpr S value() { return S(N1()); }
       };
-
+    
       static constexpr n1;
-
+    
       constexpr S(const N1);
-
+    
       ...
-
+    
       struct NN
       {
         static constexpr bool is_requirable = true;
         static constexpr bool is_preferable = true;
         using polymorphic_query_result_type = S;
-
+    
         template<class Executor>
           static constexpr auto static_query_v
             = see-below;
-
+    
         static constexpr S value() { return S(NN()); }
       };
-
+    
       static constexpr nN;
-
+    
       constexpr S(const NN);
     };
 
@@ -700,9 +727,9 @@ The `blocking_t` property describes what guarantees executors provide about the 
 
 | Nested Property Type | Nested Property Object Name | Requirements |
 |--------------------------|------------------------|--------------|
-| `blocking_t::possibly_t` | `blocking_t::possibly` | A call to an executor's execution function may block pending completion of one or more of the execution agents created by that execution function. |
-| `blocking_t::always_t` | `blocking_t::always` | A call to an executor's execution function shall block until completion of all execution agents created by that execution function. |
-| `blocking_t::never_t` | `blocking_t::never` | A call to an executor's execution function shall not block pending completion of the execution agents created by that execution function. |
+| `blocking_t::possibly_t` | `blocking_t::possibly` | A call to an executor's execution function may block pending completion of all invocations of the submitted callable object. |
+| `blocking_t::always_t` | `blocking_t::always` | A call to an executor's execution function shall block until completion of all invocations of submitted callable object. |
+| `blocking_t::never_t` | `blocking_t::never` | A call to an executor's execution function shall not block pending completion of the invocations of the submitted callable object. |
 
 ##### `blocking_t::always_t` customization points
 
@@ -765,8 +792,8 @@ The `relationship_t` property allows users of executors to indicate that submitt
 
 | Nested Property Type | Nested Property Object Name | Requirements |
 |--------------------------|---------------------------------|--------------|
-| `relationship_t::fork_t` | `relationship_t::fork` | Function objects submitted through the executor do not represent continuations of the caller. |
-| `relationship_t::continuation_t` | `relationship_t::continuation` | Function objects submitted through the executor represent continuations of the caller. If the caller is a lightweight execution agent managed by the executor or its associated execution context, the execution of the submitted function object may be deferred until the caller completes. |
+| `relationship_t::fork_t` | `relationship_t::fork` | Callable objects submitted through the executor do not represent continuations of the caller. |
+| `relationship_t::continuation_t` | `relationship_t::continuation` | Callable objects submitted through the executor represent continuations of the caller. Invocation of the submitted callable object may be deferred until the caller completes. |
 
 #### Properties to indicate likely task submission in the future
 
@@ -783,7 +810,7 @@ The `outstanding_work_t` property allows users of executors to indicate that tas
 
 #### Properties for bulk execution guarantees
 
-Bulk execution guarantee properties communicate the forward progress and ordering guarantees of execution agents with respect to other agents within the same bulk submission.
+Bulk execution guarantee properties communicate the forward progress and ordering guarantees of execution agents with respect to other agents supporting the same bulk submission.
 
 `bulk_guarantee_t` provides nested property types and objects as indicated below.
 
@@ -793,11 +820,11 @@ Bulk execution guarantee properties communicate the forward progress and orderin
 | `bulk_guarantee_t::sequenced_t` | `bulk_guarantee_t::sequenced` | Execution agents within the same bulk execution may not be parallelized. |
 | `bulk_guarantee_t::parallel_t` | `bulk_guarantee_t::parallel` | Execution agents within the same bulk execution may be parallelized. |
 
-Execution agents created by executors with the `bulk_guarantee_t::unsequenced_t` property may execute in an unordered fashion. Any such agents executing in the same thread of execution are unsequenced with respect to each other. [*Note:* This means that multiple execution agents may be interleaved on a single thread of execution, which overrides the usual guarantee from [intro.execution] that function executions do not interleave with one another. *--end note*]
+Execution agents associated with the `bulk_guarantee_t::unsequenced_t` property may run the callable object in an unordered fashion. Any such agents executing in the same thread of execution are unsequenced with respect to each other. [*Note:* This means that multiple execution agents may be interleaved on a single thread of execution, which overrides the usual guarantee from [intro.execution] that function executions do not interleave with one another. *--end note*]
 
-Execution agents created by executors with the `bulk_guarantee_t::sequenced_t` property execute in sequence in lexicographic order of their indices.
+Execution agents associated with the `bulk_guarantee_t::sequenced_t` property run the callable object in sequence in lexicographic order of their indices.
 
-Execution agents created by executors with the `bulk_guarantee_t::parallel_t` property execute with a parallel forward progress guarantee. Any such agents executing in the same thread of execution are indeterminately sequenced with respect to each other. [*Note:* It is the caller's responsibility to ensure that the invocation does not introduce data races or deadlocks. *--end note*]
+Execution agents associated with the `bulk_guarantee_t::parallel_t` property run the callable object with a parallel forward progress guarantee. Any such agents executing in the same thread of execution are indeterminately sequenced with respect to each other. [*Note:* It is the caller's responsibility to ensure that the invocation does not introduce data races or deadlocks. *--end note*]
 
 [*Editorial note:* The descriptions of these properties were ported from [algorithms.parallel.user]. The intention is that a future standard will specify execution policy behavior in terms of the fundamental properties of their associated executors. We did not include the accompanying code examples from [algorithms.parallel.user] because the examples seem easier to understand when illustrated by `std::for_each`. *--end editorial note*]
 
@@ -809,9 +836,9 @@ The `mapping_t` property describes what guarantees executors provide about the m
 
 | Nested Property Type| Nested Property Object Name | Requirements |
 |-------------------------|---------------------------------|--------------|
-| `mapping_t::thread_t` | `mapping::thread` | Execution agents created by the executor are mapped onto threads of execution. |
-| `mapping_t::new_thread_t` | `mapping::new_thread` | Each execution agent created by the executor is mapped onto a new thread of execution. |
-| `mapping_t::other_t` | `mapping::other` | Mapping of each execution agent created by the executor is implementation-defined. |
+| `mapping_t::thread_t` | `mapping::thread` | Execution agents are mapped onto threads of execution. |
+| `mapping_t::new_thread_t` | `mapping::new_thread` | Each execution agent is mapped onto a new thread of execution. |
+| `mapping_t::other_t` | `mapping::other` | Mapping of each execution agent is implementation-defined. |
 
 [*Note:* A mapping of an execution agent onto a thread of execution implies the
 agent executes as-if on a `std::thread`. Therefore, the facilities provided by
@@ -832,20 +859,20 @@ The `allocator_t` property conforms to the following specification:
     {
         static constexpr bool is_requirable = true;
         static constexpr bool is_preferable = true;
-
+    
         template<class Executor>
         static constexpr auto static_query_v
           = Executor::query(allocator_t);
-
+    
         template <typename OtherProtoAllocator>
         allocator_t<OtherProtoAllocator> operator()(const OtherProtoAllocator &a) const {
         	return allocator_t<OtherProtoAllocator>{a};
         }
-
+    
         static constexpr ProtoAllocator value() const {
           return a_; // exposition only
         }
-
+    
     private:
         ProtoAllocator a_; // exposition only
     };
@@ -909,7 +936,7 @@ This sub-clause contains templates that may be used to query the properties of a
         using type = std::experimental::detected_or_t<
           size_t, helper, decltype(execution::require(declval<const Executor&>(), execution::bulk))
         >;
-
+    
         // exposition only
         static_assert(std::is_integral_v<type>, "shape type must be an integral type");
     };
@@ -923,12 +950,12 @@ This sub-clause contains templates that may be used to query the properties of a
         // exposition only
         template<class T>
         using helper = typename T::index_type;
-
+    
       public:
         using type = std::experimental::detected_or_t<
           executor_shape_t<Executor>, helper, decltype(execution::require(declval<const Executor&>(), execution::bulk))
         >;
-
+    
         // exposition only
         static_assert(std::is_integral_v<type>, "index type must be an integral type");
     };
@@ -1389,12 +1416,12 @@ This function can be used with an inline executor which is defined as follows:
       {
         return true;
       }
-
+    
       constexpr bool operator!=(const inline_executor&) const noexcept
       {
         return false;
       }
-
+    
       template<class Function> void execute(Function f) const noexcept
       {
         f();
@@ -1452,26 +1479,26 @@ The `prefer_only` adapter addresses this by turning off the `is_requirable` attr
     struct prefer_only
     {
       InnerProperty property;
-
+    
       static constexpr bool is_requirable = false;
       static constexpr bool is_preferable = InnerProperty::is_preferable;
-
+    
       using polymorphic_query_result_type = see-below; // not always defined
-
+    
       template<class Executor>
         static constexpr auto static_query_v = see-below; // not always defined
-
+    
       constexpr prefer_only(const InnerProperty& p);
-
+    
       constexpr auto value() const
         noexcept(noexcept(std::declval<const InnerProperty>().value()))
           -> decltype(std::declval<const InnerProperty>().value());
-
+    
       template<class Executor, class Property>
       friend auto prefer(Executor ex, const Property& p)
         noexcept(noexcept(execution::prefer(std::move(ex), std::declval<const InnerProperty>())))
           -> decltype(execution::prefer(std::move(ex), std::declval<const InnerProperty>()));
-
+    
       template<class Executor, class Property>
       friend constexpr auto query(const Executor& ex, const Property& p)
         noexcept(noexcept(execution::query(ex, std::declval<const InnerProperty>())))
@@ -1522,7 +1549,7 @@ friend constexpr auto query(const Executor& ex, const Property& p)
 
 ## Thread pools
 
-Thread pools create execution agents which execute on threads without incurring the
+Thread pools manage execution agents which execute on threads without incurring the
 overhead of thread creation and destruction whenever such agents are needed.
 
 ### Header `<thread_pool>` synopsis
@@ -1603,7 +1630,7 @@ The `static_thread_pool` member functions `executor`, `attach`, `wait`, and
 do not introduce data races as a result of concurrent calls to those
 functions from different threads of execution.
 
-A `static_thread_pool`'s threads execute execution agents created via its associated executors with forward progress guarantee delegation. [*Note:* Forward progress is delegated to an execution agent for its lifetime. Because `static_thread_pool` guarantees only parallel forward progress to execution agents created via its executors, forward progress delegation does not apply to execution agents which have not yet started executing their first execution step. *--end note*]
+A `static_thread_pool`'s threads run execution agents with forward progress guarantee delegation. [*Note:* Forward progress is delegated to an execution agent for its lifetime. Because `static_thread_pool` guarantees only parallel forward progress to running execution agents; _i.e._, execution agents which have run the first step of the function object. *--end note*]
 
 #### Types
 
