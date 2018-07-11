@@ -196,7 +196,7 @@ An executor type's destructor shall not block pending completion of the submitte
 
 ### `OneWayExecutor` requirements
 
-The `OneWayExecutor` requirements specify requirements for executors which create execution agents. A type `X` satisfies the `OneWayExecutor` requirements if it satisfies the general requirements on executors, as well as the requirements in the table below.
+The `OneWayExecutor` requirements specify requirements for executors which create execution agents. A type `X` satisfies the `OneWayExecutor` requirements if it satisfies the general requirements on executors, as well as the requirements in the Table below.
 
 [*Note:* `OneWayExecutor`s provides fire-and-forget semantics without a channel for awaiting the completion of a submitted function object and obtaining its result. *--end note*]
 
@@ -210,7 +210,7 @@ In the Table below, `x` denotes a (possibly const) executor object of type `X` a
 
 The `TwoWayExecutor` requirements specify requirements for executors which create execution agents with a channel for awaiting the completion of a submitted function object and obtaining its result.
 
-A type `X` satisfies the `TwoWayExecutor` requirements if it satisfies the general requirements on executors, as well as the requirements in the table below.
+A type `X` satisfies the `TwoWayExecutor` requirements if it satisfies the general requirements on executors, as well as the requirements in the Table below.
 
 In the Table below, `x` denotes a (possibly const) executor object of type `X`, `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements, and `R` denotes the type of the expression `DECAY_COPY(std::forward<F>(f))()`.
 
@@ -222,7 +222,7 @@ In the Table below, `x` denotes a (possibly const) executor object of type `X`, 
 
 The `ThenExecutor` requirements specify requirements for executors which create execution agents whose initiation is predicated on the readiness of a specified future, and which provide a channel for awaiting the completion of the submitted function object and obtaining its result.
 
-A type `X` satisfies the `ThenExecutor` requirements if it satisfies the general requirements on executors, as well as the requirements in the table below.
+A type `X` satisfies the `ThenExecutor` requirements if it satisfies the general requirements on executors, as well as the requirements in the Table below.
 
 In the Table below,
    
@@ -243,7 +243,7 @@ In the Table below,
 
 The `BulkOneWayExecutor` requirements specify requirements for executors which create groups of execution agents in bulk from a single execution function, without a channel for awaiting the completion of the submitted function object invocations and obtaining their result. [*Note:* That is, the executor provides fire-and-forget semantics. *--end note*]
 
-A type `X` satisfies the `BulkOneWayExecutor` requirements if it satisfies the general requirements on executors, as well as the requirements in the table below.
+A type `X` satisfies the `BulkOneWayExecutor` requirements if it satisfies the general requirements on executors, as well as the requirements in the Table below.
 
 In the Table below,
 
@@ -262,7 +262,7 @@ In the Table below,
 
 The `BulkTwoWayExecutor` requirements specify requirements for executors which create groups of execution agents in bulk from a single execution function with a channel for awaiting the completion of a submitted function object invoked by those execution agents and obtaining its result.
 
-A type `X` satisfies the `BulkTwoWayExecutor` requirements if it satisfies the general requirements on executors, as well as the requirements in the table below.
+A type `X` satisfies the `BulkTwoWayExecutor` requirements if it satisfies the general requirements on executors, as well as the requirements in the Table below.
 
 In the Table below,
 
@@ -286,7 +286,7 @@ In the Table below,
 
 The `BulkThenExecutor` requirements specify requirements for executors which create execution agents whose initiation is predicated on the readiness of a specified future, and which provide a channel for awaiting the completion of the submitted function object and obtaining its result.
 
-A type `X` satisfies the `BulkThenExecutor` requirements if it satisfies the general requirements on executors, as well as the requirements in the table below.
+A type `X` satisfies the `BulkThenExecutor` requirements if it satisfies the general requirements on executors, as well as the requirements in the Table below.
 
 In the Table below,
 
@@ -396,7 +396,7 @@ This sub-clause contains templates that may be used to query the properties of a
 
 An executor's behavior in generic contexts is determined by a set of executor properties, and each executor property imposes certain requirements on the executor.
 
-Given an existing executor, a related executor with different properties may be created by calling the `require` member or non-member functions. These functions behave according the table below. In the table below, `x` denotes a (possibly const) executor object of type `X`, and `p` denotes a (possibly const) property object.
+Given an existing executor, a related executor with different properties may be created by calling the `require` member or non-member functions. These functions behave according the Table below. In the Table below, `x` denotes a (possibly const) executor object of type `X`, and `p` denotes a (possibly const) property object.
 
 [*Note:* As a general design note properties which define a mutually exclusive pair, that describe an enabled or non-enabled behaviour follow the convention of having the same property name for both with the `not_` prefix to the property for the non-enabled behaviour. *--end note*]
 
@@ -404,7 +404,7 @@ Given an existing executor, a related executor with different properties may be 
 |------------|----------|
 | `x.require(p)` <br/> `require(x,p)` | Returns an executor object with the requested property `p` added to the set. All other properties of the returned executor are identical to those of `x`, except where those properties are described below as being mutually exclusive to `p`. In this case, the mutually exclusive properties are implicitly removed from the set associated with the returned executor. <br/> <br/> The expression is ill formed if an executor is unable to add the requested property. |
 
-The current value of an executor's properties can be queried by calling the `query` function. This function behaves according the table below. In the table below, `x` denotes a (possibly const) executor object of type `X`, and `p` denotes a (possibly const) property object.
+The current value of an executor's properties can be queried by calling the `query` function. This function behaves according the Table below. In the Table below, `x` denotes a (possibly const) executor object of type `X`, and `p` denotes a (possibly const) property object.
 
 | Expression | Comments |
 |------------|----------|
