@@ -306,7 +306,7 @@ In the Table below,
   * if `R` is void,
     * `NORMAL` denotes the expression `DECAY_COPY(std::forward<F>(f))(i, val, s)`,
     * `EXCEPTIONAL` denotes the expression `DECAY_COPY(std::forward<F>(f))(i, exception_arg, e, s)`,
-  * and `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))(i, fut, s)` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
+  * `f` denotes a function object of type `F&&` callable as `NORMAL` or `EXCEPTIONAL` and where `decay_t<F>` satisfies the `MoveConstructible` requirements,
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
