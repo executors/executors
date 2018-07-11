@@ -204,7 +204,7 @@ In the Table below, `x` denotes a (possibly const) executor object of type `X` a
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.execute(f)` | `void` | Creates an execution agent which invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `execute`. <br/> <br/> May block pending completion of `DECAY_COPY( std::forward<F>(f))()`. <br/> <br/> The invocation of `execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. <br/> <br/> `execute` shall not propagate any exception thrown by `DECAY_COPY( std::forward<F>(f))()` or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by one-way submitted functions and the forward progress guarantee of execution agents created by one-way execution functions are specific to the concrete executor type. *--end note.*] |
+| `x.execute(f)` | `void` | Creates an execution agent which invokes `DECAY_COPY(std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `execute`. <br/> <br/> May block pending completion of `DECAY_COPY(std::forward<F>(f))()`. <br/> <br/> The invocation of `execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. <br/> <br/> `execute` shall not propagate any exception thrown by `DECAY_COPY(std::forward<F>(f))()` or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by one-way submitted functions and the forward progress guarantee of execution agents created by one-way execution functions are specific to the concrete executor type. *--end note.*] |
 
 ### `TwoWayExecutor` requirements
 
@@ -216,7 +216,7 @@ In the Table below, `x` denotes a (possibly const) executor object of type `X`, 
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.twoway_execute(f)` | A type that satisfies the `Future` requirements for the value type `R`. | Creates an execution agent which invokes `DECAY_COPY( std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `twoway_execute`. <br/> <br/> May block pending completion of `DECAY_COPY( std::forward<F>(f))()`. <br/> <br/> The invocation of `twoway_execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. <br/> <br/> Stores the result of `DECAY_COPY( std::forward<F>(f))()`, or any exception thrown by `DECAY_COPY( std::forward<F>(f))()`, in the associated shared state of the resulting `Future`. |
+| `x.twoway_execute(f)` | A type that satisfies the `Future` requirements for the value type `R`. | Creates an execution agent which invokes `DECAY_COPY(std::forward<F>(f))()` at most once, with the call to `DECAY_COPY` being evaluated in the thread that called `twoway_execute`. <br/> <br/> May block pending completion of `DECAY_COPY(std::forward<F>(f))()`. <br/> <br/> The invocation of `twoway_execute` synchronizes with (C++Std [intro.multithread]) the invocation of `f`. <br/> <br/> Stores the result of `DECAY_COPY(std::forward<F>(f))()`, or any exception thrown by `DECAY_COPY(std::forward<F>(f))()`, in the associated shared state of the resulting `Future`. |
 
 ### `ThenExecutor` requirements
 
@@ -256,7 +256,7 @@ In the Table below,
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.bulk_execute(f, n, sf)` | `void` | Invokes `sf()` at most once on an unspecified execution agent to produce the value `s`. Creates a group of execution agents of shape `n` which invokes `DECAY_COPY( std::forward<F>(f))(i, s)` at most once for each value of `i` in the range `[0,n)`, with the call to `DECAY_COPY` being evaluated in the thread that called `bulk_execute`. <br/> <br/> May block pending completion of one or more calls to `DECAY_COPY( std::forward<F>(f))(i, s)`. <br/> <br/> The invocation of `bulk_execute` synchronizes with (C++Std [intro.multithread]) the invocations of `f`. <br/> <br/> `bulk_execute` shall not propagate any exception thrown by `DECAY_COPY( std::forward<F>(f))(i, s)` or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by bulk one-way submitted functions and the forward progress guarantee of execution agents created by one-way execution functions is specific to the concrete executor type. *--end note.*] |
+| `x.bulk_execute(f, n, sf)` | `void` | Invokes `sf()` at most once on an unspecified execution agent to produce the value `s`. Creates a group of execution agents of shape `n` which invokes `DECAY_COPY(std::forward<F>(f))(i, s)` at most once for each value of `i` in the range `[0,n)`, with the call to `DECAY_COPY` being evaluated in the thread that called `bulk_execute`. <br/> <br/> May block pending completion of one or more calls to `DECAY_COPY(std::forward<F>(f))(i, s)`. <br/> <br/> The invocation of `bulk_execute` synchronizes with (C++Std [intro.multithread]) the invocations of `f`. <br/> <br/> `bulk_execute` shall not propagate any exception thrown by `DECAY_COPY(std::forward<F>(f))(i, s)` or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by bulk one-way submitted functions and the forward progress guarantee of execution agents created by one-way execution functions is specific to the concrete executor type. *--end note.*] |
 
 ### `BulkTwoWayExecutor` requirements
 
@@ -280,7 +280,7 @@ In the Table below,
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.bulk_twoway_execute(f, n, rf, sf)` | A type that satisfies the `Future` requirements for the value type `R`. | If `R` is non-void, invokes `rf()` at most once on an unspecified execution agent to produce the value `r`. Invokes `sf()` at most once on an unspecified execution agent to produce the value `s`. Creates a group of execution agents of shape `n` which invokes `DECAY_COPY( std::forward<F>(f))(i, r, s)` if `R` is non-void, and otherwise invokes `DECAY_COPY( std::forward<F>(f))(i, s)`, at most once for each value of `i` in the range `[0,n)`, with the call to `DECAY_COPY` being evaluated in the thread that called `bulk_twoway_execute`. <br/> <br/> May block pending completion of one or more invocations of `f`. <br/> <br/> The invocation of `bulk_twoway_execute` synchronizes with (C++Std [intro.multithread]) the invocations of `f`. <br/> <br/> Once all invocations of `f` finish execution, stores `r`, or any exception thrown by an invocation of `f`, in the associated shared state of the resulting `Future`. |
+| `x.bulk_twoway_execute(f, n, rf, sf)` | A type that satisfies the `Future` requirements for the value type `R`. | If `R` is non-void, invokes `rf()` at most once on an unspecified execution agent to produce the value `r`. Invokes `sf()` at most once on an unspecified execution agent to produce the value `s`. Creates a group of execution agents of shape `n` which invokes `DECAY_COPY(std::forward<F>(f))(i, r, s)` if `R` is non-void, and otherwise invokes `DECAY_COPY(std::forward<F>(f))(i, s)`, at most once for each value of `i` in the range `[0,n)`, with the call to `DECAY_COPY` being evaluated in the thread that called `bulk_twoway_execute`. <br/> <br/> May block pending completion of one or more invocations of `f`. <br/> <br/> The invocation of `bulk_twoway_execute` synchronizes with (C++Std [intro.multithread]) the invocations of `f`. <br/> <br/> Once all invocations of `f` finish execution, stores `r`, or any exception thrown by an invocation of `f`, in the associated shared state of the resulting `Future`. |
 
 ### `BulkThenExecutor` requirements
 
@@ -306,7 +306,7 @@ In the Table below,
   * if `R` is void,
     * `NORMAL` denotes the expression `DECAY_COPY(std::forward<F>(f))(i, val, s)`,
     * `EXCEPTIONAL` denotes the expression `DECAY_COPY(std::forward<F>(f))(i, exception_arg, e, s)`,
-  * and `f` denotes a function object of type `F&&` callable as `DECAY_COPY(std::forward<F>(f))(i, fut, s)` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
+  * `f` denotes a function object of type `F&&` callable as `NORMAL` or `EXCEPTIONAL` and where `decay_t<F>` satisfies the `MoveConstructible` requirements,
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
@@ -1749,7 +1749,11 @@ class C
 
     template<class Function, class ResultFactory, class SharedFactory>
       std::experimental::future<result_of_t<decay_t<ResultFactory>()>>
-        void bulk_twoway_execute(Function&& f, size_t n, ResultFactory&& rf, SharedFactory&& sf) const;
+        bulk_twoway_execute(Function&& f, size_t n, ResultFactory&& rf, SharedFactory&& sf) const;
+
+    template<class Function, class Future, class ResultFactory, class SharedFactory>
+      std::experimental::future<result_of_t<decay_t<ResultFactory>()>>
+        bulk_then_execute(Function&& f, size_t n, Future&& pred, ResultFactory&& rf, SharedFactory&& sf) const;
 };
 
 bool operator==(const C& a, const C& b) noexcept;
@@ -1918,7 +1922,7 @@ exception, the `static_thread_pool` calls `std::terminate()`.
 ```
 template<class Function, class ResultFactory, class SharedFactory>
   std::experimental::future<result_of_t<decay_t<ResultFactory>()>>
-    void bulk_twoway_execute(Function&& f, size_t n, ResultFactory&& rf, SharedFactory&& sf) const;
+    bulk_twoway_execute(Function&& f, size_t n, ResultFactory&& rf, SharedFactory&& sf) const;
 ```
 
 *Effects:* Submits the function `f` for bulk execution on the `static_thread_pool`
@@ -1930,7 +1934,7 @@ for `*this`.
 ```
 template<class Function, class Future, class ResultFactory, class SharedFactory>
   std::experimental::future<result_of_t<decay_t<ResultFactory>()>>
-    void bulk_then_execute(Function&& f, size_t n, Future&& pred, ResultFactory&& rf, SharedFactory&& sf) const;
+    bulk_then_execute(Function&& f, size_t n, Future&& pred, ResultFactory&& rf, SharedFactory&& sf) const;
 ```
 
 *Effects:* Submits the function `f` for bulk execution on the `static_thread_pool`
