@@ -1749,7 +1749,11 @@ class C
 
     template<class Function, class ResultFactory, class SharedFactory>
       std::experimental::future<result_of_t<decay_t<ResultFactory>()>>
-        void bulk_twoway_execute(Function&& f, size_t n, ResultFactory&& rf, SharedFactory&& sf) const;
+        bulk_twoway_execute(Function&& f, size_t n, ResultFactory&& rf, SharedFactory&& sf) const;
+
+    template<class Function, class Future, class ResultFactory, class SharedFactory>
+      std::experimental::future<result_of_t<decay_t<ResultFactory>()>>
+        bulk_then_execute(Function&& f, size_t n, Future&& pred, ResultFactory&& rf, SharedFactory&& sf) const;
 };
 
 bool operator==(const C& a, const C& b) noexcept;
@@ -1918,7 +1922,7 @@ exception, the `static_thread_pool` calls `std::terminate()`.
 ```
 template<class Function, class ResultFactory, class SharedFactory>
   std::experimental::future<result_of_t<decay_t<ResultFactory>()>>
-    void bulk_twoway_execute(Function&& f, size_t n, ResultFactory&& rf, SharedFactory&& sf) const;
+    bulk_twoway_execute(Function&& f, size_t n, ResultFactory&& rf, SharedFactory&& sf) const;
 ```
 
 *Effects:* Submits the function `f` for bulk execution on the `static_thread_pool`
@@ -1930,7 +1934,7 @@ for `*this`.
 ```
 template<class Function, class Future, class ResultFactory, class SharedFactory>
   std::experimental::future<result_of_t<decay_t<ResultFactory>()>>
-    void bulk_then_execute(Function&& f, size_t n, Future&& pred, ResultFactory&& rf, SharedFactory&& sf) const;
+    bulk_then_execute(Function&& f, size_t n, Future&& pred, ResultFactory&& rf, SharedFactory&& sf) const;
 ```
 
 *Effects:* Submits the function `f` for bulk execution on the `static_thread_pool`
