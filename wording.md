@@ -727,7 +727,7 @@ The `blocking_t` property describes what guarantees executors provide about the 
 
 | Nested Property Type | Nested Property Object Name | Requirements |
 |--------------------------|------------------------|--------------|
-| `blocking_t::possibly_t` | `blocking_t::possibly` | A call to an executor's execution function may block pending completion of all invocations of the submitted callable object. |
+| `blocking_t::possibly_t` | `blocking_t::possibly` | A call to an executor's execution function may block pending completion of one or more invocations of the submitted callable object. |
 | `blocking_t::always_t` | `blocking_t::always` | A call to an executor's execution function shall block until completion of all invocations of submitted callable object. |
 | `blocking_t::never_t` | `blocking_t::never` | A call to an executor's execution function shall not block pending completion of the invocations of the submitted callable object. |
 
