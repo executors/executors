@@ -574,6 +574,11 @@ public:
   const type_info& target_type() const noexcept;
   template<class Executor> Executor* target() noexcept;
   template<class Executor> const Executor* target() const noexcept;
+
+  // polymorphic_executor_type casts:
+
+  template<class... OtherSupportableProperties>
+    polymorphic_executor_type<OtherSupportableProperties...> static_executor_cast() const;
 };
 
 // polymorphic_executor_type comparisons:
@@ -819,6 +824,17 @@ polymorphic_executor_type prefer(const polymorphic_executor_type<SupportableProp
 *Remarks:* This function shall not participate in overload resolution unless `FIND_CONVERTIBLE_PROPERTY(Property, SupportableProperties)::is_preferable` is well-formed and has the value `true`.
 
 *Returns:* A polymorphic wrapper whose target is the result of `execution::prefer(e, p)`, where `e` is the target object of `*this`.
+
+##### `polymorphic_executor_type` casts
+
+```
+template<class... OtherSupportableProperties>
+  polymorphic_executor_type<OtherSupportableProperties...> static_executor_cast() const;
+```
+
+*Requires:* The target object was first inserted into a polymorphic wrapper (whether via the wrapper's constructor or assignment operator) whose template parameters included the parameters in `OtherSupportableProperties`.
+
+*Returns:* A polymorphic wrapper whose target is `e`.
 
 #### `oneway_t` customization points
 
