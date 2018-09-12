@@ -1,4 +1,4 @@
-% A Unified Executors Proposal for C++ | P0443R7
+% A Unified Executors Proposal for C++ | P0443R8
 
 ----------------    -------------------------------------
 Title:              A Unified Executors Proposal for C++
@@ -35,9 +35,9 @@ Other Contributors: Hans Boehm, hboehm@google.com
 
                     Michael Wong, michael@codeplay.com
 
-Document Number:    P0443R7
+Document Number:    P0443R8
 
-Date:               2018-05-07
+Date:               2018-09-12
 
 Audience:           SG1 - Concurrency and Parallelism, LEWG
 
@@ -48,6 +48,11 @@ Abstract:           This paper proposes a programming model for executors, which
 ------------------------------------------------------
 
 ## Changelog
+
+### Revision 8
+
+Revision 8 of this proposal makes interface-changing properties such as `oneway` mutually exclusive in order to simplify implementation requirements for executor adaptors such as polymorphic executors.
+Additionally, this revision clarifies wording regarding execution agent lifetime.
 
 ### Revision 7
 
