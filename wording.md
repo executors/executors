@@ -677,7 +677,7 @@ template<class Executor>
 
 #### `oneway_t` polymorphic wrapper
 
-In addition to conforming to the above specification for polymorphic wrappers, the nested class template `oneway_t::polymorphic_executor_type` has the following member functions to satisfy the `OneWayExecutor` requirements.
+In addition to conforming to the above specification for polymorphic wrappers, the nested class template `oneway_t::polymorphic_executor_type` provides the following member functions:
 
 ```
 template <class... SupportableProperties>
