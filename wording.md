@@ -17,8 +17,6 @@ For the intent of this library and extensions to this library, the *lifetime of 
 
 ```
 namespace std {
-namespace experimental {
-inline namespace executors_v1 {
 namespace execution {
 
   // Customization points:
@@ -123,8 +121,6 @@ namespace execution {
   template<class Property> struct prefer_only;
 
 } // namespace execution
-} // inline namespace executors_v1
-} // namespace experimental
 } // namespace std
 ```
 
@@ -209,7 +205,7 @@ When an executor customization point named *NAME* invokes a free execution funct
 
 [*Note:* This provision allows executor customization points to invoke the executor's free, non-member execution function of the same name without recursion. *--end note*]
 
-Whenever `std::experimental::executors_v1::execution::`*NAME*`(`*ARGS*`)` is a valid expression, that expression satisfies the syntactic requirements for the free execution function named *NAME* with arity `sizeof...(`*ARGS*`)` with that free execution function's semantics.
+Whenever `std::execution::`*NAME*`(`*ARGS*`)` is a valid expression, that expression satisfies the syntactic requirements for the free execution function named *NAME* with arity `sizeof...(`*ARGS*`)` with that free execution function's semantics.
 
 ### `require`
 
@@ -217,7 +213,7 @@ Whenever `std::experimental::executors_v1::execution::`*NAME*`(`*ARGS*`)` is a v
       constexpr unspecified require = unspecified;
     }
 
-The name `require` denotes a customization point. The effect of the expression `std::experimental::executors_v1::execution::require(E, P0, Pn...)` for some expressions `E` and `P0`, and where `Pn...` represents `N` expressions (where `N` is 0 or more), is equivalent to:
+The name `require` denotes a customization point. The effect of the expression `std::execution::require(E, P0, Pn...)` for some expressions `E` and `P0`, and where `Pn...` represents `N` expressions (where `N` is 0 or more), is equivalent to:
 
 * If `N == 0`, `P0::is_requirable` is true, and the expression `decay_t<decltype(P0)>::template static_query_v<decay_t<decltype(E)>> == decay_t<decltype(P0)>::value()` is a well-formed constant expression with value `true`, `E`.
 
@@ -225,9 +221,9 @@ The name `require` denotes a customization point. The effect of the expression `
 
 * If `N == 0`, `P0::is_requirable` is true, and the expression `require(E, P0)` is well-formed, `require(E, P0)`.
 
-* If `N > 0` and the expression `std::experimental::executors_v1::execution::require( std::experimental::executors_v1::execution::require(E, P0), Pn...)` is well formed, `std::experimental::executors_v1::execution::require( std::experimental::executors_v1::execution::require(E, P0), Pn...)`.
+* If `N > 0` and the expression `std::execution::require( std::execution::require(E, P0), Pn...)` is well formed, `std::execution::require( std::execution::require(E, P0), Pn...)`.
 
-* Otherwise, `std::experimental::executors_v1::execution::require(E, P0, Pn...)` is ill-formed.
+* Otherwise, `std::execution::require(E, P0, Pn...)` is ill-formed.
 
 ### `prefer`
 
@@ -235,7 +231,7 @@ The name `require` denotes a customization point. The effect of the expression `
       constexpr unspecified prefer = unspecified;
     }
 
-The name `prefer` denotes a customization point. The effect of the expression `std::experimental::executors_v1::execution::prefer(E, P0, Pn...)` for some expressions `E` and `P0`, and where `Pn...` represents `N` expressions (where `N` is 0 or more), is equivalent to:
+The name `prefer` denotes a customization point. The effect of the expression `std::execution::prefer(E, P0, Pn...)` for some expressions `E` and `P0`, and where `Pn...` represents `N` expressions (where `N` is 0 or more), is equivalent to:
 
 * If `N == 0`, `P0::is_preferable` is true, and the expression `decay_t<decltype(P0)>::template static_query_v<decay_t<decltype(E)>> == decay_t<decltype(P0)>::value()` is a well-formed constant expression with value `true`, `E`.
 
@@ -245,9 +241,9 @@ The name `prefer` denotes a customization point. The effect of the expression `s
 
 * If `N == 0` and `P0::is_preferable` is true, `E`.
 
-* If `N > 0` and the expression `std::experimental::executors_v1::execution::prefer( std::experimental::executors_v1::execution::prefer(E, P0), Pn...)` is well formed, `std::experimental::executors_v1::execution::prefer( std::experimental::executors_v1::execution::prefer(E, P0), Pn...)`.
+* If `N > 0` and the expression `std::execution::prefer( std::execution::prefer(E, P0), Pn...)` is well formed, `std::execution::prefer( std::execution::prefer(E, P0), Pn...)`.
 
-* Otherwise, `std::experimental::executors_v1::execution::require(E, P0, Pn...)` is ill-formed.
+* Otherwise, `std::execution::require(E, P0, Pn...)` is ill-formed.
 
 ### `query`
 
@@ -255,7 +251,7 @@ The name `prefer` denotes a customization point. The effect of the expression `s
       constexpr unspecified query = unspecified;
     }
 
-The name `query` denotes a customization point. The effect of the expression `std::experimental::executors_v1::execution::query(E, P)` for some expressions `E` and `P` is equivalent to:
+The name `query` denotes a customization point. The effect of the expression `std::execution::query(E, P)` for some expressions `E` and `P` is equivalent to:
 
 * If the expression `decay_t<decltype(P)>::template static_query_v<decay_t<decltype(E)>>` is a well-formed constant expression, `decay_t<decltype(P)>::template static_query_v<decay_t<decltype(E)>>`.
 
@@ -263,7 +259,7 @@ The name `query` denotes a customization point. The effect of the expression `st
 
 * If the expression `query(E, P)` is well-formed, `query(E, P)`.
 
-* Otherwise, `std::experimental::executors_v1::execution::query(E, P)` is ill-formed.
+* Otherwise, `std::execution::query(E, P)` is ill-formed.
 
 ### Customization point type traits
 
@@ -275,9 +271,9 @@ This sub-clause contains templates that may be used to query the properties of a
 
 | Template                   | Condition           | Preconditions  |
 |----------------------------|---------------------|----------------|
-| `template<class T>` <br/>`struct can_require` | The expression `std::experimental::executors_v1::execution::require( declval<const Executor>(), declval<Properties>()...)` is well formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_prefer` | The expression `std::experimental::executors_v1::execution::prefer( declval<const Executor>(), declval<Properties>()...)` is well formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_query` | The expression `std::experimental::executors_v1::execution::query( declval<const Executor>(), declval<Property>())` is well formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_require` | The expression `std::execution::require( declval<const Executor>(), declval<Properties>()...)` is well formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_prefer` | The expression `std::execution::prefer( declval<const Executor>(), declval<Properties>()...)` is well formed. | `T` is a complete type. |
+| `template<class T>` <br/>`struct can_query` | The expression `std::execution::query( declval<const Executor>(), declval<Property>())` is well formed. | `T` is a complete type. |
 
 ## Executor properties
 
@@ -1363,13 +1359,9 @@ overhead of thread creation and destruction whenever such agents are needed.
 
 ```
 namespace std {
-namespace experimental {
-inline namespace executors_v1 {
 
   class static_thread_pool;
 
-} // inline namespace executors_v1
-} // namespace experimental
 } // namespace std
 ```
 
