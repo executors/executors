@@ -1,4 +1,4 @@
-% A Unified Executors Proposal for C++ | P0443R8
+% A Unified Executors Proposal for C++ | P0443R9
 
 ----------------    -------------------------------------
 Title:              A Unified Executors Proposal for C++
@@ -35,9 +35,9 @@ Other Contributors: Hans Boehm, hboehm@google.com
 
                     Michael Wong, michael@codeplay.com
 
-Document Number:    P0443R8
+Document Number:    P0443R9
 
-Date:               2018-09-12
+Date:               2018-10-08
 
 Audience:           SG1 - Concurrency and Parallelism, LEWG
 
@@ -48,6 +48,18 @@ Abstract:           This paper proposes a programming model for executors, which
 ------------------------------------------------------
 
 ## Changelog
+
+### Revision 9
+
+As directed by the SG1/LEWG straw poll taken during the 2018 Bellevue executors
+meeting, we have separated The Unified Executors programming model proposal into two
+papers. This paper contains material related to one-way execution which the
+authors hope to standardize with C++20 as suggested by the Bellevue poll.
+[P1244](http://wg21.link/P1244) contains remaining material related to
+dependent execution. We expect P1244 to evolve as committee consensus builds
+around a design for dependent execution.
+
+This revision also contains bug fixes to the `allocator_t` property which were originally scheduled for Revision 7 but were inadvertently omitted.
 
 ### Revision 8
 
