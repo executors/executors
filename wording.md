@@ -1086,8 +1086,8 @@ The `allocator_t` property conforms to the following specification:
 
 | Property | Notes | Requirements |
 |----------|-------|--------------|
-| `allocator_t<ProtoAllocator>` | Result of `allocator_t<void>::operator(OtherProtoAllocator)`. | For executor types that satisfy the `OneWayExecutor`, `TwoWayExecutor`, or `ThenExecutor` requirements, the executor implementation shall use the encapsulated allocator to allocate any memory required to store the submitted function object. |
-| `allocator_t<void>` | Specialisation of `allocator_t<ProtoAllocator>`. | For executor types that satisfy the `OneWayExecutor`, `TwoWayExecutor`, or `ThenExecutor` requirements, the executor implementation shall use an implementation defined default allocator to allocate any memory required to store the submitted function object. |
+| `allocator_t<ProtoAllocator>` | Result of `allocator_t<void>::operator(OtherProtoAllocator)`. | For executor types that satisfy the `OneWayExecutor` requirements, the executor implementation shall use the encapsulated allocator to allocate any memory required to store the submitted function object. |
+| `allocator_t<void>` | Specialisation of `allocator_t<ProtoAllocator>`. | For executor types that satisfy the `OneWayExecutor` requirements, the executor implementation shall use an implementation defined default allocator to allocate any memory required to store the submitted function object. |
 
 If the expression `execution::query(E, P)` is well formed, where `P` is an object of type `allocator_t<ProtoAllocator>`, then:
 * the type of the expression `execution::query(E, P)` shall satisfy the `ProtoAllocator` requirements;
