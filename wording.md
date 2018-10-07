@@ -95,7 +95,7 @@ namespace execution {
   template <typename ProtoAllocator>
   struct allocator_t;
 
-  constexpr allocator_t allocator;
+  constexpr allocator_t<void> allocator;
 
   // Executor type traits:
 
@@ -1076,13 +1076,9 @@ The `allocator_t` property conforms to the following specification:
           = Executor::query(allocator_t);
     
         template <typename OtherProtoAllocator>
-        allocator_t<OtherProtoAllocator> operator()(const OtherProtoAllocator &a) const {
-        	return allocator_t<OtherProtoAllocator>{a};
-        }
+        allocator_t<OtherProtoAllocator> operator()(const OtherProtoAllocator &a) const;
     
-        static constexpr ProtoAllocator value() const {
-          return a_; // exposition only
-        }
+        static constexpr ProtoAllocator value() const;
     
     private:
         ProtoAllocator a_; // exposition only
@@ -1090,18 +1086,34 @@ The `allocator_t` property conforms to the following specification:
 
 | Property | Notes | Requirements |
 |----------|-------|--------------|
-| `allocator_t<ProtoAllocator>` | Result of `allocator_t<void>::operator(OtherProtoAllocator)`. | The executor implementation shall use the encapsulated allocator to allocate any memory required to store the submitted function object. |
-| `allocator_t<void>` | Specialisation of `allocator_t<ProtoAllocator>`. | The executor implementation shall use an implementation defined default allocator to allocate any memory required to store the submitted function object. |
+| `allocator_t<ProtoAllocator>` | Result of `allocator_t<void>::operator(OtherProtoAllocator)`. | For executor types that satisfy the `OneWayExecutor`, `TwoWayExecutor`, or `ThenExecutor` requirements, the executor implementation shall use the encapsulated allocator to allocate any memory required to store the submitted function object. |
+| `allocator_t<void>` | Specialisation of `allocator_t<ProtoAllocator>`. | For executor types that satisfy the `OneWayExecutor`, `TwoWayExecutor`, or `ThenExecutor` requirements, the executor implementation shall use an implementation defined default allocator to allocate any memory required to store the submitted function object. |
 
-*Remarks:* `operator(OtherProtoAllocator)` and `value()` shall not participate in overload resolution unless `ProtoAllocator` is `void`.
+If the expression `execution::query(E, P)` is well formed, where `P` is an object of type `allocator_t<ProtoAllocator>`, then:
+* the type of the expression `execution::query(E, P)` shall satisfy the `ProtoAllocator` requirements;
+* the result of the expression `execution::query(E, P)` shall be the allocator currently established in the executor `E`; and
+* the expression `execution::query(E, allocator_t<void>{})` shall also be well formed and have the same result as `execution::query(E, P)`.
 
-*Postconditions:* `alloc.value()` returns `a`, where `alloc` is the result of `allocator(a)`.
+#### `allocator_t` members
 
-[*Note:* Where the `allocator_t` is queryable, it must be accepted as both `allocator_t<ProtoAllocator>` and `allocator_t<void>`. *--end note*]
+```
+template <typename OtherProtoAllocator>
+allocator_t<OtherProtoAllocator> operator()(const OtherProtoAllocator &a) const;
+```
 
-[*Note:* As the `allocator_t<ProtoAllocator>` property enapsulates a value which can be set and queried, it is required to be implemented such that it is invocable with the `OtherProtoAllocator` parameter where the customization points accepts the result of `allocator_t<void>::operator(OtherProtoAllocator)`; `allocator_t<OtherProtoAllocator>` and is passable as an instance  where the customization points accept an instance of `allocator_t<void>`. *--end note*]
+*Returns:* An allocator object whose exposition-only member `a_` is initialized as `a_(a)`.
 
-[*Note:* It is permitted for an allocator provided via `allocator_t<void>::operator(OtherProtoAllocator)` property to be the same type as the default allocator provided by the implementation. *--end note*]
+*Remarks:* This function shall not participate in overload resolution unless `ProtoAllocator` is `void`.
+
+[*Note:* It is permitted for `a` to be an executor's implementation-defined default allocator and, if so, the default allocator may also be established within an executor by passing the result of this function to `require`. *--end note*]
+
+```
+static constexpr ProtoAllocator value() const;
+```
+
+*Returns:* The exposition-only member `a_`.
+
+*Remarks:* This function shall not participate in overload resolution unless `ProtoAllocator` is not `void`.
 
 ## Executor type traits
 
