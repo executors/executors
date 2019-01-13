@@ -19,27 +19,6 @@ For the intent of this library and extensions to this library, the *lifetime of 
 namespace std {
 namespace execution {
 
-  // Customization points:
-
-  namespace {
-    constexpr unspecified require = unspecified;
-    constexpr unspecified prefer = unspecified;
-    constexpr unspecified query = unspecified;
-  }
-
-  // Customization point type traits:
-
-  template<class Executor, class... Properties> struct can_require;
-  template<class Executor, class... Properties> struct can_prefer;
-  template<class Executor, class Property> struct can_query;
-
-  template<class Executor, class... Properties>
-    constexpr bool can_require_v = can_require<Executor, Properties...>::value;
-  template<class Executor, class... Properties>
-    constexpr bool can_prefer_v = can_prefer<Executor, Properties...>::value;
-  template<class Executor, class Property>
-    constexpr bool can_query_v = can_query<Executor, Property>::value;
-
   // Associated execution context property:
 
   struct context_t;
@@ -126,24 +105,6 @@ namespace execution {
 
 ## Requirements
 
-### Customization point objects
-
-*(The following text has been adapted from the draft Ranges Technical Specification.)*
-
-A *customization point object* is a function object (C++ Std, [function.objects]) with a literal class type that interacts with user-defined types while enforcing semantic requirements on that interaction.
-
-The type of a customization point object shall satisfy the requirements of `CopyConstructible` (C++Std [copyconstructible]) and `Destructible` (C++Std [destructible]).
-
-All instances of a specific customization point object type shall be equal.
-
-Let `t` be a (possibly const) customization point object of type `T`, and `args...` be a parameter pack expansion of some parameter pack `Args...`. The customization point object `t` shall be invocable as `t(args...)` when the types of `Args...` meet the requirements specified in that customization point object's definition. Otherwise, `T` shall not have a function call operator that participates in overload resolution.
-
-Each customization point object type constrains its return type to satisfy some particular type requirements.
-
-The library defines several named customization point objects. In every translation unit where such a name is defined, it shall refer to the same instance of the customization point object.
-
-[*Note:* Many of the customization points objects in the library evaluate function call expressions with an unqualified name which results in invoking a user-defined function found by argument dependent name lookup (C++Std [basic.lookup.argdep]). To preclude such an expression resulting in invoking an unconstrained functions with the same name in namespace `std`, customization point objects specify that lookup for these expressions is performed in a context that includes deleted overloads matching the signatures of overloads defined in namespace `std`. When the deleted overloads are viable, user-defined overloads must be more specialized (C++Std [temp.func.order]) to be used by a customization point object. *--end note*]
-
 ### `ProtoAllocator` requirements
 
 A type `A` meets the `ProtoAllocator` requirements if `A` is `CopyConstructible` (C++Std [copyconstructible]), `Destructible` (C++Std [destructible]), and `allocator_traits<A>::rebind_alloc<U>` meets the allocator requirements (C++Std [allocator.requirements]), where `U` is an object type. [*Note:* For example, `std::allocator<void>` meets the proto-allocator requirements but not the allocator requirements. *--end note*] No comparison operator, copy operation, move operation, or swap operation on these types shall exit via an exception.
@@ -196,125 +157,6 @@ In the Table below,
 |------------|-------------|---------------------- |
 | `x.bulk_execute(f, n, sf)` | `void` | Evaluates `DECAY_COPY(std::forward<F>(f))` on the calling thread to create a function object `cf`.  *[Note:* Additional copies of `cf` may subsequently be created. *--end note]*  For each value of `i` in shape `n` `cf(i,s)` (or copy of `cf)`) will be invoked at most once by an execution agent that is unique for each value of `i`.  `sf()` will be invoked at most once to produce value `s` before any invocation of `cf`. <br/> May block pending completion of one or more invocations of `cf`. <br/> Synchronizes with (C++Std [intro.multithread]) the invocations of `f`. <br/> Shall not propagate any exception thrown by `cf` or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by bulk one-way submitted functions and the forward progress guarantee of the associated execution agent(s) are implementation defined. *--end note.*] |
 
-
-## Executor customization points
-
-*Executor customization points* are functions which adapt an executor's properties. Executor customization points enable uniform use of executors in generic contexts.
-
-When an executor customization point named *NAME* invokes a free execution function of the same name, overload resolution is performed in a context that includes the declaration `void` *NAME*`(auto&... args) = delete;`, where `sizeof...(args)` is the arity of the free execution function. This context also does not include a declaration of the executor customization point.
-
-[*Note:* This provision allows executor customization points to invoke the executor's free, non-member execution function of the same name without recursion. *--end note*]
-
-Whenever `std::execution::`*NAME*`(`*ARGS*`)` is a valid expression, that expression satisfies the syntactic requirements for the free execution function named *NAME* with arity `sizeof...(`*ARGS*`)` with that free execution function's semantics.
-
-### `require`
-
-    namespace {
-      constexpr unspecified require = unspecified;
-    }
-
-The name `require` denotes a customization point. The effect of the expression `std::execution::require(E, P0, Pn...)` for some expressions `E` and `P0`, and where `Pn...` represents `N` expressions (where `N` is 0 or more), is equivalent to:
-
-* If `N == 0`, `P0::is_requirable` is true, and the expression `decay_t<decltype(P0)>::template static_query_v<decay_t<decltype(E)>> == decay_t<decltype(P0)>::value()` is a well-formed constant expression with value `true`, `E`.
-
-* If `N == 0`, `P0::is_requirable` is true, and the expression `(E).require(P0)` is well-formed, `(E).require(P0)`.
-
-* If `N == 0`, `P0::is_requirable` is true, and the expression `require(E, P0)` is well-formed, `require(E, P0)`.
-
-* If `N > 0` and the expression `std::execution::require( std::execution::require(E, P0), Pn...)` is well formed, `std::execution::require( std::execution::require(E, P0), Pn...)`.
-
-* Otherwise, `std::execution::require(E, P0, Pn...)` is ill-formed.
-
-### `prefer`
-
-    namespace {
-      constexpr unspecified prefer = unspecified;
-    }
-
-The name `prefer` denotes a customization point. The effect of the expression `std::execution::prefer(E, P0, Pn...)` for some expressions `E` and `P0`, and where `Pn...` represents `N` expressions (where `N` is 0 or more), is equivalent to:
-
-* If `N == 0`, `P0::is_preferable` is true, and the expression `decay_t<decltype(P0)>::template static_query_v<decay_t<decltype(E)>> == decay_t<decltype(P0)>::value()` is a well-formed constant expression with value `true`, `E`.
-
-* If `N == 0`, `P0::is_preferable` is true,  and the expression `(E).require(P0)` is well-formed, `(E).require(P0)`.
-
-* If `N == 0`, `P0::is_preferable` is true, and the expression `prefer(E, P0)` is well-formed, `prefer(E, P0)`.
-
-* If `N == 0` and `P0::is_preferable` is true, `E`.
-
-* If `N > 0` and the expression `std::execution::prefer( std::execution::prefer(E, P0), Pn...)` is well formed, `std::execution::prefer( std::execution::prefer(E, P0), Pn...)`.
-
-* Otherwise, `std::execution::require(E, P0, Pn...)` is ill-formed.
-
-### `query`
-
-    namespace {
-      constexpr unspecified query = unspecified;
-    }
-
-The name `query` denotes a customization point. The effect of the expression `std::execution::query(E, P)` for some expressions `E` and `P` is equivalent to:
-
-* If the expression `decay_t<decltype(P)>::template static_query_v<decay_t<decltype(E)>>` is a well-formed constant expression, `decay_t<decltype(P)>::template static_query_v<decay_t<decltype(E)>>`.
-
-* If the expression `(E).query(P)` is well-formed, `(E).query(P)`.
-
-* If the expression `query(E, P)` is well-formed, `query(E, P)`.
-
-* Otherwise, `std::execution::query(E, P)` is ill-formed.
-
-### Customization point type traits
-
-    template<class Executor, class... Properties> struct can_require;
-    template<class Executor, class... Properties> struct can_prefer;
-    template<class Executor, class Property> struct can_query;
-
-This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
-
-| Template                   | Condition           | Preconditions  |
-|----------------------------|---------------------|----------------|
-| `template<class T>` <br/>`struct can_require` | The expression `std::execution::require( declval<const Executor>(), declval<Properties>()...)` is well formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_prefer` | The expression `std::execution::prefer( declval<const Executor>(), declval<Properties>()...)` is well formed. | `T` is a complete type. |
-| `template<class T>` <br/>`struct can_query` | The expression `std::execution::query( declval<const Executor>(), declval<Property>())` is well formed. | `T` is a complete type. |
-
-## Executor properties
-
-### In general
-
-An executor's behavior in generic contexts is determined by a set of executor properties, and each executor property imposes certain requirements on the executor.
-
-Given an existing executor, a related executor with different properties may be created by invoking the `require` member or non-member functions. These functions behave according the Table below. In the Table below, `x` denotes a (possibly const) executor object of type `X`, and `p` denotes a (possibly const) property object.
-
-[*Note:* As a general design note properties which define a mutually exclusive pair, that describe an enabled or non-enabled behaviour follow the convention of having the same property name for both with the `not_` prefix to the property for the non-enabled behaviour. *--end note*]
-
-| Expression | Comments |
-|------------|----------|
-| `x.require(p)` <br/> `require(x,p)` | Returns an executor object with the requested property `p` added to the set. All other properties of the returned executor are identical to those of `x`, except where those properties are described below as being mutually exclusive to `p`. In this case, the mutually exclusive properties are implicitly removed from the set associated with the returned executor. <br/> <br/> The expression is ill formed if an executor is unable to add the requested property. |
-
-The current value of an executor's properties can be queried by invoking the `query` function. This function behaves according the Table below. In the Table below, `x` denotes a (possibly const) executor object of type `X`, and `p` denotes a (possibly const) property object.
-
-| Expression | Comments |
-|------------|----------|
-| `x.query(p)` | Returns the current value of the requested property `p`. The expression is ill formed if an executor is unable to return the requested property. |
-
-### Requirements on properties
-
-A property type `P` shall provide:
-
-* A nested constant expression named `is_requirable` of type `bool`, usable as `P::is_requirable`.
-* A nested constant expression named `is_preferable` of type `bool`, usable as `P::is_preferable`.
-
-[*Note:* These constants are used to determine whether the property can be used with the `require` and `prefer` customization points, respectively. *--end note*]
-
-A property type `P` may provide a nested type `polymorphic_query_result_type` that satisfies the `CopyConstructible` and `Destructible` requirements. If `P::is_requirable == true` or `P::is_preferable == true`, `polymorphic_query_result_type` shall also satisfy the `DefaultConstructible` requirements. [*Note:* When present, this type allows the property to be used with a polymorphic `executor` wrapper. *--end note*]
-
-A property type `P` may provide:
-
-* A nested variable template `static_query_v`, usable as `P::static_query_v<Executor>`. This may be conditionally present.
-* A member function `value()`.
-
-If both `static_query_v` and `value()` are present, they shall return the same type and this type shall satisfy the `EqualityComparable` requirements.
-
-[*Note:* These are used to determine whether invoking `require` would result in an identity transformation. *--end note*]
-
 ### Query-only properties
 
 #### Associated execution context property
@@ -340,31 +182,10 @@ The value returned from `execution::query(e, context_t)`, where `e` is an execut
     struct oneway_t;
     struct bulk_oneway_t;
 
-The interface-changing properties conform to the following specification:
-
-    struct S
-    {
-      static constexpr bool is_requirable = true;
-      static constexpr bool is_preferable = false;
-    
-      template<class... SupportableProperties> 
-        class polymorphic_executor_type;
-    
-      using polymorphic_query_result_type = bool;
-    
-      template<class Executor>
-        static constexpr bool static_query_v
-          = see-below;
-    
-      static constexpr bool value() const { return true; }
-    };
-
 | Property | Requirements |
 |----------|--------------|
 | `oneway_t` | The executor type satisfies the `OneWayExecutor` requirements. |
 | `bulk_oneway_t` | The executor type satisfies the `BulkOneWayExecutor` requirements. |
-
-`S::static_query_v<Executor>` is true if and only if `Executor` fulfills `S`'s requirements.
 
 The `oneway_t` and `bulk_oneway_t` properties are mutually exclusive.
 
@@ -816,7 +637,7 @@ template<class Function, class SharedFactory>
   * `f1` is the result of `DECAY_COPY(std::forward<Function>(f))`;
   * `f2` is a function object of unspecified type that, when invoked as `f2(i, s2)`, performs `f1(i, s1)`, where `i` is a value of type `size_t`.
 
-### Behavioral properties
+<!-- ### Behavioral properties
 
 Behavioral properties define a set of mutually-exclusive nested properties describing executor behavior.
 
@@ -931,6 +752,7 @@ bool operator==(const S& a, const S& b);
 ```
 
 *Returns:* `true` if `a` and `b` were constructed from the same constructor; `false`, otherwise.
+ -->
 
 #### Blocking properties
 
