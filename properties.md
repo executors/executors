@@ -196,9 +196,11 @@ The name `query` denotes a customization point object. The expression `std::quer
 ## Customization point type traits
 
 ```c++
-template<class T, class... Properties> struct can_require;
-template<class T, class... Properties> struct can_prefer;
+template<class T, class Properties> struct can_require_concept;
+template<class T, class Properties> struct can_require;
+template<class T, class Properties> struct can_prefer;
 template<class T, class Property> struct can_query;
+template<class T, class Property> struct is_applicable_property;
 ```
 
 This sub-clause contains templates that may be used to query the validity of the application of property customization point objects to a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
@@ -322,7 +324,7 @@ struct S
     static constexpr S value() { return S(N1()); }
   };
 
-  static constexpr n1;
+  static constexpr N1 n1;
 
   constexpr S(const N1);
 
@@ -344,7 +346,7 @@ struct S
     static constexpr S value() { return S(NN()); }
   };
 
-  static constexpr nN;
+  static constexpr NN nN;
 
   constexpr S(const NN);
 };
@@ -354,16 +356,16 @@ Behavioral properties shall not be interface-changing.
 
 Queries for the value of an object's behavioral property shall not change between invocations unless the object is assigned another object with a different value of that behavioral property.
 
-`S()` and `S(S::E`*i*`())` are all distinct values of `S`. [*Note:* This means they compare unequal. *--end note.*]
+`S()` and `S(S::N`*i*`())` are all distinct values of `S`. [*Note:* This means they compare unequal. *--end note.*]
 
 The value returned from `std::query(e1, p1)` and a subsequent invocation `std::query(e2, p1)`, where
 
-* `p1` is an instance of `S` or `S::E`*i*, and
+* `p1` is an instance of `S` or `S::N`*i*, and
 * `e2` is the result of `std::require(e1, p2)` or `std::prefer(e1, p2)`,
 
 shall compare equal unless
 
-* `p2` is an instance of `S::E`*i*, and
+* `p2` is an instance of `S::N`*i*, and
 * `p1` and `p2` have different types.
 
 The value of the expression `S::N1::template static_query_v<T>` is
