@@ -111,7 +111,7 @@ namespace std {
 
 ### `require_concept`
 
-```
+```c++
 inline namespace unspecified {
   inline constexpr unspecified require_concept = unspecified;
 }
@@ -131,7 +131,7 @@ The name `require_concept` denotes a customization point object. The expression 
 
 ### `require`
 
-```
+```c++
 inline namespace unspecified {
   inline constexpr unspecified require = unspecified;
 }
@@ -153,7 +153,7 @@ The name `require` denotes a customization point object. The expression `std::re
 
 ### `prefer`
 
-```
+```c++
 inline namespace unspecified {
   inline constexpr unspecified prefer = unspecified;
 }
@@ -175,7 +175,7 @@ The name `prefer` denotes a customization point object. The expression `std::pre
 
 ### `query`
 
-```
+```c++
 inline namespace unspecified {
   inline constexpr unspecified query = unspecified;
 }
@@ -195,10 +195,10 @@ The name `query` denotes a customization point object. The expression `std::quer
 
 ## Customization point type traits
 
-```
-template<class Executor, class... Properties> struct can_require;
-template<class Executor, class... Properties> struct can_prefer;
-template<class Executor, class Property> struct can_query;
+```c++
+template<class T, class... Properties> struct can_require;
+template<class T, class... Properties> struct can_prefer;
+template<class T, class Property> struct can_query;
 ```
 
 This sub-clause contains templates that may be used to query the validity of the application of property customization point objects to a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
@@ -216,24 +216,6 @@ This sub-clause contains templates that may be used to query the validity of the
 ### In general
 
 When the property customization mechanism is being employed for some library facility, an object's behavior and effects on that facility in generic contexts may be determined by a set of applicable properties, and each property imposes certain requirements on that object's behavior or exposes some attribute of that object.
-
-<!--
-[*Note:* As a general design note properties which define a mutually exclusive pair, that describe an enabled or non-enabled behaviour follow the convention of having the same property name for both with the `not_` prefix to the property for the non-enabled behaviour. *--end note*]
-
-
-Given an existing executor, a related executor with different properties may be created by invoking the `require` member or non-member functions. These functions behave according the Table below. In the Table below, `x` denotes a (possibly const) executor object of type `X`, and `p` denotes a (possibly const) property object.
-
-
-| Expression | Comments |
-|------------|----------|
-| `x.require(p)` <br/> `require(x,p)` | Returns an executor object with the requested property `p` added to the set. All other properties of the returned executor are identical to those of `x`, except where those properties are described below as being mutually exclusive to `p`. In this case, the mutually exclusive properties are implicitly removed from the set associated with the returned executor. <br/> <br/> The expression is ill formed if an executor is unable to add the requested property. |
-
-The current value of an executor's properties can be queried by invoking the `query` function. This function behaves according the Table below. In the Table below, `x` denotes a (possibly const) executor object of type `X`, and `p` denotes a (possibly const) property object.
-
-| Expression | Comments |
-|------------|----------|
-| `x.query(p)` | Returns the current value of the requested property `p`. The expression is ill formed if an executor is unable to return the requested property. |
--->
 
 ### Requirements on properties
 
@@ -286,9 +268,8 @@ struct S
 
   using polymorphic_query_result_type = bool;
 
-  template<class Executor>
-    static constexpr bool static_query_v
-      = see-below;
+  template<class T>
+    static constexpr bool static_query_v = /* ... */;
 
   static constexpr bool value() const { return true; }
 };
@@ -298,7 +279,7 @@ struct S
 
 #### Behavioral properties
 
-Behavioral properties define a set of mutually-exclusive nested properties describing executor behavior.
+Behavioral properties define a set of mutually-exclusive nested properties describing an object's behavior.
 
 Behavioral property types `S` applicable to objects meeting the requirements of some concept `C`, their nested property types `S::N`*i*, and nested property objects `S::n`*i* conform to the following specification:
 
@@ -318,7 +299,7 @@ struct S
       = see-below;
 
   template<class T>
-  friend constexpr S query(const T& ex, const Property& p) noexcept(see-below);
+  friend constexpr S query(const T& t, const Property& p) noexcept(see-below);
 
   friend constexpr bool operator==(const S& a, const S& b);
   friend constexpr bool operator!=(const S& a, const S& b) { return !operator==(a, b); }
@@ -401,21 +382,21 @@ The value of the expression `S::N`*i*`::template static_query_v<T>`, for all `1 
 
 The value of the expression `S::template static_query_v<T>` is
 
-* `Executor::query(S())`, if that expression is a well-formed constant expression;
-* otherwise, ill-formed if `declval<Executor>().query(S())` is well-formed;
-* otherwise, `S::N`*i*`::template static_query_v<Executor>` for the least *i* `<= N` for which this expression is a well-formed constant expression;
+* `T::query(S())`, if that expression is a well-formed constant expression;
+* otherwise, ill-formed if `declval<T>().query(S())` is well-formed;
+* otherwise, `S::N`*i*`::template static_query_v<T>` for the least *i* `<= N` for which this expression is a well-formed constant expression;
 * otherwise ill-formed.
 
 [*Note:* These rules automatically enable the `S::N1` property by default for objects which do not provide a `query` function for properties `S` or `S::N`*i*. *--end note*]
 
-Let *k* be the least value of *i* for which `can_query_v<Executor,S::N`*i*`>` is true, if such a value of *i* exists.
+Let *k* be the least value of *i* for which `can_query_v<T,S::N`*i*`>` is true, if such a value of *i* exists.
 
 ```
 template<class T>
-  friend constexpr S query(const T& ex, const Property& p) noexcept(noexcept(std::::query(ex, std::declval<const S::Nk>())));
+  friend constexpr S query(const T& t, const Property& p) noexcept(noexcept(std::::query(t, std::declval<const S::Nk>())));
 ```
 
-*Returns:* `std::query(ex, S::N`*k*`())`.
+*Returns:* `std::query(t, S::N`*k*`())`.
 
 *Remarks:* This function shall not participate in overload resolution unless `is_same_v<Property, S> && can_query_v<T, S::N`*i*`>` is true for at least one `S::N`*i*`. 
 
