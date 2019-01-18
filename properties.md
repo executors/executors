@@ -225,14 +225,16 @@ A property type `P` shall provide:
 
 * A nested constant variable template named `is_applicable_property_v`, usable as `P::template is_applicable_property_v<T>` on any complete type `T`, with a value of type `bool`.
 
-A property type `P` that is not an interface-changing shall provide:
+A property is either a non-interface-changing property or an interface-changing property.
 
-* A nested constant expression named `is_requirable` of type `bool`, usable as `P::is_requirable`.
-* A nested constant expression named `is_preferable` of type `bool`, usable as `P::is_preferable`.
+A <dfn>non-interface-changing property</dfn> type `P` shall provide:
 
-A property type `P` that is interface-changing shall provide:
+* A nested constant expression named `is_requirable` of type `bool`, usable as `PN::is_requirable`.
+* A nested constant expression named `is_preferable` of type `bool`, usable as `PN::is_preferable`.
 
-* A nested constant expression named `is_requirable_concept` of type `bool`, usable as `P::is_requirable_concept`.
+An <dfn>interface-changing property</dfn> type `PC` that  shall provide:
+
+* A nested constant expression named `is_requirable_concept` of type `bool`, usable as `PC::is_requirable_concept`.
 
 A property type `P` may provide a nested type `polymorphic_query_result_type` that satisfies the `CopyConstructible` and `Destructible` requirements. If `P::is_requirable == true` or `P::is_preferable == true`, `polymorphic_query_result_type` shall also satisfy the `DefaultConstructible` requirements. [*Note:* When present, this type allows the property to be used with polymorphic wrappers. *--end note*]
 
@@ -279,6 +281,7 @@ struct S
 
 *—end note*]
 
+<!--
 #### Behavioral properties
 
 Behavioral properties define a set of mutually-exclusive nested properties describing an object's behavior.
@@ -408,3 +411,4 @@ bool operator==(const S& a, const S& b);
 ```
 
 *Returns:* `true` if `a` and `b` were constructed from the same constructor; `false`, otherwise.
+-->

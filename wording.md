@@ -637,7 +637,7 @@ template<class Function, class SharedFactory>
   * `f1` is the result of `DECAY_COPY(std::forward<Function>(f))`;
   * `f2` is a function object of unspecified type that, when invoked as `f2(i, s2)`, performs `f1(i, s1)`, where `i` is a value of type `size_t`.
 
-<!-- ### Behavioral properties
+### Behavioral properties
 
 Behavioral properties define a set of mutually-exclusive nested properties describing executor behavior.
 
@@ -752,7 +752,6 @@ bool operator==(const S& a, const S& b);
 ```
 
 *Returns:* `true` if `a` and `b` were constructed from the same constructor; `false`, otherwise.
- -->
 
 #### Blocking properties
 
