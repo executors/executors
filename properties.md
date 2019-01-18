@@ -258,13 +258,13 @@ If both `static_query_v` and `value()` are present, they shall return the same t
 A property type `P` that is interface-changing may provide:
 
 * A nested template or named `polymorphic_wrapper_type`, usable with properties `Ps...` that are not interface-changing as `typename P::template polymorphic_wrapper_type<Ps...>`.  The type `PW` resulting from the instantiation of this template shall:
-    * be implicitly constructible from a (potentially `const`) instance `t` of a type `T`, where:
-        * `P::template static_query_v<T> == P::value()`,
+    * be implicitly constructible from a (potentially `const`) instance of a type `T`, where:
         * `(can_query_v<Ps, T> && ... && true)` is `true`
         * `can_require_v<Pn, T>` is `true` for all `Pn` in `Ps...` with `Pn::is_requirable == true`
         * `can_prefer_v<Pn, T>` is `true` for all `Pn` in `Ps...` with `Pn::is_preferable == true`
+        * `P::template static_query_v<T> == P::value()` is true if `P::template static_query_v<T> == P::value()` is a valid constant expression
     * be valid in the constant expression `is_applicable_property_v<P, PW>`, and that expression shall be `true`.
-    * if both `static_query_v` and `value()` are present in `P`, then `PW` shall be valid in the constant expression `static_query_v<P, PW> == P::value()`, and that expression shall be `true`.
+    * if `P::template static_query_v<PW> == P::value()` is a valid constant expression, then that expression shall be `true`.
 
 
 [*Note:* 
