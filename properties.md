@@ -12,6 +12,8 @@ Authors:            David Hollman, dshollm@sandia.gov
 
                     Gordon Brown, gordon@codeplay.com
 
+                    Michał Dominiak, Nokia, griwes@griwes.info
+
 Other Contributors: Lee Howes, lwh@fb.com
 
                     Michael Garland, mgarland@nvidia.com
@@ -232,6 +234,12 @@ A <dfn>non-interface-changing property</dfn> type `P` shall provide:
 * A nested constant expression named `is_requirable` of type `bool`, usable as `PN::is_requirable`.
 * A nested constant expression named `is_preferable` of type `bool`, usable as `PN::is_preferable`.
 
+<!--
+[*Note:*
+A `require` of a non-interface-changing property `PN` on an applicable object is intended to return an entity with a type `U`... something about the same concept, maybe?
+*--end note*]
+-->
+
 An <dfn>interface-changing property</dfn> type `PC` that  shall provide:
 
 * A nested constant expression named `is_requirable_concept` of type `bool`, usable as `PC::is_requirable_concept`.
@@ -252,7 +260,7 @@ A property type `P` that is interface-changing may provide:
 * A nested template or named `polymorphic_wrapper_type`, usable with properties `Ps...` that are not interface-changing as `typename P::template polymorphic_wrapper_type<Ps...>`.  The type `PW` resulting from the instantiation of this template shall:
     * be implicitly constructible from a (potentially `const`) instance `t` of a type `T`, where:
         * `P::template static_query_v<T> == P::value()`,
-        * `(can_query_v<Ps, T> ... && ... true)` is `true`
+        * `(can_query_v<Ps, T> && ... && true)` is `true`
         * `can_require_v<Pn, T>` is `true` for all `Pn` in `Ps...` with `Pn::is_requirable == true`
         * `can_prefer_v<Pn, T>` is `true` for all `Pn` in `Ps...` with `Pn::is_preferable == true`
     * be valid in the constant expression `is_applicable_property_v<P, PW>`, and that expression shall be `true`.
