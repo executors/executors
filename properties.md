@@ -12,7 +12,7 @@ Authors:            David Hollman, dshollm@sandia.gov
 
                     Gordon Brown, gordon@codeplay.com
 
-                    Michał Dominiak, Nokia, griwes@griwes.info
+                    Michał Dominiak, griwes@griwes.info
 
 Other Contributors: Lee Howes, lwh@fb.com
 
@@ -40,11 +40,11 @@ Abstract:           This paper generalizes and extracts the property customizati
 
 ### Revision 0
 
-* Initial design
+* Initial design, migrated from P0443R9.
 
 # Introduction
 
-TODO: Write something here.
+At the 2018-11 San Diego meeting, LEWG voted to generalize the mechanism for property-based customization that P0443R9 introduced.  They requested that the customization points objects for handling properties be moved to the namespace `std` (from namespace `std::execution`), and that a paper presenting wording for the mechanism in a manner decoupled from executors be brought to the 2019-02 Kona meeting.  LEWG further requested that a separate customization point object be provided for properties that are intended to enforce the presence of a particular interface, and this paper includes that object as `require_concept`.  The requested changes have been provided here.  Discussion pertaining to the design of this mechanism has been omitted here, since significant background and discussion has been included in previous revisions of P0443 and meeting notes on the discussion thereof.
 
 # Proposed Wording
 
@@ -67,8 +67,6 @@ Add the following subclause to **[utilities]** in a section which the editor sha
 
 This subclause describes components supporting an extensible customization mechanism, currently used most prominently by the execution support library **[execution]**.
 
-TODO: more here?
-
 ### Header `<property>` synopsis
 
 ```
@@ -83,13 +81,17 @@ namespace std {
     inline constexpr unspecified query = unspecified;
   }
 
-  // Customization point type traits:
+  // Property applicability trait:
+  template<class T, class P> struct is_applicable_property;
 
+  template<class T, class Property>
+    inline constexpr bool is_applicable_property_v = is_applicable_property<T, Property>::value;
+
+  // Customization point type traits:
   template<class T, class P> struct can_require_concept;
   template<class T, class P> struct can_require;
   template<class T, class P> struct can_prefer;
   template<class T, class P> struct can_query;
-  template<class T, class P> struct is_applicable_property;
 
   template<class T, class... Properties>
     inline constexpr bool can_require_concept_v = can_require_concept<T, Properties...>::value;
@@ -99,8 +101,6 @@ namespace std {
     inline constexpr bool can_prefer_v = can_prefer<T, Properties...>::value;
   template<class T, class Property>
     inline constexpr bool can_query_v = can_query<T, Property>::value;
-  template<class T, class Property>
-    inline constexpr bool is_applicable_property_v = is_applicable_property<T, Property>::value;
 
 } // namespace std
 ```
@@ -195,6 +195,18 @@ The name `query` denotes a customization point object. The expression `std::quer
 
 * Otherwise, `std::query(E, P)` is ill-formed.
 
+## Property applicability trait
+
+```c++
+template<class T, class Property> struct is_applicable_property;
+```
+
+This sub-clause contains a template that may be used to query the applicability of a property to a type at compile time.  It may be specialized to indicate applicability of a property to a type. This template is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
+
+| Template                   | Condition           | Preconditions  |
+|----------------------------|---------------------|----------------|
+| `template<class T, class P>` <br/>`struct is_applicable_property` | The expression `P::template is_applicable_property_v<T>` is a well-formed constant expression with a value of `true`. | `P` and `T` are complete types. |
+
 ## Customization point type traits
 
 ```c++
@@ -202,7 +214,6 @@ template<class T, class Properties> struct can_require_concept;
 template<class T, class Properties> struct can_require;
 template<class T, class Properties> struct can_prefer;
 template<class T, class Property> struct can_query;
-template<class T, class Property> struct is_applicable_property;
 ```
 
 This sub-clause contains templates that may be used to query the validity of the application of property customization point objects to a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
@@ -219,56 +230,49 @@ This sub-clause contains templates that may be used to query the validity of the
 
 ### In general
 
-When the property customization mechanism is being employed for some library facility, an object's behavior and effects on that facility in generic contexts may be determined by a set of applicable properties, and each property imposes certain requirements on that object's behavior or exposes some attribute of that object.
+When the property customization mechanism is being employed for some library facility, an object's behavior and effects on that facility in generic contexts may be determined by a set of applicable properties, and each property imposes certain requirements on that object's behavior or exposes some attribute of that object. As well as modifying the behavior of an object, properties can be applied to an object to enforce the presence of an interface, potentially resulting in an object of a new type that satisfies some concept associated with that property.
 
 ### Requirements on properties
 
-A property type `P` shall provide:
+* A property type `P` shall provide a nested constant variable template named `is_applicable_property_v`, usable as `P::template is_applicable_property_v<T>` on any complete type `T`, with a value of type `bool`.
 
-* A nested constant variable template named `is_applicable_property_v`, usable as `P::template is_applicable_property_v<T>` on any complete type `T`, with a value of type `bool`.
+* A property type shall be either a concept-preserving property type or a concept-enforcing property type.
+    * A <dfn>concept-preserving property</dfn> type `PN` shall provide:
+        * A nested constant expression named `is_requirable` of type `bool`, usable as `PN::is_requirable`.
+        * A nested constant expression named `is_preferable` of type `bool`, usable as `PN::is_preferable`.
+    * A <dfn>concept-enforcing property</dfn> type `PC` that  shall provide a  nested constant expression named `is_requirable_concept` of type `bool`, usable as `PC::is_requirable_concept`.
 
-A property is either a non-interface-changing property or an interface-changing property.
+* A property type `P` may provide a nested type `polymorphic_query_result_type` that satisfies the `CopyConstructible` and `Destructible` requirements. If `P` is a concept-preserving property, and `P::is_requirable == true` or `P::is_preferable == true`, then `polymorphic_query_result_type` shall also satisfy the `DefaultConstructible` requirements when provided. [*Note:* When present, this type allows the property to be used with polymorphic wrappers. *--end note*]
 
-A <dfn>non-interface-changing property</dfn> type `P` shall provide:
+* A property type `P` may provide:
+    * A nested variable template `static_query_v`, usable as `P::template static_query_v<T>` for any type `T` where `is_applicable_property_v<T, P>` is `true`. [*Note:* This may be conditionally present. *—end note*]
+    * A member function `value()`.
 
-* A nested constant expression named `is_requirable` of type `bool`, usable as `PN::is_requirable`.
-* A nested constant expression named `is_preferable` of type `bool`, usable as `PN::is_preferable`.
+* For a property type `P` and type `T` where `is_applicable_property_v<T, P>` is `true`, if `P::value()` is a valid expression of type `V1` and `P::template static_query_v<T>` is a valid constant expression of type `V2`, then `V1` and `V2` shall meet the requirements of `EqualityComparableWith<V1, V2>` in **[concept.equalitycomparable]**.
 
-<!--
-[*Note:*
-A `require` of a non-interface-changing property `PN` on an applicable object is intended to return an entity with a type `U`... something about the same concept, maybe?
-*--end note*]
--->
+* [*Note:* The `static_query_v` and `value()` members are used to determine whether invoking `require` or `require_concept` would result in an identity transformation. *—end note*]
 
-An <dfn>interface-changing property</dfn> type `PC` that  shall provide:
+* A concept-enforcing property type `P` may provide a nested template or named `polymorphic_wrapper_type`, usable with properties `Ps...` as `typename P::template polymorphic_wrapper_type<Ps...>`.  The type `PW` resulting from the instantiation of this template shall:
+   * be implicitly constructible from a (potentially `const`) instance of a type `T`, where:
+       * `can_query_v<Pn, T>` is `true` for all `Pn` in `Ps...` where `Pn::polymorhic_query_result_type` is well-formed
+       * for all `Pn` in `Ps...` with `Pn::is_requirable == true`, either:
+           * `can_require_v<Pn, T>` is `true`, or
+           * `can_prefer_v<Pn, T>` is `true`
+       * `can_prefer_v<Pn, T>` is `true` for all `Pn` in `Ps...` with `Pn::is_preferable == true`
+       * `P::template static_query_v<T> == P::value()` is true if `P::template static_query_v<T> == P::value()` is a valid constant expression
+   * be valid in the constant expression `is_applicable_property_v<PW, P>`, and that expression shall be `true`.
+   * if `P::template static_query_v<PW> == P::value()` is a valid constant expression, then that expression shall be `true`.
 
-* A nested constant expression named `is_requirable_concept` of type `bool`, usable as `PC::is_requirable_concept`.
+* Let `Prop` be a concept-preserving property and let `CP` be a concept-enforcing property. Let `e` be a instance of a type `E` for which `can_require_v<E, Prop>` is `true`. Let `prop` be an instance of type `Prop`.  Let `Props...` be a list of properties for which the expression `CP::template polymorphic_wrapper_type<Props...>(e)` is well-formed. If the expression `CP::template static_query_v<E> == CP::value()` is a well-formed constant expression with value `true`, the expression `CP::template polymorphic_wrapper_type<Props...>(std::require(e, prop))` shall be well-formed if and only if, given the type `T = decay_t<decltype(std::require(e, prop))>`,
+  * `can_query_v<Pn, T>` is `true` for all `Pn` in `Props...` where `Pn::polymorphic_query_result_type` is well-formed
+  * `can_require_concept_v<Pn, T>` is `true` for all `Pn` in `Props...` with `Pn::is_requirable_concept == true`
+  * for all `Pn` in `Props...` with `Pn::is_requirable == true`, either:
+     * `can_require_v<Pn, T>` is `true`, or
+     * `can_prefer_v<Pn, T>` is `true`
+  * `can_prefer_v<Pn, T>` is `true` for all `Pn` in `Props...` with `Pn::is_preferable == true`
 
-A property type `P` may provide a nested type `polymorphic_query_result_type` that satisfies the `CopyConstructible` and `Destructible` requirements. If `P::is_requirable == true` or `P::is_preferable == true`, `polymorphic_query_result_type` shall also satisfy the `DefaultConstructible` requirements. [*Note:* When present, this type allows the property to be used with polymorphic wrappers. *--end note*]
-
-A property type `P` may provide:
-
-* A nested variable template `static_query_v`, usable as `P::template static_query_v<T>`. This may be conditionally present.
-* A member function `value()`.
-
-If both `static_query_v` and `value()` are present, they shall return the same type and this type shall satisfy the `EqualityComparable` requirements.
-
-[*Note:* These are used to determine whether invoking `require` or `require_concept` would result in an identity transformation. *—end note*]
-
-A property type `P` that is interface-changing may provide:
-
-* A nested template or named `polymorphic_wrapper_type`, usable with properties `Ps...` that are not interface-changing as `typename P::template polymorphic_wrapper_type<Ps...>`.  The type `PW` resulting from the instantiation of this template shall:
-    * be implicitly constructible from a (potentially `const`) instance of a type `T`, where:
-        * `(can_query_v<Ps, T> && ... && true)` is `true`
-        * `can_require_v<Pn, T>` is `true` for all `Pn` in `Ps...` with `Pn::is_requirable == true`
-        * `can_prefer_v<Pn, T>` is `true` for all `Pn` in `Ps...` with `Pn::is_preferable == true`
-        * `P::template static_query_v<T> == P::value()` is true if `P::template static_query_v<T> == P::value()` is a valid constant expression
-    * be valid in the constant expression `is_applicable_property_v<P, PW>`, and that expression shall be `true`.
-    * if `P::template static_query_v<PW> == P::value()` is a valid constant expression, then that expression shall be `true`.
-
-
-[*Note:* 
-For example, the struct `S` provides the type for a property that is interface-changing:
+* [*Note:* 
+For example, the struct `S` provides the type for a concept-enforcing property:
 
 ```
 struct S
@@ -288,135 +292,3 @@ struct S
 ```
 
 *—end note*]
-
-<!--
-#### Behavioral properties
-
-Behavioral properties define a set of mutually-exclusive nested properties describing an object's behavior.
-
-Behavioral property types `S` applicable to objects meeting the requirements of some concept `C`, their nested property types `S::N`*i*, and nested property objects `S::n`*i* conform to the following specification:
-
-```
-struct S
-{
-
-  template <class T>
-    static constexpr bool is_applicable_property_v = C<T>;
-
-  static constexpr bool is_requirable = false;
-  static constexpr bool is_preferable = false;
-  using polymorphic_query_result_type = S;
-
-  template<class T>
-    static constexpr auto static_query_v
-      = see-below;
-
-  template<class T>
-  friend constexpr S query(const T& t, const Property& p) noexcept(see-below);
-
-  friend constexpr bool operator==(const S& a, const S& b);
-  friend constexpr bool operator!=(const S& a, const S& b) { return !operator==(a, b); }
-
-  constexpr S();
-
-  struct N1
-  {
-    template <class T>
-      static constexpr bool is_applicable_property_v = C<T>;
-
-    static constexpr bool is_requirable = true;
-    static constexpr bool is_preferable = true;
-    using polymorphic_query_result_type = S;
-
-    template<class T>
-      static constexpr auto static_query_v
-        = see-below;
-
-    static constexpr S value() { return S(N1()); }
-  };
-
-  static constexpr N1 n1;
-
-  constexpr S(const N1);
-
-  /* ... */
-
-  struct NN
-  {
-    template <class T>
-      static constexpr bool is_applicable_property_v = C<T>;
-
-    static constexpr bool is_requirable = true;
-    static constexpr bool is_preferable = true;
-    using polymorphic_query_result_type = S;
-
-    template<class T>
-      static constexpr auto static_query_v
-        = see-below;
-
-    static constexpr S value() { return S(NN()); }
-  };
-
-  static constexpr NN nN;
-
-  constexpr S(const NN);
-};
-```
-
-Behavioral properties shall not be interface-changing.
-
-Queries for the value of an object's behavioral property shall not change between invocations unless the object is assigned another object with a different value of that behavioral property.
-
-`S()` and `S(S::N`*i*`())` are all distinct values of `S`. [*Note:* This means they compare unequal. *--end note.*]
-
-The value returned from `std::query(e1, p1)` and a subsequent invocation `std::query(e2, p1)`, where
-
-* `p1` is an instance of `S` or `S::N`*i*, and
-* `e2` is the result of `std::require(e1, p2)` or `std::prefer(e1, p2)`,
-
-shall compare equal unless
-
-* `p2` is an instance of `S::N`*i*, and
-* `p1` and `p2` have different types.
-
-The value of the expression `S::N1::template static_query_v<T>` is
-
-* `T::query(S::N1())`, if that expression is a well-formed expression;
-* ill-formed if `declval<T>().query(S::N1())` is well-formed;
-* ill-formed if `can_query_v<T, S::N`*i*`>` is `true` for any `1 < ` *i* `<= N`;
-* otherwise `S::N1()`.
-
-[*Note:* These rules automatically enable the `S::N1` property by default for objects which do not provide a `query` function for properties `S::N`*i*. *--end note*]
-
-The value of the expression `S::N`*i*`::template static_query_v<T>`, for all `1 < ` *i* `<= N`, is
-
-* `T::query(S::N`*i*`())`, if that expression is a well-formed constant expression;
-* otherwise ill-formed.
-
-The value of the expression `S::template static_query_v<T>` is
-
-* `T::query(S())`, if that expression is a well-formed constant expression;
-* otherwise, ill-formed if `declval<T>().query(S())` is well-formed;
-* otherwise, `S::N`*i*`::template static_query_v<T>` for the least *i* `<= N` for which this expression is a well-formed constant expression;
-* otherwise ill-formed.
-
-[*Note:* These rules automatically enable the `S::N1` property by default for objects which do not provide a `query` function for properties `S` or `S::N`*i*. *--end note*]
-
-Let *k* be the least value of *i* for which `can_query_v<T,S::N`*i*`>` is true, if such a value of *i* exists.
-
-```
-template<class T>
-  friend constexpr S query(const T& t, const Property& p) noexcept(noexcept(std::::query(t, std::declval<const S::Nk>())));
-```
-
-*Returns:* `std::query(t, S::N`*k*`())`.
-
-*Remarks:* This function shall not participate in overload resolution unless `is_same_v<Property, S> && can_query_v<T, S::N`*i*`>` is true for at least one `S::N`*i*`. 
-
-
-```
-bool operator==(const S& a, const S& b);
-```
-
-*Returns:* `true` if `a` and `b` were constructed from the same constructor; `false`, otherwise.
--->

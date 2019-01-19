@@ -674,7 +674,7 @@ Unless otherwise specified, behavioral property types `S`, their nested property
         static constexpr S value() { return S(N1()); }
       };
     
-      static constexpr n1;
+      static constexpr N1 n1;
     
       constexpr S(const N1);
     
@@ -693,7 +693,7 @@ Unless otherwise specified, behavioral property types `S`, their nested property
         static constexpr S value() { return S(NN()); }
       };
     
-      static constexpr nN;
+      static constexpr NN nN;
     
       constexpr S(const NN);
     };
