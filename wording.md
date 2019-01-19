@@ -19,6 +19,11 @@ For the intent of this library and extensions to this library, the *lifetime of 
 namespace std {
 namespace execution {
 
+  // Indication of executor property applicability
+  template<class T> struct is_executor;
+
+  template<class T> constexpr inline bool is_executor_v = is_executor<T>::value;
+
   // Associated execution context property:
 
   struct context_t;
@@ -121,6 +126,8 @@ For any two (possibly const) values `x1` and `x2` of some executor type `X`, `x1
 
 An executor type's destructor shall not block pending completion of the submitted function objects. [*Note:* The ability to wait for completion of submitted function objects may be provided by the associated execution context. *--end note*]
 
+For an executor type `Ex`, the expression `is_executor_v<Ex>` shall be a valid constant expression with the value `true`.
+
 ### `OneWayExecutor` requirements
 
 A type `X` satisfies the `OneWayExecutor` requirements if it satisfies the general requirements on executors, as well as the requirements in the Table below.
@@ -157,16 +164,32 @@ In the Table below,
 |------------|-------------|---------------------- |
 | `x.bulk_execute(f, n, sf)` | `void` | Evaluates `DECAY_COPY(std::forward<F>(f))` on the calling thread to create a function object `cf`.  *[Note:* Additional copies of `cf` may subsequently be created. *--end note]*  For each value of `i` in shape `n` `cf(i,s)` (or copy of `cf)`) will be invoked at most once by an execution agent that is unique for each value of `i`.  `sf()` will be invoked at most once to produce value `s` before any invocation of `cf`. <br/> May block pending completion of one or more invocations of `cf`. <br/> Synchronizes with (C++Std [intro.multithread]) the invocations of `f`. <br/> Shall not propagate any exception thrown by `cf` or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by bulk one-way submitted functions and the forward progress guarantee of the associated execution agent(s) are implementation defined. *--end note.*] |
 
+### Executor applicability trait
+
+```c++
+template<class T> struct is_executor;
+```
+
+This sub-clause contains a template that may be used to query the applicability of the properties provided in this clause to a type at compile time.  It may be specialized to indicate applicability of executor properties to a type. This template is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
+
+| Template                   | Condition           | Preconditions  |
+|----------------------------|---------------------|----------------|
+| `template<class T>` <br/>`struct is_executor` | The expression `P::is_executor` is a well-formed constant expression with a value of `true`. | `T` is a complete type. |
+
+
 ### Query-only properties
 
 #### Associated execution context property
 
     struct context_t
     {
+      template <class T>
+        static constexpr bool is_applicable_property_v = is_executor_v<T>;
+
       static constexpr bool is_requirable = false;
       static constexpr bool is_preferable = false;
     
-      using polymorphic_query_result_type = any; // TODO: alternatively consider void*, or simply omitting the type.
+      using polymorphic_query_result_type = any;
     
       template<class Executor>
         static constexpr decltype(auto) static_query_v
@@ -202,6 +225,9 @@ template <class... SupportableProperties>
 class polymorphic_executor_type
 {
 public:
+  // indication of applicability to executor properties
+  static constexpr bool is_executor_v = true;
+
   // construct / copy / destroy:
 
   polymorphic_executor_type() noexcept;
@@ -481,18 +507,23 @@ In addition to conforming to the above specification for interface-changing prop
 
     struct oneway_t
     {
+      template <class T>
+        static constexpr bool is_applicable_property_v = is_executor_v<T>;
+
+      static constexpr bool is_requirable_concept = true;
+
       template<class Executor>
-        friend see-below require(Executor ex, oneway_t);
+        friend see-below require_concept(Executor ex, oneway_t);
     };
 
 This customization point returns an executor that satisfies the `oneway_t` requirements by adapting the native functionality of an executor that does not satisfy the `oneway_t` requirements.
 
 ```
 template<class Executor>
-  friend see-below require(Executor ex, oneway_t);
+  friend see-below require_concept(Executor ex, oneway_t);
 ```
 
-*Returns:* A value `e1` of type `E1` that holds a copy of `ex`. `E1` has member functions `require` and `query` that forward to the corresponding members of the copy of `ex`, if present. `e1` has the same properties as `ex`, except for the addition of the `oneway_t` property and the exclusion of other interface-changing properties. The type `E1` satisfies the `OneWayExecutor` requirements by implementing member function `execute` in terms of the member function `bulk_execute` of the object `ex`, and `E1` has a member function `Executor require(bulk_oneway_t) const` that returns a copy of `ex`.
+*Returns:* A value `e1` of type `E1` that holds a copy of `ex`. `E1` has member functions `require` and `query` that forward to the corresponding members of the copy of `ex`, if present. `e1` has the same properties as `ex`, except for the addition of the `oneway_t` property and the exclusion of other interface-changing properties. The type `E1` satisfies the `OneWayExecutor` requirements by implementing member function `execute` in terms of the member function `bulk_execute` of the object `ex`, and `E1` has a member function `Executor require_concept(bulk_oneway_t) const` that returns a copy of `ex`.
 
 *Remarks:* This function shall not participate in overload resolution unless `oneway_t::static_query_v<Executor>` is false and `bulk_oneway_t::static_query_v<Executor>` is true.
 
@@ -505,6 +536,8 @@ template <class... SupportableProperties>
 class polymorphic_executor_type
 {
 public:
+  static constexpr bool is_executor_v = true;
+
   template<class Executor>
     polymorphic_executor_type(Executor e);
 
@@ -525,12 +558,13 @@ template<class Executor>
 
 *Remarks:* This function shall not participate in overload resolution unless:
 
-* `can_require_v<Executor, oneway_t>`.
+* `can_require_concept_v<Executor, oneway_t>`.
+* `can_require_concept_v<Executor, P>`, if `P::is_requirable_concept`, where `P` is each property in `SupportableProperties...`.
 * `can_require_v<Executor, P>`, if `P::is_requirable`, where `P` is each property in `SupportableProperties...`.
 * `can_prefer_v<Executor, P>`, if `P::is_preferable`, where `P` is each property in `SupportableProperties...`.
 * and `can_query_v<Executor, P>`, if `P::is_requirable == false` and `P::is_preferable == false`, where `P` is each property in `SupportableProperties...`.
 
-*Effects:* `*this` targets a copy of `e1`, where `e1` is the result of `execution::require(e, oneway)`.
+*Effects:* `*this` targets a copy of `e1`, where `e1` is the result of `std::require_concept(e, oneway)`.
 
 ```
 template<class Executor>
@@ -560,18 +594,23 @@ In addition to conforming to the above specification for interface-changing prop
 
     struct bulk_oneway_t
     {
+      template <class T>
+        static constexpr bool is_applicable_property_v = is_executor_v<T>;
+
+      static constexpr bool is_requirable_concept = true;
+
       template<class Executor>
-        friend see-below require(Executor ex, bulk_oneway_t);
+        friend see-below require_concept(Executor ex, bulk_oneway_t);
     };
 
 This customization point returns an executor that satisfies the `bulk_oneway_t` requirements by adapting the native functionality of an executor that does not satisfy the `bulk_oneway_t` requirements.
 
 ```
 template<class Executor>
-  friend see-below require(Executor ex, bulk_oneway_t);
+  friend see-below require_concept(Executor ex, bulk_oneway_t);
 ```
 
-*Returns:* A value `e1` of type `E1` that holds a copy of `ex`. `E1` has member functions `require` and `query` that forward to the corresponding members of the copy of `ex`, if present. `e1` has the same properties as `ex`, except for the addition of the `bulk_oneway_t` property and the exclusion of other interface-changing properties. The type `E1` satisfies the `BulkOneWayExecutor` requirements by implementing member function `bulk_execute` in terms of the member function `execute` of the object `ex`, and `E1` has a member function `Executor require(oneway_t) const` that returns a copy of `ex`.
+*Returns:* A value `e1` of type `E1` that holds a copy of `ex`. `E1` has member functions `require_concept`, `require`, and `query` that forward to the corresponding members of the copy of `ex`, if present. `e1` has the same properties as `ex`, except for the addition of the `bulk_oneway_t` property and the exclusion of other interface-changing properties. The type `E1` satisfies the `BulkOneWayExecutor` requirements by implementing member function `bulk_execute` in terms of the member function `execute` of the object `ex`, and `E1` has a member function `Executor require_concept(oneway_t) const` that returns a copy of `ex`.
 
 *Remarks:* This function shall not participate in overload resolution unless `bulk_oneway_t::static_query_v<Executor>` is false and `oneway_t::static_query_v<Executor>` is true.
 
@@ -584,6 +623,8 @@ template <class... SupportableProperties>
 class polymorphic_executor_type
 {
 public:
+  static constexpr bool is_executor_v = true;
+
   template<class Executor>
     polymorphic_executor_type(Executor e);
 
@@ -604,12 +645,13 @@ template<class Executor>
 
 *Remarks:* This function shall not participate in overload resolution unless:
 
-* `can_require_v<Executor, bulk_oneway_t>`.
+* `can_require_concept_v<Executor, bulk_oneway_t>`.
+* `can_require_concept_v<Executor, P>`, if `P::is_requirable_concept`, where `P` is each property in `SupportableProperties...`.
 * `can_require_v<Executor, P>`, if `P::is_requirable`, where `P` is each property in `SupportableProperties...`.
 * `can_prefer_v<Executor, P>`, if `P::is_preferable`, where `P` is each property in `SupportableProperties...`.
 * and `can_query_v<Executor, P>`, if `P::is_requirable == false` and `P::is_preferable == false`, where `P` is each property in `SupportableProperties...`.
 
-*Effects:* `*this` targets a copy of `e1`, where `e1` is the result of `execution::require(e, bulk_oneway)`.
+*Effects:* `*this` targets a copy of `e1`, where `e1` is the result of `std::require_concept(e, bulk_oneway)`.
 
 ```
 template<class Executor>
@@ -645,6 +687,9 @@ Unless otherwise specified, behavioral property types `S`, their nested property
 
     struct S
     {
+      template <class T>
+        static constexpr bool is_applicable_property_v = is_executor_v<T>;
+
       static constexpr bool is_requirable = false;
       static constexpr bool is_preferable = false;
       using polymorphic_query_result_type = S;
@@ -705,7 +750,7 @@ Queries for the value of an executor's behavioral property shall not change betw
 The value returned from `execution::query(e1, p1)` and a subsequent invocation `execution::query(e1, p1)`, where
 
 * `p1` is an instance of `S` or `S::E`*i*, and
-* `e2` is the result of `execution::require(e1, p2)` or `execution::prefer(e1, p2)`,
+* `e2` is the result of `std::require(e1, p2)` or `std::prefer(e1, p2)`,
 
 shall compare equal unless
 
@@ -742,7 +787,7 @@ template<class Executor>
   friend constexpr S query(const Executor& ex, const Property& p) noexcept(noexcept(execution::query(ex, std::declval<const S::Nk>())));
 ```
 
-*Returns:* `execution::query(ex, S::N`*k*`())`.
+*Returns:* `std::query(ex, S::N`*k*`())`.
 
 *Remarks:* This function shall not participate in overload resolution unless `is_same_v<Property,S> && can_query_v<Executor,S::N`*i*`>` is true for at least one `S::N`*i*`. 
 
@@ -771,6 +816,12 @@ In addition to conforming to the above specification, the `blocking_t::always_t`
 
     struct always_t
     {
+      static constexpr bool is_requirable = true;
+      static constexpr bool is_preferable = false;
+
+      template <class T>
+        static constexpr bool is_applicable_property_v = is_executor_v<T>;
+
       template<class Executor>
         friend see-below require(Executor ex, blocking_t::always_t);
     };
@@ -803,6 +854,12 @@ In addition to conforming to the above specification, the `blocking_adaptation_t
 
     struct allowed_t
     {
+      static constexpr bool is_requirable = true;
+      static constexpr bool is_preferable = false;
+
+      template <class T>
+        static constexpr bool is_applicable_property_v = is_executor_v<T>;
+
       template<class Executor>
         friend see-below require(Executor ex, blocking_adaptation_t::allowed_t);
     };
@@ -889,6 +946,9 @@ The `allocator_t` property conforms to the following specification:
     template <typename ProtoAllocator>
     struct allocator_t
     {
+        template <class T>
+          static constexpr bool is_applicable_property_v = is_executor_v<T>;
+
         static constexpr bool is_requirable = true;
         static constexpr bool is_preferable = true;
     
@@ -1350,10 +1410,14 @@ All executor types accessible through `static_thread_pool::executor()`, and subs
 class C
 {
   public:
+
+    // indication of applicability to executor properties
+    static constexpr bool is_executor_v = true;
+
     // types:
 
-    typedef std::size_t shape_type;
-    typedef std::size_t index_type;
+    using shape_type = size_t;
+    using index_type = size_t;
 
     // construct / copy / destroy:
 

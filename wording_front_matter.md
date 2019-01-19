@@ -15,6 +15,8 @@ Authors:            Jared Hoberock, jhoberock@nvidia.com
 
                     Gordon Brown, gordon@codeplay.com
 
+                    David Hollman, dshollm@sandia.gov
+
 Other Contributors: Hans Boehm, hboehm@google.com
 
                     Thomas Heller, thom.heller@gmail.com
@@ -31,11 +33,9 @@ Other Contributors: Hans Boehm, hboehm@google.com
 
                     Thomas Rodgers, rodgert@twrodgers.com
 
-                    David Hollman, dshollm@sandia.gov
-
                     Michael Wong, michael@codeplay.com
 
-Document Number:    P0443R9
+Document Number:    P0443R10
 
 Date:               2018-10-08
 
@@ -48,6 +48,10 @@ Abstract:           This paper proposes a programming model for executors, which
 ------------------------------------------------------
 
 ## Changelog
+
+### Revision 10
+
+As directed by LEWG at the 2018-11 San Diego meeting, we have migrated the property customization mechanism to namespace `std` and moved all of the details of its specification to a separate paper, [P1393](http://wg21.link/P1393).  This change also included the introduction of a separate customization point for interface-enforcing properties, `require_concept`.  The generalization also necessitated the introduction of `is_applicable_property_v` in the properties paper, which in turn led to the introduction of `is_executor_v` to express the applicability of properties in this paper.
 
 ### Revision 9
 
