@@ -51,9 +51,7 @@ Abstract:           This paper proposes a programming model for executors, which
 
 ### Revision 10
 
-As directed by LEWG during the 2018 San Diego WG21 meeting, we have separated
-the general properties system from this paper and relocated it to PXXXX. The
-functionality described by this paper depends on PXXXX.
+As directed by LEWG at the 2018-11 San Diego meeting, we have migrated the property customization mechanism to namespace `std` and moved all of the details of its specification to a separate paper, [P1393](http://wg21.link/P1393).  This change also included the introduction of a separate customization point for interface-enforcing properties, `require_concept`.  The generalization also necessitated the introduction of `is_applicable_property_v` in the properties paper, which in turn led to the introduction of `is_executor_v` to express the applicability of properties in this paper.
 
 ### Revision 9
 
