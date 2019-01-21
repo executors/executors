@@ -24,7 +24,7 @@ Other Contributors: Lee Howes, lwh@fb.com
 
                     Michael Wong, michael@codeplay.com
 
-Document Number:    D1393R0
+Document Number:    P1393R0
 
 Date:               2019-01-13
 
@@ -89,12 +89,12 @@ namespace std {
 
   // Customization point type traits:
   template<class T, class P> struct can_require_concept;
-  template<class T, class P> struct can_require;
-  template<class T, class P> struct can_prefer;
+  template<class T, class... P> struct can_require;
+  template<class T, class... P> struct can_prefer;
   template<class T, class P> struct can_query;
 
-  template<class T, class... Properties>
-    inline constexpr bool can_require_concept_v = can_require_concept<T, Properties...>::value;
+  template<class T, class Property>
+    inline constexpr bool can_require_concept_v = can_require_concept<T, Property>::value;
   template<class T, class... Properties>
     inline constexpr bool can_require_v = can_require<T, Properties...>::value;
   template<class T, class... Properties>
@@ -210,9 +210,9 @@ This sub-clause contains a template that may be used to query the applicability 
 ## Customization point type traits
 
 ```c++
-template<class T, class Properties> struct can_require_concept;
-template<class T, class Properties> struct can_require;
-template<class T, class Properties> struct can_prefer;
+template<class T, class Property> struct can_require_concept;
+template<class T, class... Properties> struct can_require;
+template<class T, class... Properties> struct can_prefer;
 template<class T, class Property> struct can_query;
 ```
 
@@ -221,8 +221,8 @@ This sub-clause contains templates that may be used to query the validity of the
 | Template                   | Condition           | Preconditions  |
 |----------------------------|---------------------|----------------|
 | `template<class T, class P>` <br/>`struct can_require_concept` | The expression `std::require_concept(declval<const T>(), declval<P>())` is well-formed. | `T` and `P` are complete types. |
-| `template<class T, class P>` <br/>`struct can_require` | The expression `std::require(declval<const T>(), declval<P>())` is well-formed. | `T` and `P` are complete types. |
-| `template<class T, class P>` <br/>`struct can_prefer` | The expression `std::prefer(declval<const T>(), declval<P>())` is well-formed. | `T` and `P` are complete types. |
+| `template<class T, class... P>` <br/>`struct can_require` | The expression `std::require(declval<const T>(), declval<P>()...)` is well-formed. | `T` and `P...` are complete types. |
+| `template<class T, class... P>` <br/>`struct can_prefer` | The expression `std::prefer(declval<const T>(), declval<P>()...)` is well-formed. | `T` and `P...` are complete types. |
 | `template<class T, class P>` <br/>`struct can_query` | The expression `std::query(declval<const T>(), declval<P>())` is well-formed. | `T` and `P` are complete types. |
 | `template<class T, class P>` <br/>`struct is_applicable_property` | The expression `P::template is_applicable_property_v<T>` is a well-formed constant expression with a value of `true`. | `P` and `T` are complete types. |
 
