@@ -7,10 +7,10 @@ dependent_wording: dependent_wording_pdf dependent_wording_html
 explanatory: explanatory_pdf explanatory_html
 
 wording_pdf: wording_front_matter.md wording.md
-	pandoc wording_front_matter.md wording.md -o wording.pdf -H header.tex --number-sections -o P0443R9_A_Unified_Executors_Proposal.pdf
+	pandoc wording_front_matter.md wording.md -o wording.pdf -H header.tex --number-sections -o P0443R10_A_Unified_Executors_Proposal.pdf
 
 wording_html: wording.md
-	pandoc wording_front_matter.md wording.md -o wording.html --number-sections -o P0443R9_A_Unified_Executors_Proposal.html
+	pandoc wording_front_matter.md wording.md -o wording.html --number-sections -o P0443R10_A_Unified_Executors_Proposal.html
 
 dependent_wording_pdf: dependent_wording_front_matter.md dependent_wording.md
 	pandoc dependent_wording_front_matter.md dependent_wording.md -o dependent_wording.pdf -H header.tex --number-sections -o P1244R0_Dependent_Execution_for_a_Unified_Executors_Proposal.pdf
