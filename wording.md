@@ -950,8 +950,8 @@ The `oneway_exception_handler_t` property describes how exceptions thrown by one
 
 | Nested Property Type| Nested Property Object Name | Requirements |
 |-------------------------|---------------------------------|--------------|
-| `oneway_exception_handler_t::terminate_t` | `oneway_exception_handler::terminate` | If a function invoked by an execution agent created by `execute` or `bulk_execute` exits via an uncaught exception, `terminate()` shall be called. |
-| `oneway_exception_handler_t::other_t` | `oneway_exception_handler::other` | The behavior of a function invoked by an execution agent created by `execute` or `bulk_execute` that exits via an uncaught exception is implementation-defined.  |
+| `oneway_exception_handler_t::terminate_t` | `oneway_exception_handler.terminate` | If a function invoked by an execution agent created by `execute` or `bulk_execute` exits via an uncaught exception, `terminate()` shall be called. |
+| `oneway_exception_handler_t::other_t` | `oneway_exception_handler.other` | The behavior of a function invoked by an execution agent created by `execute` or `bulk_execute` that exits via an uncaught exception is implementation-defined.  |
 
 ### Properties for customizing memory allocation
 
