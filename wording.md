@@ -74,6 +74,13 @@ namespace execution {
 
   constexpr mapping_t mapping;
 
+  // One-way exception handling property:
+
+  // XXX bikeshed this name. "handler" may imply that the value of the property is some kind of function
+  struct oneway_exception_handler_t;
+
+  constexpr oneway_exception_handler_t oneway_exception_handler;
+
   // Memory allocation properties:
 
   template <typename ProtoAllocator>
@@ -142,7 +149,7 @@ In the Table below,
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.execute(f)` | `void` | Evaluates `DECAY_COPY(std::forward<F>(f))` on the calling thread to create `cf` that will be invoked at most once by an execution agent. <br/> May block pending completion of this invocation. <br/> Synchronizes with [intro.multithread] the invocation of `f`. <br/>Shall not propagate any exception thrown by the function object or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by one-way submitted functions and the forward progress guarantee of the associated execution agent(s) are implementation defined. *--end note.*] |
+| `x.execute(f)` | `void` | Evaluates `DECAY_COPY(std::forward<F>(f))` on the calling thread to create `cf` that will be invoked at most once by an execution agent. <br/> May block pending completion of this invocation. <br/> Synchronizes with [intro.multithread] the invocation of `f`. <br/>Shall not propagate any exception thrown by the function object or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by one-way submitted functions is described by the `execution::oneway_exception_handler` property. The forward progress guarantee of the associated execution agent(s) is implementation defined. *--end note.*] |
 
 ### `BulkOneWayExecutor` requirements
 
@@ -162,7 +169,7 @@ In the Table below,
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.bulk_execute(f, n, sf)` | `void` | Evaluates `DECAY_COPY(std::forward<F>(f))` on the calling thread to create a function object `cf`.  *[Note:* Additional copies of `cf` may subsequently be created. *--end note]*  For each value of `i` in shape `n` `cf(i,s)` (or copy of `cf)`) will be invoked at most once by an execution agent that is unique for each value of `i`.  `sf()` will be invoked at most once to produce value `s` before any invocation of `cf`. <br/> May block pending completion of one or more invocations of `cf`. <br/> Synchronizes with (C++Std [intro.multithread]) the invocations of `f`. <br/> Shall not propagate any exception thrown by `cf` or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by bulk one-way submitted functions and the forward progress guarantee of the associated execution agent(s) are implementation defined. *--end note.*] |
+| `x.bulk_execute(f, n, sf)` | `void` | Evaluates `DECAY_COPY(std::forward<F>(f))` on the calling thread to create a function object `cf`.  *[Note:* Additional copies of `cf` may subsequently be created. *--end note.]*  Invokes `cf(i,s)` (or copy of `cf`) for each value of `i` in shape `n`. Each invocation is invoked by an execution agent that is unique for each value of `i`. *[Note:* An invocation of `bulk_execute` either successfully creates a complete group of `n` execution agents or fails via exception. *--end note.]*  `sf()` will be invoked at most once to produce value `s` before any invocation of `cf`. <br/> May block pending completion of one or more invocations of `cf`. <br/> Synchronizes with (C++Std [intro.multithread]) the invocations of `f`. <br/> Shall not propagate any exception thrown by `cf` or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by bulk one-way submitted functions is described by the `execution::oneway_exception_handler` property. The forward progress guarantee of the associated execution agent(s) are implementation defined. *--end note.*] |
 
 ### Executor applicability trait
 
@@ -806,9 +813,9 @@ The `blocking_t` property describes what guarantees executors provide about the 
 
 | Nested Property Type | Nested Property Object Name | Requirements |
 |--------------------------|------------------------|--------------|
-| `blocking_t::possibly_t` | `blocking_t::possibly` | Invocation of an executor's execution function may block pending completion of one or more invocations of the submitted function object. |
-| `blocking_t::always_t` | `blocking_t::always` | Invocation of an executor's execution function shall block until completion of all invocations of submitted function object. |
-| `blocking_t::never_t` | `blocking_t::never` | Invocation of an executor's execution function shall not block pending completion of the invocations of the submitted function object. |
+| `blocking_t::possibly_t` | `blocking.possibly` | Invocation of an executor's execution function may block pending completion of one or more invocations of the submitted function object. |
+| `blocking_t::always_t` | `blocking.always` | Invocation of an executor's execution function shall block until completion of all invocations of submitted function object. |
+| `blocking_t::never_t` | `blocking.never` | Invocation of an executor's execution function shall not block pending completion of the invocations of the submitted function object. |
 
 ##### `blocking_t::always_t` customization points
 
@@ -845,8 +852,8 @@ The `blocking_adaptation_t` property allows or disallows blocking or directional
 
 | Nested Property Type | Nested Property Object Name | Requirements |
 |--------------------------|---------------------------------|--------------|
-| `blocking_adaptation_t::disallowed_t` | `blocking_adaptation::disallowed` | The `require` customization point may not adapt the executor to add the `blocking_t::always_t` property. |
-| `blocking_adaptation_t::allowed_t` | `blocking_adaptation::allowed` | The `require` customization point may adapt the executor to add the `blocking_t::always_t` property. |
+| `blocking_adaptation_t::disallowed_t` | `blocking_adaptation.disallowed` | The `require` customization point may not adapt the executor to add the `blocking_t::always_t` property. |
+| `blocking_adaptation_t::allowed_t` | `blocking_adaptation.allowed` | The `require` customization point may adapt the executor to add the `blocking_t::always_t` property. |
 
 ##### `blocking_adaptation_t::allowed_t` customization points
 
@@ -881,8 +888,8 @@ The `relationship_t` property allows users of executors to indicate that submitt
 
 | Nested Property Type | Nested Property Object Name | Requirements |
 |--------------------------|---------------------------------|--------------|
-| `relationship_t::fork_t` | `relationship_t::fork` | Function objects submitted through the executor do not represent continuations of the caller. |
-| `relationship_t::continuation_t` | `relationship_t::continuation` | Function objects submitted through the executor represent continuations of the caller. Invocation of the submitted function object may be deferred until the caller completes. |
+| `relationship_t::fork_t` | `relationship.fork` | Function objects submitted through the executor do not represent continuations of the caller. |
+| `relationship_t::continuation_t` | `relationship.continuation` | Function objects submitted through the executor represent continuations of the caller. Invocation of the submitted function object may be deferred until the caller completes. |
 
 #### Properties to indicate likely task submission in the future
 
@@ -892,8 +899,8 @@ The `outstanding_work_t` property allows users of executors to indicate that tas
 
 | Nested Property Type| Nested Property Object Name | Requirements |
 |-------------------------|---------------------------------|--------------|
-| `outstanding_work_t::untracked_t` | `outstanding_work::untracked` | The existence of the executor object does not indicate any likely future submission of a function object. |
-| `outstanding_work_t::tracked_t` | `outstanding_work::tracked` | The existence of the executor object represents an indication of likely future submission of a function object. The executor or its associated execution context may choose to maintain execution resources in anticipation of this submission. |
+| `outstanding_work_t::untracked_t` | `outstanding_work.untracked` | The existence of the executor object does not indicate any likely future submission of a function object. |
+| `outstanding_work_t::tracked_t` | `outstanding_work.tracked` | The existence of the executor object represents an indication of likely future submission of a function object. The executor or its associated execution context may choose to maintain execution resources in anticipation of this submission. |
 
 [*Note:* The `outstanding_work_t::tracked_t` and `outstanding_work_t::untracked_t` properties are used to communicate to the associated execution context intended future work submission on the executor. The intended effect of the properties is the behavior of execution context's facilities for awaiting outstanding work; specifically whether it considers the existance of the executor object with the `outstanding_work_t::tracked_t` property enabled outstanding work when deciding what to wait on. However this will be largely defined by the execution context implementation. It is intended that the execution context will define its wait facilities and on-destruction behaviour and provide an interface for querying this. An initial work towards this is included in P0737r0. *--end note*]
 
@@ -905,9 +912,9 @@ Bulk execution guarantee properties communicate the forward progress and orderin
 
 | Nested Property Type | Nested Property Object Name | Requirements |
 |--------------------------|---------------------------------|--------------|
-| `bulk_guarantee_t::unsequenced_t` | `bulk_guarantee_t::unsequenced` | Execution agents within the same bulk execution may be parallelized and vectorized. |
-| `bulk_guarantee_t::sequenced_t` | `bulk_guarantee_t::sequenced` | Execution agents within the same bulk execution may not be parallelized. |
-| `bulk_guarantee_t::parallel_t` | `bulk_guarantee_t::parallel` | Execution agents within the same bulk execution may be parallelized. |
+| `bulk_guarantee_t::unsequenced_t` | `bulk_guarantee.unsequenced` | Execution agents within the same bulk execution may be parallelized and vectorized. |
+| `bulk_guarantee_t::sequenced_t` | `bulk_guarantee.sequenced` | Execution agents within the same bulk execution may not be parallelized. |
+| `bulk_guarantee_t::parallel_t` | `bulk_guarantee.parallel` | Execution agents within the same bulk execution may be parallelized. |
 
 Execution agents associated with the `bulk_guarantee_t::unsequenced_t` property may invoke the function object in an unordered fashion. Any such invocations in the same thread of execution are unsequenced with respect to each other. [*Note:* This means that multiple execution agents may be interleaved on a single thread of execution, which overrides the usual guarantee from [intro.execution] that function executions do not interleave with one another. *--end note*]
 
@@ -925,9 +932,9 @@ The `mapping_t` property describes what guarantees executors provide about the m
 
 | Nested Property Type| Nested Property Object Name | Requirements |
 |-------------------------|---------------------------------|--------------|
-| `mapping_t::thread_t` | `mapping::thread` | Execution agents are mapped onto threads of execution. |
-| `mapping_t::new_thread_t` | `mapping::new_thread` | Each execution agent is mapped onto a new thread of execution. |
-| `mapping_t::other_t` | `mapping::other` | Mapping of each execution agent is implementation-defined. |
+| `mapping_t::thread_t` | `mapping.thread` | Execution agents are mapped onto threads of execution. |
+| `mapping_t::new_thread_t` | `mapping.new_thread` | Each execution agent is mapped onto a new thread of execution. |
+| `mapping_t::other_t` | `mapping.other` | Mapping of each execution agent is implementation-defined. |
 
 [*Note:* A mapping of an execution agent onto a thread of execution implies the execution
 agent runs as-if on a `std::thread`. Therefore, the facilities provided by
@@ -935,6 +942,17 @@ agent runs as-if on a `std::thread`. Therefore, the facilities provided by
 `mapping_t::new_thread_t` provides stronger guarantees, in
 particular that thread-local storage will not be shared between execution
 agents. *--end note*]
+
+#### Properties for handling exceptions thrown by one-way submitted functions
+
+The `oneway_exception_handler_t` property describes how exceptions thrown by one-way submitted functions are handled.
+
+`oneway_exception_handler_t` provides nested property types and objects as indicated below.
+
+| Nested Property Type| Nested Property Object Name | Requirements |
+|-------------------------|---------------------------------|--------------|
+| `oneway_exception_handler_t::other_t` | `oneway_exception_handler.other` | The behavior of a function invoked by an execution agent created by `execute` or `bulk_execute` that exits via an uncaught exception is implementation-defined.  |
+| `oneway_exception_handler_t::terminate_t` | `oneway_exception_handler.terminate` | If a function invoked by an execution agent created by `execute` or `bulk_execute` exits via an uncaught exception, `terminate()` shall be called. |
 
 ### Properties for customizing memory allocation
 
