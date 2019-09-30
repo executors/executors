@@ -19,11 +19,11 @@ Authors:            Jared Hoberock, jhoberock@nvidia.com
 
                     Lee Howes, lwh@fb.com
 
-                    Kirk Shoop, XXX get Kirk's email
+                    Kirk Shoop, kirkshoop@fb.com
 
-                    Lewis Baker, XXX get Lewis' email
+                    Lewis Baker, lbaker@fb.com
 
-                    Eric Niebler, XXX get Eric's email
+                    Eric Niebler, eniebler@fb.com
 
 Other Contributors: Hans Boehm, hboehm@google.com
 
@@ -64,8 +64,6 @@ As directed by SG1 at the 2019-XX Cologne meeting, we have implemented the follo
 * Eliminated `OneWayExecutor` and `BulkOneWayExecutor` requirements.
 * Eliminated `is_oneway_executor` and `is_bulk_oneway_executor` type traits.
 * 
-* XXX TODO
-* XXX TODO
 
 ### Revision 10
 
