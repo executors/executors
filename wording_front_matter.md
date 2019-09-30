@@ -68,6 +68,7 @@ As directed by SG1 at the 2019-XX Cologne meeting, we have implemented the follo
 
 TODO list:
 
+* Introduce `sender` concept
 * Tweak `submit` definition to allow it to throw
 * Introduce `make_callback_from`
 * Introduce `tbd_concrete_implementations::bulk_execute`

@@ -273,14 +273,14 @@ The name `execution::submit` denotes a customization point object. The expressio
 
 The name `execution::bulk_execute` denotes a customization point object. If `is_convertible_v<S, executor_shape_t<remove_cvref_t<E>>>` is true, then the expression `execution::bulk_execute(E, F, S)` for some subexpressions `E`, `F`, and `S` is expression-equivalent to:
 
-- `E.bulk_execute(F, S)`, if that expression is valid. If the function selected does not execute `S` invocations of the function object `F` on the executor `E` in bulk, and the result of that function is not a sender, the program is ill-formed with no diagnostic required.
+- `E.bulk_execute(F, S)`, if that expression is valid. If the function selected does not execute `S` invocations of the function object `F` on the executor `E` in bulk, and the result of that function does not model `sender<void>`, the program is ill-formed with no diagnostic required.
 
 - Otherwise, `bulk_execute(E, F, S)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
 
       template<class E, class F, class S>
         void bulk_execute(E, F, S) = delete;
 
-    and that does not include a declaration of `execution::bulk_execute`. If the function selected by overload resolution does not execute `S` invocations of the function object `F` on the executor `E` in bulk, and the result of that function is not a sender, the program is ill-formed with no diagnostic required.
+    and that does not include a declaration of `execution::bulk_execute`. If the function selected by overload resolution does not execute `S` invocations of the function object `F` on the executor `E` in bulk, and the result of that function does not model `sender<void>`, the program is ill-formed with no diagnostic required.
 
 - Otherwise, if the types `F` and `executor_index_t<remove_cvref_t<E>>` model `invocable`, then `execution::tbd_concrete_implementations::bulk_execute(E, F, S)`.
 
