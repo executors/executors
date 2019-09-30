@@ -157,6 +157,8 @@ concept sender_to =
 
 ### Concept `executor`
 
+XXX TODO The `executor` concept...
+
 ```
 template<class E, class F = void(*)()>
 concept executor =
