@@ -69,6 +69,7 @@ namespace execution {
   // One-way exception handling property:
 
   // XXX bikeshed this name. "handler" may imply that the value of the property is some kind of function
+  // [*Editorial Note:* The presence of this property seems at-odds with the error-handling scheme adopted from P1660. Does this property need to be eliminated? *--end editorial note.*]
   struct oneway_exception_handler_t;
 
   constexpr oneway_exception_handler_t oneway_exception_handler;
@@ -126,6 +127,34 @@ For any two (possibly const) values `x1` and `x2` of some executor type `X`, `x1
 An executor type's destructor shall not block pending completion of the submitted function objects. [*Note:* The ability to wait for completion of submitted function objects may be provided by the associated execution context. *--end note*]
 
 For an executor type `Ex`, the expression `is_executor_v<Ex>` shall be a valid constant expression with the value `true`.
+
+### `Executor` requirements
+
+A type `X` satisfies the `Executor` requirements if it satisfies the requirements of `CopyConstructible` (C++Std [copyconstructible]), `Destructible` (C++Std [destructible]), and `EqualityComparable` (C++Std [equalitycomparable]).
+
+None of these concepts' operations, nor an executor type's swap operations, shall exit via an exception.
+
+None of these concepts' operations, nor an executor type's associated execution functions, associated query functions, or other member functions defined in executor type requirements, shall introduce data races as a result of concurrent invocations of those functions from different threads.
+
+For any two (possibly const) values `x1` and `x2` of some executor type `X`, `x1 == x2` shall return `true` only if `x1.query(p) == x2.query(p)` for every property `p` where both `x1.query(p)` and `x2.query(p)` are well-formed and result in a non-void type that is `EqualityComparable` (C++Std [equalitycomparable]). [*Note:* The above requirements imply that `x1 == x2` returns `true` if `x1` and `x2` can be interchanged with identical effects. An executor may conceptually contain additional properties which are not exposed by a named property type that can be observed via `execution::query`; in this case, it is up to the concrete executor implementation to decide if these properties affect equality. Returning `false` does not necessarily imply that the effects are not identical. *--end note*]
+
+An executor type's destructor shall not block pending completion of the submitted function objects. [*Note:* The ability to wait for completion of submitted function objects may be provided by the associated execution context. *--end note*]
+
+For an executor type `Ex`, the expression `is_executor_v<Ex>` shall be a valid constant expression with the value `true`.
+
+In addition to the above requirements, a type `X` shall satisfy the requirements in the `Table below.
+
+In the Table below, 
+
+- `x` denotes a (possibly const) executor object of type `X`,
+- `cf` denotes the function object `DECAY_COPY(std::forward<F>(f))` 
+- `f` denotes a function object of type `F&&` invocable as `cf()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
+
+| Expression | Return Type | Operational semantics |
+|------------|-------------|---------------------- |
+| `x.execute(f)` | `void` | Evaluates `DECAY_COPY(std::forward<F>(f))` on the calling thread to create `cf` that will be invoked at most once by an execution agent. <br/> May block pending completion of this invocation. <br/> Synchronizes with [intro.multithread] the invocation of `f`. <br/>Shall not propagate any exception thrown by the function object or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by one-way submitted functions is described by the `execution::oneway_exception_handler` property. The forward progress guarantee of the associated execution agent(s) is implementation defined. *--end note.*] |
+
+[*Editorial Note:* These requirements are specified informally. However, we should transliterate them into a formal concept. *--end editorial note*]
 
 ### `OneWayExecutor` requirements
 
