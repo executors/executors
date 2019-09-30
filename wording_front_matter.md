@@ -1,4 +1,4 @@
-% A Unified Executors Proposal for C++ | P0443R10
+% A Unified Executors Proposal for C++ | P0443R11
 
 ----------------    -------------------------------------
 Title:              A Unified Executors Proposal for C++
@@ -17,11 +17,17 @@ Authors:            Jared Hoberock, jhoberock@nvidia.com
 
                     David Hollman, dshollm@sandia.gov
 
+                    Lee Howes, lwh@fb.com
+
+                    Kirk Shoop, XXX get Kirk's email
+
+                    Lewis Baker, XXX get Lewis' email
+
+                    Eric Niebler, XXX get Eric's email
+
 Other Contributors: Hans Boehm, hboehm@google.com
 
                     Thomas Heller, thom.heller@gmail.com
-
-                    Lee Howes, lwh@fb.com
 
                     Bryce Lelbach, brycelelbach@gmail.com
 
@@ -35,9 +41,9 @@ Other Contributors: Hans Boehm, hboehm@google.com
 
                     Michael Wong, michael@codeplay.com
 
-Document Number:    P0443R10
+Document Number:    P0443R11
 
-Date:               2019-01-21
+Date:               2019-10-07
 
 Audience:           SG1 - Concurrency and Parallelism, LEWG
 
@@ -48,6 +54,14 @@ Abstract:           This paper proposes a programming model for executors, which
 ------------------------------------------------------
 
 ## Changelog
+
+### Revision 11
+
+As directed by SG1 at the 2019-XX Cologne meeting, we have implemented the following changes suggested by P1658 and P1660:
+
+* XXX TODO
+* XXX TODO
+* XXX TODO
 
 ### Revision 10
 
