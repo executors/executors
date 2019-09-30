@@ -215,6 +215,34 @@ This sub-clause contains a template that may be used to query the applicability 
 |----------------------------|---------------------|----------------|
 | `template<class T>` <br/>`struct is_executor` | The expression `P::is_executor` is a well-formed constant expression with a value of `true`. | `T` is a complete type. |
 
+### Customization points
+
+#### `execution::execute`
+
+The name `execution::execute` denotes a customization point object. The expression `execution::execute(E, F)` for some subexpressions `E` and `F` is expression-equivalent to:
+
+- `E.execute(F)`, if that expression is valid. If the function selected does not execute the function object `F` on the executor `E`, the program is ill-formed with no diagnostic required.
+
+- Otherwise, `execute(E, F)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
+
+        template<class E, class F>
+          void execute(E, F) = delete;
+
+    and that does not include a declaration of `execution::execute`. If the function selected by overload resolution does not execute the function object `F` on the executor `E`, the program is ill-formed with no diagnostic required.
+
+- Otherwise, if the type `F` models `invocable`, then `execution::submit(E, execution::make_callback_from(F))`.
+
+- Otherwise, `execution::execute(E, F)` is ill-formed.
+
+[*Editorial note:* This specification is adapted from `ranges::iter_swap`. *--end editorial note*]
+
+#### `execution::submit`
+
+XXX TODO
+
+#### `execution::bulk_execute`
+
+XXX TODO
 
 ### Query-only properties
 
