@@ -35,6 +35,16 @@ namespace execution {
 
   template<class T> constexpr inline bool is_executor_v = is_executor<T>::value;
 
+  // Customization points:
+
+  inline namespace unspecified{
+    inline constexpr unspecified execute = unspecified;
+
+    inline constexpr unspecified submit = unspecified;
+
+    inline constexpr unspecified bulk_execute = unspecified;
+  }
+
   // Associated execution context property:
 
   struct context_t;
@@ -238,9 +248,41 @@ The name `execution::execute` denotes a customization point object. The expressi
 
 #### `execution::submit`
 
-XXX TODO
+The name `execution::submit` denotes a customization point object. The expression `execution::submit(S, C)` for some subexpressions `S` and `C` is expression-equivalent to:
+
+- `S.submit(C)`, if that expression is valid. If the function selected does not submit the callback object `C` via the sender `S`, the program is ill-formed with no diagnostic required.
+
+- Otherwise, `submit(S, C)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
+
+        template<class S, class C>
+          void submit(S, C) = delete;
+
+    and that does not include a declaration of `execution::submit`. If the function selected by overload resolution does not submit the callback object `C` via the sender `S`, the program is ill-formed with no diagnostic required.
+
+- Otherwise, if the type `C` models `Callback`, then let `F = [C]{ C.value(); }`. If `S` and `F` model `executor`, then `execution::execute(S, F)`.
+
+- Otherwise, `execution::submit(S, C)` is ill-formed.
+
+[*Editorial note:* This specification is adapted from `ranges::iter_swap`. *--end editorial note*]
 
 #### `execution::bulk_execute`
+
+The name `execution::bulk_execute` denotes a customization point object. If `is_convertible_v<S, executor_shape_t<remove_cvref_t<E>>>` is true, then the expression `execution::bulk_execute(E, F, S)` for some subexpressions `E`, `F`, and `S` is expression-equivalent to:
+
+- `E.bulk_execute(F, S)`, if that expression is valid. If the function selected does not execute `S` invocations of the function object `F` on the executor `E` in bulk, the program is ill-formed with no diagnostic required.
+
+- Otherwise, `bulk_execute(E, F, S)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
+
+      template<class E, class F, class S>
+        void bulk_execute(E, F, S) = delete;
+
+    and that does not include a declaration of `execution::bulk_execute`. If the function selected by overload resolution does not execute `S` invocations of the function object `F` on the executor `E` in bulk, the program is ill-formed with no diagnostic required.
+
+- Otherwise, if the types `F` and `executor_index_t<remove_cvref_t<E>>` model `invocable`, then `execution::tbd_concrete_implementations::bulk_execute(E, F, S)`.
+
+- Otherwise, `execution::bulk_execute(E, F, S)` is ill-formed.
+
+[*Editorial note:* This specification is adapted from `ranges::iter_swap`. *--end editorial note*]
 
 XXX TODO
 

@@ -64,7 +64,19 @@ As directed by SG1 at the 2019-XX Cologne meeting, we have implemented the follo
 * Eliminated `OneWayExecutor` and `BulkOneWayExecutor` requirements.
 * Eliminated `is_oneway_executor` and `is_bulk_oneway_executor` type traits.
 * Introduced `callback_signal`, `callback`, and `sender_to` concepts.
-* Introduce `execute` customization point object.
+* Introduced `execute` customization point object.
+* Introduced `submit` customization point object.
+* Introduced `bulk_execute` customization point object.
+
+TODO list:
+
+* Tweak `submit` definition to allow it to throw
+* Introduce `make_callback_from`
+* Introduce `tbd_concrete_implementations::bulk_execute`
+* Update polymorphic executor specification?
+* Review R11 wording changes
+* Eliminate editorial notes
+* Scrub XXX TODOs
 
 ### Revision 10
 
