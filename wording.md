@@ -19,6 +19,17 @@ For the intent of this library and extensions to this library, the *lifetime of 
 namespace std {
 namespace execution {
 
+  // Concepts:
+
+  template<class T, class E = exception_ptr>
+    concept callback_signal = see-below;
+
+  template<class T, class... an>
+    concept callback = see-below;
+
+  template<class S, class C>
+    concept sender_to = see-below;
+
   // Indication of executor property applicability
   template<class T> struct is_executor;
 
@@ -107,6 +118,42 @@ namespace execution {
 ### `ProtoAllocator` requirements
 
 A type `A` meets the `ProtoAllocator` requirements if `A` is `CopyConstructible` (C++Std [copyconstructible]), `Destructible` (C++Std [destructible]), and `allocator_traits<A>::rebind_alloc<U>` meets the allocator requirements (C++Std [allocator.requirements]), where `U` is an object type. [*Note:* For example, `std::allocator<void>` meets the proto-allocator requirements but not the allocator requirements. *--end note*] No comparison operator, copy operation, move operation, or swap operation on these types shall exit via an exception.
+
+### Concept `callback_signal`
+
+XXX TODO The `callback_signal` concept...
+
+```
+template<class T, class E = exception_ptr>
+concept callback_signal =
+  requires(T&& t, E&& e) {
+    { ((T&&) t).done()} noexcept;
+    { ((T&&) t).error(((E&&) e)) } noexcept;
+  };
+```
+
+### Concept `callback`
+
+XXX TODO The `callback` concept...
+
+```
+template<class T, class... An>
+concept callback =
+  invocable<T, An...> &&
+  callback_signal<T>;
+```
+
+### Concept `sender_to`
+
+XXX TODO The `sender_to` concept...
+
+```
+template<class S, class C>
+concept sender_to =
+  requires(S&& s, C&& c) {
+    submit((S&&) s, (C&&) c);
+  };
+```
 
 ### General requirements on executors
 
