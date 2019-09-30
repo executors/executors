@@ -244,6 +244,8 @@ The name `execution::execute` denotes a customization point object. The expressi
 
 - Otherwise, `execution::execute(E, F)` is ill-formed.
 
+[*Editorial note:* We should probably define what "execute the function object `F` on the executor `E`" means more carefully. *--end editorial note*]
+
 [*Editorial note:* This specification is adapted from `ranges::iter_swap`. *--end editorial note*]
 
 #### `execution::submit`
@@ -263,6 +265,8 @@ The name `execution::submit` denotes a customization point object. The expressio
 
 - Otherwise, `execution::submit(S, C)` is ill-formed.
 
+[*Editorial note:* We should probably define what "submit the callback object `C` via the sender `S`" means more carefully. *--end editorial note*]
+
 [*Editorial note:* This specification is adapted from `ranges::iter_swap`. *--end editorial note*]
 
 #### `execution::bulk_execute`
@@ -281,6 +285,8 @@ The name `execution::bulk_execute` denotes a customization point object. If `is_
 - Otherwise, if the types `F` and `executor_index_t<remove_cvref_t<E>>` model `invocable`, then `execution::tbd_concrete_implementations::bulk_execute(E, F, S)`.
 
 - Otherwise, `execution::bulk_execute(E, F, S)` is ill-formed.
+
+[*Editorial note:* We should probably define what "execute `S` invocations of the function object `F` on the executor `E` in bulk" means more carefully. *--end editorial note*]
 
 [*Editorial note:* This specification is adapted from `ranges::iter_swap`. *--end editorial note*]
 
