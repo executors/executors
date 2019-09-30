@@ -195,8 +195,8 @@ In addition to the above requirements, types `E` and `F` model `executor` only i
 In the Table below, 
 
 - `e` denotes a (possibly const) executor object of type `E`,
-- `cf` denotes the function object `DECAY_COPY(std::forward<F>(f))` 
-- `f` denotes a function object of type `F&&` invocable as `cf()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
+- `cf` denotes the function or callback object `DECAY_COPY(std::forward<F>(f))` 
+- `f` denotes a function or callback object of type `F&&` invocable as `cf()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
