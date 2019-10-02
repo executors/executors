@@ -60,7 +60,7 @@ Abstract:           This paper proposes a programming model for executors, which
 As directed by SG1 at the 2019-XX Cologne meeting, we have implemented the following changes suggested by P1658 and P1660:
 
 * Eliminated interface-changing properties `oneway_t` and `bulk_oneway_t`.
-* Introduced `Executor` concept.
+* Introduced `executor` concept.
 * Eliminated `OneWayExecutor` and `BulkOneWayExecutor` requirements.
 * Eliminated `is_oneway_executor` and `is_bulk_oneway_executor` type traits.
 * Introduced `callback_signal`, `callback`, and `sender_to` concepts.
