@@ -41,7 +41,7 @@ namespace execution {
     concept sender_to = see-below;
 
   template<class E, class F = void(*)()>
-  concept executor = see-below;
+    concept executor = see-below;
 
   // Indication of executor property applicability
   template<class T> struct is_executor;
