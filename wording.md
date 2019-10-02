@@ -1585,8 +1585,8 @@ class C
     template<class Function>
       void execute(Function&& f) const;
 
-    template<class Function, class SharedFactory>
-      void bulk_execute(Function&& f, size_t n, SharedFactory&& sf) const;
+    template<class Function>
+      void bulk_execute(Function&& f, size_t n) const;
 };
 ```
 
