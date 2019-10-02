@@ -26,7 +26,7 @@ namespace execution {
 
     inline constexpr unspecified done = unspecified;
 
-    inline constexpr unspecified value = unspecified;
+    inline constexpr unspecified error = unspecified;
 
     inline constexpr unspecified execute = unspecified;
 
