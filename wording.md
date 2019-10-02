@@ -22,6 +22,12 @@ namespace execution {
   // Customization points:
 
   inline namespace unspecified{
+    inline constexpr unspecified value = unspecified;
+
+    inline constexpr unspecified done = unspecified;
+
+    inline constexpr unspecified value = unspecified;
+
     inline constexpr unspecified execute = unspecified;
 
     inline constexpr unspecified submit = unspecified;
@@ -133,6 +139,25 @@ namespace execution {
 A type `A` meets the `ProtoAllocator` requirements if `A` is `CopyConstructible` (C++Std [copyconstructible]), `Destructible` (C++Std [destructible]), and `allocator_traits<A>::rebind_alloc<U>` meets the allocator requirements (C++Std [allocator.requirements]), where `U` is an object type. [*Note:* For example, `std::allocator<void>` meets the proto-allocator requirements but not the allocator requirements. *--end note*] No comparison operator, copy operation, move operation, or swap operation on these types shall exit via an exception.
 
 ### Customization points
+
+#### `execution::value`
+
+The name `execution::value` denotes a customization point object. The expression `execution::value(C, V)` for some subexpressions `C` and `V` is expression-equivalent to:
+
+- `C.value(V)`, if that expression is valid. If the function selected does not send the value `V` to the callback `C`'s value signal, the program is ill-formed with no diagnostic required.
+
+- Otherwise, `value(C, V)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
+
+        template<class C, class V>
+          void value(C, V) = delete;
+
+    and that does not include a declaration of `execution::value`. If the function selected by overload resolution does not send the value `V` to the callback `C`'s value signal, the program is ill-formed with no diagnostic required.
+
+- Otherwise, `execution::value(C, V)` is ill-formed.
+
+[*Editorial note:* We should probably define what "send the value `V` to the callback `C`'s value signal" means more carefully. *--end editorial note*]
+
+[*Editorial note:* This specification is adapted from `ranges::iter_swap`. *--end editorial note*]
 
 #### `execution::execute`
 
