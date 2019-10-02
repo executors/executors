@@ -1603,8 +1603,8 @@ function `f` exits via an exception, the `static_thread_pool` invokes
 `std::terminate()`.
 
 ```
-template<class Function, class SharedFactory>
-  void bulk_execute(Function&& f, size_t n, SharedFactory&& sf) const;
+template<class Function>
+  void bulk_execute(Function&& f, size_t n) const;
 ```
 
 *Effects:* Submits the function `f` for bulk execution on the
