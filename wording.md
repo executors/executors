@@ -161,7 +161,7 @@ The name `execution::value` denotes a customization point object. The expression
 
 #### `execution::done`
 
-The name `execution::value` denotes a customization point object. The expression `execution::done(C)` for some subexpression `C` is expression-equivalent to:
+The name `execution::done` denotes a customization point object. The expression `execution::done(C)` for some subexpression `C` is expression-equivalent to:
 
 - `C.done()`, if that expression is valid. If the function selected does not signal the callback `C`'s done channel, the program is ill-formed with no diagnostic required.
 
