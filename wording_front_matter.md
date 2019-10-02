@@ -49,7 +49,7 @@ Audience:           SG1 - Concurrency and Parallelism, LEWG
 
 Reply-to:           sg1-exec@googlegroups.com
 
-Abstract:           This paper proposes a programming model for executors, which are modular components for creating execution. The design of this proposal is described in paper [P0761](https://wg21.link/P0761).
+Abstract:           This paper proposes a programming model for executors, which are modular components for creating execution, and senders, which are lazy descriptions of execution.
 
 ------------------------------------------------------
 
