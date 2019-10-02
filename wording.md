@@ -292,7 +292,7 @@ XXX TODO The `sender_to` concept...
 template<class S, class C>
 concept sender_to =
   requires(S&& s, C&& c) {
-    submit((S&&) s, (C&&) c);
+    execution::submit((S&&) s, (C&&) c);
   };
 ```
 
@@ -309,13 +309,13 @@ concept executor =
 
   (
     requires(E&& e, F&& f) {
-      ((E&&)e).execute((C&&)c);
+      execution::execute((E&&)e,(F&&)f);
     }
 
     ||
 
     requires(E&&e, F&& f) {
-      ((E&&)e).submit((F&&)f);
+      execution::submit((E&&)e,(F&&)f);
     }
   );
   };
