@@ -64,12 +64,11 @@ As directed by SG1 at the 2019-XX Cologne meeting, we have implemented the follo
 * Eliminated `OneWayExecutor` and `BulkOneWayExecutor` requirements.
 * Eliminated `is_oneway_executor` and `is_bulk_oneway_executor` type traits.
 * Introduced `callback_signal`, `callback`, and `sender_to` concepts.
-* Introduced `value`, `execute`, `submit`, and `bulk_execute` customization point objects.
+* Introduced `value`, `error`, `done`, `execute`, `submit`, and `bulk_execute` customization point objects.
 
 TODO list:
 
 * Introduce `sender` concept
-* Introduce `error` CPO
 * Decide whether we want the CPOs to test free functions via ADL
 * Tweak `submit` definition to allow it to throw
 * Introduce `make_callback_from`

@@ -174,10 +174,28 @@ The name `execution::value` denotes a customization point object. The expression
 
 - Otherwise, `execution::done(C)` is ill-formed.
 
-[*Editorial note:* We should probably define what "send the signal callback `C`'s done channel" means more carefully. *--end editorial note*]
+[*Editorial note:* We should probably define what "signal callback `C`'s done channel" means more carefully. *--end editorial note*]
 
 [*Editorial note:* This specification is adapted from `ranges::iter_swap`. *--end editorial note*]
 
+#### `execution::error`
+
+The name `execution::error` denotes a customization point object. The expression `execution::error(C, E)` for some subexpressions `C` and `E` are expression-equivalent to:
+
+- `C.error(E)`, if that expression is valid. If the function selected does not send the error `E` to the callback `C`'s error channel, the program is ill-formed with no diagnostic required.
+
+- Otherwise, `error(C, E)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
+
+        template<class C, class E>
+          void error(C, E) = delete;
+
+    and that does not include a declaration of `execution::error`. If the function selected by overload resolution does not send the error `E` to the callback `C`'s error channel, the program is ill-formed with no diagnostic required.
+
+- Otherwise, `execution::error(C, E)` is ill-formed.
+
+[*Editorial note:* We should probably define what "send the error `E` to the callback `C`'s error channel" means more carefully. *--end editorial note*]
+
+[*Editorial note:* This specification is adapted from `ranges::iter_swap`. *--end editorial note*]
 
 #### `execution::execute`
 
@@ -250,8 +268,8 @@ XXX TODO The `callback_signal` concept...
 template<class T, class E = exception_ptr>
 concept callback_signal =
   requires(T&& t, E&& e) {
-    { (execution::done(T&&) t)} noexcept;
-    { ((T&&) t).error(((E&&) e)) } noexcept;
+    { execution::done((T&&) t) } noexcept;
+    { execution::error((T&&) t, (E&&) e) } noexcept;
   };
 ```
 
