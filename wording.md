@@ -144,20 +144,40 @@ A type `A` meets the `ProtoAllocator` requirements if `A` is `CopyConstructible`
 
 The name `execution::value` denotes a customization point object. The expression `execution::value(C, V)` for some subexpressions `C` and `V` is expression-equivalent to:
 
-- `C.value(V)`, if that expression is valid. If the function selected does not send the value `V` to the callback `C`'s value signal, the program is ill-formed with no diagnostic required.
+- `C.value(V)`, if that expression is valid. If the function selected does not send the value `V` to the callback `C`'s value channel, the program is ill-formed with no diagnostic required.
 
 - Otherwise, `value(C, V)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
 
         template<class C, class V>
           void value(C, V) = delete;
 
-    and that does not include a declaration of `execution::value`. If the function selected by overload resolution does not send the value `V` to the callback `C`'s value signal, the program is ill-formed with no diagnostic required.
+    and that does not include a declaration of `execution::value`. If the function selected by overload resolution does not send the value `V` to the callback `C`'s value channel, the program is ill-formed with no diagnostic required.
 
 - Otherwise, `execution::value(C, V)` is ill-formed.
 
-[*Editorial note:* We should probably define what "send the value `V` to the callback `C`'s value signal" means more carefully. *--end editorial note*]
+[*Editorial note:* We should probably define what "send the value `V` to the callback `C`'s value channel" means more carefully. *--end editorial note*]
 
 [*Editorial note:* This specification is adapted from `ranges::iter_swap`. *--end editorial note*]
+
+#### `execution::done`
+
+The name `execution::value` denotes a customization point object. The expression `execution::done(C)` for some subexpression `C` is expression-equivalent to:
+
+- `C.done()`, if that expression is valid. If the function selected does not signal the callback `C`'s done channel, the program is ill-formed with no diagnostic required.
+
+- Otherwise, `done(C)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
+
+        template<class C>
+          void done(C) = delete;
+
+    and that does not include a declaration of `execution::done`. If the function selected by overload resolution does not signal the callback `C`'s done channel, the program is ill-formed with no diagnostic required.
+
+- Otherwise, `execution::done(C)` is ill-formed.
+
+[*Editorial note:* We should probably define what "send the signal callback `C`'s done channel" means more carefully. *--end editorial note*]
+
+[*Editorial note:* This specification is adapted from `ranges::iter_swap`. *--end editorial note*]
+
 
 #### `execution::execute`
 
@@ -230,7 +250,7 @@ XXX TODO The `callback_signal` concept...
 template<class T, class E = exception_ptr>
 concept callback_signal =
   requires(T&& t, E&& e) {
-    { ((T&&) t).done()} noexcept;
+    { (execution::done(T&&) t)} noexcept;
     { ((T&&) t).error(((E&&) e)) } noexcept;
   };
 ```
