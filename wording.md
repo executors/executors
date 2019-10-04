@@ -267,6 +267,7 @@ XXX TODO The `callback_signal` concept...
 ```
 template<class T, class E = exception_ptr>
 concept callback_signal =
+  (nothrow_?)move_constructible<remove_cvref_t<T>> &&
   requires(T&& t, E&& e) {
     { execution::done((T&&) t) } noexcept;
     { execution::error((T&&) t, (E&&) e) } noexcept;
