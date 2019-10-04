@@ -148,8 +148,7 @@ The name `execution::value` denotes a customization point object. The expression
 
 - Otherwise, `value(C, V)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
 
-        template<class C, class V>
-          void value();
+        void value();
 
     and that does not include a declaration of `execution::value`. If the function selected by overload resolution does not send the value `V` to the callback `C`'s value channel, the program is ill-formed with no diagnostic required.
 
@@ -167,8 +166,7 @@ The name `execution::done` denotes a customization point object. The expression 
 
 - Otherwise, `done(C)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
 
-        template<class C>
-          void done(C) = delete;
+        void done();
 
     and that does not include a declaration of `execution::done`. If the function selected by overload resolution does not signal the callback `C`'s done channel, the program is ill-formed with no diagnostic required.
 
@@ -186,8 +184,7 @@ The name `execution::error` denotes a customization point object. The expression
 
 - Otherwise, `error(C, E)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
 
-        template<class C, class E>
-          void error(C, E) = delete;
+        void error();
 
     and that does not include a declaration of `execution::error`. If the function selected by overload resolution does not send the error `E` to the callback `C`'s error channel, the program is ill-formed with no diagnostic required.
 
@@ -205,8 +202,7 @@ The name `execution::execute` denotes a customization point object. The expressi
 
 - Otherwise, `execute(E, F)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
 
-        template<class E, class F>
-          void execute(E, F) = delete;
+        void execute();
 
     and that does not include a declaration of `execution::execute`. If the function selected by overload resolution does not execute the function object `F` on the executor `E`, the program is ill-formed with no diagnostic required.
 
@@ -226,8 +222,7 @@ The name `execution::submit` denotes a customization point object. The expressio
 
 - Otherwise, `submit(S, C)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
 
-        template<class S, class C>
-          void submit(S, C) = delete;
+        void submit();
 
     and that does not include a declaration of `execution::submit`. If the function selected by overload resolution does not submit the callback object `C` via the sender `S`, the program is ill-formed with no diagnostic required.
 
@@ -247,8 +242,7 @@ The name `execution::bulk_execute` denotes a customization point object. If `is_
 
 - Otherwise, `bulk_execute(E, F, S)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
 
-      template<class E, class F, class S>
-        void bulk_execute(E, F, S) = delete;
+        void bulk_execute();
 
     and that does not include a declaration of `execution::bulk_execute`. If the function selected by overload resolution does not execute `S` invocations of the function object `F` on the executor `E` in bulk, and the result of that function does not model `sender<void>`, the program is ill-formed with no diagnostic required.
 
