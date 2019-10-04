@@ -291,6 +291,7 @@ XXX TODO The `sender_to` concept...
 ```
 template<class S, class C>
 concept sender_to =
+  callback_signal<C> &&
   requires(S&& s, C&& c) {
     execution::submit((S&&) s, (C&&) c);
   };
