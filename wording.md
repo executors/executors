@@ -306,18 +306,9 @@ concept executor =
   invocable<F> &&
   copy_constructible<remove_cvref_t<E>> &&
   equality_comparable<remove_cvref_t<E>> &&
-
-  (
-    requires(E&& e, F&& f) {
-      execution::execute((E&&)e,(F&&)f);
-    }
-
-    ||
-
-    requires(E&&e, F&& f) {
-      execution::submit((E&&)e,(F&&)f);
-    }
-  );
+  requires(E&& e, F&& f) {
+    execution::execute((E&&)e,(F&&)f);
+  }
   };
 ```
 
