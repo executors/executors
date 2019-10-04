@@ -19,6 +19,36 @@ For the intent of this library and extensions to this library, the *lifetime of 
 namespace std {
 namespace execution {
 
+  // Customization points:
+
+  inline namespace unspecified{
+    inline constexpr unspecified value = unspecified;
+
+    inline constexpr unspecified done = unspecified;
+
+    inline constexpr unspecified error = unspecified;
+
+    inline constexpr unspecified execute = unspecified;
+
+    inline constexpr unspecified submit = unspecified;
+
+    inline constexpr unspecified bulk_execute = unspecified;
+  }
+
+  // Concepts:
+
+  template<class T, class E = exception_ptr>
+    concept callback_signal = see-below;
+
+  template<class T, class... an>
+    concept callback = see-below;
+
+  template<class S, class C>
+    concept sender_to = see-below;
+
+  template<class E, class F = void(*)()>
+    concept executor = see-below;
+
   // Indication of executor property applicability
   template<class T> struct is_executor;
 
@@ -29,14 +59,6 @@ namespace execution {
   struct context_t;
 
   constexpr context_t context;
-
-  // Interface-changing properties:
-
-  struct oneway_t;
-  struct bulk_oneway_t;
-
-  constexpr oneway_t oneway;
-  constexpr bulk_oneway_t bulk_oneway;
 
   // Blocking properties:
 
@@ -77,6 +99,7 @@ namespace execution {
   // One-way exception handling property:
 
   // XXX bikeshed this name. "handler" may imply that the value of the property is some kind of function
+  // [*Editorial Note:* The presence of this property seems at-odds with the error-handling scheme adopted from P1660. Does this property need to be eliminated? *--end editorial note.*]
   struct oneway_exception_handler_t;
 
   constexpr oneway_exception_handler_t oneway_exception_handler;
@@ -89,12 +112,6 @@ namespace execution {
   constexpr allocator_t<void> allocator;
 
   // Executor type traits:
-
-  template<class Executor> struct is_oneway_executor;
-  template<class Executor> struct is_bulk_oneway_executor;
-
-  template<class Executor> constexpr bool is_oneway_executor_v = is_oneway_executor<Executor>::value;
-  template<class Executor> constexpr bool is_bulk_oneway_executor_v = is_bulk_oneway_executor<Executor>::value;
 
   template<class Executor> struct executor_shape;
   template<class Executor> struct executor_index;
@@ -121,55 +138,198 @@ namespace execution {
 
 A type `A` meets the `ProtoAllocator` requirements if `A` is `CopyConstructible` (C++Std [copyconstructible]), `Destructible` (C++Std [destructible]), and `allocator_traits<A>::rebind_alloc<U>` meets the allocator requirements (C++Std [allocator.requirements]), where `U` is an object type. [*Note:* For example, `std::allocator<void>` meets the proto-allocator requirements but not the allocator requirements. *--end note*] No comparison operator, copy operation, move operation, or swap operation on these types shall exit via an exception.
 
-### General requirements on executors
+### Customization points
 
-An executor type shall satisfy the requirements of `CopyConstructible` (C++Std [copyconstructible]), `Destructible` (C++Std [destructible]), and `EqualityComparable` (C++Std [equalitycomparable]).
+#### `execution::value`
 
-None of these concepts' operations, nor an executor type's swap operations, shall exit via an exception.
+The name `execution::value` denotes a customization point object. The expression `execution::value(C, V)` for some subexpressions `C` and `V` is expression-equivalent to:
 
-None of these concepts' operations, nor an executor type's associated execution functions, associated query functions, or other member functions defined in executor type requirements, shall introduce data races as a result of concurrent invocations of those functions from different threads.
+- `C.value(V)`, if that expression is valid. If the function selected does not send the value `V` to the callback `C`'s value channel, the program is ill-formed with no diagnostic required.
+
+- Otherwise, `value(C, V)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
+
+        void value();
+
+    and that does not include a declaration of `execution::value`. If the function selected by overload resolution does not send the value `V` to the callback `C`'s value channel, the program is ill-formed with no diagnostic required.
+
+- Otherwise, `execution::value(C, V)` is ill-formed.
+
+[*Editorial note:* We should probably define what "send the value `V` to the callback `C`'s value channel" means more carefully. *--end editorial note*]
+
+[*Editorial note:* This specification is adapted from `ranges::iter_swap`. *--end editorial note*]
+
+#### `execution::done`
+
+The name `execution::done` denotes a customization point object. The expression `execution::done(C)` for some subexpression `C` is expression-equivalent to:
+
+- `C.done()`, if that expression is valid. If the function selected does not signal the callback `C`'s done channel, the program is ill-formed with no diagnostic required.
+
+- Otherwise, `done(C)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
+
+        void done();
+
+    and that does not include a declaration of `execution::done`. If the function selected by overload resolution does not signal the callback `C`'s done channel, the program is ill-formed with no diagnostic required.
+
+- Otherwise, `execution::done(C)` is ill-formed.
+
+[*Editorial note:* We should probably define what "signal callback `C`'s done channel" means more carefully. *--end editorial note*]
+
+[*Editorial note:* This specification is adapted from `ranges::iter_swap`. *--end editorial note*]
+
+#### `execution::error`
+
+The name `execution::error` denotes a customization point object. The expression `execution::error(C, E)` for some subexpressions `C` and `E` are expression-equivalent to:
+
+- `C.error(E)`, if that expression is valid. If the function selected does not send the error `E` to the callback `C`'s error channel, the program is ill-formed with no diagnostic required.
+
+- Otherwise, `error(C, E)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
+
+        void error();
+
+    and that does not include a declaration of `execution::error`. If the function selected by overload resolution does not send the error `E` to the callback `C`'s error channel, the program is ill-formed with no diagnostic required.
+
+- Otherwise, `execution::error(C, E)` is ill-formed.
+
+[*Editorial note:* We should probably define what "send the error `E` to the callback `C`'s error channel" means more carefully. *--end editorial note*]
+
+[*Editorial note:* This specification is adapted from `ranges::iter_swap`. *--end editorial note*]
+
+#### `execution::execute`
+
+The name `execution::execute` denotes a customization point object. The expression `execution::execute(E, F)` for some subexpressions `E` and `F` is expression-equivalent to:
+
+- `E.execute(F)`, if that expression is valid. If the function selected does not execute the function object `F` on the executor `E`, the program is ill-formed with no diagnostic required.
+
+- Otherwise, `execute(E, F)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
+
+        void execute();
+
+    and that does not include a declaration of `execution::execute`. If the function selected by overload resolution does not execute the function object `F` on the executor `E`, the program is ill-formed with no diagnostic required.
+
+- Otherwise, if the type `F` models `invocable`, then `execution::submit(E, execution::make_callback_from(F))`.
+
+- Otherwise, `execution::execute(E, F)` is ill-formed.
+
+[*Editorial note:* We should probably define what "execute the function object `F` on the executor `E`" means more carefully. *--end editorial note*]
+
+[*Editorial note:* This specification is adapted from `ranges::iter_swap`. *--end editorial note*]
+
+#### `execution::submit`
+
+The name `execution::submit` denotes a customization point object. The expression `execution::submit(S, C)` for some subexpressions `S` and `C` is expression-equivalent to:
+
+- `S.submit(C)`, if that expression is valid. If the function selected does not submit the callback object `C` via the sender `S`, the program is ill-formed with no diagnostic required.
+
+- Otherwise, `submit(S, C)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
+
+        void submit();
+
+    and that does not include a declaration of `execution::submit`. If the function selected by overload resolution does not submit the callback object `C` via the sender `S`, the program is ill-formed with no diagnostic required.
+
+- Otherwise, if the type `C` models `Callback`, then let `F = [C]{ C.value(); }`. If `S` and `F` model `executor`, then `execution::execute(S, F)`.
+
+- Otherwise, `execution::submit(S, C)` is ill-formed.
+
+[*Editorial note:* We should probably define what "submit the callback object `C` via the sender `S`" means more carefully. *--end editorial note*]
+
+[*Editorial note:* This specification is adapted from `ranges::iter_swap`. *--end editorial note*]
+
+#### `execution::bulk_execute`
+
+The name `execution::bulk_execute` denotes a customization point object. If `is_convertible_v<S, executor_shape_t<remove_cvref_t<E>>>` is true, then the expression `execution::bulk_execute(E, F, S)` for some subexpressions `E`, `F`, and `S` is expression-equivalent to:
+
+- `E.bulk_execute(F, S)`, if that expression is valid. If the function selected does not execute `S` invocations of the function object `F` on the executor `E` in bulk, and the result of that function does not model `sender<void>`, the program is ill-formed with no diagnostic required.
+
+- Otherwise, `bulk_execute(E, F, S)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
+
+        void bulk_execute();
+
+    and that does not include a declaration of `execution::bulk_execute`. If the function selected by overload resolution does not execute `S` invocations of the function object `F` on the executor `E` in bulk, and the result of that function does not model `sender<void>`, the program is ill-formed with no diagnostic required.
+
+- Otherwise, if the types `F` and `executor_index_t<remove_cvref_t<E>>` model `invocable`, then `execution::tbd_concrete_implementations::bulk_execute(E, F, S)`.
+
+- Otherwise, `execution::bulk_execute(E, F, S)` is ill-formed.
+
+[*Editorial note:* We should probably define what "execute `S` invocations of the function object `F` on the executor `E` in bulk" means more carefully. *--end editorial note*]
+
+[*Editorial note:* This specification is adapted from `ranges::iter_swap`. *--end editorial note*]
+
+### Concept `callback_signal`
+
+XXX TODO The `callback_signal` concept...
+
+```
+template<class T, class E = exception_ptr>
+concept callback_signal =
+  (nothrow_?)move_constructible<remove_cvref_t<T>> &&
+  requires(T&& t, E&& e) {
+    { execution::done((T&&) t) } noexcept;
+    { execution::error((T&&) t, (E&&) e) } noexcept;
+  };
+```
+
+### Concept `callback`
+
+XXX TODO The `callback` concept...
+
+```
+template<class T, class... An>
+concept callback =
+  invocable<T, An...> &&
+  callback_signal<T>;
+```
+
+### Concept `sender_to`
+
+XXX TODO The `sender_to` concept...
+
+```
+template<class S, class C>
+concept sender_to =
+  callback_signal<C> &&
+  requires(S&& s, C&& c) {
+    execution::submit((S&&) s, (C&&) c);
+  };
+```
+
+### Concept `executor`
+
+XXX TODO The `executor` concept...
+
+```
+template<class E, class F = void(*)()>
+concept executor =
+  invocable<F> &&
+  copy_constructible<remove_cvref_t<E>> &&
+  equality_comparable<remove_cvref_t<E>> &&
+  requires(E&& e, F&& f) {
+    execution::execute((E&&)e,(F&&)f);
+  }
+  };
+```
+
+None of an executor's copy constructor, destructor, equality comparison, or `swap` operation shall exit via an exception.
+
+None of these operations, nor an executor type's `execute` or `submit` functions, or associated query functions shall introduce data races as a result of concurrent invocations of those functions from different threads.
 
 For any two (possibly const) values `x1` and `x2` of some executor type `X`, `x1 == x2` shall return `true` only if `x1.query(p) == x2.query(p)` for every property `p` where both `x1.query(p)` and `x2.query(p)` are well-formed and result in a non-void type that is `EqualityComparable` (C++Std [equalitycomparable]). [*Note:* The above requirements imply that `x1 == x2` returns `true` if `x1` and `x2` can be interchanged with identical effects. An executor may conceptually contain additional properties which are not exposed by a named property type that can be observed via `execution::query`; in this case, it is up to the concrete executor implementation to decide if these properties affect equality. Returning `false` does not necessarily imply that the effects are not identical. *--end note*]
 
 An executor type's destructor shall not block pending completion of the submitted function objects. [*Note:* The ability to wait for completion of submitted function objects may be provided by the associated execution context. *--end note*]
 
-For an executor type `Ex`, the expression `is_executor_v<Ex>` shall be a valid constant expression with the value `true`.
+For an executor type `E`, the expression `is_executor_v<E>` shall be a valid constant expression with the value `true`.
 
-### `OneWayExecutor` requirements
-
-A type `X` satisfies the `OneWayExecutor` requirements if it satisfies the general requirements on executors, as well as the requirements in the Table below.
-
-[*Note:* `OneWayExecutor`s provides fire-and-forget semantics without a channel for awaiting the completion of a submitted function object and obtaining its result. *--end note*]
+In addition to the above requirements, types `E` and `F` model `executor` only if they satisfy the requirements from at least one row in the Table below.
 
 In the Table below, 
 
-- `x` denotes a (possibly const) executor object of type `X`,
-- `cf` denotes the function object  `DECAY_COPY(std::forward<F>(f))` 
-- `f` denotes a function object of type `F&&` invocable as `cf()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
+- `e` denotes a (possibly const) executor object of type `E`,
+- `cf` denotes the function or callback object `DECAY_COPY(std::forward<F>(f))` 
+- `f` denotes a function or callback object of type `F&&` invocable as `cf()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `x.execute(f)` | `void` | Evaluates `DECAY_COPY(std::forward<F>(f))` on the calling thread to create `cf` that will be invoked at most once by an execution agent. <br/> May block pending completion of this invocation. <br/> Synchronizes with [intro.multithread] the invocation of `f`. <br/>Shall not propagate any exception thrown by the function object or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by one-way submitted functions is described by the `execution::oneway_exception_handler` property. The forward progress guarantee of the associated execution agent(s) is implementation defined. *--end note.*] |
-
-### `BulkOneWayExecutor` requirements
-
-The `BulkOneWayExecutor` requirements specify requirements for executors which submit a function object to be invoked multiple times without a channel for awaiting the completion of the submitted function object invocations and obtaining their result. [*Note:* That is, the executor provides fire-and-forget semantics. *--end note*]
-
-A type `X` satisfies the `BulkOneWayExecutor` requirements if it satisfies the general requirements on executors, as well as the requirements in the Table below.
-
-In the Table below,
-
-  * `x` denotes a (possibly const) executor object of type `X`,
-  * `n` denotes a shape object whose type is `executor_shape_t<X>`,
-  * `sf` denotes a `CopyConstructible` function object with zero arguments whose result type is `S`,
-  * `i` denotes a (possibly const) object whose type is `executor_index_t<X>`,
-  * `s` denotes an object whose type is `S`,
-  * `cf` denotes the function object `DECAY_COPY(std::forward<F>(f))`,
-  * `f` denotes a function object of type `F&&` invocable as `cf(i, s)` and where `decay_t<F>` satisfies the `MoveConstructible` requirements,
-
-| Expression | Return Type | Operational semantics |
-|------------|-------------|---------------------- |
-| `x.bulk_execute(f, n, sf)` | `void` | Evaluates `DECAY_COPY(std::forward<F>(f))` on the calling thread to create a function object `cf`.  *[Note:* Additional copies of `cf` may subsequently be created. *--end note.]*  Invokes `cf(i,s)` (or copy of `cf`) for each value of `i` in shape `n`. Each invocation is invoked by an execution agent that is unique for each value of `i`. *[Note:* An invocation of `bulk_execute` either successfully creates a complete group of `n` execution agents or fails via exception. *--end note.]*  `sf()` will be invoked at most once to produce value `s` before any invocation of `cf`. <br/> May block pending completion of one or more invocations of `cf`. <br/> Synchronizes with (C++Std [intro.multithread]) the invocations of `f`. <br/> Shall not propagate any exception thrown by `cf` or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by bulk one-way submitted functions is described by the `execution::oneway_exception_handler` property. The forward progress guarantee of the associated execution agent(s) are implementation defined. *--end note.*] |
+| `e.execute(f)` | `void` | Evaluates `DECAY_COPY(std::forward<F>(f))` on the calling thread to create `cf` that will be invoked at most once by an execution agent. <br/> May block pending completion of this invocation. <br/> Synchronizes with [intro.multithread] the invocation of `f`. <br/>Shall not propagate any exception thrown by the function object or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by one-way submitted functions is described by the `execution::oneway_exception_handler` property. The forward progress guarantee of the associated execution agent(s) is implementation defined. *--end note.*] |
+| `e.submit(f)` | `void` | Evaluates `DECAY_COPY(std::forward<F>(f))` on the calling thread to create `cf` that will be invoked at most once by an execution agent. <br/> May block pending completion of this invocation. <br/> Synchronizes with [intro.multithread] the invocation of `f`. <br/>Shall not propagate any exception thrown by the function object or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by one-way submitted functions is described by the `execution::oneway_exception_handler` property. The forward progress guarantee of the associated execution agent(s) is implementation defined. *--end note.*] |
 
 ### Executor applicability trait
 
@@ -182,7 +342,6 @@ This sub-clause contains a template that may be used to query the applicability 
 | Template                   | Condition           | Preconditions  |
 |----------------------------|---------------------|----------------|
 | `template<class T>` <br/>`struct is_executor` | The expression `P::is_executor` is a well-formed constant expression with a value of `true`. | `T` is a complete type. |
-
 
 ### Query-only properties
 
@@ -206,18 +365,6 @@ This sub-clause contains a template that may be used to query the applicability 
 The `context_t` property can be used only with `query`, which returns the execution context associated with the executor.
 
 The value returned from `execution::query(e, context_t)`, where `e` is an executor, shall not change between invocations.
-
-### Interface-changing properties
-
-    struct oneway_t;
-    struct bulk_oneway_t;
-
-| Property | Requirements |
-|----------|--------------|
-| `oneway_t` | The executor type satisfies the `OneWayExecutor` requirements. |
-| `bulk_oneway_t` | The executor type satisfies the `BulkOneWayExecutor` requirements. |
-
-The `oneway_t` and `bulk_oneway_t` properties are mutually exclusive.
 
 #### Polymorphic wrappers
 
@@ -508,184 +655,6 @@ template<class... OtherSupportableProperties>
 
 *Returns:* A polymorphic wrapper whose target is `e`.
 
-#### `oneway_t` customization points
-
-In addition to conforming to the above specification for interface-changing properties, the `oneway_t` property provides the following customization:
-
-    struct oneway_t
-    {
-      template <class T>
-        static constexpr bool is_applicable_property_v = is_executor_v<T>;
-
-      static constexpr bool is_requirable_concept = true;
-
-      template<class Executor>
-        friend see-below require_concept(Executor ex, oneway_t);
-    };
-
-This customization point returns an executor that satisfies the `oneway_t` requirements by adapting the native functionality of an executor that does not satisfy the `oneway_t` requirements.
-
-```
-template<class Executor>
-  friend see-below require_concept(Executor ex, oneway_t);
-```
-
-*Returns:* A value `e1` of type `E1` that holds a copy of `ex`. `E1` has member functions `require` and `query` that forward to the corresponding members of the copy of `ex`, if present. `e1` has the same properties as `ex`, except for the addition of the `oneway_t` property and the exclusion of other interface-changing properties. The type `E1` satisfies the `OneWayExecutor` requirements by implementing member function `execute` in terms of the member function `bulk_execute` of the object `ex`, and `E1` has a member function `Executor require_concept(bulk_oneway_t) const` that returns a copy of `ex`.
-
-*Remarks:* This function shall not participate in overload resolution unless `oneway_t::static_query_v<Executor>` is false and `bulk_oneway_t::static_query_v<Executor>` is true.
-
-#### `oneway_t` polymorphic wrapper
-
-In addition to conforming to the above specification for polymorphic wrappers, the nested class template `oneway_t::polymorphic_executor_type` provides the following member functions:
-
-```
-template <class... SupportableProperties>
-class polymorphic_executor_type
-{
-public:
-  static constexpr bool is_executor_v = true;
-
-  template<class Executor>
-    polymorphic_executor_type(Executor e);
-
-  template<class Executor>
-    polymorphic_executor_type& operator=(Executor e);
-
-  template<class Function>
-    void execute(Function&& f) const;
-};
-```
-
-`oneway_t::polymorphic_executor_type` satisfies the `OneWayExecutor` requirements.
-
-```
-template<class Executor>
-  polymorphic_executor_type(Executor e);
-```
-
-*Remarks:* This function shall not participate in overload resolution unless:
-
-* `can_require_concept_v<Executor, oneway_t>`.
-* `can_require_concept_v<Executor, P>`, if `P::is_requirable_concept`, where `P` is each property in `SupportableProperties...`.
-* `can_require_v<Executor, P>`, if `P::is_requirable`, where `P` is each property in `SupportableProperties...`.
-* `can_prefer_v<Executor, P>`, if `P::is_preferable`, where `P` is each property in `SupportableProperties...`.
-* and `can_query_v<Executor, P>`, if `P::is_requirable == false` and `P::is_preferable == false`, where `P` is each property in `SupportableProperties...`.
-
-*Effects:* `*this` targets a copy of `e1`, where `e1` is the result of `std::require_concept(e, oneway)`.
-
-```
-template<class Executor>
-  polymorphic_executor_type& operator=(Executor e);
-```
-
-*Requires:* As for `template<class Executor> polymorphic_executor_type(Executor e)`.
-
-*Effects:* `polymorphic_executor_type(std::move(e)).swap(*this)`.
-
-*Returns:* `*this`.
-
-```
-template<class Function>
-  void execute(Function&& f) const;
-```
-
-*Effects:* Performs `e.execute(f2)`, where:
-
-  * `e` is the target object of `*this`;
-  * `f1` is the result of `DECAY_COPY(std::forward<Function>(f))`;
-  * `f2` is a function object of unspecified type that, when invoked as `f2()`, performs `f1()`.
-
-#### `bulk_oneway_t` customization points
-
-In addition to conforming to the above specification for interface-changing properties, the `oneway_t` property provides the following customization:
-
-    struct bulk_oneway_t
-    {
-      template <class T>
-        static constexpr bool is_applicable_property_v = is_executor_v<T>;
-
-      static constexpr bool is_requirable_concept = true;
-
-      template<class Executor>
-        friend see-below require_concept(Executor ex, bulk_oneway_t);
-    };
-
-This customization point returns an executor that satisfies the `bulk_oneway_t` requirements by adapting the native functionality of an executor that does not satisfy the `bulk_oneway_t` requirements.
-
-```
-template<class Executor>
-  friend see-below require_concept(Executor ex, bulk_oneway_t);
-```
-
-*Returns:* A value `e1` of type `E1` that holds a copy of `ex`. `E1` has member functions `require_concept`, `require`, and `query` that forward to the corresponding members of the copy of `ex`, if present. `e1` has the same properties as `ex`, except for the addition of the `bulk_oneway_t` property and the exclusion of other interface-changing properties. The type `E1` satisfies the `BulkOneWayExecutor` requirements by implementing member function `bulk_execute` in terms of the member function `execute` of the object `ex`, and `E1` has a member function `Executor require_concept(oneway_t) const` that returns a copy of `ex`.
-
-*Remarks:* This function shall not participate in overload resolution unless `bulk_oneway_t::static_query_v<Executor>` is false and `oneway_t::static_query_v<Executor>` is true.
-
-#### `bulk_oneway_t` polymorphic wrapper
-
-In addition to conforming to the above specification for polymorphic wrappers, the nested class template `bulk_oneway_t::polymorphic_executor_type` has the following member functions:
-
-```
-template <class... SupportableProperties>
-class polymorphic_executor_type
-{
-public:
-  static constexpr bool is_executor_v = true;
-
-  template<class Executor>
-    polymorphic_executor_type(Executor e);
-
-  template<class Executor>
-    polymorphic_executor_type& operator=(Executor e);
-
-  template<class Function, class SharedFactory>
-    void bulk_execute(Function&& f, size_t n, SharedFactory&& sf) const;
-};
-```
-
-`bulk_oneway_t::polymorphic_executor_type` satisfies the `BulkOneWayExecutor` requirements.
-
-```
-template<class Executor>
-  polymorphic_executor_type(Executor e);
-```
-
-*Remarks:* This function shall not participate in overload resolution unless:
-
-* `can_require_concept_v<Executor, bulk_oneway_t>`.
-* `can_require_concept_v<Executor, P>`, if `P::is_requirable_concept`, where `P` is each property in `SupportableProperties...`.
-* `can_require_v<Executor, P>`, if `P::is_requirable`, where `P` is each property in `SupportableProperties...`.
-* `can_prefer_v<Executor, P>`, if `P::is_preferable`, where `P` is each property in `SupportableProperties...`.
-* and `can_query_v<Executor, P>`, if `P::is_requirable == false` and `P::is_preferable == false`, where `P` is each property in `SupportableProperties...`.
-
-*Effects:* `*this` targets a copy of `e1`, where `e1` is the result of `std::require_concept(e, bulk_oneway)`.
-
-```
-template<class Executor>
-  polymorphic_executor_type& operator=(Executor e);
-```
-
-*Requires:* As for `template<class Executor> polymorphic_executor_type(Executor e)`.
-
-*Effects:* `polymorphic_executor_type(std::move(e)).swap(*this)`.
-
-*Returns:* `*this`.
-
-```
-template<class Function, class SharedFactory>
-  void bulk_execute(Function&& f, size_t n, SharedFactory&& sf) const;
-```
-
-*Effects:* Performs `e.bulk_execute(f2, n, sf2)`, where:
-
-  * `e` is the target object of `*this`;
-  * `sf1` is the result of `DECAY_COPY(std::forward<SharedFactory>(sf))`;
-  * `sf2` is a function object of unspecified type that, when invoked as `sf2()`, performs `sf1()`;
-  * `s1` is the result of `sf1()`;
-  * `s2` is the result of `sf2()`;
-  * `f1` is the result of `DECAY_COPY(std::forward<Function>(f))`;
-  * `f2` is a function object of unspecified type that, when invoked as `f2(i, s2)`, performs `f1(i, s1)`, where `i` is a value of type `size_t`.
-
 ### Behavioral properties
 
 Behavioral properties define a set of mutually-exclusive nested properties describing executor behavior.
@@ -840,7 +809,7 @@ template<class Executor>
   friend see-below require(Executor ex, blocking_t::always_t);
 ```
 
-*Returns:* A value `e1` of type `E1` that holds a copy of `ex`. If `Executor` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `OneWayExecutor` requirements by providing member functions `require`, `query`, and `execute` that forward to the corresponding member functions of the copy of `ex`. If `Executor` satisfies the `BulkOneWayExecutor` requirements, `E1` shall satisfy the `BulkOneWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_execute` that forward to the corresponding member functions of the copy of `ex`. In addition, `E1` provides an overload of `require` such that `e1.require(blocking.always)` returns a copy of `e1`, an overload of `query` such that `e1.query(blocking)` returns `blocking.always`, and functions `execute` and `bulk_execute` shall block the calling thread until the submitted functions have finished execution. `e1` has the same executor properties as `ex`, except for the addition of the `blocking_t::always_t` property, and removal of `blocking_t::never_t` and `blocking_t::possibly_t` properties if present.
+*Returns:* A value `e1` of type `E1` that holds a copy of `ex`. `E1` provides an overload of `require` such that `e1.require(blocking.always)` returns a copy of `e1`, an overload of `query` such that `e1.query(blocking)` returns `blocking.always`, and functions `execute` and `bulk_execute` shall block the calling thread until the submitted functions have finished execution. `e1` has the same executor properties as `ex`, except for the addition of the `blocking_t::always_t` property, and removal of `blocking_t::never_t` and `blocking_t::possibly_t` properties if present.
 
 *Remarks:* This function shall not participate in overload resolution unless `blocking_adaptation_t::static_query_v<Executor>` is `blocking_adaptation.allowed`.
 
@@ -878,7 +847,7 @@ template<class Executor>
   friend see-below require(Executor ex, blocking_adaptation_t::allowed_t);
 ```
 
-*Returns:* A value `e1` of type `E1` that holds a copy of `ex`. If `Executor` satisfies the `OneWayExecutor` requirements, `E1` shall satisfy the `OneWayExecutor` requirements by providing member functions `require`, `query`, and `execute` that forward to the corresponding member functions of the copy of `ex`. If `Executor` satisfies the `BulkOneWayExecutor` requirements, `E1` shall satisfy the `BulkOneWayExecutor` requirements by providing member functions `require`, `query`, and `bulk_execute` that forward to the corresponding member functions of the copy of `ex`. In addition, `blocking_adaptation_t::static_query_v<E1>` is `blocking_adaptation.allowed`, and `e1.require(blocking_adaptation.disallowed)` yields a copy of `ex`. `e1` has the same executor properties as `ex`, except for the addition of the `blocking_adaptation_t::allowed_t` property.
+*Returns:* A value `e1` of type `E1` that holds a copy of `ex`. In addition, `blocking_adaptation_t::static_query_v<E1>` is `blocking_adaptation.allowed`, and `e1.require(blocking_adaptation.disallowed)` yields a copy of `ex`. `e1` has the same executor properties as `ex`, except for the addition of the `blocking_adaptation_t::allowed_t` property.
 
 #### Properties to indicate if submitted tasks represent continuations
 
@@ -985,8 +954,8 @@ The `allocator_t` property conforms to the following specification:
 
 | Property | Notes | Requirements |
 |----------|-------|--------------|
-| `allocator_t<ProtoAllocator>` | Result of `allocator_t<void>::operator(OtherProtoAllocator)`. | For executor types that satisfy the `OneWayExecutor` requirements, the executor implementation shall use the encapsulated allocator to allocate any memory required to store the submitted function object. |
-| `allocator_t<void>` | Specialisation of `allocator_t<ProtoAllocator>`. | For executor types that satisfy the `OneWayExecutor` requirements, the executor implementation shall use an implementation defined default allocator to allocate any memory required to store the submitted function object. |
+| `allocator_t<ProtoAllocator>` | Result of `allocator_t<void>::operator(OtherProtoAllocator)`. | The executor shall use the encapsulated allocator to allocate any memory required to store the submitted function object. |
+| `allocator_t<void>` | Specialisation of `allocator_t<ProtoAllocator>`. | The executor shall use an implementation defined default allocator to allocate any memory required to store the submitted function object. |
 
 If the expression `execution::query(E, P)` is well formed, where `P` is an object of type `allocator_t<ProtoAllocator>`, then:
 * the type of the expression `execution::query(E, P)` shall satisfy the `ProtoAllocator` requirements;
@@ -1015,18 +984,6 @@ static constexpr ProtoAllocator value() const;
 *Remarks:* This function shall not participate in overload resolution unless `ProtoAllocator` is not `void`.
 
 ## Executor type traits
-
-### Determining that a type satisfies executor type requirements
-
-    template<class T> struct is_oneway_executor;
-    template<class T> struct is_bulk_oneway_executor;
-
-This sub-clause contains templates that may be used to query the properties of a type at compile time. Each of these templates is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
-
-| Template                   | Condition           | Preconditions  |
-|----------------------------|---------------------|----------------|
-| `template<class T>` <br/>`struct is_oneway_executor` | `T` meets the syntactic requirements for `OneWayExecutor`. | `T` is a complete type. |
-| `template<class T>` <br/>`struct is_bulk_oneway_executor` | `T` meets the syntactic requirements for `BulkOneWayExecutor`. | `T` is a complete type. |
 
 ### Associated shape type
 
@@ -1603,11 +1560,10 @@ bool operator!=(const C& a, const C& b) noexcept;
 
 *Returns:* `!(a == b)`.
 
-#### `static_thread_pool` executor types with the `execution::oneway` property
+#### `static_thread_pool` executor execution functions
 
 In addition to conforming to the above specification, `static_thread_pool`
-executors having the `execution::oneway` property established shall conform to
-the following specification.
+executors shall conform to the following specification.
 
 ```
 class C
@@ -1615,10 +1571,13 @@ class C
   public:
     template<class Function>
       void execute(Function&& f) const;
+
+    template<class Function>
+      void bulk_execute(Function&& f, size_t n) const;
 };
 ```
 
-`C` is a type satisfying the `OneWayExecutor` requirements.
+`C` is a type satisfying the `Executor` requirements.
 
 ```
 template<class Function>
@@ -1626,33 +1585,17 @@ template<class Function>
 ```
 
 *Effects:* Submits the function `f` for execution on the `static_thread_pool`
-according to the `OneWayExecutor` requirements and the properties established
-for `*this`. If the submitted function `f` exits via an exception, the
-`static_thread_pool` invokes `std::terminate()`.
-
-#### `static_thread_pool` executor types with the `execution::bulk_oneway` property
-
-In addition to conforming to the above specification, `static_thread_pool`
-executors having the `execution::bulk_oneway` property established shall
-conform to the following specification.
+according to the the properties established for `*this`. If the submitted
+function `f` exits via an exception, the `static_thread_pool` invokes
+`std::terminate()`.
 
 ```
-class C
-{
-  public:
-    template<class Function, class SharedFactory>
-      void bulk_execute(Function&& f, size_t n, SharedFactory&& sf) const;
-};
-```
-
-`C` is a type satisfying the `BulkOneWayExecutor` requirements.
-
-```
-template<class Function, class SharedFactory>
-  void bulk_execute(Function&& f, size_t n, SharedFactory&& sf) const;
+template<class Function>
+  void bulk_execute(Function&& f, size_t n) const;
 ```
 
 *Effects:* Submits the function `f` for bulk execution on the
-`static_thread_pool` according to the `BulkOneWayExecutor` requirements and the
-properties established for `*this`. If the submitted function `f` exits via an
-exception, the `static_thread_pool` invokes `std::terminate()`.
+`static_thread_pool` according to properties established for `*this`. If the
+submitted function `f` exits via an exception, the `static_thread_pool` invokes
+`std::terminate()`.
+

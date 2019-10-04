@@ -19,11 +19,11 @@ Authors:            Jared Hoberock, jhoberock@nvidia.com
 
                     Lee Howes, lwh@fb.com
 
-                    Kirk Shoop, XXX get Kirk's email
+                    Kirk Shoop, kirkshoop@fb.com
 
-                    Lewis Baker, XXX get Lewis' email
+                    Lewis Baker, lbaker@fb.com
 
-                    Eric Niebler, XXX get Eric's email
+                    Eric Niebler, eniebler@fb.com
 
 Other Contributors: Hans Boehm, hboehm@google.com
 
@@ -49,7 +49,7 @@ Audience:           SG1 - Concurrency and Parallelism, LEWG
 
 Reply-to:           sg1-exec@googlegroups.com
 
-Abstract:           This paper proposes a programming model for executors, which are modular components for creating execution. The design of this proposal is described in paper [P0761](https://wg21.link/P0761).
+Abstract:           This paper proposes a programming model for executors, which are modular components for creating execution, and senders, which are lazy descriptions of execution.
 
 ------------------------------------------------------
 
@@ -59,9 +59,24 @@ Abstract:           This paper proposes a programming model for executors, which
 
 As directed by SG1 at the 2019-XX Cologne meeting, we have implemented the following changes suggested by P1658 and P1660:
 
-* XXX TODO
-* XXX TODO
-* XXX TODO
+* Eliminated interface-changing properties `oneway_t` and `bulk_oneway_t`.
+* Introduced `executor` concept.
+* Eliminated `OneWayExecutor` and `BulkOneWayExecutor` requirements.
+* Eliminated `is_oneway_executor` and `is_bulk_oneway_executor` type traits.
+* Introduced `callback_signal`, `callback`, and `sender_to` concepts.
+* Introduced `value`, `error`, `done`, `execute`, `submit`, and `bulk_execute` customization point objects.
+
+TODO list:
+
+* Introduce `sender` concept
+* Decide whether we want the CPOs to test free functions via ADL
+* Tweak `submit` definition to allow it to throw
+* Introduce `make_callback_from`
+* Introduce `tbd_concrete_implementations::bulk_execute`
+* Update polymorphic executor specification?
+* Review R11 wording changes
+* Eliminate editorial notes
+* Scrub XXX TODOs
 
 ### Revision 10
 
