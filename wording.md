@@ -149,7 +149,7 @@ The name `execution::value` denotes a customization point object. The expression
 - Otherwise, `value(C, V)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
 
         template<class C, class V>
-          void value(C, V) = delete;
+          void value();
 
     and that does not include a declaration of `execution::value`. If the function selected by overload resolution does not send the value `V` to the callback `C`'s value channel, the program is ill-formed with no diagnostic required.
 
