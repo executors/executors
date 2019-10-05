@@ -236,19 +236,38 @@ The name `execution::submit` denotes a customization point object. For some sube
 
         template<receiver R>
         struct as-invocable {
-          bool call_done_ = true;
-          std::remove_cvref_t<R> r_;
-          as-invocable(R&& r) : r_((R&&) r) {}
-          as-invocable(as-invocable&& other)
-            : call_done_(exchange(that.call_done_, false)),
-              r_(move(that.r_)) {}
+        private:
+          using receiver_type = std::remove_cvref_t<R>
+          std::optional<receiver_type> r_ {};
+          void try_init_(auto&& r) {
+            try {
+              r_.emplace((decltype(r)&&) r);
+            } catch(...) {
+              execution::set_error(r, current_exception());
+            }
+          }
+        public:
+          explicit as-invocable(receiver_type&& r) {
+            try_init_(move_if_noexcept(r));
+          }
+          explicit as-invocable(const receiver_type& r) {
+            try_init_(r);
+          }
+          as-invocable(as-invocable&& other) {
+            if(other.r_)
+              try_init_(move_if_noexcept(*other.r_));
+          }
           ~as-invocable() {
-            if (call_done_)
-              execution::set_done(r_);
+            if(r_)
+              execution::set_done(*r_);
           }
           void operator()() {
-            execution::set_value(r_);
-            call_done_ = false;
+            try {
+              execution::set_value(*r_);
+            } catch(...) {
+              execution::set_error(*r_, current_exception());
+            }
+            r_.reset();
           }
         };
 
@@ -286,7 +305,6 @@ XXX TODO The `receiver` concept...
 template<class T, class E = exception_ptr>
 concept receiver =
   move_constructible<remove_cvref_t<T>> &&
-  is_nothrow_move_constructible_v<remove_cvref_t<T>> &&
   requires(T&& t, E&& e) {
     { execution::set_done((T&&) t) } noexcept;
     { execution::set_error((T&&) t, (E&&) e) } noexcept;
