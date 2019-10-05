@@ -19,6 +19,10 @@ For the intent of this library and extensions to this library, the *lifetime of 
 namespace std {
 namespace execution {
 
+  // Invocable archtetype
+
+  using invocable_archtetype = unspecified;
+
   // Customization points:
 
   inline namespace unspecified{
@@ -148,6 +152,12 @@ namespace execution {
 ### `ProtoAllocator` requirements
 
 A type `A` meets the `ProtoAllocator` requirements if `A` is `CopyConstructible` (C++Std [copyconstructible]), `Destructible` (C++Std [destructible]), and `allocator_traits<A>::rebind_alloc<U>` meets the allocator requirements (C++Std [allocator.requirements]), where `U` is an object type. [*Note:* For example, `std::allocator<void>` meets the proto-allocator requirements but not the allocator requirements. *--end note*] No comparison operator, copy operation, move operation, or swap operation on these types shall exit via an exception.
+
+### Invocable archetype
+
+Let `Args...` be an argument pack. The name `execution::invocable_archetype` is an implementation-defined type that, with `Args...`, models `invocable`.
+
+A program that creates an instance of `execution::invocable_archetype` is ill-formed.
 
 ### Customization points
 
