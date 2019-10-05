@@ -304,23 +304,26 @@ The name `execution::schedule` denotes a customization point object. The express
 
 #### `execution::bulk_execute`
 
-The name `execution::bulk_execute` denotes a customization point object. If `is_convertible_v<S, size_t>` is true, then the expression `execution::bulk_execute(E, F, S)` for some subexpressions `E`, `F`, and `S` is expression-equivalent to:
+The name `execution::bulk_execute` denotes a customization point object. If `is_convertible_v<N, size_t>` is true, then the expression `execution::bulk_execute(S, F, N)` for some subexpressions `S`, `F`, and `N` is expression-equivalent to:
 
-- `E.bulk_execute(F, S)`, if that expression is valid. If the function selected does not execute `S` invocations of the function object `F` on the executor `E` in bulk, and the result of that function does not model `sender<void>`, the program is ill-formed with no diagnostic required.
+- `S.bulk_execute(F, N)`, if that expression is valid. If the function selected does not execute `N` invocations of the function object `F` on the executor `S` in bulk with forward progress guarantee `execution::query(S, execution::bulk_guarantee)`, and the result of that function does not model `sender<void>`, the program is ill-formed with no diagnostic required.
 
-- Otherwise, `bulk_execute(E, F, S)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
+- Otherwise, `bulk_execute(S, F, N)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
 
         void bulk_execute();
 
-    and that does not include a declaration of `execution::bulk_execute`. If the function selected by overload resolution does not execute `S` invocations of the function object `F` on the executor `E` in bulk, and the result of that function does not model `sender<void>`, the program is ill-formed with no diagnostic required.
+    and that does not include a declaration of `execution::bulk_execute`. If the function selected by overload resolution does not execute `N` invocations of the function object `F` on the executor `S` in bulk with forward progress guarantee `execution::query(E, execution::bulk_guarantee)`, and the result of that function does not model `sender<void>`, the program is ill-formed with no diagnostic required.
 
-- Otherwise, if the types `F` and `executor_index_t<remove_cvref_t<E>>` model `invocable`, then `execution::tbd_concrete_implementations::bulk_execute(E, F, S)`.
+- Otherwise, if the types `F` and `executor_index_t<remove_cvref_t<S>>` model `invocable` and if `execution::query(S, execution::bulk_guarantee)` equals `execution::bulk_guarantee.unsequenced`, then
+    - Evaluates `DECAY_COPY(std::forward<decltype(F)>(F))` on the calling thread to create a function object `cf`. [*Note:* Additional copies of `cf` may subsequently be created. *--end note.*]
+    - For each value of `i` in `N`, `cf(i)` (or copy of `cf`)) will be invoked at most once by an execution agent that is unique for each value of `i`.
+    - May block pending completion of one or more invocations of `cf`.
+    - Synchronizes with (C++Std [intro.multithread]) the invocations of `cf`.
+    - Shall not propagate any exception thrown by `cf` or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by `bulk_execute`-submitted functions are implementation-defined. *--end note.*]
 
-- Otherwise, `execution::bulk_execute(E, F, S)` is ill-formed.
+- Otherwise, `execution::bulk_execute(S, F, N)` is ill-formed.
 
-[*Editorial note:* We should probably define what "execute `S` invocations of the function object `F` on the executor `E` in bulk" means more carefully. *--end editorial note*]
-
-[*Editorial note:* This specification is adapted from `ranges::iter_swap`. *--end editorial note*]
+[*Editorial note:* We should probably define what "execute `N` invocations of the function object `F` on the executor `S` in bulk" means more carefully. *--end editorial note*]
 
 ### Concept `receiver`
 
