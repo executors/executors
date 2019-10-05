@@ -259,8 +259,10 @@ The name `execution::submit` denotes a customization point object. For some sube
             try_init_(r);
           }
           as-invocable(as-invocable&& other) {
-            if(other.r_)
+            if(other.r_) {
               try_init_(move_if_noexcept(*other.r_));
+              other.r_.reset();
+            }
           }
           ~as-invocable() {
             if(r_)
