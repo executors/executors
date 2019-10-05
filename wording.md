@@ -222,19 +222,37 @@ The name `execution::execute` denotes a customization point object. The expressi
 
 #### `execution::submit`
 
-The name `execution::submit` denotes a customization point object. The expression `execution::submit(S, R)` for some subexpressions `S` and `R` is expression-equivalent to:
+The name `execution::submit` denotes a customization point object. For some subexpressions `s` and `r`, let `S` be a type such that `decltype((s))` is `S` and let `R` be a type such that `decltype((r))` is `R`. The expression `execution::submit(s, r)` is ill-formed if `R` does not model `receiver`, or if `S` does not model either `sender` or `executor`. Otherwise, it is expression-equivalent to:
 
-- `S.submit(R)`, if that expression is valid. If the function selected does not submit the receiver object `R` via the sender `S`, the program is ill-formed with no diagnostic required.
+- `s.submit(r)`, if that expression is valid and `S` models `sender`. If the function selected does not submit the receiver object `r` via the sender `s`, the program is ill-formed with no diagnostic required.
 
-- Otherwise, `submit(S, R)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
+- Otherwise, `submit(s, r)`, if that expression is valid and `S` models `sender`, with overload resolution performed in a context that includes the declaration
 
         void submit();
 
-    and that does not include a declaration of `execution::submit`. If the function selected by overload resolution does not submit the receiver object `R` via the sender `S`, the program is ill-formed with no diagnostic required.
+    and that does not include a declaration of `execution::submit`. If the function selected by overload resolution does not submit the receiver object `r` via the sender `s`, the program is ill-formed with no diagnostic required.
 
-- Otherwise, if the type `R` models `receiver`, then let `F = [R]{ R.set_value(); }`. If `S` and `F` model `executor`, then `execution::execute(S, F)`.
+- Otherwise, `execution::execute(s, `_`as-invocable`_`<R>(forward<R>(r)))` if `S` and _`as-invocable`_`<R>` model `executor`, where _`as-invocable`_ is some implementation-defined class template equivalent to:
 
-- Otherwise, `execution::submit(S, R)` is ill-formed.
+        template<receiver R>
+        struct as-invocable {
+          bool call_done_ = true;
+          std::remove_cvref_t<R> r_;
+          as-invocable(R&& r) : r_((R&&) r) {}
+          as-invocable(as-invocable&& other)
+            : call_done_(exchange(that.call_done_, false)),
+              r_(move(that.r_)) {}
+          ~as-invocable() {
+            if (call_done_)
+              execution::set_done(r_);
+          }
+          void operator()() {
+            execution::set_value(r_);
+            call_done_ = false;
+          }
+        };
+
+- Otherwise, `execution::submit(s, r)` is ill-formed.
 
 [*Editorial note:* We should probably define what "submit the receiver object `R` via the sender `S`" means more carefully. *--end editorial note*]
 
