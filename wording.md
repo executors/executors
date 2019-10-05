@@ -40,13 +40,13 @@ namespace execution {
   template<class T, class E = exception_ptr>
     concept receiver = see-below;
 
-  template<class T, class... an>
+  template<class T, class... An>
     concept receiver_of = see-below;
 
   template<class S>
     concept sender = see-below;
 
-  template<class S, class C>
+  template<class S, class R>
     concept sender_to = see-below;
 
   template<class E, class F = void(*)()>
@@ -148,19 +148,19 @@ A type `A` meets the `ProtoAllocator` requirements if `A` is `CopyConstructible`
 
 #### `execution::set_value`
 
-The name `execution::set_value` denotes a customization point object. The expression `execution::set_value(R, V)` for some subexpressions `R` and `V` is expression-equivalent to:
+The name `execution::set_value` denotes a customization point object. The expression `execution::set_value(R, Vs...)` for some subexpressions `R` and `Vs...` is expression-equivalent to:
 
-- `R.set_value(V)`, if that expression is valid. If the function selected does not send the value `V` to the receiver `R`'s value channel, the program is ill-formed with no diagnostic required.
+- `R.set_value(Vs...)`, if that expression is valid. If the function selected does not send the value(s) `Vs...` to the receiver `R`'s value channel, the program is ill-formed with no diagnostic required.
 
-- Otherwise, `set_value(R, V)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
+- Otherwise, `set_value(R, Vs...)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
 
         void set_value();
 
-    and that does not include a declaration of `execution::set_value`. If the function selected by overload resolution does not send the value `V` to the receiver `R`'s value channel, the program is ill-formed with no diagnostic required.
+    and that does not include a declaration of `execution::set_value`. If the function selected by overload resolution does not send the value(s) `Vs...` to the receiver `R`'s value channel, the program is ill-formed with no diagnostic required.
 
-- Otherwise, `execution::set_value(R, V)` is ill-formed.
+- Otherwise, `execution::set_value(R, Vs...)` is ill-formed.
 
-[*Editorial note:* We should probably define what "send the value `V` to the receiver `R`'s value channel" means more carefully. *--end editorial note*]
+[*Editorial note:* We should probably define what "send the value(s) `Vs...` to the receiver `R`'s value channel" means more carefully. *--end editorial note*]
 
 [*Editorial note:* This specification is adapted from `ranges::iter_swap`. *--end editorial note*]
 
@@ -284,7 +284,7 @@ template<class T, class... An>
 concept receiver_of =
   receiver<T> &&
   requires(T&& t, An&&... an) {
-    execution::set_value((An&&) an...);
+    execution::set_value((T&&) t, (An&&) an...);
   };
 ```
 
