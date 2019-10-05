@@ -22,11 +22,11 @@ namespace execution {
   // Customization points:
 
   inline namespace unspecified{
-    inline constexpr unspecified value = unspecified;
+    inline constexpr unspecified set_value = unspecified;
 
-    inline constexpr unspecified done = unspecified;
+    inline constexpr unspecified set_done = unspecified;
 
-    inline constexpr unspecified error = unspecified;
+    inline constexpr unspecified set_error = unspecified;
 
     inline constexpr unspecified execute = unspecified;
 
@@ -38,16 +38,22 @@ namespace execution {
   // Concepts:
 
   template<class T, class E = exception_ptr>
-    concept callback_signal = see-below;
+    concept receiver = see-below;
 
-  template<class T, class... an>
-    concept callback = see-below;
+  template<class T, class... An>
+    concept receiver_of = see-below;
 
-  template<class S, class C>
+  template<class S>
+    concept sender = see-below;
+
+  template<class S, class R>
     concept sender_to = see-below;
 
   template<class E, class F = void(*)()>
     concept executor = see-below;
+
+  // A no-op receiver type
+  class sink_receiver;
 
   // Indication of executor property applicability
   template<class T> struct is_executor;
@@ -140,57 +146,57 @@ A type `A` meets the `ProtoAllocator` requirements if `A` is `CopyConstructible`
 
 ### Customization points
 
-#### `execution::value`
+#### `execution::set_value`
 
-The name `execution::value` denotes a customization point object. The expression `execution::value(C, V)` for some subexpressions `C` and `V` is expression-equivalent to:
+The name `execution::set_value` denotes a customization point object. The expression `execution::set_value(R, Vs...)` for some subexpressions `R` and `Vs...` is expression-equivalent to:
 
-- `C.value(V)`, if that expression is valid. If the function selected does not send the value `V` to the callback `C`'s value channel, the program is ill-formed with no diagnostic required.
+- `R.set_value(Vs...)`, if that expression is valid. If the function selected does not send the value(s) `Vs...` to the receiver `R`'s value channel, the program is ill-formed with no diagnostic required.
 
-- Otherwise, `value(C, V)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
+- Otherwise, `set_value(R, Vs...)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
 
-        void value();
+        void set_value();
 
-    and that does not include a declaration of `execution::value`. If the function selected by overload resolution does not send the value `V` to the callback `C`'s value channel, the program is ill-formed with no diagnostic required.
+    and that does not include a declaration of `execution::set_value`. If the function selected by overload resolution does not send the value(s) `Vs...` to the receiver `R`'s value channel, the program is ill-formed with no diagnostic required.
 
-- Otherwise, `execution::value(C, V)` is ill-formed.
+- Otherwise, `execution::set_value(R, Vs...)` is ill-formed.
 
-[*Editorial note:* We should probably define what "send the value `V` to the callback `C`'s value channel" means more carefully. *--end editorial note*]
-
-[*Editorial note:* This specification is adapted from `ranges::iter_swap`. *--end editorial note*]
-
-#### `execution::done`
-
-The name `execution::done` denotes a customization point object. The expression `execution::done(C)` for some subexpression `C` is expression-equivalent to:
-
-- `C.done()`, if that expression is valid. If the function selected does not signal the callback `C`'s done channel, the program is ill-formed with no diagnostic required.
-
-- Otherwise, `done(C)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
-
-        void done();
-
-    and that does not include a declaration of `execution::done`. If the function selected by overload resolution does not signal the callback `C`'s done channel, the program is ill-formed with no diagnostic required.
-
-- Otherwise, `execution::done(C)` is ill-formed.
-
-[*Editorial note:* We should probably define what "signal callback `C`'s done channel" means more carefully. *--end editorial note*]
+[*Editorial note:* We should probably define what "send the value(s) `Vs...` to the receiver `R`'s value channel" means more carefully. *--end editorial note*]
 
 [*Editorial note:* This specification is adapted from `ranges::iter_swap`. *--end editorial note*]
 
-#### `execution::error`
+#### `execution::set_done`
 
-The name `execution::error` denotes a customization point object. The expression `execution::error(C, E)` for some subexpressions `C` and `E` are expression-equivalent to:
+The name `execution::set_done` denotes a customization point object. The expression `execution::set_done(R)` for some subexpression `R` is expression-equivalent to:
 
-- `C.error(E)`, if that expression is valid. If the function selected does not send the error `E` to the callback `C`'s error channel, the program is ill-formed with no diagnostic required.
+- `R.set_done()`, if that expression is valid. If the function selected does not signal the receiver `R`'s done channel, the program is ill-formed with no diagnostic required.
 
-- Otherwise, `error(C, E)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
+- Otherwise, `set_done(R)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
 
-        void error();
+        void set_done();
 
-    and that does not include a declaration of `execution::error`. If the function selected by overload resolution does not send the error `E` to the callback `C`'s error channel, the program is ill-formed with no diagnostic required.
+    and that does not include a declaration of `execution::set_done`. If the function selected by overload resolution does not signal the receiver `R`'s done channel, the program is ill-formed with no diagnostic required.
 
-- Otherwise, `execution::error(C, E)` is ill-formed.
+- Otherwise, `execution::set_done(R)` is ill-formed.
 
-[*Editorial note:* We should probably define what "send the error `E` to the callback `C`'s error channel" means more carefully. *--end editorial note*]
+[*Editorial note:* We should probably define what "signal receiver `R`'s done channel" means more carefully. *--end editorial note*]
+
+[*Editorial note:* This specification is adapted from `ranges::iter_swap`. *--end editorial note*]
+
+#### `execution::set_error`
+
+The name `execution::set_error` denotes a customization point object. The expression `execution::set_error(R, E)` for some subexpressions `R` and `E` are expression-equivalent to:
+
+- `R.set_error(E)`, if that expression is valid. If the function selected does not send the error `E` to the receiver `R`'s error channel, the program is ill-formed with no diagnostic required.
+
+- Otherwise, `set_error(R, E)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
+
+        void set_error();
+
+    and that does not include a declaration of `execution::set_error`. If the function selected by overload resolution does not send the error `E` to the receiver `R`'s error channel, the program is ill-formed with no diagnostic required.
+
+- Otherwise, `execution::set_error(R, E)` is ill-formed.
+
+[*Editorial note:* We should probably define what "send the error `E` to the receiver `R`'s error channel" means more carefully. *--end editorial note*]
 
 [*Editorial note:* This specification is adapted from `ranges::iter_swap`. *--end editorial note*]
 
@@ -216,21 +222,58 @@ The name `execution::execute` denotes a customization point object. The expressi
 
 #### `execution::submit`
 
-The name `execution::submit` denotes a customization point object. The expression `execution::submit(S, C)` for some subexpressions `S` and `C` is expression-equivalent to:
+The name `execution::submit` denotes a customization point object. For some subexpressions `s` and `r`, let `S` be a type such that `decltype((s))` is `S` and let `R` be a type such that `decltype((r))` is `R`. The expression `execution::submit(s, r)` is ill-formed if `R` does not model `receiver`, or if `S` does not model either `sender` or `executor`. Otherwise, it is expression-equivalent to:
 
-- `S.submit(C)`, if that expression is valid. If the function selected does not submit the callback object `C` via the sender `S`, the program is ill-formed with no diagnostic required.
+- `s.submit(r)`, if that expression is valid and `S` models `sender`. If the function selected does not submit the receiver object `r` via the sender `s`, the program is ill-formed with no diagnostic required.
 
-- Otherwise, `submit(S, C)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
+- Otherwise, `submit(s, r)`, if that expression is valid and `S` models `sender`, with overload resolution performed in a context that includes the declaration
 
         void submit();
 
-    and that does not include a declaration of `execution::submit`. If the function selected by overload resolution does not submit the callback object `C` via the sender `S`, the program is ill-formed with no diagnostic required.
+    and that does not include a declaration of `execution::submit`. If the function selected by overload resolution does not submit the receiver object `r` via the sender `s`, the program is ill-formed with no diagnostic required.
 
-- Otherwise, if the type `C` models `Callback`, then let `F = [C]{ C.value(); }`. If `S` and `F` model `executor`, then `execution::execute(S, F)`.
+- Otherwise, `execution::execute(s, `_`as-invocable`_`<R>(forward<R>(r)))` if `S` and _`as-invocable`_`<R>` model `executor`, where _`as-invocable`_ is some implementation-defined class template equivalent to:
 
-- Otherwise, `execution::submit(S, C)` is ill-formed.
+        template<receiver R>
+        struct as-invocable {
+        private:
+          using receiver_type = std::remove_cvref_t<R>
+          std::optional<receiver_type> r_ {};
+          void try_init_(auto&& r) {
+            try {
+              r_.emplace((decltype(r)&&) r);
+            } catch(...) {
+              execution::set_error(r, current_exception());
+            }
+          }
+        public:
+          explicit as-invocable(receiver_type&& r) {
+            try_init_(move_if_noexcept(r));
+          }
+          explicit as-invocable(const receiver_type& r) {
+            try_init_(r);
+          }
+          as-invocable(as-invocable&& other) {
+            if(other.r_)
+              try_init_(move_if_noexcept(*other.r_));
+          }
+          ~as-invocable() {
+            if(r_)
+              execution::set_done(*r_);
+          }
+          void operator()() {
+            try {
+              execution::set_value(*r_);
+            } catch(...) {
+              execution::set_error(*r_, current_exception());
+            }
+            r_.reset();
+          }
+        };
 
-[*Editorial note:* We should probably define what "submit the callback object `C` via the sender `S`" means more carefully. *--end editorial note*]
+- Otherwise, `execution::submit(s, r)` is ill-formed.
+
+[*Editorial note:* We should probably define what "submit the receiver object `R` via the sender `S`" means more carefully. *--end editorial note*]
 
 [*Editorial note:* This specification is adapted from `ranges::iter_swap`. *--end editorial note*]
 
@@ -254,29 +297,47 @@ The name `execution::bulk_execute` denotes a customization point object. If `is_
 
 [*Editorial note:* This specification is adapted from `ranges::iter_swap`. *--end editorial note*]
 
-### Concept `callback_signal`
+### Concept `receiver`
 
-XXX TODO The `callback_signal` concept...
+XXX TODO The `receiver` concept...
 
 ```
 template<class T, class E = exception_ptr>
-concept callback_signal =
-  (nothrow_?)move_constructible<remove_cvref_t<T>> &&
+concept receiver =
+  move_constructible<remove_cvref_t<T>> &&
   requires(T&& t, E&& e) {
-    { execution::done((T&&) t) } noexcept;
-    { execution::error((T&&) t, (E&&) e) } noexcept;
+    { execution::set_done((T&&) t) } noexcept;
+    { execution::set_error((T&&) t, (E&&) e) } noexcept;
   };
 ```
 
-### Concept `callback`
+### Concept `receiver_of`
 
-XXX TODO The `callback` concept...
+XXX TODO The `receiver_of` concept...
 
 ```
 template<class T, class... An>
-concept callback =
-  invocable<T, An...> &&
-  callback_signal<T>;
+concept receiver_of =
+  receiver<T> &&
+  requires(T&& t, An&&... an) {
+    execution::set_value((T&&) t, (An&&) an...);
+  };
+```
+
+### Concept `sender`
+
+XXX TODO The `sender` concept...
+
+```
+template<class S, class R>
+concept sender-to-impl =
+  requires(S&& s, R&& r) {
+    execution::submit((S&&) s, (R&&) r);
+  };
+
+template<class S>
+concept sender =
+  sender-to-impl<S, sink_receiver>;
 ```
 
 ### Concept `sender_to`
@@ -284,12 +345,11 @@ concept callback =
 XXX TODO The `sender_to` concept...
 
 ```
-template<class S, class C>
+template<class S, class R>
 concept sender_to =
-  callback_signal<C> &&
-  requires(S&& s, C&& c) {
-    execution::submit((S&&) s, (C&&) c);
-  };
+  sender<S> &&
+  receiver<R> &&
+  sender-to-impl<S, R>;
 ```
 
 ### Concept `executor`
@@ -304,7 +364,6 @@ concept executor =
   equality_comparable<remove_cvref_t<E>> &&
   requires(E&& e, F&& f) {
     execution::execute((E&&)e,(F&&)f);
-  }
   };
 ```
 
@@ -312,7 +371,7 @@ None of an executor's copy constructor, destructor, equality comparison, or `swa
 
 None of these operations, nor an executor type's `execute` or `submit` functions, or associated query functions shall introduce data races as a result of concurrent invocations of those functions from different threads.
 
-For any two (possibly const) values `x1` and `x2` of some executor type `X`, `x1 == x2` shall return `true` only if `x1.query(p) == x2.query(p)` for every property `p` where both `x1.query(p)` and `x2.query(p)` are well-formed and result in a non-void type that is `EqualityComparable` (C++Std [equalitycomparable]). [*Note:* The above requirements imply that `x1 == x2` returns `true` if `x1` and `x2` can be interchanged with identical effects. An executor may conceptually contain additional properties which are not exposed by a named property type that can be observed via `execution::query`; in this case, it is up to the concrete executor implementation to decide if these properties affect equality. Returning `false` does not necessarily imply that the effects are not identical. *--end note*]
+For any two (possibly const) values `x1` and `x2` of some executor type `X`, `x1 == x2` shall return `true` only if `x1.query(p) == x2.query(p)` for every property `p` where both `x1.query(p)` and `x2.query(p)` are well-formed and result in a non-void type that is `equality_comparable` (C++Std [equalitycomparable]). [*Note:* The above requirements imply that `x1 == x2` returns `true` if `x1` and `x2` can be interchanged with identical effects. An executor may conceptually contain additional properties which are not exposed by a named property type that can be observed via `execution::query`; in this case, it is up to the concrete executor implementation to decide if these properties affect equality. Returning `false` does not necessarily imply that the effects are not identical. *--end note*]
 
 An executor type's destructor shall not block pending completion of the submitted function objects. [*Note:* The ability to wait for completion of submitted function objects may be provided by the associated execution context. *--end note*]
 
@@ -323,13 +382,28 @@ In addition to the above requirements, types `E` and `F` model `executor` only i
 In the Table below, 
 
 - `e` denotes a (possibly const) executor object of type `E`,
-- `cf` denotes the function or callback object `DECAY_COPY(std::forward<F>(f))` 
-- `f` denotes a function or callback object of type `F&&` invocable as `cf()` and where `decay_t<F>` satisfies the `MoveConstructible` requirements.
+- `cf` denotes the function or receiver object `DECAY_COPY(std::forward<F>(f))` 
+- `f` denotes a function or receiver object of type `F&&` invocable as `cf()` and where `decay_t<F>` models `move_constructible`.
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
 | `e.execute(f)` | `void` | Evaluates `DECAY_COPY(std::forward<F>(f))` on the calling thread to create `cf` that will be invoked at most once by an execution agent. <br/> May block pending completion of this invocation. <br/> Synchronizes with [intro.multithread] the invocation of `f`. <br/>Shall not propagate any exception thrown by the function object or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by one-way submitted functions is described by the `execution::oneway_exception_handler` property. The forward progress guarantee of the associated execution agent(s) is implementation defined. *--end note.*] |
 | `e.submit(f)` | `void` | Evaluates `DECAY_COPY(std::forward<F>(f))` on the calling thread to create `cf` that will be invoked at most once by an execution agent. <br/> May block pending completion of this invocation. <br/> Synchronizes with [intro.multithread] the invocation of `f`. <br/>Shall not propagate any exception thrown by the function object or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by one-way submitted functions is described by the `execution::oneway_exception_handler` property. The forward progress guarantee of the associated execution agent(s) is implementation defined. *--end note.*] |
+
+### No-op receiver
+
+XXX TODO `sink_receiver`
+
+```c++
+class sink_receiver {
+public:
+  void set_value(auto&&...) {}
+  [[noreturn]] void set_error(auto&&) noexcept {
+    std::terminate();
+  }
+  void set_done() noexcept {}
+};
+```
 
 ### Executor applicability trait
 
@@ -1056,7 +1130,7 @@ The `prefer_only` struct is a property adapter that disables the `is_requirable`
 
 Consider a generic function that performs some task immediately if it can, and otherwise asynchronously in the background.
 
-    template<class Executor>
+    template<class Executor, class Callback>
     void do_async_work(
         Executor ex,
         Callback callback)
