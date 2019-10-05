@@ -207,23 +207,37 @@ The name `execution::set_error` denotes a customization point object. The expres
 
 #### `execution::execute`
 
-The name `execution::execute` denotes a customization point object. The expression `execution::execute(E, F)` for some subexpressions `E` and `F` is expression-equivalent to:
+The name `execution::execute` denotes a customization point object.
 
-- `E.execute(F)`, if that expression is valid. If the function selected does not execute the function object `F` on the executor `E`, the program is ill-formed with no diagnostic required.
+For some subexpressions `e` and `f`, let `E` be a type such that `decltype((e))` is `E` and let `F` be a type such that `decltype((f))` is `F`. The expression `execution::execute(e, f)` is ill-formed if `F` does not model `invocable`, or if `E` does not model either `executor` or `sender`. Otherwise, it is expression-equivalent to:
 
-- Otherwise, `execute(E, F)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
+- `e.execute(f)`, if that expression is valid. If the function selected does not execute the function object `f` on the executor `e`, the program is ill-formed with no diagnostic required.
+
+- Otherwise, `execute(e, f)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
 
         void execute();
 
-    and that does not include a declaration of `execution::execute`. If the function selected by overload resolution does not execute the function object `F` on the executor `E`, the program is ill-formed with no diagnostic required.
+    and that does not include a declaration of `execution::execute`. If the function selected by overload resolution does not execute the function object `f` on the executor `e`, the program is ill-formed with no diagnostic required.
 
-- Otherwise, if the type `F` models `invocable`, then `execution::submit(E, execution::make_callback_from(F))`.
+- Otherwise, `execution::submit(e, `_`as-receiver`_`<F>(forward<F>(f)))` if `E` models `sender`, where _`as-receiver`_ is some implementation-defined class template equivalent to:
 
-- Otherwise, `execution::execute(E, F)` is ill-formed.
+        template<invocable F>
+        struct as-receiver {
+        private:
+          using invocable_type = std::remove_cvref_t<F>;
+          invocable_type f_;
+        public:
+          explicit as-receiver(invocable_type&& f) : f_(move_if_noexcept(f)) {}
+          explicit as-receiver(const invocable_type& f) : f_(f) {}
+          as-receiver(as-receiver&& other) = default;
+          void set_value() {
+            invoke(f_);
+          }
+          void set_error noexcept {}
+          void set_done() noexcept {}
+        };
 
 [*Editorial note:* We should probably define what "execute the function object `F` on the executor `E`" means more carefully. *--end editorial note*]
-
-[*Editorial note:* This specification is adapted from `ranges::iter_swap`. *--end editorial note*]
 
 #### `execution::submit`
 
@@ -246,7 +260,7 @@ For some subexpressions `s` and `r`, let `S` be a type such that `decltype((s))`
         template<receiver R>
         struct as-invocable {
         private:
-          using receiver_type = std::remove_cvref_t<R>
+          using receiver_type = std::remove_cvref_t<R>;
           std::optional<receiver_type> r_ {};
           void try_init_(auto&& r) {
             try {
