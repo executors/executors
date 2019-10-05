@@ -19,9 +19,9 @@ For the intent of this library and extensions to this library, the *lifetime of 
 namespace std {
 namespace execution {
 
-  // Invocable archtetype
+  // Invocable archetype
 
-  using invocable_archtetype = unspecified;
+  using invocable_archetype = unspecified;
 
   // Customization points:
 
@@ -58,8 +58,11 @@ namespace execution {
   template<class S>
     concept scheduler = see-below;
 
-  template<class E, class F = void(*)()>
+  template<class E>
     concept executor = see-below;
+
+  template<class E, class F>
+    concept executor_of = see-below;
 
   // A no-op receiver type
   class sink_receiver;
@@ -155,7 +158,7 @@ A type `A` meets the `ProtoAllocator` requirements if `A` is `CopyConstructible`
 
 ### Invocable archetype
 
-Let `Args...` be an argument pack. The name `execution::invocable_archetype` is an implementation-defined type that, with `Args...`, models `invocable`.
+The name `execution::invocable_archetype` is an implementation-defined type that, along with any argument pack, models `invocable`.
 
 A program that creates an instance of `execution::invocable_archetype` is ill-formed.
 
@@ -442,15 +445,23 @@ In the Table below,
 
 XXX TODO The `executor` concept...
 
+Let _`executor-impl`_ be the exposition-only concept
+
 ```
-template<class E, class F = void(*)()>
-concept executor =
-  invocable<F> &&
-  copy_constructible<remove_cvref_t<E>> &&
-  equality_comparable<remove_cvref_t<E>> &&
+template<class E, class F>
+concept executor-impl =
+  invocable<F>&&
+  equality_comparable<E> &&
   requires(E&& e, F&& f) {
-    execution::execute((E&&)e,(F&&)f);
+    execution::execute((E&&)e, (F&&)f);
   };
+```
+
+Then,
+
+```
+template<class E>
+concept executor = executor-impl<E, execution::invocable_archetype>;
 ```
 
 None of an executor's copy constructor, destructor, equality comparison, or `swap` operation shall exit via an exception.
