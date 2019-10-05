@@ -524,10 +524,14 @@ public:
     any_executor(any_executor<OtherSupportableProperties...> e);
   template<class... OtherSupportableProperties>
     any_executor(any_executor<OtherSupportableProperties...> e) = delete;
+  template<class Executor>
+    any_executor(Executor e);
 
   any_executor& operator=(const any_executor& e) noexcept;
   any_executor& operator=(any_executor&& e) noexcept;
   any_executor& operator=(nullptr_t) noexcept;
+  template<class Executor>
+    any_executor& operator=(Executor e);
 
   ~any_executor();
 
@@ -542,6 +546,9 @@ public:
 
   template <class Property>
   typename Property::polymorphic_query_result_type query(Property) const;
+
+  template<class Function>
+    void execute(Function&& f) const;
 
   // any_executor capacity:
 
@@ -634,6 +641,19 @@ template<class... OtherSupportableProperties>
 
 *Remarks:* This function shall not participate in overload resolution unless `CONTAINS_PROPERTY(p, OtherSupportableProperties)` is `false` for some property `p` in `SupportableProperties...`.
 
+```
+template<class Executor>
+  any_executor(Executor e);
+```
+
+*Remarks:* This function shall not participate in overload resolution unless:
+
+* `can_require_v<Executor, P>`, if `P::is_requirable`, where `P` is each property in `SupportableProperties...`.
+* `can_prefer_v<Executor, P>`, if `P::is_preferable`, where `P` is each property in `SupportableProperties...`.
+* and `can_query_v<Executor, P>`, if `P::is_requirable == false` and `P::is_preferable == false`, where `P` is each property in `SupportableProperties...`.
+
+*Effects:* `*this` targets a copy of `e`.
+
 ##### `any_executor` assignment
 
 ```
@@ -657,6 +677,17 @@ any_executor& operator=(nullptr_t) noexcept;
 ```
 
 *Effects:* `any_executor(nullptr).swap(*this)`.
+
+*Returns:* `*this`.
+
+```
+template<class Executor>
+  any_executor& operator=(Executor e);
+```
+
+*Requires:* As for `template<class Executor> any_executor(Executor e)`.
+
+*Effects:* `any_executor(std::move(e)).swap(*this)`.
 
 *Returns:* `*this`.
 
@@ -695,6 +726,17 @@ typename Property::polymorphic_query_result_type query(Property p) const;
 *Remarks:* This function shall not participate in overload resolution unless `FIND_CONVERTIBLE_PROPERTY(Property, SupportableProperties)` is well-formed.
 
 *Returns:* If `execution::query(e, p)` is well-formed, `static_cast<Property::polymorphic_query_result_type>(execution::query(e, p))`, where `e` is the target object of `*this`. Otherwise, `Property::polymorphic_query_result_type{}`.
+
+```
+template<class Function>
+  void execute(Function&& f) const;
+```
+
+*Effects:* Performs `execution::execute(e, f2)`, where:
+
+  * `e` is the target object of `*this`;
+  * `f1` is the result of `DECAY_COPY(std::forward<Function>(f))`;
+  * `f2` is a function object of unspecified type that, when invoked as `f2()`, performs `f1()`.
 
 ##### `any_executor` capacity
 
