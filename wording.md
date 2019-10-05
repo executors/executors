@@ -524,13 +524,13 @@ public:
     any_executor(any_executor<OtherSupportableProperties...> e);
   template<class... OtherSupportableProperties>
     any_executor(any_executor<OtherSupportableProperties...> e) = delete;
-  template<class Executor>
+  template<executor Executor>
     any_executor(Executor e);
 
   any_executor& operator=(const any_executor& e) noexcept;
   any_executor& operator=(any_executor&& e) noexcept;
   any_executor& operator=(nullptr_t) noexcept;
-  template<class Executor>
+  template<executor Executor>
     any_executor& operator=(Executor e);
 
   ~any_executor();
@@ -557,8 +557,8 @@ public:
   // any_executor target access:
 
   const type_info& target_type() const noexcept;
-  template<class Executor> Executor* target() noexcept;
-  template<class Executor> const Executor* target() const noexcept;
+  template<executor Executor> Executor* target() noexcept;
+  template<executor Executor> const Executor* target() const noexcept;
 };
 
 // any_executor comparisons:
@@ -637,7 +637,7 @@ template<class... OtherSupportableProperties>
 *Remarks:* This function shall not participate in overload resolution unless `CONTAINS_PROPERTY(p, OtherSupportableProperties)` is `false` for some property `p` in `SupportableProperties...`.
 
 ```
-template<class Executor>
+template<executor Executor>
   any_executor(Executor e);
 ```
 
@@ -676,11 +676,11 @@ any_executor& operator=(nullptr_t) noexcept;
 *Returns:* `*this`.
 
 ```
-template<class Executor>
+template<executor Executor>
   any_executor& operator=(Executor e);
 ```
 
-*Requires:* As for `template<class Executor> any_executor(Executor e)`.
+*Requires:* As for `template<executor Executor> any_executor(Executor e)`.
 
 *Effects:* `any_executor(std::move(e)).swap(*this)`.
 
@@ -750,8 +750,8 @@ const type_info& target_type() const noexcept;
 *Returns:* If `*this` has a target of type `T`, `typeid(T)`; otherwise, `typeid(void)`.
 
 ```
-template<class Executor> Executor* target() noexcept;
-template<class Executor> const Executor* target() const noexcept;
+template<executor Executor> Executor* target() noexcept;
+template<executor Executor> const Executor* target() const noexcept;
 ```
 
 *Returns:* If `target_type() == typeid(Executor)` a pointer to the stored executor target; otherwise a null pointer value.
