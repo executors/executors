@@ -32,6 +32,8 @@ namespace execution {
 
     inline constexpr unspecified submit = unspecified;
 
+    inline constexpr unspecified schedule = unspecified;
+
     inline constexpr unspecified bulk_execute = unspecified;
   }
 
@@ -48,6 +50,9 @@ namespace execution {
 
   template<class S, class R>
     concept sender_to = see-below;
+
+  template<class S>
+    concept scheduler = see-below;
 
   template<class E, class F = void(*)()>
     concept executor = see-below;
@@ -277,6 +282,24 @@ The name `execution::submit` denotes a customization point object. For some sube
 
 [*Editorial note:* This specification is adapted from `ranges::iter_swap`. *--end editorial note*]
 
+#### `execution::schedule`
+
+The name `execution::schedule` denotes a customization point object. The expression `execution::schedule(S)` for some subexpression `S` is expression-equivalent to:
+
+- `S.schedule()`, if that expression is valid and its type `N` models `Sender`. 
+
+- Otherwise, `schedule(S)`, if that expression is valid and its type `N` models `Sender` with overload resolution performed in a context that includes the declaration
+
+        void schedule();
+
+    and that does not include a declaration of `execution::schedule`. 
+
+- Otherwise, _`decay-copy`_`(S)` if the type `S` models `Sender`.
+
+- Otherwise, `execution::schedule(S)` is ill-formed.
+
+[*Editorial note:* This specification is adapted from `ranges::iter_swap`. *--end editorial note*]
+
 #### `execution::bulk_execute`
 
 The name `execution::bulk_execute` denotes a customization point object. If `is_convertible_v<S, executor_shape_t<remove_cvref_t<E>>>` is true, then the expression `execution::bulk_execute(E, F, S)` for some subexpressions `E`, `F`, and `S` is expression-equivalent to:
@@ -351,6 +374,40 @@ concept sender_to =
   receiver<R> &&
   sender-to-impl<S, R>;
 ```
+### Concept `scheduler`
+
+XXX TODO The `scheduler` concept...
+
+```
+template<class S>
+concept scheduler =
+  copy_constructible<remove_cvref_t<S>> &&
+  equality_comparable<remove_cvref_t<S>> &&
+  requires(E&& e) {
+    execution::scheduler((S&&)s);
+  } // && sender<invoke_result_t<execution::scheduler, S>>
+  };
+```
+
+None of a scheduler's copy constructor, destructor, equality comparison, or `swap` operation shall exit via an exception.
+
+None of these operations, nor an scheduler type's `schedule` function, or associated query functions shall introduce data races as a result of concurrent invocations of those functions from different threads.
+
+For any two (possibly const) values `x1` and `x2` of some scheduler type `X`, `x1 == x2` shall return `true` only if `x1.query(p) == x2.query(p)` for every property `p` where both `x1.query(p)` and `x2.query(p)` are well-formed and result in a non-void type that is `EqualityComparable` (C++Std [equalitycomparable]). [*Note:* The above requirements imply that `x1 == x2` returns `true` if `x1` and `x2` can be interchanged with identical effects. An scheduler may conceptually contain additional properties which are not exposed by a named property type that can be observed via `execution::query`; in this case, it is up to the concrete scheduler implementation to decide if these properties affect equality. Returning `false` does not necessarily imply that the effects are not identical. *--end note*]
+
+An scheduler type's destructor shall not block pending completion of any function objects submitted to the returned object that models `Sender`. [*Note:* The ability to wait for completion of submitted function objects may be provided by the execution context that produced the scheduler. *--end note*]
+
+In addition to the above requirements, type `S` models `scheduler` only if it satisfies the requirements from at least one row in the Table below.
+
+In the Table below, 
+
+- `s` denotes a (possibly const) scheduler object of type `S`,
+- `N` denotes a type that models `Sender`, and
+- `n` denotes a sender object of type `N`
+
+| Expression | Return Type | Operational semantics |
+|------------|-------------|---------------------- |
+| `execution::schedule(s)` | `N` | Evaluates `execution::schedule(s)` on the calling thread to create `n` |
 
 ### Concept `executor`
 
@@ -1326,6 +1383,7 @@ correctness. *--end note.*]
 class static_thread_pool
 {
   public:
+    using scheduler_type = see-below;
     using executor_type = see-below;
     
     // construction/destruction
@@ -1347,6 +1405,10 @@ class static_thread_pool
     // wait for all threads in the thread pool to complete
     void wait();
 
+    // placeholder for a general approach to getting schedulers from 
+    // standard contexts.
+    scheduler_type scheduler() noexcept;
+
     // placeholder for a general approach to getting executors from 
     // standard contexts.
     executor_type executor() noexcept;
@@ -1361,19 +1423,25 @@ of:
   established;
 
 * the number of function objects that have been added to the `static_thread_pool`
-  via the `static_thread_pool` executor, but not yet invoked; and
+  via the `static_thread_pool` executor, scheduler and sender, but not yet invoked; and
 
 * the number of function objects that are currently being invoked within the
   `static_thread_pool`.
 
-The `static_thread_pool` member functions `executor`, `attach`, `wait`, and
-`stop`, and the associated executors' copy constructors and member functions,
-do not introduce data races as a result of concurrent invocations of those
-functions from different threads of execution.
+The `static_thread_pool` member functions `scheduler`, `executor`, `attach`, 
+`wait`, and `stop`, and the associated schedulers', senders` and executors' copy 
+constructors and member functions, do not introduce data races as a result of 
+concurrent invocations of those functions from different threads of execution.
 
 A `static_thread_pool`'s threads run execution agents with forward progress guarantee delegation. [*Note:* Forward progress is delegated to an execution agent for its lifetime. Because `static_thread_pool` guarantees only parallel forward progress to running execution agents; _i.e._, execution agents which have run the first step of the function object. *--end note*]
 
 #### Types
+
+```
+using scheduler_type = see-below;
+```
+
+A scheduler type conforming to the specification for `static_thread_pool` scheduler types described below.
 
 ```
 using executor_type = see-below;
@@ -1434,6 +1502,19 @@ complete immediately.
 *Synchronization:* The completion of each thread in the pool synchronizes with
 (C++Std [intro.multithread]) the corresponding successful `wait()` return.
 
+#### Scheduler creation
+
+```
+scheduler_type scheduler() noexcept;
+```
+
+*Returns:* A scheduler that may be used to create sender objects that may be 
+used to submit receiver objects to the thread pool. The returned scheduler has 
+the following properties already established:
+
+  * `execution::allocator`
+  * `execution::allocator(std::allocator<void>())`
+
 #### Executor creation
 
 ```
@@ -1450,6 +1531,367 @@ established:
   * `execution::outstanding_work.untracked`
   * `execution::allocator`
   * `execution::allocator(std::allocator<void>())`
+
+### `static_thread_pool` scheduler types
+
+All scheduler types accessible through `static_thread_pool::scheduler()`, and subsequent invocations of the member function `require`, conform to the following specification.
+
+```
+class C
+{
+  public:
+
+    // types:
+
+    using sender_type = see-below;
+
+    // construct / copy / destroy:
+
+    C(const C& other) noexcept;
+    C(C&& other) noexcept;
+
+    C& operator=(const C& other) noexcept;
+    C& operator=(C&& other) noexcept;
+
+    // scheduler operations:
+
+    see-below require(const execution::allocator_t<void>& a) const;
+    template<class ProtoAllocator>
+    see-below require(const execution::allocator_t<ProtoAllocator>& a) const;
+
+    see-below query(execution::context_t) const noexcept;
+    see-below query(execution::allocator_t<void>) const noexcept;
+    template<class ProtoAllocator>
+    see-below query(execution::allocator_t<ProtoAllocator>) const noexcept;
+
+    bool running_in_this_thread() const noexcept;
+};
+
+bool operator==(const C& a, const C& b) noexcept;
+bool operator!=(const C& a, const C& b) noexcept;
+```
+
+Objects of type `C` are associated with a `static_thread_pool`.
+
+#### Constructors
+
+```
+C(const C& other) noexcept;
+```
+
+*Postconditions:* `*this == other`.
+
+```
+C(C&& other) noexcept;
+```
+
+*Postconditions:* `*this` is equal to the prior value of `other`.
+
+#### Assignment
+
+```
+C& operator=(const C& other) noexcept;
+```
+
+*Postconditions:* `*this == other`.
+
+*Returns:* `*this`.
+
+```
+C& operator=(C&& other) noexcept;
+```
+
+*Postconditions:* `*this` is equal to the prior value of `other`.
+
+*Returns:* `*this`.
+
+#### Operations
+
+```
+see-below require(const execution::allocator_t<void>& a) const;
+```
+
+*Returns:* `require(execution::allocator(x))`, where `x` is an implementation-defined default allocator.
+
+```
+template<class ProtoAllocator>
+  see-below require(const execution::allocator_t<ProtoAllocator>& a) const;
+```
+
+*Returns:* An scheduler object of an unspecified type conforming to these
+specifications, associated with the same thread pool as `*this`, with the
+`execution::allocator_t<ProtoAllocator>` property established such that
+allocation and deallocation associated with function submission will be
+performed using a copy of `a.alloc`. All other properties of the returned
+scheduler object are identical to those of `*this`.
+
+```
+static_thread_pool& query(execution::context_t) const noexcept;
+```
+
+*Returns:* A reference to the associated `static_thread_pool` object.
+
+```
+see-below query(execution::allocator_t<void>) const noexcept;
+see-below query(execution::allocator_t<ProtoAllocator>) const noexcept;
+```
+
+*Returns:* The allocator object associated with the executor, with type and
+value as either previously established by the `execution::allocator_t<ProtoAllocator>`
+property or the implementation defined default allocator established by the `execution::allocator_t<void>` property.
+
+```
+bool running_in_this_thread() const noexcept;
+```
+
+*Returns:* `true` if the current thread of execution is a thread that was
+created by or attached to the associated `static_thread_pool` object.
+
+#### Comparisons
+
+```
+bool operator==(const C& a, const C& b) noexcept;
+```
+
+*Returns:* `true` if `&a.query(execution::context) == &b.query(execution::context)` and `a` and `b` have identical
+properties, otherwise `false`.
+
+```
+bool operator!=(const C& a, const C& b) noexcept;
+```
+
+*Returns:* `!(a == b)`.
+
+#### `static_thread_pool` scheduler functions
+
+In addition to conforming to the above specification, `static_thread_pool`
+schedulers shall conform to the following specification.
+
+```
+class C
+{
+  public:
+    sender_type schedule() noexcept;
+};
+```
+
+`C` is a type satisfying the `Scheduler` requirements.
+
+#### Sender creation
+
+```
+  sender_type schedule() noexcept;
+```
+
+*Returns:* A sender that may be used to submit function objects to the
+thread pool. The returned sender has the following properties already
+established:
+
+  * `execution::oneway`
+  * `execution::blocking.possibly`
+  * `execution::relationship.fork`
+  * `execution::outstanding_work.untracked`
+  * `execution::allocator`
+  * `execution::allocator(std::allocator<void>())`
+
+### `static_thread_pool` sender types
+
+All sender types accessible through `static_thread_pool::scheduler().schedule()`, and subsequent invocations of the member function `require`, conform to the following specification.
+
+```
+class C
+{
+  public:
+
+    // construct / copy / destroy:
+
+    C(const C& other) noexcept;
+    C(C&& other) noexcept;
+
+    C& operator=(const C& other) noexcept;
+    C& operator=(C&& other) noexcept;
+
+    // sender operations:
+
+    see-below require(execution::blocking_t::never_t) const;
+    see-below require(execution::blocking_t::possibly_t) const;
+    see-below require(execution::blocking_t::always_t) const;
+    see-below require(execution::relationship_t::continuation_t) const;
+    see-below require(execution::relationship_t::fork_t) const;
+    see-below require(execution::outstanding_work_t::tracked_t) const;
+    see-below require(execution::outstanding_work_t::untracked_t) const;
+    see-below require(const execution::allocator_t<void>& a) const;
+    template<class ProtoAllocator>
+    see-below require(const execution::allocator_t<ProtoAllocator>& a) const;
+
+    static constexpr execution::bulk_guarantee_t query(execution::bulk_guarantee_t::parallel_t) const;
+    static constexpr execution::mapping_t query(execution::mapping_t::thread_t) const;
+    execution::blocking_t query(execution::blocking_t) const;
+    execution::relationship_t query(execution::relationship_t) const;
+    execution::outstanding_work_t query(execution::outstanding_work_t) const;
+    see-below query(execution::context_t) const noexcept;
+    see-below query(execution::allocator_t<void>) const noexcept;
+    template<class ProtoAllocator>
+    see-below query(execution::allocator_t<ProtoAllocator>) const noexcept;
+
+    bool running_in_this_thread() const noexcept;
+};
+
+bool operator==(const C& a, const C& b) noexcept;
+bool operator!=(const C& a, const C& b) noexcept;
+```
+
+Objects of type `C` are associated with a `static_thread_pool`.
+
+#### Constructors
+
+```
+C(const C& other) noexcept;
+```
+
+*Postconditions:* `*this == other`.
+
+```
+C(C&& other) noexcept;
+```
+
+*Postconditions:* `*this` is equal to the prior value of `other`.
+
+#### Assignment
+
+```
+C& operator=(const C& other) noexcept;
+```
+
+*Postconditions:* `*this == other`.
+
+*Returns:* `*this`.
+
+```
+C& operator=(C&& other) noexcept;
+```
+
+*Postconditions:* `*this` is equal to the prior value of `other`.
+
+*Returns:* `*this`.
+
+#### Operations
+
+```
+see-below require(execution::blocking_t::never_t) const;
+see-below require(execution::blocking_t::possibly_t) const;
+see-below require(execution::blocking_t::always_t) const;
+see-below require(execution::relationship_t::continuation_t) const;
+see-below require(execution::relationship_t::fork_t) const;
+see-below require(execution::outstanding_work_t::tracked_t) const;
+see-below require(execution::outstanding_work_t::untracked_t) const;
+```
+
+*Returns:* An sender object of an unspecified type conforming to these
+specifications, associated with the same thread pool as `*this`, and having the
+requested property established. When the requested property is part of a group
+that is defined as a mutually exclusive set, any other properties in the group
+are removed from the returned sender object. All other properties of the
+returned sender object are identical to those of `*this`.
+
+```
+see-below require(const execution::allocator_t<void>& a) const;
+```
+
+*Returns:* `require(execution::allocator(x))`, where `x` is an implementation-defined default allocator.
+
+```
+template<class ProtoAllocator>
+  see-below require(const execution::allocator_t<ProtoAllocator>& a) const;
+```
+
+*Returns:* An sender object of an unspecified type conforming to these
+specifications, associated with the same thread pool as `*this`, with the
+`execution::allocator_t<ProtoAllocator>` property established such that
+allocation and deallocation associated with function submission will be
+performed using a copy of `a.alloc`. All other properties of the returned
+sender object are identical to those of `*this`.
+
+```
+static constexpr execution::bulk_guarantee_t query(execution::bulk_guarantee_t) const;
+```
+
+*Returns:* `execution::bulk_guarantee.parallel`
+
+```
+static constexpr execution::mapping_t query(execution::mapping_t) const;
+```
+
+*Returns:* `execution::mapping.thread`.
+
+```
+execution::blocking_t query(execution::blocking_t) const;
+execution::relationship_t query(execution::relationship_t) const;
+execution::outstanding_work_t query(execution::outstanding_work_t) const;
+```
+
+*Returns:* The value of the given property of `*this`.
+
+```
+static_thread_pool& query(execution::context_t) const noexcept;
+```
+
+*Returns:* A reference to the associated `static_thread_pool` object.
+
+```
+see-below query(execution::allocator_t<void>) const noexcept;
+see-below query(execution::allocator_t<ProtoAllocator>) const noexcept;
+```
+
+*Returns:* The allocator object associated with the sender, with type and
+value as either previously established by the `execution::allocator_t<ProtoAllocator>`
+property or the implementation defined default allocator established by the `execution::allocator_t<void>` property.
+
+```
+bool running_in_this_thread() const noexcept;
+```
+
+*Returns:* `true` if the current thread of execution is a thread that was
+created by or attached to the associated `static_thread_pool` object.
+
+#### Comparisons
+
+```
+bool operator==(const C& a, const C& b) noexcept;
+```
+
+*Returns:* `true` if `&a.query(execution::context) == &b.query(execution::context)` and `a` and `b` have identical
+properties, otherwise `false`.
+
+```
+bool operator!=(const C& a, const C& b) noexcept;
+```
+
+*Returns:* `!(a == b)`.
+
+#### `static_thread_pool` sender execution functions
+
+In addition to conforming to the above specification, `static_thread_pool`
+executors shall conform to the following specification.
+
+```
+class C
+{
+  public:
+    template<class Receiver>
+      void submit(Receiver&& r) const;
+};
+```
+
+`C` is a type satisfying the `Sender` requirements.
+
+```
+template<class Receiver>
+  void submit(Receiver&& r) const;
+```
+
+*Effects:* Submits the receiver `r` for execution on the `static_thread_pool`
+according to the the properties established for `*this`. let `e` be an object of type `exception_ptr`, then `static_thread_pool` will evaluate one of `set_value(r)`, `set_error(r, e)`, or `set_done(r)`.
 
 ### `static_thread_pool` executor types
 
