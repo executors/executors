@@ -335,15 +335,15 @@ The name `execution::schedule` denotes a customization point object. The express
 
 The name `execution::bulk_execute` denotes a customization point object. If `is_convertible_v<N, size_t>` is true, then the expression `execution::bulk_execute(S, F, N)` for some subexpressions `S`, `F`, and `N` is expression-equivalent to:
 
-- `S.bulk_execute(F, N)`, if that expression is valid. If the function selected does not execute `N` invocations of the function object `F` on the executor `S` in bulk with forward progress guarantee `execution::query(S, execution::bulk_guarantee)`, and the result of that function does not model `sender<void>`, the program is ill-formed with no diagnostic required.
+- `S.bulk_execute(F, N)`, if that expression is valid. If the function selected does not execute `N` invocations of the function object `F` on the executor `S` in bulk with forward progress guarantee `std::query(S, execution::bulk_guarantee)`, and the result of that function does not model `sender<void>`, the program is ill-formed with no diagnostic required.
 
 - Otherwise, `bulk_execute(S, F, N)`, if that expression is valid, with overload resolution performed in a context that includes the declaration
 
         void bulk_execute();
 
-    and that does not include a declaration of `execution::bulk_execute`. If the function selected by overload resolution does not execute `N` invocations of the function object `F` on the executor `S` in bulk with forward progress guarantee `execution::query(E, execution::bulk_guarantee)`, and the result of that function does not model `sender<void>`, the program is ill-formed with no diagnostic required.
+    and that does not include a declaration of `execution::bulk_execute`. If the function selected by overload resolution does not execute `N` invocations of the function object `F` on the executor `S` in bulk with forward progress guarantee `std::query(E, execution::bulk_guarantee)`, and the result of that function does not model `sender<void>`, the program is ill-formed with no diagnostic required.
 
-- Otherwise, if the types `F` and `executor_index_t<remove_cvref_t<S>>` model `invocable` and if `execution::query(S, execution::bulk_guarantee)` equals `execution::bulk_guarantee.unsequenced`, then
+- Otherwise, if the types `F` and `executor_index_t<remove_cvref_t<S>>` model `invocable` and if `std::query(S, execution::bulk_guarantee)` equals `execution::bulk_guarantee.unsequenced`, then
     - Evaluates `DECAY_COPY(std::forward<decltype(F)>(F))` on the calling thread to create a function object `cf`. [*Note:* Additional copies of `cf` may subsequently be created. *--end note.*]
     - For each value of `i` in `N`, `cf(i)` (or copy of `cf`)) will be invoked at most once by an execution agent that is unique for each value of `i`.
     - May block pending completion of one or more invocations of `cf`.
@@ -426,7 +426,7 @@ None of a scheduler's copy constructor, destructor, equality comparison, or `swa
 
 None of these operations, nor an scheduler type's `schedule` function, or associated query functions shall introduce data races as a result of concurrent invocations of those functions from different threads.
 
-For any two (possibly const) values `x1` and `x2` of some scheduler type `X`, `x1 == x2` shall return `true` only if `execution::query(x1,p) == execution::query(x2,p)` for every property `p` where both `execution::query(x1,p)` and `execution::query(x2,p)` are well-formed and result in a non-void type that is `EqualityComparable` (C++Std [equalitycomparable]). [*Note:* The above requirements imply that `x1 == x2` returns `true` if `x1` and `x2` can be interchanged with identical effects. An scheduler may conceptually contain additional properties which are not exposed by a named property type that can be observed via `execution::query`; in this case, it is up to the concrete scheduler implementation to decide if these properties affect equality. Returning `false` does not necessarily imply that the effects are not identical. *--end note*]
+For any two (possibly const) values `x1` and `x2` of some scheduler type `X`, `x1 == x2` shall return `true` only if `std::query(x1,p) == std::query(x2,p)` for every property `p` where both `std::query(x1,p)` and `std::query(x2,p)` are well-formed and result in a non-void type that is `EqualityComparable` (C++Std [equalitycomparable]). [*Note:* The above requirements imply that `x1 == x2` returns `true` if `x1` and `x2` can be interchanged with identical effects. An scheduler may conceptually contain additional properties which are not exposed by a named property type that can be observed via `std::query`; in this case, it is up to the concrete scheduler implementation to decide if these properties affect equality. Returning `false` does not necessarily imply that the effects are not identical. *--end note*]
 
 An scheduler type's destructor shall not block pending completion of any function objects submitted to the returned object that models `Sender`. [*Note:* The ability to wait for completion of submitted function objects may be provided by the execution context that produced the scheduler. *--end note*]
 
@@ -471,7 +471,7 @@ Neither of an executor's equality comparison or `swap` operation shall exit via 
 
 None of an executor type's copy constructor, destructor, equality comparison, `swap` function, `execute` function, `submit` functions, or associated `query` functions shall introduce data races as a result of concurrent invocations of those functions from different threads.
 
-For any two (possibly const) values `x1` and `x2` of some executor type `X`, `x1 == x2` shall return `true` only if `execution::query(x1,p) == execution::query(x2,p)` for every property `p` where both `execution::query(x1,p)` and `execution::query(x2,p)` are well-formed and result in a non-void type that is `equality_comparable` (C++Std [equalitycomparable]). [*Note:* The above requirements imply that `x1 == x2` returns `true` if `x1` and `x2` can be interchanged with identical effects. An executor may conceptually contain additional properties which are not exposed by a named property type that can be observed via `execution::query`; in this case, it is up to the concrete executor implementation to decide if these properties affect equality. Returning `false` does not necessarily imply that the effects are not identical. *--end note*]
+For any two (possibly const) values `x1` and `x2` of some executor type `X`, `x1 == x2` shall return `true` only if `std::query(x1,p) == std::query(x2,p)` for every property `p` where both `std::query(x1,p)` and `std::query(x2,p)` are well-formed and result in a non-void type that is `equality_comparable` (C++Std [equalitycomparable]). [*Note:* The above requirements imply that `x1 == x2` returns `true` if `x1` and `x2` can be interchanged with identical effects. An executor may conceptually contain additional properties which are not exposed by a named property type that can be observed via `std::query`; in this case, it is up to the concrete executor implementation to decide if these properties affect equality. Returning `false` does not necessarily imply that the effects are not identical. *--end note*]
 
 An executor type's destructor shall not block pending completion of the submitted function objects. [*Note:* The ability to wait for completion of submitted function objects may be provided by the associated execution context. *--end note*]
 
@@ -538,7 +538,7 @@ This sub-clause contains a template that may be used to query the applicability 
 
 The `context_t` property can be used only with `query`, which returns the execution context associated with the executor.
 
-The value returned from `execution::query(e, context_t)`, where `e` is an executor, shall not change between invocations.
+The value returned from `std::query(e, context_t)`, where `e` is an executor, shall not change between invocations.
 
 #### Polymorphic wrappers
 
@@ -897,7 +897,7 @@ Queries for the value of an executor's behavioral property shall not change betw
 
 `S()` and `S(S::E`*i*`())` are all distinct values of `S`. [*Note:* This means they compare unequal. *--end note.*]
 
-The value returned from `execution::query(e1, p1)` and a subsequent invocation `execution::query(e1, p1)`, where
+The value returned from `std::query(e1, p1)` and a subsequent invocation `std::query(e1, p1)`, where
 
 * `p1` is an instance of `S` or `S::E`*i*, and
 * `e2` is the result of `std::require(e1, p2)` or `std::prefer(e1, p2)`,
@@ -934,10 +934,10 @@ Let *k* be the least value of *i* for which `can_query_v<Executor,S::N`*i*`>` is
 
 ```
 template<class Executor>
-  friend constexpr S query(const Executor& ex, const Property& p) noexcept(noexcept(execution::query(ex, std::declval<const S::Nk>())));
+  friend constexpr S query(const Executor& ex, const Property& p) noexcept(noexcept(std::query(ex, std::declval<const S::Nk>())));
 ```
 
-*Returns:* `execution::query(ex, S::N`*k*`())`.
+*Returns:* `std::query(ex, S::N`*k*`())`.
 
 *Remarks:* This function shall not participate in overload resolution unless `is_same_v<Property,S> && can_query_v<Executor,S::N`*i*`>` is true for at least one `S::N`*i*`. 
 
@@ -983,7 +983,7 @@ template<class Executor>
   friend see-below require(Executor ex, blocking_t::always_t);
 ```
 
-*Returns:* A value `e1` of type `E1` that holds a copy of `ex`. `E1` provides an overload of `require` such that `e1.require(blocking.always)` returns a copy of `e1`, an overload of `query` such that `execution::query(e1,blocking)` returns `blocking.always`, and functions `execute` and `bulk_execute` shall block the calling thread until the submitted functions have finished execution. `e1` has the same executor properties as `ex`, except for the addition of the `blocking_t::always_t` property, and removal of `blocking_t::never_t` and `blocking_t::possibly_t` properties if present.
+*Returns:* A value `e1` of type `E1` that holds a copy of `ex`. `E1` provides an overload of `require` such that `e1.require(blocking.always)` returns a copy of `e1`, an overload of `query` such that `std::query(e1,blocking)` returns `blocking.always`, and functions `execute` and `bulk_execute` shall block the calling thread until the submitted functions have finished execution. `e1` has the same executor properties as `ex`, except for the addition of the `blocking_t::always_t` property, and removal of `blocking_t::never_t` and `blocking_t::possibly_t` properties if present.
 
 *Remarks:* This function shall not participate in overload resolution unless `blocking_adaptation_t::static_query_v<Executor>` is `blocking_adaptation.allowed`.
 
@@ -1131,10 +1131,10 @@ The `allocator_t` property conforms to the following specification:
 | `allocator_t<ProtoAllocator>` | Result of `allocator_t<void>::operator(OtherProtoAllocator)`. | The executor shall use the encapsulated allocator to allocate any memory required to store the submitted function object. |
 | `allocator_t<void>` | Specialisation of `allocator_t<ProtoAllocator>`. | The executor shall use an implementation defined default allocator to allocate any memory required to store the submitted function object. |
 
-If the expression `execution::query(E, P)` is well formed, where `P` is an object of type `allocator_t<ProtoAllocator>`, then:
-* the type of the expression `execution::query(E, P)` shall satisfy the `ProtoAllocator` requirements;
-* the result of the expression `execution::query(E, P)` shall be the allocator currently established in the executor `E`; and
-* the expression `execution::query(E, allocator_t<void>{})` shall also be well formed and have the same result as `execution::query(E, P)`.
+If the expression `std::query(E, P)` is well formed, where `P` is an object of type `allocator_t<ProtoAllocator>`, then:
+* the type of the expression `std::query(E, P)` shall satisfy the `ProtoAllocator` requirements;
+* the result of the expression `std::query(E, P)` shall be the allocator currently established in the executor `E`; and
+* the expression `std::query(E, allocator_t<void>{})` shall also be well formed and have the same result as `std::query(E, P)`.
 
 #### `allocator_t` members
 
@@ -1346,8 +1346,8 @@ The `prefer_only` adapter addresses this by turning off the `is_requirable` attr
     
       template<class Executor, class Property>
       friend constexpr auto query(const Executor& ex, const Property& p)
-        noexcept(noexcept(execution::query(ex, std::declval<const InnerProperty>())))
-          -> decltype(execution::query(ex, std::declval<const InnerProperty>()));
+        noexcept(noexcept(std::query(ex, std::declval<const InnerProperty>())))
+          -> decltype(std::query(ex, std::declval<const InnerProperty>()));
     };
 
 If `InnerProperty::polymorphic_query_result_type` is valid and denotes a type, the template instantiation `prefer_only<InnerProperty>` defines a nested type `polymorphic_query_result_type` as a synonym for `InnerProperty::polymorphic_query_result_type`.
@@ -1384,13 +1384,13 @@ friend auto prefer(Executor ex, const Property& p)
 ```
 template<class Executor, class Property>
 friend constexpr auto query(const Executor& ex, const Property& p)
-  noexcept(noexcept(execution::query(ex, std::declval<const InnerProperty>())))
-    -> decltype(execution::query(ex, std::declval<const InnerProperty>()));
+  noexcept(noexcept(std::query(ex, std::declval<const InnerProperty>())))
+    -> decltype(std::query(ex, std::declval<const InnerProperty>()));
 ```
 
-*Returns:* `execution::query(ex, p.property)`.
+*Returns:* `std::query(ex, p.property)`.
 
-*Remarks:* Shall not participate in overload resolution unless `std::is_same_v<Property, prefer_only>` is `true`, and the expression `execution::query(ex, p.property)` is well-formed.
+*Remarks:* Shall not participate in overload resolution unless `std::is_same_v<Property, prefer_only>` is `true`, and the expression `std::query(ex, p.property)` is well-formed.
 
 ## Thread pools
 
