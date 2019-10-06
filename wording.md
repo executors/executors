@@ -476,7 +476,7 @@ An executor type's destructor shall not block pending completion of the submitte
 
 For an executor type `E`, the expression `is_executor_v<E>` shall be a valid constant expression with the value `true`.
 
-In addition to the above requirements, types `E` and `F` model `executor` only if they satisfy the requirements from at least one row in the Table below.
+In addition to the above requirements, types `E` and `F` model `executor` only if they satisfy the requirements of the Table below.
 
 In the Table below, 
 
@@ -487,6 +487,57 @@ In the Table below,
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
 | `execution::execute(e,f)` | `void` | Evaluates `DECAY_COPY(std::forward<F>(f))` on the calling thread to create `cf` that will be invoked at most once by an execution agent. <br/> May block pending completion of this invocation. <br/> Synchronizes with [intro.multithread] the invocation of `f`. <br/>Shall not propagate any exception thrown by the function object or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by one-way submitted functions is described by the `execution::oneway_exception_handler` property. The forward progress guarantee of the associated execution agent(s) is implementation defined. *--end note.*] |
+
+[*Editorial note:* The operational semantics of `execution::execute` should be specified with the `execution::execute` CPO rather than the `executor` concept. *--end note.*]
+
+### Concept `executor_to`
+
+XXX TODO The `executor_to` concept...
+
+Let _`executor-impl`_ be the exposition-only concept
+
+```
+template<class E, class F>
+concept executor-impl =
+  invocable<F> &&
+  is_nothrow_copy_constructible_v<E> &&
+  is_nothrow_destructible_v<E> &&
+  equality_comparable<E> &&
+  requires(E&& e, F&& f) {
+    execution::execute((E&&)e, (F&&)f);
+  };
+```
+
+Then,
+
+```
+template<class E, class F>
+concept executor_of = executor-impl<E, F>;
+```
+
+Neither of an executor's equality comparison or `swap` operation shall exit via an exception.
+
+None of an executor type's copy constructor, destructor, equality comparison, `swap` function, `execute` function, `submit` functions, or associated `query` functions shall introduce data races as a result of concurrent invocations of those functions from different threads.
+
+For any two (possibly const) values `x1` and `x2` of some executor type `X`, `x1 == x2` shall return `true` only if `std::query(x1,p) == std::query(x2,p)` for every property `p` where both `std::query(x1,p)` and `std::query(x2,p)` are well-formed and result in a non-void type that is `equality_comparable` (C++Std [equalitycomparable]). [*Note:* The above requirements imply that `x1 == x2` returns `true` if `x1` and `x2` can be interchanged with identical effects. An executor may conceptually contain additional properties which are not exposed by a named property type that can be observed via `std::query`; in this case, it is up to the concrete executor implementation to decide if these properties affect equality. Returning `false` does not necessarily imply that the effects are not identical. *--end note*]
+
+An executor type's destructor shall not block pending completion of the submitted function objects. [*Note:* The ability to wait for completion of submitted function objects may be provided by the associated execution context. *--end note*]
+
+For an executor type `E`, the expression `is_executor_v<E>` shall be a valid constant expression with the value `true`.
+
+In addition to the above requirements, types `E` and `F` model `executor_to` only if they satisfy the requirements of the Table below.
+
+In the Table below, 
+
+- `e` denotes a (possibly const) executor object of type `E`,
+- `cf` denotes the function or receiver object `DECAY_COPY(std::forward<F>(f))` 
+- `f` denotes a function or receiver object of type `F&&` invocable as `cf()` and where `decay_t<F>` models `move_constructible`.
+
+| Expression | Return Type | Operational semantics |
+|------------|-------------|---------------------- |
+| `execution::execute(e,f)` | `void` | Evaluates `DECAY_COPY(std::forward<F>(f))` on the calling thread to create `cf` that will be invoked at most once by an execution agent. <br/> May block pending completion of this invocation. <br/> Synchronizes with [intro.multithread] the invocation of `f`. <br/>Shall not propagate any exception thrown by the function object or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by one-way submitted functions is described by the `execution::oneway_exception_handler` property. The forward progress guarantee of the associated execution agent(s) is implementation defined. *--end note.*] |
+
+[*Editorial note:* We should collapse `executor_to`'s specification instead of duplicating `executor`. *--end note.*]
 
 ### No-op receiver
 
