@@ -67,11 +67,6 @@ namespace execution {
   // A no-op receiver type
   class sink_receiver;
 
-  // Indication of executor property applicability
-  template<class T> struct is_executor;
-
-  template<class T> constexpr inline bool is_executor_v = is_executor<T>::value;
-
   // Associated execution context property:
 
   struct context_t;
@@ -474,8 +469,6 @@ For any two (possibly const) values `x1` and `x2` of some executor type `X`, `x1
 
 An executor type's destructor shall not block pending completion of the submitted function objects. [*Note:* The ability to wait for completion of submitted function objects may be provided by the associated execution context. *--end note*]
 
-For an executor type `E`, the expression `is_executor_v<E>` shall be a valid constant expression with the value `true`.
-
 In addition to the above requirements, types `E` and `F` model `executor` only if they satisfy the requirements of the Table below.
 
 In the Table below, 
@@ -523,8 +516,6 @@ For any two (possibly const) values `x1` and `x2` of some executor type `X`, `x1
 
 An executor type's destructor shall not block pending completion of the submitted function objects. [*Note:* The ability to wait for completion of submitted function objects may be provided by the associated execution context. *--end note*]
 
-For an executor type `E`, the expression `is_executor_v<E>` shall be a valid constant expression with the value `true`.
-
 In addition to the above requirements, types `E` and `F` model `executor_to` only if they satisfy the requirements of the Table below.
 
 In the Table below, 
@@ -554,18 +545,6 @@ public:
 };
 ```
 
-### Executor applicability trait
-
-```c++
-template<class T> struct is_executor;
-```
-
-This sub-clause contains a template that may be used to query the applicability of the properties provided in this clause to a type at compile time.  It may be specialized to indicate applicability of executor properties to a type. This template is a UnaryTypeTrait (C++Std [meta.rqmts]) with a BaseCharacteristic of `true_type` if the corresponding condition is true, otherwise `false_type`.
-
-| Template                   | Condition           | Preconditions  |
-|----------------------------|---------------------|----------------|
-| `template<class T>` <br/>`struct is_executor` | The expression `P::is_executor` is a well-formed constant expression with a value of `true`. | `T` is a complete type. |
-
 ### Query-only properties
 
 #### Associated execution context property
@@ -573,7 +552,7 @@ This sub-clause contains a template that may be used to query the applicability 
     struct context_t
     {
       template <class T>
-        static constexpr bool is_applicable_property_v = is_executor_v<T>;
+        static constexpr bool is_applicable_property_v = executor<T>;
 
       static constexpr bool is_requirable = false;
       static constexpr bool is_preferable = false;
@@ -602,9 +581,6 @@ template <class... SupportableProperties>
 class any_executor
 {
 public:
-  // indication of applicability to executor properties
-  static constexpr bool is_executor_v = true;
-
   // construct / copy / destroy:
 
   any_executor() noexcept;
@@ -913,7 +889,7 @@ Unless otherwise specified, behavioral property types `S`, their nested property
     struct S
     {
       template <class T>
-        static constexpr bool is_applicable_property_v = is_executor_v<T>;
+        static constexpr bool is_applicable_property_v = executor<T>;
 
       static constexpr bool is_requirable = false;
       static constexpr bool is_preferable = false;
@@ -1045,7 +1021,7 @@ In addition to conforming to the above specification, the `blocking_t::always_t`
       static constexpr bool is_preferable = false;
 
       template <class T>
-        static constexpr bool is_applicable_property_v = is_executor_v<T>;
+        static constexpr bool is_applicable_property_v = executor<T>;
 
       template<class Executor>
         friend see-below require(Executor ex, blocking_t::always_t);
@@ -1083,7 +1059,7 @@ In addition to conforming to the above specification, the `blocking_adaptation_t
       static constexpr bool is_preferable = false;
 
       template <class T>
-        static constexpr bool is_applicable_property_v = is_executor_v<T>;
+        static constexpr bool is_applicable_property_v = executor<T>;
 
       template<class Executor>
         friend see-below require(Executor ex, blocking_adaptation_t::allowed_t);
@@ -1183,7 +1159,7 @@ The `allocator_t` property conforms to the following specification:
     struct allocator_t
     {
         template <class T>
-          static constexpr bool is_applicable_property_v = is_executor_v<T>;
+          static constexpr bool is_applicable_property_v = executor<T>;
 
         static constexpr bool is_requirable = true;
         static constexpr bool is_preferable = true;
@@ -2019,9 +1995,6 @@ All executor types accessible through `static_thread_pool::executor()`, and subs
 class C
 {
   public:
-
-    // indication of applicability to executor properties
-    static constexpr bool is_executor_v = true;
 
     // types:
 

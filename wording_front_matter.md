@@ -62,7 +62,7 @@ As directed by SG1 at the 2019-07 Cologne meeting, we have implemented the follo
 * Eliminated interface-changing properties `oneway_t` and `bulk_oneway_t`.
 * Introduced `executor` and `executor_of` concepts.
 * Eliminated `OneWayExecutor` and `BulkOneWayExecutor` requirements.
-* Eliminated `is_oneway_executor` and `is_bulk_oneway_executor` type traits.
+* Eliminated `is_executor`, `is_oneway_executor`, and `is_bulk_oneway_executor` type traits.
 * Introduced `callback_signal`, `callback`, and `sender_to` concepts.
 * Introduced `value`, `error`, `done`, `execute`, `submit`, and `bulk_execute` customization point objects.
 * Renamed polymorphic executor to `any_executor`.
