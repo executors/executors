@@ -109,14 +109,6 @@ namespace execution {
 
   constexpr mapping_t mapping;
 
-  // One-way exception handling property:
-
-  // XXX bikeshed this name. "handler" may imply that the value of the property is some kind of function
-  // [*Editorial Note:* The presence of this property seems at-odds with the error-handling scheme adopted from P1660. Does this property need to be eliminated? *--end editorial note.*]
-  struct oneway_exception_handler_t;
-
-  constexpr oneway_exception_handler_t oneway_exception_handler;
-
   // Memory allocation properties:
 
   template <typename ProtoAllocator>
@@ -479,7 +471,7 @@ In the Table below,
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `execution::execute(e,f)` | `void` | Evaluates `DECAY_COPY(std::forward<F>(f))` on the calling thread to create `cf` that will be invoked at most once by an execution agent. <br/> May block pending completion of this invocation. <br/> Synchronizes with [intro.multithread] the invocation of `f`. <br/>Shall not propagate any exception thrown by the function object or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by one-way submitted functions is described by the `execution::oneway_exception_handler` property. The forward progress guarantee of the associated execution agent(s) is implementation defined. *--end note.*] |
+| `execution::execute(e,f)` | `void` | Evaluates `DECAY_COPY(std::forward<F>(f))` on the calling thread to create `cf` that will be invoked at most once by an execution agent. <br/> May block pending completion of this invocation. <br/> Synchronizes with [intro.multithread] the invocation of `f`. <br/>Shall not propagate any exception thrown by the function object or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by one-way submitted functions is implementation-defined. The forward progress guarantee of the associated execution agent(s) is implementation-defined. *--end note.*] |
 
 [*Editorial note:* The operational semantics of `execution::execute` should be specified with the `execution::execute` CPO rather than the `executor` concept. *--end note.*]
 
@@ -526,7 +518,7 @@ In the Table below,
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `execution::execute(e,f)` | `void` | Evaluates `DECAY_COPY(std::forward<F>(f))` on the calling thread to create `cf` that will be invoked at most once by an execution agent. <br/> May block pending completion of this invocation. <br/> Synchronizes with [intro.multithread] the invocation of `f`. <br/>Shall not propagate any exception thrown by the function object or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by one-way submitted functions is described by the `execution::oneway_exception_handler` property. The forward progress guarantee of the associated execution agent(s) is implementation defined. *--end note.*] |
+| `execution::execute(e,f)` | `void` | Evaluates `DECAY_COPY(std::forward<F>(f))` on the calling thread to create `cf` that will be invoked at most once by an execution agent. <br/> May block pending completion of this invocation. <br/> Synchronizes with [intro.multithread] the invocation of `f`. <br/>Shall not propagate any exception thrown by the function object or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by one-way submitted functions is implementation-defined. The forward progress guarantee of the associated execution agent(s) is implementation-defined. *--end note.*] |
 
 [*Editorial note:* We should collapse `executor_to`'s specification instead of duplicating `executor`. *--end note.*]
 
@@ -1136,17 +1128,6 @@ agent runs as-if on a `std::thread`. Therefore, the facilities provided by
 `mapping_t::new_thread_t` provides stronger guarantees, in
 particular that thread-local storage will not be shared between execution
 agents. *--end note*]
-
-#### Properties for handling exceptions thrown by one-way submitted functions
-
-The `oneway_exception_handler_t` property describes how exceptions thrown by one-way submitted functions are handled.
-
-`oneway_exception_handler_t` provides nested property types and objects as indicated below.
-
-| Nested Property Type| Nested Property Object Name | Requirements |
-|-------------------------|---------------------------------|--------------|
-| `oneway_exception_handler_t::other_t` | `oneway_exception_handler.other` | The behavior of a function invoked by an execution agent created by `execute` or `bulk_execute` that exits via an uncaught exception is implementation-defined.  |
-| `oneway_exception_handler_t::terminate_t` | `oneway_exception_handler.terminate` | If a function invoked by an execution agent created by `execute` or `bulk_execute` exits via an uncaught exception, `terminate()` shall be called. |
 
 ### Properties for customizing memory allocation
 
