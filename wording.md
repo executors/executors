@@ -752,7 +752,7 @@ any_executor require(Property p) const;
 
 *Remarks:* This function shall not participate in overload resolution unless `FIND_CONVERTIBLE_PROPERTY(Property, SupportableProperties)::is_requirable` is well-formed and has the value `true`.
 
-*Returns:* A polymorphic wrapper whose target is the result of `execution::require(e, p)`, where `e` is the target object of `*this`.
+*Returns:* A polymorphic wrapper whose target is the result of `std::require(e, p)`, where `e` is the target object of `*this`.
 
 ```
 template <class Property>
@@ -761,7 +761,7 @@ typename Property::polymorphic_query_result_type query(Property p) const;
 
 *Remarks:* This function shall not participate in overload resolution unless `FIND_CONVERTIBLE_PROPERTY(Property, SupportableProperties)` is well-formed.
 
-*Returns:* If `execution::query(e, p)` is well-formed, `static_cast<Property::polymorphic_query_result_type>(execution::query(e, p))`, where `e` is the target object of `*this`. Otherwise, `Property::polymorphic_query_result_type{}`.
+*Returns:* If `std::query(e, p)` is well-formed, `static_cast<Property::polymorphic_query_result_type>(std::query(e, p))`, where `e` is the target object of `*this`. Otherwise, `Property::polymorphic_query_result_type{}`.
 
 ```
 template<class Function>
@@ -852,7 +852,7 @@ any_executor prefer(const any_executor<SupportableProperties...>& e, Property p)
 
 *Remarks:* This function shall not participate in overload resolution unless `FIND_CONVERTIBLE_PROPERTY(Property, SupportableProperties)::is_preferable` is well-formed and has the value `true`.
 
-*Returns:* A polymorphic wrapper whose target is the result of `execution::prefer(e, p)`, where `e` is the target object of `*this`.
+*Returns:* A polymorphic wrapper whose target is the result of `std::prefer(e, p)`, where `e` is the target object of `*this`.
 
 ### Behavioral properties
 
@@ -1014,7 +1014,7 @@ template<class Executor>
 
 #### Properties to indicate if blocking and directionality may be adapted
 
-The `blocking_adaptation_t` property allows or disallows blocking or directionality adaptation via `execution::require`.
+The `blocking_adaptation_t` property allows or disallows blocking or directionality adaptation via `std::require`.
 
 `blocking_adaptation_t` provides nested property types and objects as described below.
 
@@ -1196,7 +1196,7 @@ static constexpr ProtoAllocator value() const;
     
       public:
         using type = std::experimental::detected_or_t<
-          size_t, helper, decltype(execution::require(declval<const Executor&>(), execution::bulk))
+          size_t, helper, decltype(std::require(declval<const Executor&>(), execution::bulk))
         >;
     
         // exposition only
@@ -1215,7 +1215,7 @@ static constexpr ProtoAllocator value() const;
     
       public:
         using type = std::experimental::detected_or_t<
-          executor_shape_t<Executor>, helper, decltype(execution::require(declval<const Executor&>(), execution::bulk))
+          executor_shape_t<Executor>, helper, decltype(std::require(declval<const Executor&>(), execution::bulk))
         >;
     
         // exposition only
@@ -1263,7 +1263,7 @@ Consider a generic function that performs some task immediately if it can, and o
       if (try_work() == done)
       {
         // Work completed immediately, invoke callback.
-        execution::require(ex,
+        std::require(ex,
             execution::single,
             execution::oneway,
           ).execute(callback);
@@ -1272,7 +1272,7 @@ Consider a generic function that performs some task immediately if it can, and o
       {
         // Perform work in background. Track outstanding work.
         start_background_work(
-            execution::prefer(ex,
+            std::prefer(ex,
               execution::outstanding_work.tracked),
             callback);
       }
@@ -1298,7 +1298,7 @@ This function can be used with an inline executor which is defined as follows:
       }
     };
 
-as, in the case of an unsupported property, invocation of `execution::prefer` will fall back to an identity operation.
+as, in the case of an unsupported property, invocation of `std::prefer` will fall back to an identity operation.
 
 The polymorphic `executor` wrapper should be able to simply swap in, so that we could change `do_async_work` to the non-template function:
 
@@ -1312,7 +1312,7 @@ The polymorphic `executor` wrapper should be able to simply swap in, so that we 
       if (try_work() == done)
       {
         // Work completed immediately, invoke callback.
-        execution::require(ex,
+        std::require(ex,
             execution::single,
             execution::oneway,
           ).execute(callback);
@@ -1321,7 +1321,7 @@ The polymorphic `executor` wrapper should be able to simply swap in, so that we 
       {
         // Perform work in background. Track outstanding work.
         start_background_work(
-            execution::prefer(ex,
+            std::prefer(ex,
               execution::outstanding_work.tracked),
             callback);
       }
@@ -1329,7 +1329,7 @@ The polymorphic `executor` wrapper should be able to simply swap in, so that we 
 
 with no change in behavior or semantics.
 
-However, if we simply specify `execution::outstanding_work.tracked` in the `executor` template parameter list, we will get a compile error due to the `executor` template not knowing that `execution::outstanding_work.tracked` is intended for use with `prefer` only. At the point of construction from an `inline_executor` called `ex`, `executor` will try to instantiate implementation templates that perform the ill-formed `execution::require(ex, execution::outstanding_work.tracked)`.
+However, if we simply specify `execution::outstanding_work.tracked` in the `executor` template parameter list, we will get a compile error due to the `executor` template not knowing that `execution::outstanding_work.tracked` is intended for use with `prefer` only. At the point of construction from an `inline_executor` called `ex`, `executor` will try to instantiate implementation templates that perform the ill-formed `std::require(ex, execution::outstanding_work.tracked)`.
 
 The `prefer_only` adapter addresses this by turning off the `is_requirable` attribute for a specific property. It would be used in the above example as follows:
 
@@ -1366,8 +1366,8 @@ The `prefer_only` adapter addresses this by turning off the `is_requirable` attr
     
       template<class Executor, class Property>
       friend auto prefer(Executor ex, const Property& p)
-        noexcept(noexcept(execution::prefer(std::move(ex), std::declval<const InnerProperty>())))
-          -> decltype(execution::prefer(std::move(ex), std::declval<const InnerProperty>()));
+        noexcept(noexcept(std::prefer(std::move(ex), std::declval<const InnerProperty>())))
+          -> decltype(std::prefer(std::move(ex), std::declval<const InnerProperty>()));
     
       template<class Executor, class Property>
       friend constexpr auto query(const Executor& ex, const Property& p)
@@ -1398,13 +1398,13 @@ constexpr auto value() const
 ```
 template<class Executor, class Property>
 friend auto prefer(Executor ex, const Property& p)
-  noexcept(noexcept(execution::prefer(std::move(ex), std::declval<const InnerProperty>())))
-    -> decltype(execution::prefer(std::move(ex), std::declval<const InnerProperty>()));
+  noexcept(noexcept(std::prefer(std::move(ex), std::declval<const InnerProperty>())))
+    -> decltype(std::prefer(std::move(ex), std::declval<const InnerProperty>()));
 ```
 
-*Returns:* `execution::prefer(std::move(ex), p.property)`.
+*Returns:* `std::prefer(std::move(ex), p.property)`.
 
-*Remarks:* Shall not participate in overload resolution unless `std::is_same_v<Property, prefer_only>` is `true`, and the expression `execution::prefer(std::move(ex), p.property)` is well-formed.
+*Remarks:* Shall not participate in overload resolution unless `std::is_same_v<Property, prefer_only>` is `true`, and the expression `std::prefer(std::move(ex), p.property)` is well-formed.
 
 ```
 template<class Executor, class Property>
