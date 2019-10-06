@@ -365,8 +365,6 @@ concept sender =
   sender-to-impl<S, sink_receiver>;
 ```
 
-None of a sender's copy constructor, destructor, equality comparison, or `swap` operation shall exit via an exception.
-
 None of these operations, nor a sender type's `submit` member function shall introduce data races as a result of concurrent invocations of those functions from different threads.
 
 An sender type's destructor shall not block pending completion of the submitted function objects. [*Note:* The ability to wait for completion of submitted function objects may be provided by the associated execution context. *--end note*]
@@ -375,7 +373,7 @@ In addition to the above requirements, types `S` and `R` model `sender` only if 
 
 In the Table below, 
 
-- `s` denotes a (possibly const) executor object of type `S`,
+- `s` denotes a (possibly const) sender object of type `S`,
 - `cr` denotes the function or receiver object `DECAY_COPY(std::forward<R>(r))` 
 - `r` denotes a function or receiver object of type `R&&` invocable as `cr()` and where `decay_t<R>` models `move_constructible`.
 
