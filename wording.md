@@ -451,7 +451,9 @@ Let _`executor-impl`_ be the exposition-only concept
 ```
 template<class E, class F>
 concept executor-impl =
-  invocable<F>&&
+  invocable<F> &&
+  is_nothrow_copy_constructible_v<E> &&
+  is_nothrow_destructible_v<E> &&
   equality_comparable<E> &&
   requires(E&& e, F&& f) {
     execution::execute((E&&)e, (F&&)f);
@@ -465,9 +467,9 @@ template<class E>
 concept executor = executor-impl<E, execution::invocable_archetype>;
 ```
 
-None of an executor's copy constructor, destructor, equality comparison, or `swap` operation shall exit via an exception.
+Neither of an executor's equality comparison or `swap` operation shall exit via an exception.
 
-None of these operations, nor an executor type's `execute` or `submit` functions, or associated query functions shall introduce data races as a result of concurrent invocations of those functions from different threads.
+None of an executor type's copy constructor, destructor, equality comparison, `swap` function, `execute` function, `submit` functions, or associated `query` functions shall introduce data races as a result of concurrent invocations of those functions from different threads.
 
 For any two (possibly const) values `x1` and `x2` of some executor type `X`, `x1 == x2` shall return `true` only if `execution::query(x1,p) == execution::query(x2,p)` for every property `p` where both `execution::query(x1,p)` and `execution::query(x2,p)` are well-formed and result in a non-void type that is `equality_comparable` (C++Std [equalitycomparable]). [*Note:* The above requirements imply that `x1 == x2` returns `true` if `x1` and `x2` can be interchanged with identical effects. An executor may conceptually contain additional properties which are not exposed by a named property type that can be observed via `execution::query`; in this case, it is up to the concrete executor implementation to decide if these properties affect equality. Returning `false` does not necessarily imply that the effects are not identical. *--end note*]
 
