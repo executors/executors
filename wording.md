@@ -455,7 +455,7 @@ concept executor = executor-impl<E, execution::invocable_archetype>;
 
 Neither of an executor's equality comparison or `swap` operation shall exit via an exception.
 
-None of an executor type's copy constructor, destructor, equality comparison, `swap` function, `execute` function, `submit` functions, or associated `query` functions shall introduce data races as a result of concurrent invocations of those functions from different threads.
+None of an executor type's copy constructor, destructor, equality comparison, `swap` function, `execute` function, or associated `query` functions shall introduce data races as a result of concurrent invocations of those functions from different threads.
 
 For any two (possibly const) values `x1` and `x2` of some executor type `X`, `x1 == x2` shall return `true` only if `std::query(x1,p) == std::query(x2,p)` for every property `p` where both `std::query(x1,p)` and `std::query(x2,p)` are well-formed and result in a non-void type that is `equality_comparable` (C++Std [equalitycomparable]). [*Note:* The above requirements imply that `x1 == x2` returns `true` if `x1` and `x2` can be interchanged with identical effects. An executor may conceptually contain additional properties which are not exposed by a named property type that can be observed via `std::query`; in this case, it is up to the concrete executor implementation to decide if these properties affect equality. Returning `false` does not necessarily imply that the effects are not identical. *--end note*]
 
@@ -502,7 +502,7 @@ concept executor_of = executor-impl<E, F>;
 
 Neither of an executor's equality comparison or `swap` operation shall exit via an exception.
 
-None of an executor type's copy constructor, destructor, equality comparison, `swap` function, `execute` function, `submit` functions, or associated `query` functions shall introduce data races as a result of concurrent invocations of those functions from different threads.
+None of an executor type's copy constructor, destructor, equality comparison, `swap` function, `execute` function, or associated `query` functions shall introduce data races as a result of concurrent invocations of those functions from different threads.
 
 For any two (possibly const) values `x1` and `x2` of some executor type `X`, `x1 == x2` shall return `true` only if `std::query(x1,p) == std::query(x2,p)` for every property `p` where both `std::query(x1,p)` and `std::query(x2,p)` are well-formed and result in a non-void type that is `equality_comparable` (C++Std [equalitycomparable]). [*Note:* The above requirements imply that `x1 == x2` returns `true` if `x1` and `x2` can be interchanged with identical effects. An executor may conceptually contain additional properties which are not exposed by a named property type that can be observed via `std::query`; in this case, it is up to the concrete executor implementation to decide if these properties affect equality. Returning `false` does not necessarily imply that the effects are not identical. *--end note*]
 
