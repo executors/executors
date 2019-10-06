@@ -246,7 +246,9 @@ For some subexpressions `e` and `f`, let `E` be a type such that `decltype((e))`
           void set_value() {
             invoke(f_);
           }
-          void set_error(std::exception_ptr) noexcept {}
+          void set_error(std::exception_ptr) {
+            terminate();
+          }
           void set_done() noexcept {}
         };
 
