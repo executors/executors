@@ -232,7 +232,7 @@ For some subexpressions `e` and `f`, let `E` be a type such that `decltype((e))`
 
     and that does not include a declaration of `execution::execute`. If the function selected by overload resolution does not execute the function object `f` on the executor `e`, the program is ill-formed with no diagnostic required.
 
-- Otherwise, `execution::submit(e, `_`as-receiver`_`<F>(forward<F>(f)))` if `E` models `sender`, where _`as-receiver`_ is some implementation-defined class template equivalent to:
+- Otherwise, `execution::submit(e, `_`as-receiver`_`<F>(forward<F>(f)))` if `E` and _`as-receiver`_`<F>` model `sender_to`, where _`as-receiver`_ is some implementation-defined class template equivalent to:
 
         template<invocable F>
         struct as-receiver {
