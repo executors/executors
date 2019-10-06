@@ -19,6 +19,14 @@ For the intent of this library and extensions to this library, the *lifetime of 
 namespace std {
 namespace execution {
 
+  // Exception types:
+
+  extern runtime_error const invocation-error; // exposition only
+  struct receiver_invocation_error : runtime_error, nested_exception {
+    receiver_invocation_error() noexcept
+      : runtime_error(invocation-error), nested_exception() {}
+  };
+
   // Customization points:
 
   inline namespace unspecified{
@@ -280,23 +288,26 @@ The name `execution::submit` denotes a customization point object. For some sube
 
 - Otherwise, `execution::submit(s, r)` is ill-formed.
 
-[*Editorial note:* We should probably define what "submit the receiver object `R` via the sender `S`" means more carefully. *--end editorial note*]
+[*Editorial note:* We should probably define what "submit the receiver object `R` via the
+sender `S`" means more carefully. *--end editorial note*]
 
 [*Editorial note:* This specification is adapted from `ranges::iter_swap`. *--end editorial note*]
 
 #### `execution::schedule`
 
-The name `execution::schedule` denotes a customization point object. The expression `execution::schedule(S)` for some subexpression `S` is expression-equivalent to:
+The name `execution::schedule` denotes a customization point object. The expression
+`execution::schedule(S)` for some subexpression `S` is expression-equivalent to:
 
-- `S.schedule()`, if that expression is valid and its type `N` models `Sender`. 
+- `S.schedule()`, if that expression is valid and its type `N` models `sender`. 
 
-- Otherwise, `schedule(S)`, if that expression is valid and its type `N` models `Sender` with overload resolution performed in a context that includes the declaration
+- Otherwise, `schedule(S)`, if that expression is valid and its type `N` models `sender`
+  with overload resolution performed in a context that includes the declaration
 
         void schedule();
 
     and that does not include a declaration of `execution::schedule`. 
 
-- Otherwise, _`decay-copy`_`(S)` if the type `S` models `Sender`.
+- Otherwise, _`decay-copy`_`(S)` if the type `S` models `sender`.
 
 - Otherwise, `execution::schedule(S)` is ill-formed.
 
@@ -327,9 +338,16 @@ The name `execution::bulk_execute` denotes a customization point object. If `is_
 XXX TODO The `receiver` concept...
 
 ```
+// exposition only:
+template<class T>
+inline constexpr bool is-nothrow-move-or-copy-constructible =
+  is_nothrow_move_constructible<T> ||
+   copy_constructible<T>;
+
 template<class T, class E = exception_ptr>
 concept receiver =
   move_constructible<remove_cvref_t<T>> &&
+  (is-nothrow-move-or-copy-constructible<remove_cvref_t<T>>) &&
   requires(T&& t, E&& e) {
     { execution::set_done((T&&) t) } noexcept;
     { execution::set_error((T&&) t, (E&&) e) } noexcept;
@@ -362,8 +380,18 @@ concept sender-to-impl =
 
 template<class S>
 concept sender =
+  move_constructible<remove_cvref_t<S>> &&
   sender-to-impl<S, sink_receiver>;
 ```
+
+In the Table below,
+
+- `s` denotes a (possibly const) sender object of type `S`,
+- `r` denotes a (possibly const) receiver object of type `R`.
+
+| Expression | Return Type | Operational semantics |
+|------------|-------------|---------------------- |
+| `execution::submit(s, r)` | `void` | If `execution::submit(s, r)` exits without throwing an exception, then the implementation shall invoke exactly one of `execution::set_value(rc, values...)`, `execution::set_error(rc, error)` or `execution::set_done(rc)` where `rc` is either `r` or an object moved from `r`. If any of the invocations of `set_value` or `set_error` exits via an exception then it is valid to call to either `set_done(rc)` or `set_error(rc, E)`, where `E` is an `exception_ptr` pointing to an unspecified exception object. <br/> `submit` may or may not block pending the successful transfer of execution to one of the three receiver operations. <br/> The start of the invocation of `submit` strongly happens before [intro.multithread] the invocation of one of the three receiver operations. |
 
 ### Concept `sender_to`
 
@@ -376,6 +404,7 @@ concept sender_to =
   receiver<R> &&
   sender-to-impl<S, R>;
 ```
+
 ### Concept `scheduler`
 
 XXX TODO The `scheduler` concept...
@@ -391,25 +420,68 @@ concept scheduler =
   };
 ```
 
-None of a scheduler's copy constructor, destructor, equality comparison, or `swap` operation shall exit via an exception.
+None of a scheduler's copy constructor, destructor, equality comparison, or `swap`
+operation shall exit via an exception.
 
-None of these operations, nor an scheduler type's `schedule` function, or associated query functions shall introduce data races as a result of concurrent invocations of those functions from different threads.
+None of these operations, nor an scheduler type's `schedule` function, or associated query
+functions shall introduce data races as a result of concurrent invocations of those
+functions from different threads.
 
-For any two (possibly const) values `x1` and `x2` of some scheduler type `X`, `x1 == x2` shall return `true` only if `x1.query(p) == x2.query(p)` for every property `p` where both `x1.query(p)` and `x2.query(p)` are well-formed and result in a non-void type that is `EqualityComparable` (C++Std [equalitycomparable]). [*Note:* The above requirements imply that `x1 == x2` returns `true` if `x1` and `x2` can be interchanged with identical effects. An scheduler may conceptually contain additional properties which are not exposed by a named property type that can be observed via `execution::query`; in this case, it is up to the concrete scheduler implementation to decide if these properties affect equality. Returning `false` does not necessarily imply that the effects are not identical. *--end note*]
+For any two (possibly const) values `x1` and `x2` of some scheduler type `X`, `x1 == x2`
+shall return `true` only if `x1.query(p) == x2.query(p)` for every property `p` where both
+`x1.query(p)` and `x2.query(p)` are well-formed and result in a non-void type that is
+`EqualityComparable` (C++Std [equalitycomparable]). [*Note:* The above requirements imply
+that `x1 == x2` returns `true` if `x1` and `x2` can be interchanged with identical
+effects. An scheduler may conceptually contain additional properties which are not exposed
+by a named property type that can be observed via `execution::query`; in this case, it is
+up to the concrete scheduler implementation to decide if these properties affect equality.
+Returning `false` does not necessarily imply that the effects are not identical. *--end
+note*]
 
-An scheduler type's destructor shall not block pending completion of any function objects submitted to the returned object that models `Sender`. [*Note:* The ability to wait for completion of submitted function objects may be provided by the execution context that produced the scheduler. *--end note*]
+An scheduler type's destructor shall not block pending completion of any receivers
+submitted to the sender objects returned from `schedule`. [*Note:* The ability to wait for
+completion of submitted function objects may be provided by the execution context that
+produced the scheduler. *--end note*]
 
-In addition to the above requirements, type `S` models `scheduler` only if it satisfies the requirements from at least one row in the Table below.
+In addition to the above requirements, type `S` models `scheduler` only if it satisfies
+the requirements in the Table below.
 
 In the Table below, 
 
 - `s` denotes a (possibly const) scheduler object of type `S`,
-- `N` denotes a type that models `Sender`, and
+- `N` denotes a type that models `sender`, and
 - `n` denotes a sender object of type `N`
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `execution::schedule(s)` | `N` | Evaluates `execution::schedule(s)` on the calling thread to create `n` |
+| `execution::schedule(s)` | `N` | Evaluates `execution::schedule(s)` on the calling thread to create `N`. \
+more |
+
+`execution::submit(N, r)`, for some receiver object `r`, is required to eagerly submit `r`
+for execution on an execution agent that `s` creates for it. Let `rc` be `r` or an
+object created by copy or move construction from `r`. The semantic constraints on the
+`sender` `N` returned from a scheduler `s`'s `schedule` function are as follows:
+
+* If `rc`'s `set_error` function is called in response to a submission error, scheduling
+  error, or other internal error, let `E` be an expression that refers to that error if
+  `set_error(rc, E)` is well-formed; otherwise, let `E` be an `exception_ptr` that refers
+  to that error. [ _Note:_ `E` could be the result of calling `current_exception` or
+  `make_exception_ptr` — _end note_ ] The scheduler calls `set_error(rc, E)` on an
+  unspecified weakly-parallel execution agent ([ _Note:_ An invocation of `set_error` on a
+  receiver is required to be `noexcept` — _end note_]), and
+
+* If `rc`'s `set_error` function is called in response to an exception that
+  propagates out of the invocation of `set_value` on `rc`, let `E` be
+  `make_exception_ptr(receiver_invocation_error{})` invoked from within a catch clause
+  that has caught the exception. The executor calls `set_error(rc, E)` on an unspecified
+  weakly-parallel execution agent, and
+
+* A call to `set_done(rc)` is made on an unspecified weakly-parallel execution agent ([
+  _Note:_ An invocation of a receiver's `set_done` function is required to be `noexcept` —
+  _end note_ ]).
+
+[ Note: The senders returned from a scheduler's `schedule` function have wide discretion
+when deciding which of the three receiver functions to call upon submission. — _end note_ ]
 
 ### Concept `executor`
 
@@ -428,7 +500,7 @@ concept executor =
 
 None of an executor's copy constructor, destructor, equality comparison, or `swap` operation shall exit via an exception.
 
-None of these operations, nor an executor type's `execute` or `submit` functions, or associated query functions shall introduce data races as a result of concurrent invocations of those functions from different threads.
+None of these operations, nor an executor type's `execute` function, or associated query functions shall introduce data races as a result of concurrent invocations of those functions from different threads.
 
 For any two (possibly const) values `x1` and `x2` of some executor type `X`, `x1 == x2` shall return `true` only if `x1.query(p) == x2.query(p)` for every property `p` where both `x1.query(p)` and `x2.query(p)` are well-formed and result in a non-void type that is `equality_comparable` (C++Std [equalitycomparable]). [*Note:* The above requirements imply that `x1 == x2` returns `true` if `x1` and `x2` can be interchanged with identical effects. An executor may conceptually contain additional properties which are not exposed by a named property type that can be observed via `execution::query`; in this case, it is up to the concrete executor implementation to decide if these properties affect equality. Returning `false` does not necessarily imply that the effects are not identical. *--end note*]
 
@@ -436,18 +508,17 @@ An executor type's destructor shall not block pending completion of the submitte
 
 For an executor type `E`, the expression `is_executor_v<E>` shall be a valid constant expression with the value `true`.
 
-In addition to the above requirements, types `E` and `F` model `executor` only if they satisfy the requirements from at least one row in the Table below.
+In addition to the above requirements, types `E` and `F` model `executor` only if they satisfy the requirements in the Table below.
 
 In the Table below, 
 
 - `e` denotes a (possibly const) executor object of type `E`,
-- `cf` denotes the function or receiver object `DECAY_COPY(std::forward<F>(f))` 
-- `f` denotes a function or receiver object of type `F&&` invocable as `cf()` and where `decay_t<F>` models `move_constructible`.
+- `cf` denotes the function object `DECAY_COPY(std::forward<F>(f))` 
+- `f` denotes a function of type `F&&` invocable as `cf()` and where `decay_t<F>` models `move_constructible`.
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `e.execute(f)` | `void` | Evaluates `DECAY_COPY(std::forward<F>(f))` on the calling thread to create `cf` that will be invoked at most once by an execution agent. <br/> May block pending completion of this invocation. <br/> Synchronizes with [intro.multithread] the invocation of `f`. <br/>Shall not propagate any exception thrown by the function object or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by one-way submitted functions is described by the `execution::oneway_exception_handler` property. The forward progress guarantee of the associated execution agent(s) is implementation defined. *--end note.*] |
-| `e.submit(f)` | `void` | Evaluates `DECAY_COPY(std::forward<F>(f))` on the calling thread to create `cf` that will be invoked at most once by an execution agent. <br/> May block pending completion of this invocation. <br/> Synchronizes with [intro.multithread] the invocation of `f`. <br/>Shall not propagate any exception thrown by the function object or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by one-way submitted functions is described by the `execution::oneway_exception_handler` property. The forward progress guarantee of the associated execution agent(s) is implementation defined. *--end note.*] |
+| `execution::execute(e, f)` | `void` | Evaluates `DECAY_COPY(std::forward<F>(f))` on the calling thread to create `cf` that will be invoked at most once by an execution agent. <br/> May block pending completion of this invocation. <br/> Synchronizes with [intro.multithread] the invocation of `f`. <br/>Shall not propagate any exception thrown by the function object or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by one-way submitted functions is described by the `execution::oneway_exception_handler` property. The forward progress guarantee of the associated execution agent(s) is implementation defined. *--end note.*] |
 
 ### No-op receiver
 
@@ -1677,7 +1748,7 @@ class C
 };
 ```
 
-`C` is a type satisfying the `Scheduler` requirements.
+`C` is a type satisfying the `scheduler` requirements.
 
 #### Sender creation
 
@@ -1885,7 +1956,7 @@ class C
 };
 ```
 
-`C` is a type satisfying the `Sender` requirements.
+`C` is a type satisfying the `sender` requirements.
 
 ```
 template<class Receiver>
