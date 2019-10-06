@@ -60,7 +60,7 @@ Abstract:           This paper proposes a programming model for executors, which
 As directed by SG1 at the 2019-07 Cologne meeting, we have implemented the following changes suggested by P1658 and P1660:
 
 * Introduced `set_value`, `set_error`, `set_done`, `execute`, `submit`, and `bulk_execute` customization point objects.
-* Introduced `executor`, `executor_of`, `receiver`, `receiver_of`, and `sender_to` concepts.
+* Introduced `executor`, `executor_of`, `receiver`, `receiver_of`, `sender`, `sender_to`, and `scheduler` concepts.
 * Renamed polymorphic executor to `any_executor`.
 * Introduced `invocable_archetype`.
 * Eliminated interface-changing properties `oneway_t` and `bulk_oneway_t`.
