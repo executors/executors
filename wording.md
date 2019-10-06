@@ -48,6 +48,9 @@ namespace execution {
   template<class S>
     concept sender = see-below;
 
+  template<class S>
+    concept typed_sender = see-below;
+
   template<class S, class R>
     concept sender_to = see-below;
 
@@ -57,8 +60,10 @@ namespace execution {
   template<class E, class F = void(*)()>
     concept executor = see-below;
 
-  // A no-op receiver type
+  // Sender and receiver utilities type
   class sink_receiver;
+
+  template<class S> struct sender_traits;
 
   // Indication of executor property applicability
   template<class T> struct is_executor;
@@ -364,6 +369,32 @@ concept sender =
   sender-to-impl<S, sink_receiver>;
 ```
 
+### Concept `typed_sender`
+
+A sender is _typed_ if it declares what types it sends through a receiver's channels.
+The `typed_sender` concept is defined as:
+
+```
+template<template<template<class...> class Tuple, template<class...> class Variant> class>
+struct has-value-types; // exposition only
+
+template<template<class...> class Variant>
+struct has-error-types; // exposition only
+
+template<class S>
+comcept has-sender-types = // exposition only
+  requires {
+    typename has-value-types<S::template value_types>;
+    typename has-error-types<S::template error_types>;
+    typename bool_constant<S::sends_done>;
+  };
+
+template<class S>
+concept typed_sender =
+  sender<S> &&
+  has-sender-types<sender_traits<S>>;
+```
+
 ### Concept `sender_to`
 
 XXX TODO The `sender_to` concept...
@@ -386,8 +417,7 @@ concept scheduler =
   equality_comparable<remove_cvref_t<S>> &&
   requires(E&& e) {
     execution::scheduler((S&&)s);
-  } // && sender<invoke_result_t<execution::scheduler, S>>
-  };
+  }; // && sender<invoke_result_t<execution::scheduler, S>>
 ```
 
 None of a scheduler's copy constructor, destructor, equality comparison, or `swap` operation shall exit via an exception.
@@ -448,20 +478,76 @@ In the Table below,
 | `e.execute(f)` | `void` | Evaluates `DECAY_COPY(std::forward<F>(f))` on the calling thread to create `cf` that will be invoked at most once by an execution agent. <br/> May block pending completion of this invocation. <br/> Synchronizes with [intro.multithread] the invocation of `f`. <br/>Shall not propagate any exception thrown by the function object or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by one-way submitted functions is described by the `execution::oneway_exception_handler` property. The forward progress guarantee of the associated execution agent(s) is implementation defined. *--end note.*] |
 | `e.submit(f)` | `void` | Evaluates `DECAY_COPY(std::forward<F>(f))` on the calling thread to create `cf` that will be invoked at most once by an execution agent. <br/> May block pending completion of this invocation. <br/> Synchronizes with [intro.multithread] the invocation of `f`. <br/>Shall not propagate any exception thrown by the function object or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by one-way submitted functions is described by the `execution::oneway_exception_handler` property. The forward progress guarantee of the associated execution agent(s) is implementation defined. *--end note.*] |
 
-### No-op receiver
+### Sender and receiver traits
 
 XXX TODO `sink_receiver`
 
 ```c++
-class sink_receiver {
-public:
-  void set_value(auto&&...) {}
-  [[noreturn]] void set_error(auto&&) noexcept {
-    std::terminate();
-  }
-  void set_done() noexcept {}
-};
+    class sink_receiver {
+    public:
+      void set_value(auto&&...) {}
+      [[noreturn]] void set_error(auto&&) noexcept {
+        std::terminate();
+      }
+      void set_done() noexcept {}
+    };
 ```
+
+XXX TODO `sender_traits`
+
+The class template `sender_traits` can be used to query information about a `sender`; in
+particular, what values and errors it sends through a receiver's value and error channel,
+and whether or not it ever calls `set_done` on a receiver.
+
+```c++
+    template<class S>
+    struct sender-traits-base {}; // exposition-only
+
+    template<class S>
+      requires (!same_as<S, remove_cvref_t<S>>)
+    struct sender-traits-base : sender_traits<remove_cvref_t<S>> {};
+
+    template<class S>
+      requires same_as<S, remove_cvref_t<S>> &&
+      sender<S> && has-sender-traits<S>
+    struct sender-traits-base<S> {
+      template<template<class...> class Tuple, template<class...> class Variant>
+      using value_types = typename S::template value_types<Tuple, Variant>;
+
+      template<template<class...> class Variant>
+      using error_types = typename S::template error_types<Variant>;
+
+      static constexpr bool sends_done = S::sends_done;
+    };
+
+    template<class S>
+    struct sender_traits : sender-traits-base<S> {};
+```
+
+Because a sender may send one set of types or another to a receiver based on some runtime
+condition, `sender_traits` may provide a nested `value_types` template that is
+parameterized on a tuple-like class template and a variant-like class template that are
+used to hold the result.
+
+[_Example:_ If a sender type `S` sends types `As...` or `Bs...` to a receiver's value channel, it
+may specialize `sender_traits` such that `typename sender_traits<S>::value_types<tuple, variant>`
+names the type `variant<tuple<As...>, tuple<Bs...>>` -- _end example_]
+
+Because a sender may send one or another type of error types to a receiver, `sender_traits`
+may provide a nested `error_types` template that is parameterized on a variant-like class
+template that is used to hold the result.
+
+[_Example:_ If a sender type `S` sends error types `exception_ptr` or `error_code` to a
+receiver's error channel, it may specialize `sender_traits` such that
+`typename sender_traits<S>::error_types<variant>` names the type
+`variant<exception_ptr, error_code>` -- _end example_]
+
+A sender type can signal that it never calls `set_done` on a receiver by specializing
+`sender_traits` such that `sender_traits<S>::sends_done` is `false`; conversely, it may
+set `sender_traits<S>::sends_done` to `true` to indicate that it does call `set_done`
+on a receiver.
+
+Users may specialize `sender_traits` on program-defined types.
 
 ### Executor applicability trait
 
