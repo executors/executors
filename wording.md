@@ -348,7 +348,6 @@ The name `execution::bulk_execute` denotes a customization point object. If `is_
     - For each value of `i` in `N`, `cf(i)` (or copy of `cf`)) will be invoked at most once by an execution agent that is unique for each value of `i`.
     - May block pending completion of one or more invocations of `cf`.
     - Synchronizes with (C++Std [intro.multithread]) the invocations of `cf`.
-    - Shall not propagate any exception thrown by `cf` or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by `bulk_execute`-submitted functions are implementation-defined. *--end note.*]
 
 - Otherwise, `execution::bulk_execute(S, F, N)` is ill-formed.
 
