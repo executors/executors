@@ -48,6 +48,9 @@ namespace execution {
   template<class S>
     concept sender = see-below;
 
+  template<class S>
+    concept typed_sender = see-below;
+
   template<class S, class R>
     concept sender_to = see-below;
 
@@ -57,8 +60,10 @@ namespace execution {
   template<class E, class F = void(*)()>
     concept executor = see-below;
 
-  // A no-op receiver type
+  // Sender and receiver utilities type
   class sink_receiver;
+
+  template<class S> struct sender_traits;
 
   // Indication of executor property applicability
   template<class T> struct is_executor;
@@ -134,9 +139,8 @@ namespace execution {
 
   class bad_executor;
 
-  template <class InterfaceProperty, class... SupportableProperties>
-    using executor = typename InterfaceProperty::template
-      polymorphic_executor_type<InterfaceProperty, SupportableProperties...>;
+  template <class... SupportableProperties> class any_executor;
+
   template<class Property> struct prefer_only;
 
 } // namespace execution
@@ -381,6 +385,32 @@ In the Table below,
 |------------|-------------|---------------------- |
 | `s.submit(r)` | `void` | Evaluates `DECAY_COPY(std::forward<R>(r))` on the calling thread to create `cr` that will be invoked at most once by an execution agent. <br/> May block pending completion of this invocation. <br/> Synchronizes with [intro.multithread] the invocation of `r`. <br/>Shall not propagate any exception thrown by the function object or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by one-way submitted functions is described by the `execution::oneway_exception_handler` property. The forward progress guarantee of the associated execution agent(s) is implementation defined. *--end note.*] |
 
+### Concept `typed_sender`
+
+A sender is _typed_ if it declares what types it sends through a receiver's channels.
+The `typed_sender` concept is defined as:
+
+```
+template<template<template<class...> class Tuple, template<class...> class Variant> class>
+struct has-value-types; // exposition only
+
+template<template<class...> class Variant>
+struct has-error-types; // exposition only
+
+template<class S>
+comcept has-sender-types = // exposition only
+  requires {
+    typename has-value-types<S::template value_types>;
+    typename has-error-types<S::template error_types>;
+    typename bool_constant<S::sends_done>;
+  };
+
+template<class S>
+concept typed_sender =
+  sender<S> &&
+  has-sender-types<sender_traits<S>>;
+```
+
 ### Concept `sender_to`
 
 XXX TODO The `sender_to` concept...
@@ -403,8 +433,7 @@ concept scheduler =
   equality_comparable<remove_cvref_t<S>> &&
   requires(E&& e) {
     execution::schedule((S&&)s);
-  } // && sender<invoke_result_t<execution::schedule, S>>
-  };
+  }; // && sender<invoke_result_t<execution::schedule, S>>
 ```
 
 None of a scheduler's copy constructor, destructor, equality comparison, or `swap` operation shall exit via an exception.
@@ -464,20 +493,76 @@ In the Table below,
 |------------|-------------|---------------------- |
 | `e.execute(f)` | `void` | Evaluates `DECAY_COPY(std::forward<F>(f))` on the calling thread to create `cf` that will be invoked at most once by an execution agent. <br/> May block pending completion of this invocation. <br/> Synchronizes with [intro.multithread] the invocation of `f`. <br/>Shall not propagate any exception thrown by the function object or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by one-way submitted functions is described by the `execution::oneway_exception_handler` property. The forward progress guarantee of the associated execution agent(s) is implementation defined. *--end note.*] |
 
-### No-op receiver
+### Sender and receiver traits
 
 XXX TODO `sink_receiver`
 
 ```c++
-class sink_receiver {
-public:
-  void set_value(auto&&...) {}
-  [[noreturn]] void set_error(auto&&) noexcept {
-    std::terminate();
-  }
-  void set_done() noexcept {}
-};
+    class sink_receiver {
+    public:
+      void set_value(auto&&...) {}
+      [[noreturn]] void set_error(auto&&) noexcept {
+        std::terminate();
+      }
+      void set_done() noexcept {}
+    };
 ```
+
+XXX TODO `sender_traits`
+
+The class template `sender_traits` can be used to query information about a `sender`; in
+particular, what values and errors it sends through a receiver's value and error channel,
+and whether or not it ever calls `set_done` on a receiver.
+
+```c++
+    template<class S>
+    struct sender-traits-base {}; // exposition-only
+
+    template<class S>
+      requires (!same_as<S, remove_cvref_t<S>>)
+    struct sender-traits-base : sender_traits<remove_cvref_t<S>> {};
+
+    template<class S>
+      requires same_as<S, remove_cvref_t<S>> &&
+      sender<S> && has-sender-traits<S>
+    struct sender-traits-base<S> {
+      template<template<class...> class Tuple, template<class...> class Variant>
+      using value_types = typename S::template value_types<Tuple, Variant>;
+
+      template<template<class...> class Variant>
+      using error_types = typename S::template error_types<Variant>;
+
+      static constexpr bool sends_done = S::sends_done;
+    };
+
+    template<class S>
+    struct sender_traits : sender-traits-base<S> {};
+```
+
+Because a sender may send one set of types or another to a receiver based on some runtime
+condition, `sender_traits` may provide a nested `value_types` template that is
+parameterized on a tuple-like class template and a variant-like class template that are
+used to hold the result.
+
+[_Example:_ If a sender type `S` sends types `As...` or `Bs...` to a receiver's value channel, it
+may specialize `sender_traits` such that `typename sender_traits<S>::value_types<tuple, variant>`
+names the type `variant<tuple<As...>, tuple<Bs...>>` -- _end example_]
+
+Because a sender may send one or another type of error types to a receiver, `sender_traits`
+may provide a nested `error_types` template that is parameterized on a variant-like class
+template that is used to hold the result.
+
+[_Example:_ If a sender type `S` sends error types `exception_ptr` or `error_code` to a
+receiver's error channel, it may specialize `sender_traits` such that
+`typename sender_traits<S>::error_types<variant>` names the type
+`variant<exception_ptr, error_code>` -- _end example_]
+
+A sender type can signal that it never calls `set_done` on a receiver by specializing
+`sender_traits` such that `sender_traits<S>::sends_done` is `false`; conversely, it may
+set `sender_traits<S>::sends_done` to `true` to indicate that it does call `set_done`
+on a receiver.
+
+Users may specialize `sender_traits` on program-defined types.
 
 ### Executor applicability trait
 
@@ -514,17 +599,17 @@ The `context_t` property can be used only with `query`, which returns the execut
 
 The value returned from `execution::query(e, context_t)`, where `e` is an executor, shall not change between invocations.
 
-#### Polymorphic wrappers
+#### Polymorphic executor wrappers
+
+The `any_executor` class template provides polymorphic wrappers for executors.
 
 In several places in this section the operation `CONTAINS_PROPERTY(p, pn)` is used. All such uses mean `std::disjunction_v<std::is_same<p, pn>...>`.
 
 In several places in this section the operation `FIND_CONVERTIBLE_PROPERTY(p, pn)` is used. All such uses mean the first type `P` in the parameter pack `pn` for which `std::is_convertible_v<p, P>` is `true`. If no such type `P` exists, the operation `FIND_CONVERTIBLE_PROPERTY(p, pn)` is ill-formed.
 
-The nested class template `S::polymorphic_executor_type` conforms to the following specification.
-
 ```
 template <class... SupportableProperties>
-class polymorphic_executor_type
+class any_executor
 {
 public:
   // indication of applicability to executor properties
@@ -532,110 +617,112 @@ public:
 
   // construct / copy / destroy:
 
-  polymorphic_executor_type() noexcept;
-  polymorphic_executor_type(nullptr_t) noexcept;
-  polymorphic_executor_type(const polymorphic_executor_type& e) noexcept;
-  polymorphic_executor_type(polymorphic_executor_type&& e) noexcept;
+  any_executor() noexcept;
+  any_executor(nullptr_t) noexcept;
+  any_executor(const any_executor& e) noexcept;
+  any_executor(any_executor&& e) noexcept;
   template<class... OtherSupportableProperties>
-    polymorphic_executor_type(polymorphic_executor_type<OtherSupportableProperties...> e);
+    any_executor(any_executor<OtherSupportableProperties...> e);
   template<class... OtherSupportableProperties>
-    polymorphic_executor_type(polymorphic_executor_type<OtherSupportableProperties...> e) = delete;
+    any_executor(any_executor<OtherSupportableProperties...> e) = delete;
+  template<executor Executor>
+    any_executor(Executor e);
 
-  polymorphic_executor_type& operator=(const polymorphic_executor_type& e) noexcept;
-  polymorphic_executor_type& operator=(polymorphic_executor_type&& e) noexcept;
-  polymorphic_executor_type& operator=(nullptr_t) noexcept;
+  any_executor& operator=(const any_executor& e) noexcept;
+  any_executor& operator=(any_executor&& e) noexcept;
+  any_executor& operator=(nullptr_t) noexcept;
+  template<executor Executor>
+    any_executor& operator=(Executor e);
 
-  ~polymorphic_executor_type();
+  ~any_executor();
 
-  // polymorphic_executor_type modifiers:
+  // any_executor modifiers:
 
-  void swap(polymorphic_executor_type& other) noexcept;
+  void swap(any_executor& other) noexcept;
 
-  // polymorphic_executor_type operations:
+  // any_executor operations:
 
   template <class Property>
-  polymorphic_executor_type require(Property) const;
+  any_executor require(Property) const;
 
   template <class Property>
   typename Property::polymorphic_query_result_type query(Property) const;
 
-  // polymorphic_executor_type capacity:
+  template<class Function>
+    void execute(Function&& f) const;
+
+  // any_executor capacity:
 
   explicit operator bool() const noexcept;
 
-  // polymorphic_executor_type target access:
+  // any_executor target access:
 
   const type_info& target_type() const noexcept;
-  template<class Executor> Executor* target() noexcept;
-  template<class Executor> const Executor* target() const noexcept;
-
-  // polymorphic_executor_type casts:
-
-  template<class... OtherSupportableProperties>
-    polymorphic_executor_type<OtherSupportableProperties...> static_executor_cast() const;
+  template<executor Executor> Executor* target() noexcept;
+  template<executor Executor> const Executor* target() const noexcept;
 };
 
-// polymorphic_executor_type comparisons:
+// any_executor comparisons:
 
 template <class... SupportableProperties>
-bool operator==(const polymorphic_executor_type<SupportableProperties...>& a, const polymorphic_executor_type<SupportableProperties...>& b) noexcept;
+bool operator==(const any_executor<SupportableProperties...>& a, const any_executor<SupportableProperties...>& b) noexcept;
 template <class... SupportableProperties>
-bool operator==(const polymorphic_executor_type<SupportableProperties...>& e, nullptr_t) noexcept;
+bool operator==(const any_executor<SupportableProperties...>& e, nullptr_t) noexcept;
 template <class... SupportableProperties>
-bool operator==(nullptr_t, const polymorphic_executor_type<SupportableProperties...>& e) noexcept;
+bool operator==(nullptr_t, const any_executor<SupportableProperties...>& e) noexcept;
 template <class... SupportableProperties>
-bool operator!=(const polymorphic_executor_type<SupportableProperties...>& a, const polymorphic_executor_type<SupportableProperties...>& b) noexcept;
+bool operator!=(const any_executor<SupportableProperties...>& a, const any_executor<SupportableProperties...>& b) noexcept;
 template <class... SupportableProperties>
-bool operator!=(const polymorphic_executor_type<SupportableProperties...>& e, nullptr_t) noexcept;
+bool operator!=(const any_executor<SupportableProperties...>& e, nullptr_t) noexcept;
 template <class... SupportableProperties>
-bool operator!=(nullptr_t, const polymorphic_executor_type<SupportableProperties...>& e) noexcept;
+bool operator!=(nullptr_t, const any_executor<SupportableProperties...>& e) noexcept;
 
-// polymorphic_executor_type specialized algorithms:
+// any_executor specialized algorithms:
 
 template <class... SupportableProperties>
-void swap(polymorphic_executor_type<SupportableProperties...>& a, polymorphic_executor_type<SupportableProperties...>& b) noexcept;
+void swap(any_executor<SupportableProperties...>& a, any_executor<SupportableProperties...>& b) noexcept;
 
 template <class Property, class... SupportableProperties>
-polymorphic_executor_type prefer(const polymorphic_executor_type<SupportableProperties>& e, Property p);
+any_executor prefer(const any_executor<SupportableProperties>& e, Property p);
 ```
 
-The `polymorphic_executor_type` class satisfies the general requirements on executors.
+The `any_executor` class satisfies the `executor` concept requirements.
 
-[*Note:* To meet the `noexcept` requirements for executor copy constructors and move constructors, implementations may share a target between two or more `polymorphic_executor_type` objects. *--end note*]
+[*Note:* To meet the `noexcept` requirements for executor copy constructors and move constructors, implementations may share a target between two or more `any_executor` objects. *--end note*]
 
 Each property type in the `SupportableProperties...` pack shall provide a nested type `polymorphic_query_result_type`.
 
 The *target* is the executor object that is held by the wrapper.
 
-##### `polymorphic_executor_type` constructors
+##### `any_executor` constructors
 
 ```
-polymorphic_executor_type() noexcept;
-```
-
-*Postconditions:* `!*this`.
-
-```
-polymorphic_executor_type(nullptr_t) noexcept;
+any_executor() noexcept;
 ```
 
 *Postconditions:* `!*this`.
 
 ```
-polymorphic_executor_type(const polymorphic_executor_type& e) noexcept;
+any_executor(nullptr_t) noexcept;
+```
+
+*Postconditions:* `!*this`.
+
+```
+any_executor(const any_executor& e) noexcept;
 ```
 
 *Postconditions:* `!*this` if `!e`; otherwise, `*this` targets `e.target()` or a copy of `e.target()`.
 
 ```
-polymorphic_executor_type(polymorphic_executor_type&& e) noexcept;
+any_executor(any_executor&& e) noexcept;
 ```
 
 *Effects:* If `!e`, `*this` has no target; otherwise, moves `e.target()` or move-constructs the target of `e` into the target of `*this`, leaving `e` in a valid state with an unspecified value.
 
 ```
 template<class... OtherSupportableProperties>
-  polymorphic_executor_type(polymorphic_executor_type<OtherSupportableProperties...> e);
+  any_executor(any_executor<OtherSupportableProperties...> e);
 ```
 
 *Remarks:* This function shall not participate in overload resolution unless:
@@ -645,23 +732,36 @@ template<class... OtherSupportableProperties>
 
 ```
 template<class... OtherSupportableProperties>
-  polymorphic_executor_type(polymorphic_executor_type<OtherSupportableProperties...> e) = delete;
+  any_executor(any_executor<OtherSupportableProperties...> e) = delete;
 ```
 
 *Remarks:* This function shall not participate in overload resolution unless `CONTAINS_PROPERTY(p, OtherSupportableProperties)` is `false` for some property `p` in `SupportableProperties...`.
 
-##### `polymorphic_executor_type` assignment
+```
+template<executor Executor>
+  any_executor(Executor e);
+```
+
+*Remarks:* This function shall not participate in overload resolution unless:
+
+* `can_require_v<Executor, P>`, if `P::is_requirable`, where `P` is each property in `SupportableProperties...`.
+* `can_prefer_v<Executor, P>`, if `P::is_preferable`, where `P` is each property in `SupportableProperties...`.
+* and `can_query_v<Executor, P>`, if `P::is_requirable == false` and `P::is_preferable == false`, where `P` is each property in `SupportableProperties...`.
+
+*Effects:* `*this` targets a copy of `e`.
+
+##### `any_executor` assignment
 
 ```
-polymorphic_executor_type& operator=(const polymorphic_executor_type& e) noexcept;
+any_executor& operator=(const any_executor& e) noexcept;
 ```
 
-*Effects:* `polymorphic_executor_type(e).swap(*this)`.
+*Effects:* `any_executor(e).swap(*this)`.
 
 *Returns:* `*this`.
 
 ```
-polymorphic_executor_type& operator=(polymorphic_executor_type&& e) noexcept;
+any_executor& operator=(any_executor&& e) noexcept;
 ```
 
 *Effects:* Replaces the target of `*this` with the target of `e`, leaving `e` in a valid state with an unspecified value.
@@ -669,34 +769,45 @@ polymorphic_executor_type& operator=(polymorphic_executor_type&& e) noexcept;
 *Returns:* `*this`.
 
 ```
-polymorphic_executor_type& operator=(nullptr_t) noexcept;
+any_executor& operator=(nullptr_t) noexcept;
 ```
 
-*Effects:* `polymorphic_executor_type(nullptr).swap(*this)`.
+*Effects:* `any_executor(nullptr).swap(*this)`.
 
 *Returns:* `*this`.
 
-##### `polymorphic_executor_type` destructor
+```
+template<executor Executor>
+  any_executor& operator=(Executor e);
+```
+
+*Requires:* As for `template<executor Executor> any_executor(Executor e)`.
+
+*Effects:* `any_executor(std::move(e)).swap(*this)`.
+
+*Returns:* `*this`.
+
+##### `any_executor` destructor
 
 ```
-~polymorphic_executor_type();
+~any_executor();
 ```
 
 *Effects:* If `*this != nullptr`, releases shared ownership of, or destroys, the target of `*this`.
 
-##### `polymorphic_executor_type` modifiers
+##### `any_executor` modifiers
 
 ```
-void swap(polymorphic_executor_type& other) noexcept;
+void swap(any_executor& other) noexcept;
 ```
 
 *Effects:* Interchanges the targets of `*this` and `other`.
 
-##### `polymorphic_executor_type` operations
+##### `any_executor` operations
 
 ```
 template <class Property>
-polymorphic_executor_type require(Property p) const;
+any_executor require(Property p) const;
 ```
 
 *Remarks:* This function shall not participate in overload resolution unless `FIND_CONVERTIBLE_PROPERTY(Property, SupportableProperties)::is_requirable` is well-formed and has the value `true`.
@@ -710,9 +821,20 @@ typename Property::polymorphic_query_result_type query(Property p) const;
 
 *Remarks:* This function shall not participate in overload resolution unless `FIND_CONVERTIBLE_PROPERTY(Property, SupportableProperties)` is well-formed.
 
-*Returns:* If `polymorphic_executor_type::query(e, p)` is well-formed, `static_cast<Property::polymorphic_query_result_type>(polymorphic_executor_type::query(e, p))`, where `e` is the target object of `*this`. Otherwise, `Property::polymorphic_query_result_type{}`.
+*Returns:* If `execution::query(e, p)` is well-formed, `static_cast<Property::polymorphic_query_result_type>(execution::query(e, p))`, where `e` is the target object of `*this`. Otherwise, `Property::polymorphic_query_result_type{}`.
 
-##### `polymorphic_executor_type` capacity
+```
+template<class Function>
+  void execute(Function&& f) const;
+```
+
+*Effects:* Performs `execution::execute(e, f2)`, where:
+
+  * `e` is the target object of `*this`;
+  * `f1` is the result of `DECAY_COPY(std::forward<Function>(f))`;
+  * `f2` is a function object of unspecified type that, when invoked as `f2()`, performs `f1()`.
+
+##### `any_executor` capacity
 
 ```
 explicit operator bool() const noexcept;
@@ -720,7 +842,7 @@ explicit operator bool() const noexcept;
 
 *Returns:* `true` if `*this` has a target, otherwise `false`.
 
-##### `polymorphic_executor_type` target access
+##### `any_executor` target access
 
 ```
 const type_info& target_type() const noexcept;
@@ -729,17 +851,17 @@ const type_info& target_type() const noexcept;
 *Returns:* If `*this` has a target of type `T`, `typeid(T)`; otherwise, `typeid(void)`.
 
 ```
-template<class Executor> Executor* target() noexcept;
-template<class Executor> const Executor* target() const noexcept;
+template<executor Executor> Executor* target() noexcept;
+template<executor Executor> const Executor* target() const noexcept;
 ```
 
 *Returns:* If `target_type() == typeid(Executor)` a pointer to the stored executor target; otherwise a null pointer value.
 
-##### `polymorphic_executor_type` comparisons
+##### `any_executor` comparisons
 
 ```
 template<class... SupportableProperties>
-bool operator==(const polymorphic_executor_type<SupportableProperties...>& a, const polymorphic_executor_type<SupportableProperties...>& b) noexcept;
+bool operator==(const any_executor<SupportableProperties...>& a, const any_executor<SupportableProperties...>& b) noexcept;
 ```
 
 *Returns:*
@@ -751,57 +873,46 @@ bool operator==(const polymorphic_executor_type<SupportableProperties...>& a, co
 
 ```
 template<class... SupportableProperties>
-bool operator==(const polymorphic_executor_type<SupportableProperties...>& e, nullptr_t) noexcept;
+bool operator==(const any_executor<SupportableProperties...>& e, nullptr_t) noexcept;
 template<class... SupportableProperties>
-bool operator==(nullptr_t, const polymorphic_executor_type<SupportableProperties...>& e) noexcept;
+bool operator==(nullptr_t, const any_executor<SupportableProperties...>& e) noexcept;
 ```
 
 *Returns:* `!e`.
 
 ```
 template<class... SupportableProperties>
-bool operator!=(const polymorphic_executor_type<SupportableProperties...>& a, const polymorphic_executor_type<SupportableProperties...>& b) noexcept;
+bool operator!=(const any_executor<SupportableProperties...>& a, const any_executor<SupportableProperties...>& b) noexcept;
 ```
 
 *Returns:* `!(a == b)`.
 
 ```
 template<class... SupportableProperties>
-bool operator!=(const polymorphic_executor_type<SupportableProperties...>& e, nullptr_t) noexcept;
+bool operator!=(const any_executor<SupportableProperties...>& e, nullptr_t) noexcept;
 template<class... SupportableProperties>
-bool operator!=(nullptr_t, const polymorphic_executor_type<SupportableProperties...>& e) noexcept;
+bool operator!=(nullptr_t, const any_executor<SupportableProperties...>& e) noexcept;
 ```
 
 *Returns:* `(bool) e`.
 
-##### `polymorphic_executor_type` specialized algorithms
+##### `any_executor` specialized algorithms
 
 ```
 template<class... SupportableProperties>
-void swap(polymorphic_executor_type<SupportableProperties...>& a, polymorphic_executor_type<SupportableProperties...>& b) noexcept;
+void swap(any_executor<SupportableProperties...>& a, any_executor<SupportableProperties...>& b) noexcept;
 ```
 
 *Effects:* `a.swap(b)`.
 
 ```
 template <class Property, class... SupportableProperties>
-polymorphic_executor_type prefer(const polymorphic_executor_type<SupportableProperties...>& e, Property p);
+any_executor prefer(const any_executor<SupportableProperties...>& e, Property p);
 ```
 
 *Remarks:* This function shall not participate in overload resolution unless `FIND_CONVERTIBLE_PROPERTY(Property, SupportableProperties)::is_preferable` is well-formed and has the value `true`.
 
 *Returns:* A polymorphic wrapper whose target is the result of `execution::prefer(e, p)`, where `e` is the target object of `*this`.
-
-##### `polymorphic_executor_type` casts
-
-```
-template<class... OtherSupportableProperties>
-  polymorphic_executor_type<OtherSupportableProperties...> static_executor_cast() const;
-```
-
-*Requires:* The target object was first inserted into a polymorphic wrapper (whether via the wrapper's constructor or assignment operator) whose template parameters included the parameters in `OtherSupportableProperties`.
-
-*Returns:* A polymorphic wrapper whose target is `e`.
 
 ### Behavioral properties
 
