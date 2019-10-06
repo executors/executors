@@ -257,7 +257,7 @@ For some subexpressions `e` and `f`, let `E` be a type such that `decltype((e))`
 
 The name `execution::submit` denotes a customization point object.
 
-A receiver object is *submitted for execution via a sender* by evaluating one of the receiver's value, error, or done channels. [*Editorial note:* This is an initial attempt at defining the receiver contract. *--end note.*]
+A receiver object is *submitted for execution via a sender* by scheduling the eventual evaluation of one of the receiver's value, error, or done channels. [*Editorial note:* This is an initial attempt at defining the receiver contract. *--end note.*]
 
 For some subexpressions `s` and `r`, let `S` be a type such that `decltype((s))` is `S` and let `R` be a type such that `decltype((r))` is `R`. The expression `execution::submit(s, r)` is ill-formed if `R` does not model `receiver`, or if `S` does not model either `sender` or `executor`. Otherwise, it is expression-equivalent to:
 
