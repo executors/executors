@@ -557,8 +557,8 @@ concept executor-impl =
   is_nothrow_copy_constructible_v<E> &&
   is_nothrow_destructible_v<E> &&
   equality_comparable<E> &&
-  requires(E&& e, F&& f) {
-    execution::execute((E&&)e, (F&&)f);
+  requires(const E& e, F&& f) {
+    execution::execute(e, (F&&)f);
   };
 ```
 
@@ -604,8 +604,8 @@ concept executor-impl =
   is_nothrow_copy_constructible_v<E> &&
   is_nothrow_destructible_v<E> &&
   equality_comparable<E> &&
-  requires(E&& e, F&& f) {
-    execution::execute((E&&)e, (F&&)f);
+  requires(const E& e, F&& f) {
+    execution::execute(e, (F&&)f);
   };
 ```
 
