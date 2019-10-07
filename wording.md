@@ -505,8 +505,7 @@ In the Table below,
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `execution::schedule(s)` | `N` | Evaluates `execution::schedule(s)` on the calling thread to create `N`. \
-more |
+| `execution::schedule(s)` | `N` | Evaluates `execution::schedule(s)` on the calling thread to create `N`. |
 
 `execution::submit(N, r)`, for some receiver object `r`, is required to eagerly submit `r`
 for execution on an execution agent that `s` creates for it. Let `rc` be `r` or an
