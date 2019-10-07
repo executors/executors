@@ -179,8 +179,6 @@ The name `execution::set_value` denotes a customization point object. The expres
 
 [*Editorial note:* We should probably define what "send the value(s) `Vs...` to the receiver `R`'s value channel" means more carefully. *--end editorial note*]
 
-[*Editorial note:* This specification is adapted from `ranges::iter_swap`. *--end editorial note*]
-
 #### `execution::set_done`
 
 The name `execution::set_done` denotes a customization point object. The expression `execution::set_done(R)` for some subexpression `R` is expression-equivalent to:
@@ -197,8 +195,6 @@ The name `execution::set_done` denotes a customization point object. The express
 
 [*Editorial note:* We should probably define what "signal receiver `R`'s done channel" means more carefully. *--end editorial note*]
 
-[*Editorial note:* This specification is adapted from `ranges::iter_swap`. *--end editorial note*]
-
 #### `execution::set_error`
 
 The name `execution::set_error` denotes a customization point object. The expression `execution::set_error(R, E)` for some subexpressions `R` and `E` are expression-equivalent to:
@@ -214,8 +210,6 @@ The name `execution::set_error` denotes a customization point object. The expres
 - Otherwise, `execution::set_error(R, E)` is ill-formed.
 
 [*Editorial note:* We should probably define what "send the error `E` to the receiver `R`'s error channel" means more carefully. *--end editorial note*]
-
-[*Editorial note:* This specification is adapted from `ranges::iter_swap`. *--end editorial note*]
 
 #### `execution::execute`
 
@@ -257,7 +251,7 @@ For some subexpressions `e` and `f`, let `E` be a type such that `decltype((e))`
 
 The name `execution::submit` denotes a customization point object.
 
-A receiver object is *submitted for execution via a sender* by scheduling the eventual evaluation of one of the receiver's value, error, or done channels. [*Editorial note:* This is an initial attempt at defining the receiver contract. *--end note.*]
+A receiver object is *submitted for execution via a sender* by scheduling the eventual evaluation of one of the receiver's value, error, or done channels.
 
 For some subexpressions `s` and `r`, let `S` be a type such that `decltype((s))` is `S` and let `R` be a type such that `decltype((r))` is `R`. The expression `execution::submit(s, r)` is ill-formed if `R` does not model `receiver`, or if `S` does not model either `sender` or `executor`. Otherwise, it is expression-equivalent to:
 
@@ -315,8 +309,6 @@ For some subexpressions `s` and `r`, let `S` be a type such that `decltype((s))`
 [*Editorial note:* We should probably define what "submit the receiver object `R` via the
 sender `S`" means more carefully. *--end editorial note*]
 
-[*Editorial note:* This specification is adapted from `ranges::iter_swap`. *--end editorial note*]
-
 
 #### `execution::schedule`
 
@@ -335,8 +327,6 @@ The name `execution::schedule` denotes a customization point object. The express
 - Otherwise, _`decay-copy`_`(S)` if the type `S` models `sender`.
 
 - Otherwise, `execution::schedule(S)` is ill-formed.
-
-[*Editorial note:* This specification is adapted from `ranges::iter_swap`. *--end editorial note*]
 
 #### `execution::bulk_execute`
 

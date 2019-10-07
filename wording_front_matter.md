@@ -68,11 +68,6 @@ As directed by SG1 at the 2019-07 Cologne meeting, we have implemented the follo
 * Eliminated `is_executor`, `is_oneway_executor`, and `is_bulk_oneway_executor` type traits.
 * Eliminated interface-changing properties from `any_executor`.
 
-TODO list:
-
-* Decide whether we want the CPOs to test free functions via ADL
-* Eliminate editorial notes
-
 ### Revision 10
 
 As directed by LEWG at the 2018-11 San Diego meeting, we have migrated the property customization mechanism to namespace `std` and moved all of the details of its specification to a separate paper, [P1393](http://wg21.link/P1393).  This change also included the introduction of a separate customization point for interface-enforcing properties, `require_concept`.  The generalization also necessitated the introduction of `is_applicable_property_v` in the properties paper, which in turn led to the introduction of `is_executor_v` to express the applicability of properties in this paper.
