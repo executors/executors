@@ -427,8 +427,7 @@ In the Table below,
 
 | Expression | Return Type | Operational semantics |
 |------------|-------------|---------------------- |
-| `execution::submit(s, r)` | `void` | If `execution::submit(s, r)` exits without throwing an exception, 
-then the implementation shall invoke exactly one of `execution::set_value(rc, values...)`, `execution::set_error(rc, error)` or `execution::set_done(rc)` where `rc` is either `r` or an object moved from `r`. If any of the invocations of `set_value` or `set_error` exits via an exception then it is valid to call to either `set_done(rc)` or `set_error(rc, E)`, where `E` is an `exception_ptr` pointing to an unspecified exception object. <br/> `submit` may or may not block pending the successful transfer of execution to one of the three receiver operations. <br/> The start of the invocation of `submit` strongly happens before [intro.multithread] the invocation of one of the three receiver operations. |
+| `execution::submit(s, r)` | `void` | If `execution::submit(s, r)` exits without throwing an exception, then the implementation shall invoke exactly one of `execution::set_value(rc, values...)`, `execution::set_error(rc, error)` or `execution::set_done(rc)` where `rc` is either `r` or an object moved from `r`. If any of the invocations of `set_value` or `set_error` exits via an exception then it is valid to call to either `set_done(rc)` or `set_error(rc, E)`, where `E` is an `exception_ptr` pointing to an unspecified exception object. <br/> `submit` may or may not block pending the successful transfer of execution to one of the three receiver operations. <br/> The start of the invocation of `submit` strongly happens before [intro.multithread] the invocation of one of the three receiver operations. |
 
 ### Concept `typed_sender`
 
