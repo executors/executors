@@ -1,4 +1,4 @@
-% A Unified Executors Proposal for C++ | P0443R10
+% A Unified Executors Proposal for C++ | P0443R11
 
 ----------------    -------------------------------------
 Title:              A Unified Executors Proposal for C++
@@ -17,11 +17,17 @@ Authors:            Jared Hoberock, jhoberock@nvidia.com
 
                     David Hollman, dshollm@sandia.gov
 
+                    Lee Howes, lwh@fb.com
+
+                    Kirk Shoop, kirkshoop@fb.com
+
+                    Lewis Baker, lbaker@fb.com
+
+                    Eric Niebler, eniebler@fb.com
+
 Other Contributors: Hans Boehm, hboehm@google.com
 
                     Thomas Heller, thom.heller@gmail.com
-
-                    Lee Howes, lwh@fb.com
 
                     Bryce Lelbach, brycelelbach@gmail.com
 
@@ -35,19 +41,32 @@ Other Contributors: Hans Boehm, hboehm@google.com
 
                     Michael Wong, michael@codeplay.com
 
-Document Number:    P0443R10
+Document Number:    P0443R11
 
-Date:               2019-01-21
+Date:               2019-10-07
 
 Audience:           SG1 - Concurrency and Parallelism, LEWG
 
 Reply-to:           sg1-exec@googlegroups.com
 
-Abstract:           This paper proposes a programming model for executors, which are modular components for creating execution. The design of this proposal is described in paper [P0761](https://wg21.link/P0761).
+Abstract:           This paper proposes a programming model for executors, which are modular components for creating execution, and senders, which are lazy descriptions of execution.
 
 ------------------------------------------------------
 
 ## Changelog
+
+### Revision 11
+
+As directed by SG1 at the 2019-07 Cologne meeting, we have implemented the following changes suggested by P1658 and P1660 which incorporate "lazy" execution:
+
+* Introduced `set_value`, `set_error`, `set_done`, `execute`, `submit`, and `bulk_execute` customization point objects.
+* Introduced `executor`, `executor_of`, `receiver`, `receiver_of`, `sender`, `sender_to`, `typed_sender`, and `scheduler` concepts.
+* Renamed polymorphic executor to `any_executor`.
+* Introduced `invocable_archetype`.
+* Eliminated interface-changing properties `oneway_t` and `bulk_oneway_t`.
+* Eliminated `OneWayExecutor` and `BulkOneWayExecutor` requirements.
+* Eliminated `is_executor`, `is_oneway_executor`, and `is_bulk_oneway_executor` type traits.
+* Eliminated interface-changing properties from `any_executor`.
 
 ### Revision 10
 
