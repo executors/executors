@@ -310,13 +310,13 @@ The name `execution::schedule` denotes a customization point object. The express
 
 - `S.schedule()`, if that expression is valid and its type `N` models `Sender`. 
 
-- Otherwise, `schedule(S)`, if that expression is valid and its type `N` models `Sender` with overload resolution performed in a context that includes the declaration
+- Otherwise, `schedule(S)`, if that expression is valid and its type `N` models `sender` with overload resolution performed in a context that includes the declaration
 
         void schedule();
 
     and that does not include a declaration of `execution::schedule`. 
 
-- Otherwise, _`decay-copy`_`(S)` if the type `S` models `Sender`.
+- Otherwise, _`decay-copy`_`(S)` if the type `S` models `sender`.
 
 - Otherwise, `execution::schedule(S)` is ill-formed.
 
@@ -387,6 +387,22 @@ concept sender =
   sender-to-impl<S, sink_receiver>;
 ```
 
+None of these operations, nor a sender type's `submit` member function shall introduce data races as a result of concurrent invocations of those functions from different threads.
+
+An sender type's destructor shall not block pending completion of the submitted function objects. [*Note:* The ability to wait for completion of submitted function objects may be provided by the associated execution context. *--end note*]
+
+In addition to the above requirements, types `S` and `R` model `sender` only if they satisfy the requirements from the Table below.
+
+In the Table below, 
+
+- `s` denotes a (possibly const) sender object of type `S`,
+- `cr` denotes the function or receiver object `DECAY_COPY(std::forward<R>(r))` 
+- `r` denotes a function or receiver object of type `R&&` invocable as `cr()` and where `decay_t<R>` models `move_constructible`.
+
+| Expression | Return Type | Operational semantics |
+|------------|-------------|---------------------- |
+| `s.submit(r)` | `void` | Evaluates `DECAY_COPY(std::forward<R>(r))` on the calling thread to create `cr` that will be invoked at most once by an execution agent. <br/> May block pending completion of this invocation. <br/> Synchronizes with [intro.multithread] the invocation of `r`. <br/>Shall not propagate any exception thrown by the function object or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by one-way submitted functions is described by the `execution::oneway_exception_handler` property. The forward progress guarantee of the associated execution agent(s) is implementation defined. *--end note.*] |
+
 ### Concept `typed_sender`
 
 A sender is _typed_ if it declares what types it sends through a receiver's channels.
@@ -434,8 +450,8 @@ concept scheduler =
   copy_constructible<remove_cvref_t<S>> &&
   equality_comparable<remove_cvref_t<S>> &&
   requires(E&& e) {
-    execution::scheduler((S&&)s);
-  }; // && sender<invoke_result_t<execution::scheduler, S>>
+    execution::schedule((S&&)s);
+  }; // && sender<invoke_result_t<execution::schedule, S>>
 ```
 
 None of a scheduler's copy constructor, destructor, equality comparison, or `swap` operation shall exit via an exception.
@@ -444,14 +460,14 @@ None of these operations, nor an scheduler type's `schedule` function, or associ
 
 For any two (possibly const) values `x1` and `x2` of some scheduler type `X`, `x1 == x2` shall return `true` only if `std::query(x1,p) == std::query(x2,p)` for every property `p` where both `std::query(x1,p)` and `std::query(x2,p)` are well-formed and result in a non-void type that is `EqualityComparable` (C++Std [equalitycomparable]). [*Note:* The above requirements imply that `x1 == x2` returns `true` if `x1` and `x2` can be interchanged with identical effects. An scheduler may conceptually contain additional properties which are not exposed by a named property type that can be observed via `std::query`; in this case, it is up to the concrete scheduler implementation to decide if these properties affect equality. Returning `false` does not necessarily imply that the effects are not identical. *--end note*]
 
-An scheduler type's destructor shall not block pending completion of any function objects submitted to the returned object that models `Sender`. [*Note:* The ability to wait for completion of submitted function objects may be provided by the execution context that produced the scheduler. *--end note*]
+An scheduler type's destructor shall not block pending completion of any function objects submitted to the returned object that models `sender`. [*Note:* The ability to wait for completion of submitted function objects may be provided by the execution context that produced the scheduler. *--end note*]
 
 In addition to the above requirements, type `S` models `scheduler` only if it satisfies the requirements from at least one row in the Table below.
 
 In the Table below, 
 
 - `s` denotes a (possibly const) scheduler object of type `S`,
-- `N` denotes a type that models `Sender`, and
+- `N` denotes a type that models `sender`, and
 - `n` denotes a sender object of type `N`
 
 | Expression | Return Type | Operational semantics |
@@ -538,7 +554,7 @@ For any two (possibly const) values `x1` and `x2` of some executor type `X`, `x1
 
 An executor type's destructor shall not block pending completion of the submitted function objects. [*Note:* The ability to wait for completion of submitted function objects may be provided by the associated execution context. *--end note*]
 
-In addition to the above requirements, types `E` and `F` model `executor_to` only if they satisfy the requirements of the Table below.
+In addition to the above requirements, types `E` and `F` model `executor_of` only if they satisfy the requirements of the Table below.
 
 In the Table below, 
 
