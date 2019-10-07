@@ -57,26 +57,21 @@ Abstract:           This paper proposes a programming model for executors, which
 
 ### Revision 11
 
-As directed by SG1 at the 2019-XX Cologne meeting, we have implemented the following changes suggested by P1658 and P1660:
+As directed by SG1 at the 2019-07 Cologne meeting, we have implemented the following changes suggested by P1658 and P1660 which incorporate "lazy" execution:
 
+* Introduced `set_value`, `set_error`, `set_done`, `execute`, `submit`, and `bulk_execute` customization point objects.
+* Introduced `executor`, `executor_of`, `receiver`, `receiver_of`, `sender`, `sender_to`, `typed_sender`, and `scheduler` concepts.
+* Renamed polymorphic executor to `any_executor`.
+* Introduced `invocable_archetype`.
 * Eliminated interface-changing properties `oneway_t` and `bulk_oneway_t`.
-* Introduced `executor` concept.
 * Eliminated `OneWayExecutor` and `BulkOneWayExecutor` requirements.
-* Eliminated `is_oneway_executor` and `is_bulk_oneway_executor` type traits.
-* Introduced `callback_signal`, `callback`, and `sender_to` concepts.
-* Introduced `value`, `error`, `done`, `execute`, `submit`, and `bulk_execute` customization point objects.
+* Eliminated `is_executor`, `is_oneway_executor`, and `is_bulk_oneway_executor` type traits.
+* Eliminated interface-changing properties from `any_executor`.
 
 TODO list:
 
-* Introduce `sender` concept
 * Decide whether we want the CPOs to test free functions via ADL
-* Tweak `submit` definition to allow it to throw
-* Introduce `make_callback_from`
-* Introduce `tbd_concrete_implementations::bulk_execute`
-* Update polymorphic executor specification?
-* Review R11 wording changes
 * Eliminate editorial notes
-* Scrub XXX TODOs
 
 ### Revision 10
 
