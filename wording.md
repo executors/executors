@@ -521,9 +521,9 @@ In the Table below,
 
 [*Editorial note:* The operational semantics of `execution::execute` should be specified with the `execution::execute` CPO rather than the `executor` concept. *--end note.*]
 
-### Concept `executor_to`
+### Concept `executor_of`
 
-XXX TODO The `executor_to` concept...
+XXX TODO The `executor_of` concept...
 
 Let _`executor-impl`_ be the exposition-only concept
 
@@ -566,7 +566,7 @@ In the Table below,
 |------------|-------------|---------------------- |
 | `execution::execute(e,f)` | `void` | Evaluates `DECAY_COPY(std::forward<F>(f))` on the calling thread to create `cf` that will be invoked at most once by an execution agent. <br/> May block pending completion of this invocation. <br/> Synchronizes with [intro.multithread] the invocation of `f`. <br/>Shall not propagate any exception thrown by the function object or any other function submitted to the executor. [*Note:* The treatment of exceptions thrown by one-way submitted functions is implementation-defined. The forward progress guarantee of the associated execution agent(s) is implementation-defined. *--end note.*] |
 
-[*Editorial note:* We should collapse `executor_to`'s specification instead of duplicating `executor`. *--end note.*]
+[*Editorial note:* We should collapse `executor_of`'s specification instead of duplicating `executor`. *--end note.*]
 
 ### Sender and receiver traits
 
