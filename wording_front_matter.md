@@ -68,9 +68,9 @@ the standard algorithms library, though parallelized, remains inflexible and
 non-composable.
 
 To address these temporary challenges and build toward the future, C++ must lay
-a foundation for controlling program execution. First, **C++ should provide
-standard facilities to control where and when work happens.** This paper
-proposes a design for those facility. After [much discussion and
+a foundation for controlling program execution. First, **C++ must provide
+flexible facilities to control where and when work happens.** This paper
+proposes a design for those facilities. After [much discussion and
 collaboration](#appendix-a-executors-bibilography), SG1 adopted this design by
 universal consensus at the Cologne meeting in 2019.
 
