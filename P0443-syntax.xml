@@ -38,6 +38,7 @@
       <item>submit</item>
     </list>
     <list name="possible">
+      <item>as_receiver</item>
       <item>connect</item>
       <item>handle_error</item>
       <item>just</item>
