@@ -13,7 +13,7 @@ An execution agent invokes a function object within an *execution context* such 
 For the intent of this library and extensions to this library, the *lifetime of an execution agent* begins before the function object is invoked and ends after this invocation completes, either normally or having thrown an exception.
 
 
-  ### Header `<execution>` synopsis
+### Header `<execution>` synopsis
 
 ```
 namespace std {

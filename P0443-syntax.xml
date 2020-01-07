@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE language SYSTEM "language.dtd"
+[
+    <!ENTITY int "(?:[0-9](?:'?[0-9]+)*)">
+    <!ENTITY hex_int "(?:[0-9A-Fa-f](?:'?[0-9A-Fa-f]+)*)">
+    <!ENTITY exp_float "(?:[eE][+-]?&int;)">
+    <!ENTITY exp_hexfloat "(?:[pP][-+]?&int;)">
+
+    <!ENTITY ispphash "(?:#|&#37;\:|\?\?=)">
+    <!ENTITY pphash "&ispphash;\s*">
+]>
+<language name="P0443" section="Sources"
+          version="7" kateversion="5.0"
+          indenter="cstyle"
+          mimetype="text/x-csrc;text/x-c++src;text/x-chdr"
+          priority="5">
+  <highlighting>
+    <list name="proposed">
+      <item>always</item>
+      <item>always_t</item>
+      <item>blocking</item>
+      <item>blocking_t</item>
+      <item>bulk_execute</item>
+      <item>static_thread_pool</item>
+      <item>execute</item>
+      <item>executor</item>
+      <item>executor_of</item>
+      <item>never</item>
+      <item>receiver</item>
+      <item>receiver_of</item>
+      <item>schedule</item>
+      <item>scheduler</item>
+      <item>sender</item>
+      <item>set_done</item>
+      <item>set_error</item>
+      <item>set_value</item>
+      <item>sink_receiver</item>
+      <item>submit</item>
+    </list>
+    <list name="possible">
+      <item>connect</item>
+      <item>handle_error</item>
+      <item>just</item>
+      <item>transform</item>
+      <item>then</item>
+      <item>on</item>
+      <item>priority</item>
+      <item>retry</item>
+      <item>start</item>
+      <item>sync_wait</item>
+      <item>then</item>
+      <item>via</item>
+      <item>extensions</item>
+    </list>
+    <contexts>
+      <context attribute="Normal Text" lineEndContext="#stay" name="Normal">
+        <DetectSpaces />
+        <keyword attribute="Proposed" context="#stay" String="proposed"/>
+        <keyword attribute="Possible" context="#stay" String="possible"/>
+        <DetectIdentifier />
+
+        <Detect2Chars attribute="Comment" context="Commentar 1" char="/" char1="/"/>
+      </context>
+
+      <context attribute="Comment" lineEndContext="#pop" name="Commentar 1">
+        <LineContinue attribute="Comment" context="#stay"/>
+        <IncludeRules context="##Alerts" />
+      </context>
+    </contexts>
+    <itemDatas>
+      <itemData name="Normal Text"  defStyleNum="dsNormal" spellChecking="false"/>
+      <itemData name="Proposed"     defStyleNum="dsKeyword" spellChecking="false"/>
+      <itemData name="Possible"     defStyleNum="dsString" spellChecking="false"/>
+    </itemDatas>
+  </highlighting>
+  <general>
+    <comments>
+      <comment name="singleLine" start="//" />
+      <comment name="multiLine" start="/*" end="*/" />
+    </comments>
+    <keyword casesensitive="1" additionalDeliminator="'&quot;" />
+  </general>
+</language>
