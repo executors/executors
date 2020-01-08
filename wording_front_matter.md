@@ -114,15 +114,17 @@ submit(work, print_result);
 // Blue: proposed by P0443. Teal: possible extensions.
 ```
 
-## Executors Create Work
+## Executors Execute Work
 
 Executors provide a uniform interface for work creation by abstracting
 underlying resources where work physically executes. The previous code
 example's underlying resource was a thread pool. Other examples include SIMD
 units, GPU runtimes, or simply the current thread. In general, we call such
 resources **execution contexts**. The purpose of executors is to be uniform,
-lightweight handles to execution contexts which may be inefficient, inconvenient,
-or impossible to access directly.
+lightweight handles to execution contexts which may be inefficient,
+inconvenient, or impossible to access directly. Uniformity enables
+programmer control over where work executes, even work created
+indirectly behind library interfaces.
 
 The basic executor interface is the `execute` function through which clients
 execute work: 
@@ -139,12 +141,12 @@ execute(ex, work);
 ```
 
 On its own, `execute` is a primitive "fire-and-forget"-style interface. It
-accepts only a single nullary invocable, and does not return anything to
-identify or interact with the work it creates. In this way, it trades
-convenience for universality. As a consequence, we expect most programmers to
-interact with executors indirectly via higher-level libraries which manipulate
-executors directly on behalf of their client. Our goal of an asynchronous
-STL is an example of such a library.
+accepts a single nullary invocable, and returns nothing to identify or interact
+with the work it creates. In this way, it trades convenience for universality.
+As a consequence, we expect most programmers to interact with executors
+indirectly via higher-level libraries which manipulate executors directly on
+behalf of their client. Our goal of an asynchronous STL being an example of
+such a library.
 
 For example, consider how `std::async` could be extended to interoperate
 with executors enabling client control over execution:
@@ -168,14 +170,13 @@ future<invoke_result_t<F,Args...>> async(const Executor& ex, F&& f, Args&&... ar
 The executor is the conduit through which clients exercise precise control over
 where the library executes work. For example, a client can select from among
 multiple thread pools to control exactly which pool is used simply by providing
-a corresponding executor. Inconveniences of work packaging and submission is
-the library's problem.
+a corresponding executor. Inconveniences of work packaging and submission
+becomes the library's responsibility.
 
-**Authoring executors.** Programmers author custom executor types by defining a type with an `execute`
-function ^[Alternatively, `execute` may be a free function to retrofit types
-unintrusively. `execution::execute` automatically finds the correct
-customization.]. Consider a possible implementation of an executor whose
-`execute` function executes the client's work "inline" on the calling thread:
+**Authoring executors.** Programmers author custom executor types by defining a
+type with an `execute` function. Consider an implementation of an executor
+whose `execute` function executes the client's work "inline" on the calling
+thread:
 
 ```P0443
 struct inline_executor {
@@ -191,9 +192,8 @@ struct inline_executor {
 ```
 
 Additionally, a comparison function determines whether two executor objects
-refer to the same underlying resource and create execution with equivalent
-semantics. [P0443](https://wg21.link/P0443) summarizes these requirements in concepts `executor` and
-`executor_of`.
+refer to the same underlying resource and therefore execute with equivalent
+semantics. Concepts `executor` and `executor_of` summarize these requirements.
 
 **Customizing executor operations.** Programmers inevitably require accelerated
 or customized execution. The previous example demonstrated custom execution at
@@ -315,7 +315,7 @@ token this `bulk_execute` returns is an example of a sender a client may use to
 initiate execution. Lazy execution via senders and receivers is the subject of
 the next section.
 
-## Senders and Receivers Represent Generic, Lazy Work
+## Senders and Receivers Represent Work
 
 The `executor` concept addresses a basic need in a simple way: the need to
 launch a single operation in a specified execution context. The expressive
