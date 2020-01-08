@@ -168,10 +168,10 @@ future<invoke_result_t<F,Args...>> async(const Executor& ex, F&& f, Args&&... ar
 ```
 
 The executor is the conduit through which clients exercise precise control over
-where the library executes work. For example, a client can select from among
+where a library executes work. For example, a client can select from among
 multiple thread pools to control exactly which pool is used simply by providing
 a corresponding executor. Inconveniences of work packaging and submission
-becomes the library's responsibility.
+become the library's responsibility.
 
 **Authoring executors.** Programmers author custom executor types by defining a
 type with an `execute` function. Consider an implementation of an executor
@@ -194,29 +194,32 @@ struct inline_executor {
 Additionally, a comparison function determines whether two executor objects
 refer to the same underlying resource and therefore execute with equivalent
 semantics. Concepts `executor` and `executor_of` summarize these requirements.
+The former validates executors in isolation; the latter, when both executor and
+work are available.
 
-**Customizing executor operations.** Programmers inevitably require accelerated
-or customized execution. The previous example demonstrated custom execution at
-the granularity of a new executor type. However, finer-grained and
-coarser-grained customization techniques are also possible. These are
-**executor properties** and **control structures**, respectively.
+**Executor customization** can accelerate execution or introduce novel
+behavior. The previous example demonstrated custom execution at the
+granularity of a new executor type, but finer-grained and coarser-grained
+customization techniques are also possible. These are **executor properties**
+and **control structures**, respectively.
 
-**Executor properties** allow communication between executors and clients
-regarding optional guarantees beyond the contract of `execute`. In principle,
-optional, dynamic data members or function parameters could act as
-communication channels, but we require the ability to introduce
-customization at compile time. Moreover, optional parameters lead to
-a combinatorial number of function variants.
+**Executor properties** communicate optional guarantees beyond the contract of
+`execute`. In principle, optional, dynamic data members or function parameters
+could act as communication channels, but we require the ability to introduce
+customization at compile time. Moreover, optional parameters lead to a
+combinatorial number of function variants.
 
 Instead, statically-actionable properties factor such guarantees and thereby
 avoid a combinatorial explosion of executor APIs. For example, consider the
 desire to execute blocking work with priority. An unscalable design might
-embed these behaviors into the `execute` interface by multiplying the
+embed these options into the `execute` interface by multiplying the
 individual factors into separate functions: `execute`, `blocking_execute`,
 `execute_with_priority`, `blocking_execute_with_priority`, etc.
-[P0443](https://wg21.link/P0443) identifies several such guarantees.
+This proposal identifies several such guarantees.
 
-[P0443](https://wg21.link/P0443) avoids this unscalable situation by adopting [P1393](https://wg21.link/P1393)'s properties design based on `require` and `prefer`:
+Executors avoid this unscalable situation by adopting
+[P1393](https://wg21.link/P1393)'s properties design based on `require` and
+`prefer`:
 
 ```P0443
 // obtain an executor
@@ -260,13 +263,13 @@ auto really_async(const E& ex, F&& f, Args&&... args) {
 }
 ```
 
-**Control structures** allow customizations at a higher level of abstraction by
-allowing executors to "hook" them. Customization is useful when a particular
-execution context offers an efficient implementation. The first such control
-structure defined by [P0443](https://wg21.link/P0443) is `bulk_execute`, which
-creates a group of function invocations in a single operation. This pattern
-permits a wide range of efficient implementations and is of fundamental
-importance to C++ programs and the standard library.
+**Control structures** permit customizations at a higher level of abstraction
+by allowing executors to "hook" them and is useful when a particular execution
+context offers an efficient implementation. The first such control structure
+this proposal defines is `bulk_execute`, which creates a group of function
+invocations in a single operation. This pattern permits a wide range of
+efficient implementations and is of fundamental importance to C++ programs and
+the standard library.
 
 By default, `bulk_execute` invokes `execute` repeatedly. However, repeatedly
 executing individual work items is inefficient at scale. Consequently, many
@@ -309,7 +312,7 @@ void my_for_each(const Executor& ex, F f, Range rng) {
 ```
 
 Our example `bulk_execute` implementation executes "eagerly" and blocks its
-caller.  As `my_for_each` demonstrates, unlike `execute`, `bulk_execute` is an
+caller. As `my_for_each` demonstrates, unlike `execute`, `bulk_execute` is an
 example of a "lazy" operation whose execution may be optionally postponed. The
 token this `bulk_execute` returns is an example of a sender a client may use to
 initiate execution. Lazy execution via senders and receivers is the subject of
@@ -317,50 +320,45 @@ the next section.
 
 ## Senders and Receivers Represent Work
 
-The `executor` concept addresses a basic need in a simple way: the need to
-launch a single operation in a specified execution context. The expressive
-power of `executor` is rather limited, however: since `execute` returns `void`
-instead of a handle to the just-scheduled work, the `executor` abstraction
-gives no generic way to chain operations and consequently no way to propagate
-values, errors, and cancellation signals down chains of dependent operations;
-no way to specify on a per-operation basis how to handle scheduling errors
-(errors internal to an executor that happen between when work is enqueued and
- when it is run); and no way to control the allocation and lifetime of the
-state associated with an operation short of writing custom allocators.
+The `executor` concept addresses a basic need of executing a single operation
+in a specified execution context. The expressive power of `executor` is rather
+limited, however: since `execute` returns `void` instead of a handle to the
+just-scheduled work, the `executor` abstraction gives no generic way to chain
+operations and thereby propagate values, errors, and cancellation signals
+downstream; no way to handle scheduling errors ocurring between when work
+submission and execution; and no convenient way to control the allocation and
+lifetime of state associated with an operation.
 
-Without a work scheduling abstraction that offers such controls, it is not
-possible to define Generic (in the Stepanov sense) asynchronous algorithms that
-compose, and do so efficiently and with sensible default implementations. To
-fill this gap, this paper proposes two related abstractions, `sender` and
-`receiver`, which will be described later.
+Without such controls, it is not possible to define Generic (in the Stepanov
+sense) asynchronous algorithms that compose efficiently with sensible
+default implementations. To fill this gap, this paper proposes two related
+abstractions, `sender` and `receiver`, which will be described later.
 
 ### Generic async algorithm example: `retry`
 
-An example of the kind of Generic async algorithm sender/receiver hopes to
-enable is `retry`. `retry` has very simple semantics: Schedule work on an
-execution context; if the execution succeeds, done; otherwise, if the user
-requests cancellation, done; otherwise, when a scheduling error occurs, retry
-the operation.
+`retry` is an example of the kind of Generic algorithm sender/receiver enables.
+It has very simple semantics: schedule work on an execution context; if the
+execution succeeds, done; otherwise, if the user requests cancellation, done;
+otherwise, if a scheduling error occurs, retry the work.
 
 ```P0443
 template<invocable Fn>
-void retry( executor_of<Fn> auto ex, Fn fn ) {
+void retry(executor_of<Fn> auto ex, Fn fn) {
   // ???
 }
 ```
 
-With the executor abstraction, this algorithm is impossible to implement
-generically because there is no portable way to intercept and react to
-scheduling errors. Later we show how this algorithm might look when implemented
-with `sender`/`receiver`.
+Executors alone prohibit a generic implementation because they provide no
+portable way to intercept and react to scheduling errors. Later we show how
+this algorithm might look when implemented with `sender`/`receiver`.
 
 ### Goal: An Asynchronous STL
 
-With suitably chosen concepts and a set of Generic async algorithms like
-`retry` defined in terms of them, it should be possible to easily create DAGs
-of async computation that span multiple execution contexts and efficiently
-execute them. Here is some sample syntax for the sorts of async programs we
-would like to enable (borrowed from [P1897](http://wg21.link/P1897)):
+Suitably chosen concepts driving the definition of Generic async algorithms
+like `retry` streamline the creation of asynchronous DAGs which execute
+efficiently even while spanning multiple execution contexts. Here is some
+sample syntax for the sorts of async programs we envision (borrowed from
+[P1897](http://wg21.link/P1897)):
 
 ```P0443
 sender auto s = just(3) |                                  // produce '3' immediately
@@ -373,23 +371,22 @@ int r = sync_wait(s);                                      // wait for the resul
 ```
 
 It should be possible to replace `just(3)` with a call to any asynchronous API
-whose return type satisfies the correct concept and have this program continue
-to work. Generic algorithms like `when_all` and `when_any` would permit users
-to express fork/join concurrency in their DAGs. As with STL’s `iterator`
+whose return type satisfies the correct concept and maintain this program's
+correctness. Generic algorithms like `when_all` and `when_any` would permit
+users to express fork/join concurrency in their DAGs. As with STL’s `iterator`
 abstraction, the cost of satisfying the conceptual requirements are offset by
 the expressive wins of being able to reuse a large and composable library of
 algorithms.
 
 ### Current techniques
 
-There are many extant techniques for creating chains of dependent asynchronous
-execution. Ordinary callbacks have been used very successfully for many years
-to create asynchronous dependent chains of dependent work in C++ and elsewhere.
-More modern codebases have switched to using some variation of the
-promise/future abstraction that support continuations (e.g.,
-    `std::experimental::future::then`).  In C++20 and beyond, we could even
-imagine standardizing on coroutines, so that launching an async operation
-returns an awaitable. Each of these approaches has strengths and weaknesses.
+Many are techniques for creating chains of dependent asynchronous execution.
+Ordinary callbacks have enjoyed success in C++ and elsewhere for years.  More
+modern codebases have switched to variations of promise/future abstractions
+that support continuations (e.g., `std::experimental::future::then`).  In C++20
+and beyond, we could even imagine standardizing on coroutines, so that
+launching an async operation returns an awaitable. Each of these approaches has
+strengths and weaknesses.
 
 **Promises and futures**, as traditionally realized, require the dynamic
 allocation and management of a shared control block, some form of
@@ -400,25 +397,25 @@ rule out the promise/future abstraction for many uses and makes it a poor
 choice for a basis of a Generic mechanism.
 
 **Coroutines** have many of the same problems as promise/future except that, by
-typically starting suspended, they avoid the need for synchronization when
-chaining dependent work. In many cases the coroutine frame is dynamically
-allocated, and the allocation is not easily avoided. Using coroutines in
-embedded or heterogeneous environments would require great attention to detail.
-There is also no accommodation made for cancellation. Two coroutines, one
-yielding values from a loop and the other consuming them in a loop, cannot
-safely coordinate early loop termination without either using exceptions —
-which are inefficient and disallowed in many environments — or by an *ad hoc*
-mechanism whereby `co_yield` returns a status code, which consequently needs to
-be checked and acted upon explicitly and consistently to ensure correctness.
-(See [P1662](http://wg21.link/P1662) for a complete discussion.)
+typically starting suspended, avoid the need for synchronization when chaining
+dependent work. In many cases the coroutine frame is dynamically allocated, and
+the allocation is not easily avoided. Using coroutines in embedded or
+heterogeneous environments would require great attention to detail. There is
+also no accommodation made for cancellation. Two coroutines, one yielding
+values from a loop and the other consuming them in a loop, cannot safely
+coordinate early loop termination without either using exceptions — which are
+inefficient and disallowed in many environments — or by an *ad hoc* mechanism
+whereby `co_yield` returns a status code, which consequently needs to be
+checked and acted upon explicitly and consistently to ensure correctness.
+[P1662](http://wg21.link/P1662) provides a complete discussion.
 
 **Callbacks** are the simplest, most powerful, and most efficient mechanism for
 creating chains of work, but they are not without their own problems. Errors
 happen, so there is a need to propagate either an error or a value. This simple
-requirement has led to many different callback shapes. The lack of a standard
-callback signature stands as an obstacle to Generic design. Additionally, few
-if any of these shapes accommodate the need to also propagate a cancellation
-signal when the user has requested upstream work to stop and clean up.
+requirement has led to many different callback interfaces. The lack of a
+standard callback signature stands as an obstacle to Generic design.
+Additionally, few of these interfaces can propogate cancellation signals when
+the user requests upstream work to stop and clean up.
 
 ## Receiver, sender, and scheduler
 
@@ -428,8 +425,8 @@ of value, error, and cancellation propagation.
 
 ### Receiver
 
-A `receiver` is simply a callback with a particular shape and semantics. Unlike
-a traditional callback with uses function-call syntax and a single signature
+A `receiver` is simply a callback with a particular interface and semantics. Unlike
+a traditional callback which uses function-call syntax and a single signature
 that handles both success and error cases, a receiver has three separate
 channels for value, error, and “done” (aka cancelled). These are specified as
 customization points: `set_value`, `set_error`, and `set_done` in the
@@ -445,26 +442,26 @@ std::execution::set_done(r);         // stopped
 
 `set_error` and `set_done` are guaranteed no-fail (`noexcept`). Exactly one of
 the three functions must be called on a `receiver` before it is destroyed. Each
-of these interfaces is considered “terminal”; that is, a particular receiver
-may assume that if one is called, that no others will ever be — the exception
-being that if `set_value` exits with an exception, the receiver has not yet
-completed, and another function must be called on it before it is destroyed.
-After a failed call to `set_value`, a subsequent call to either `set_error` or
-`set_done` is required to be valid; a receiver need not guarantee that a second
-call to `set_value` is well-formed. Collectively, these semantic constraints
-are known as the “*receiver contract*”.
+of these interfaces is considered “terminal”. That is, a particular receiver
+may assume that if one is called, that no others will ever be. The one
+exception being if `set_value` exits with an exception, the receiver is not yet
+complete. Consequently, another function must be called on it before it is
+destroyed. After a failed call to `set_value`, correctness requires a
+subsequent call to either `set_error` or `set_done`; a receiver need not
+guarantee that a second call to `set_value` is well-formed. Collectively, these
+requirements are the “*receiver contract*”.
 
-Although the shape of `receiver` appears novel at first glance, it remains in
-essence just a callback. Its shape and semantics are chosen because, together
-with `sender`, it facilitates the Generic implementation of many useful async
-algorithms like `retry`, as will be shown. And its novelty dissolves when you
-consider that a `std::promise` has essentially the same shape, and it is used
-as a special kind of callback although we tend not to think of it as such.
+Although `receiver`'s interface appears novel at first glance, it is in essence
+just a callback. Its interface and semantics are chosen because, together with
+`sender`, it facilitates the Generic implementation of many useful async
+algorithms like `retry`. `receiver`'s novelty dissolves when recognizing that
+`std::promise` has essentially the same interface, and is simply a special kind
+of callback.
 
 ### Sender
 
 Conceptually, a `sender` is work that has not been scheduled for execution
-yet, to which one may add a continuation (a `receiver`) and then “launch”, or
+yet, to which one must add a continuation (a `receiver`) and then “launch”, or
 enqueue for execution.
 
 In this revision of this paper (R12), these two operations — attach a
@@ -485,41 +482,39 @@ auto op { std::execution::connect(snd, rec) };
 std::execution::start(op);
 ```
 
-Given `connect` and `start`, which are necessarily primitive and low-level, it
-is possible to implement `submit` generically. The operation state returned
-from `connect` must have a lifetime that spans the duration of the async
-operation. Additionally, it must have an address that is stable. In truly
-asynchronous scenarios, it is typically a member of a dynamically allocated
-object, although in a coroutine the state will typically be a local variable
-stored in a coroutine frame without the need for a separate allocation.
-
-A sender is said to “complete” when it satisfies the *receiver contract* of the
-receiver to which it is attached; that is, when it calls one of the three
-`receiver` functions and that function returns non-exceptionally. When a sender
-in its implementation contains a call to `set_value(r, ts...)`, we say it is a
-“sender of `Ts...`”. If it contains a call to `set_value(r)`, we say it is a
-“sender of `void`”.
-
-The `sender` concept itself places no requirements on the execution context on
-which a sender completes. Rather, specific models of the `sender` concept may
-offer stronger guarantees about the context from which the receiver’s methods
-will be invoked. This is particularly true of the senders returned from a
-`scheduler`’s `schedule` function (described below).
+Given `connect` and `start`, which are necessarily low-level primitives, it is
+possible to implement `submit` generically. The operation state returned from
+`connect` must have a lifetime that spans the duration of the async operation.
+Additionally, it must have an address that is stable. In truly asynchronous
+scenarios, it is typically a member of a dynamically allocated object, although
+in coroutines the state will typically be a local variable stored in a
+coroutine frame without requiring separate allocation.
 
 In the general case, senders are “single-shot”; that is, `connect` can be
 called on them at most once. Some senders can be be `connect`-ed many times.
 Generally, if `connect` on an lvalue sender is well-formed, it is safe to
 `connect` multiple receivers to it.
 
+A sender is said to “complete” when it satisfies the *receiver contract* of the
+receiver to which it is attached; that is, when it calls one of the three
+`receiver` functions and that function returns normally. When a sender's
+implementation contains a call to `set_value(r, ts...)`, it is a “sender of
+`Ts...`”. If it contains a call to `set_value(r)`, it is a “sender of `void`”.
+
+The `sender` concept itself places no requirements on the execution context on
+which a sender completes. Rather, specific models of the `sender` concept may
+offer stronger guarantees about the context from which the receiver’s methods
+will be invoked. This is particularly true of the senders created by a
+`scheduler`.
+
 ### Scheduler
 
-Many generic async algorithms need to create multiple execution agents on the
-same execution context. Therefore, it is insufficient to parameterize these
-algorithms with a single-shot sender that completes in a known context. Rather,
-it makes sense to pass to these algorithms a factory of such
-single-shot senders. In the design presented in this document, the
-factory is called “`scheduler`”, and it has a single basis
-operation: `schedule`.
+Many generic async algorithms create multiple execution agents on the same
+execution context. Therefore, it is insufficient to parameterize these
+algorithms with a single-shot sender completing in a known context. Rather, it
+makes sense to pass these algorithms a factory of single-shot senders. This
+factory is called “`scheduler`”, and it has a single basis operation:
+`schedule`.
 
 Given an object `sched` whose type satisfies `scheduler`, the following
 expression is well-formed:
@@ -529,7 +524,7 @@ sender auto s = std::execution::schedule(sched);
 // OK, s is a single-shot sender of void that completes in sched's execution context
 ```
 
-We can imagine subsumptions of the `scheduler` concept that add the ability to
+We envision subsumptions of the `scheduler` concept adding the ability to
 schedule at a particular time (`schedule_at`), or after a particular duration
 (`schedule_after`), or a deadline scheduler that drops work if it is not
 executed within a time window (`schedule_before`), or one that schedules with a
