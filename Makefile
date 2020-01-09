@@ -1,8 +1,11 @@
-all: wording
+all: wording design
 
-wording: wording.md wording_front_matter.md wording_back_matter.md P0443-syntax.xml Makefile
-	pandoc --standalone -Vlinkcolor:blue --syntax-definition=P0443-syntax.xml --highlight-style=haddock wording_front_matter.md wording.md wording_back_matter.md -o wording.html --number-sections -o P0443R12_A_Unified_Executors_Proposal.html
+wording: front_matter.md design.md wording.md appendices.md P0443-syntax.xml Makefile
+	pandoc --standalone -Vlinkcolor:blue --syntax-definition=P0443-syntax.xml --highlight-style=haddock --number-sections front_matter.md design.md wording.md appendices.md -o P0443R12_A_Unified_Executors_Proposal.html
+
+design: design.md Makefile
+	pandoc -Vgeometry:margin=0.75in --standalone -Vlinkcolor:blue --syntax-definition=P0443-syntax.xml --highlight-style=haddock --number-sections design.md -o design.pdf
 
 clean:
-	rm -f *0443*.pdf *0443*.html *0761*.pdf *0761*.html *1244*.pdf *1244*.html
+	rm -f *.html *.pdf
 
