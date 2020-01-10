@@ -2,7 +2,7 @@
 
 ### Revision 12
 
-Introduced introductory design discussion which replaces the obsolete [P0761](https://wg21.link/P0761).
+Introduced introductory design discussion which replaces the obsolete [P0761](https://wg21.link/P0761). No normative changes.
 
 ### Revision 11
 
@@ -119,7 +119,7 @@ Revision 5 of this proposal responds to feedback requested during the 2017 Albuq
 
 * Initial design
 
-## Appendix A: Executors Bibilography
+## Appendix: Executors Bibilography
 
 ------
 Paper                                                                                                     Notes                                                                                                                                                                           Date introduced
@@ -128,7 +128,7 @@ Paper                                                                           
 [N3562 - Executors and schedulers, revision 1](https://wg21.link/N3562)\                                                                                                                                                                                                                   
 [N3731 - Executors and schedulers, revision 2](https://wg21.link/N3371)\                                                                                                                                                                                                                                   
 [N3785 - Executors and schedulers, revision 3](https://wg21.link/N3785)\                                                                                                                                                                                                                                   
-[N4143 - Executors and schedulers, revision 4](https://wg21.link/N4046)\                                                                                                                                                                                                                                   
+[N4143 - Executors and schedulers, revision 4](https://wg21.link/N4143)\                                                                                                                                                                                                                                   
 [N4414 - Executors and schedulers, revision 5](https://wg21.link/N4414)\                                                                                                                                                                                                                                   
 [P0008 - C++ Executors](https://wg21.link/P0008)                                                                                                                                                                                                                                          
                                                                                                                                                                                                                                                                                                            
@@ -150,12 +150,14 @@ Paper                                                                           
 [P1194 - The Compromise Executors Proposal: A lazy simplification of P0443](https://wg21.link/P1194)      Initial proposal to integrate senders and receivers into this proposal.                                                                                                         2018-10-08       
                                                                                                                                                                                                                                                                                         
 [P1232 - Integrating executors with the standard library through customization](https://wg21.link/P1232)  Proposes to allow executors to customize standard algorithms directly.                                                                                                          2018-10-08       
+
+[P1244 - Dependent Execution for a Unified Executors Proposal for C++](https://wg21.link/P1244)           Vestigal futures-based dependent execution functionality excised from later revisions of this proposal.                                                                         2018-10-08
                                                                                                                                                                                                                                                                                                            
-[P1341 - Unifying asynchronous APIs in C++ standard Library](https://wg21.link/P1341)                     Identifies various incompatibilities between executors, senders, receivers, coroutines, and parallel algorithms.                                                                2018-11-25       
+[P1341 - Unifying asynchronous APIs in C++ standard Library](https://wg21.link/P1341)                     Proposes enhancements making senders awaitable.                                                                                                                                 2018-11-25       
                                                                                                                                                                                                                                                                                                            
 [P1393 - A General Property Customization Mechanism](https://wg21.link/P1393)                             Standalone paper proposing the property customization used by P0443 executors.                                                                                                  2019-01-13       
                                                                                                                                                                                                                                                                                                            
-[P1677 - Cancellation is not an Error](https://wg21.link/P1677)                                           Motivates the need for `done` in addition to `error`.                                                                                                                           2019-05-18       
+[P1677 - Cancellation is serendipitous-success](https://wg21.link/P1677)                                  Motivates the need for `done` in addition to `error`.                                                                                                                           2019-05-18       
                                                                                                                                                                                                                                                                                                            
 [P1678 - Callbacks and Composition](https://wg21.link/P1678)                                              Argues for callbacks/receivers as a universal design pattern in the standard library.                                                                                           2019-05-18       
                                                                                                                                                                                                                                                                                                            
@@ -172,9 +174,23 @@ Paper                                                                           
 [P1898 - Forward progress delegation for executors](https://wg21.link/P1898)                              Proposes a model of forward progress for executors and asynchronous graphs of work.                                                                                             2019-10-06       
                                                                                                                                                                                                                                                                                                            
 [P2006 - Splitting submit() into connect()/start()](https://wg21.link/P2006)                              Proposes refactoring `submit` into more fundamental `connect` and `start` sender operations.                                                                                    2020-01-13       
+
+[P2033 - History of Executor Properties](https://wg21.link/P2033)                                         Documents the evolution of [P1393](https://wg21.link/P1393)'s property system, especially as it relates to executors.                                                           2020-01-13
 -----
 
-## Appendix B: The `retry` Algorithm
+## Appendix: A note on coroutines
+
+[P1341](http://wg21.link/P1341) leverages the structural similarities between
+coroutines and the sender/receiver abstraction to give a class of senders a
+standard-provided `operator co_await`. The end result is that a sender, simply
+by dint of being a sender, can be `co_await`-ed in a coroutine. With the
+refinement of sender/receiver being proposed in
+[P2006](https://wg21.link/P2006) — namely, the splitting of `submit` into
+`connect`/`start` — that automatic adaptation from sender-to-awaitable is
+allocation- and synchronization-free.
+
+
+## Appendix: The `retry` Algorithm
 
 Below is an implementation of a simple `retry` algorithm in terms of `sender`/`receiver`. This algorithm is Generic in the sense that it will retry any multi-shot asynchronous operation that satisfies the `sender` concept. More accurately, it takes any deferred async operation and wraps it so that when it is executed, it will retry the wrapped operation until it either succeeds or is cancelled.
 
@@ -257,6 +273,4 @@ sender auto retry(S s) {
     return _retry_sender{(S&&)s};
 }
 ```
-
-
 

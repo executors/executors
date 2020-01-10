@@ -31,6 +31,7 @@
       <item>schedule</item>
       <item>scheduler</item>
       <item>sender</item>
+      <item>sender_to</item>
       <item>set_done</item>
       <item>set_error</item>
       <item>set_value</item>
