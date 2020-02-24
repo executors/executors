@@ -1,4 +1,4 @@
-% A Unified Executors Proposal for C++ | P0443R12
+% A Unified Executors Proposal for C++ | P0443R13
 
 ----------------    -------------------------------------
 Title:              A Unified Executors Proposal for C++
@@ -41,9 +41,9 @@ Other Contributors: Hans Boehm, hboehm@google.com
 
                     Michael Wong, michael@codeplay.com
 
-Document Number:    P0443R12
+Document Number:    P0443R13
 
-Date:               2020-01-13
+Date:               2020-02-23
 
 Audience:           SG1 - Concurrency and Parallelism, LEWG
 

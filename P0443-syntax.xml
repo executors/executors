@@ -21,6 +21,7 @@
       <item>blocking</item>
       <item>blocking_t</item>
       <item>bulk_execute</item>
+      <item>connect</item>
       <item>static_thread_pool</item>
       <item>execute</item>
       <item>executor</item>
@@ -35,12 +36,11 @@
       <item>set_done</item>
       <item>set_error</item>
       <item>set_value</item>
-      <item>sink_receiver</item>
+      <item>start</item>
       <item>submit</item>
     </list>
     <list name="possible">
       <item>as_receiver</item>
-      <item>connect</item>
       <item>handle_error</item>
       <item>just</item>
       <item>transform</item>

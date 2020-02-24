@@ -184,11 +184,10 @@ Paper                                                                           
 coroutines and the sender/receiver abstraction to give a class of senders a
 standard-provided `operator co_await`. The end result is that a sender, simply
 by dint of being a sender, can be `co_await`-ed in a coroutine. With the
-refinement of sender/receiver being proposed in
+refinement of sender/receiver that was proposed in
 [P2006](https://wg21.link/P2006) — namely, the splitting of `submit` into
 `connect`/`start` — that automatic adaptation from sender-to-awaitable is
 allocation- and synchronization-free.
-
 
 ## Appendix: The `retry` Algorithm
 

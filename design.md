@@ -409,24 +409,23 @@ for execution. A sender's duty to its connected receiver is to fulfill the
 *receiver contract* by ensuring that one of the three `receiver` functions
 returns normally.
 
-This proposal currently fuses these two operations — attach a continuation and
-launch for execution — into the single operation `submit`.
-[P2006](http://wg21.link/2006) proposes to split `submit` into a `connect` operation
-that packages a `sender` and a `receiver` into an executable state, and a
-`start` operation that enqueues the state for execution.
+Earlier versions of this paper fused these two operations — attach a continuation and
+launch for execution — into the single operation `submit`. This paper proposes to split
+`submit` into a `connect` operation that packages a `sender` and a `receiver` into an
+executable state, and a `start` operation that enqueues the state for execution.
 
 ```P0443
 // P0443R12
 std::execution::submit(snd, rec);
 
-// P0443R12 + P2006R0
+// P0443R13
 auto state = std::execution::connect(snd, rec);
 // ... later
 std::execution::start(state);
 ```
 
-Such a split offers interesting opportunities for optimization, and [will
-harmonize senders with coroutines](#appendix-a-note-on-coroutines).
+This split offers interesting opportunities for optimization, and
+[harmonizes senders with coroutines](#appendix-a-note-on-coroutines).
 
 The `sender` concept itself places no requirements on the execution context on
 which a sender's work executes. Instead, specific models of the `sender` concept may
@@ -554,8 +553,8 @@ other hand, reconstructs the operation state in-place by making another call to
 That new operation state is then `start`-ed again, which effectively causes the
 original sender to be retried.
 
-[The appendix](#appendix-the-retry-algorithm) lists the source of the `retry` algorithm. Note that the signature of
-the retry algorithm is simply:
+[The appendix](#appendix-the-retry-algorithm) lists the source of the `retry` algorithm.
+Note that the signature of the retry algorithm is simply:
 
 ```P0443
 sender auto retry(sender auto s);
