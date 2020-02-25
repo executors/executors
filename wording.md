@@ -251,7 +251,6 @@ For some subexpressions `e` and `f`, let `E` be a type such that `decltype((e))`
 
         template<class F, class>
         struct as-receiver {
-        private:
           F f_;
           void set_value() noexcept(is_nothrow_invocable_v<F&>) {
             invoke(f_);
