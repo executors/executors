@@ -22,6 +22,7 @@
       <item>blocking_t</item>
       <item>bulk_execute</item>
       <item>connect</item>
+      <item>connect_result_t</item>
       <item>static_thread_pool</item>
       <item>execute</item>
       <item>executor</item>
@@ -32,7 +33,9 @@
       <item>schedule</item>
       <item>scheduler</item>
       <item>sender</item>
+      <item>sender_base</item>
       <item>sender_to</item>
+      <item>sender_traits</item>
       <item>set_done</item>
       <item>set_error</item>
       <item>set_value</item>

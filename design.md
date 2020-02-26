@@ -411,8 +411,9 @@ returns normally.
 
 Earlier versions of this paper fused these two operations — attach a continuation and
 launch for execution — into the single operation `submit`. This paper proposes to split
-`submit` into a `connect` operation that packages a `sender` and a `receiver` into an
-executable state, and a `start` operation that enqueues the state for execution.
+`submit` into a `connect` step that packages a `sender` and a `receiver` into an
+operation state, and a `start` step that logically starts the operation and schedules
+the receiver completion-signalling methods to be called when the operation completes.
 
 ```P0443
 // P0443R12

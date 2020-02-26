@@ -265,23 +265,30 @@ For some subexpressions `e` and `f`, let `E` be a type such that `decltype((e))`
 
 #### `execution::connect`
 
-The name `execution::connect` denotes a customization point object. The expression `execution::connect(S, R)` for some subexpressions `S` and `R` is expression-equivalent to:
+The name `execution::connect` denotes a customization point object. For some
+subexpressions `s` and `r`, let `S` be a type such that `decltype((s))` is `S` and let `R`
+be a type such that `decltype((r))` is `R`. The expression `execution::connect(s, r)` is
+expression-equivalent to:
 
-- `S.connect(R)`, if that expression is valid, if its type satisfies `operation_state`, and if the type of `S` satisfies `sender`.
+- `s.connect(r)`, if that expression is valid, if its type satisfies `operation_state`,
+  and if `S` satisfies `sender`.
 
-- Otherwise, `connect(S, R)`, if that expression is valid, if its type satisfies `operation_state`, and if the type of `S` satisfies `sender`, with overload resolution performed in a context that includes the declaration
+- Otherwise, `connect(s, r)`, if that expression is valid, if its type satisfies `operation_state`, and if `S` satisfies `sender`, with overload resolution performed in a context that includes the declaration
 
         void connect();
 
     and that does not include a declaration of `execution::connect`.
 
-- Otherwise, _`as-operation`_`{S, R}`, if `R` is not an instance of _`as-receiver`_`<`_`F`_` , S>` for some type _`F`_, and if `receiver_of<T> && `_`executor-of-impl`_`<U, `_`as-invocable`_`<T, S>>` is `true` where `T` is the type of `R` without cv-qualification and `U` is the type of `S` without cv-qualification, and where _`as-operation`_ is an implementation-defined class equivalent to
+- Otherwise, _`as-operation`_`{s, r}`, if `r` is not an instance of
+  _`as-receiver`_`<`_`F`_` , S>` for some type _`F`_, and if `receiver_of<R> &&`
+  _`executor-of-impl`_`<remove_cvref_t<S>, `_`as-invocable`_`<remove_cvref_t<R>, S>>` is
+  `true`, where _`as-operation`_ is an implementation-defined class equivalent to
 
         struct as-operation {
-          U e_;
-          T r_;
+          remove_cvref_t<S> e_;
+          remove_cvref_t<R> r_;
           void start() noexcept try {
-            execution::execute(std::move(e_), as-invocable <T, S>{r_});
+            execution::execute(std::move(e_), as-invocable<remove_cvref_t<R>, S>{r_});
           } catch(...) {
             execution::set_error(std::move(r_), current_exception());
           }
@@ -309,7 +316,7 @@ The name `execution::connect` denotes a customization point object. The expressi
           }
         };
 
-- Otherwise, `execution::connect(S, R)` is ill-formed.
+- Otherwise, `execution::connect(s, r)` is ill-formed.
 
 #### `execution::start`
 
@@ -478,13 +485,20 @@ Once one of a receiver’s completion-signal operations has completed non-except
               { execution::start(o) } noexcept;
             };
 
-An object whose type satisfies `operation_state` represents the state of an asynchronous operation. It is the result of calling `execution::connect` with a `sender` and a `receiver`.
+An object whose type satisfies `operation_state` represents the state of an asynchronous
+operation. It is the result of calling `execution::connect` with a `sender` and a
+`receiver`.
 
-`execution::start` may be called on an operation_state object at most once. Once `execution::start` has been called on it, the `operation_state` must not be destroyed until one of the receiver’s completion-signal operations has begun executing, provided that invocation will not exit with an exception.
+`execution::start` may be called on an operation_state object at most once. Once
+`execution::start` has been invoked, the caller shall ensure that the start of a
+non-exceptional invocation of one of the receiver's completion-signalling operations
+strongly happens before [intro.multithread] the call to the `operation_state` destructor.
 
-The start of the invocation of `execution::start` shall strongly happen before [intro.multithread] the invocation of one of the three receiver operations.
+The start of the invocation of `execution::start` shall strongly happen before
+[intro.multithread] the invocation of one of the three receiver operations.
 
-`execution::start` may or may not block pending the successful transfer of execution to one of the three receiver operations.
+`execution::start` may or may not block pending the successful transfer of execution to
+one of the three receiver operations.
 
 ### Concepts `sender` and `sender_to`
 
