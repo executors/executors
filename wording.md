@@ -489,7 +489,7 @@ An object whose type satisfies `operation_state` represents the state of an asyn
 operation. It is the result of calling `execution::connect` with a `sender` and a
 `receiver`.
 
-`execution::start` may be called on an operation_state object at most once. Once
+`execution::start` may be called on an `operation_state` object at most once. Once
 `execution::start` has been invoked, the caller shall ensure that the start of a
 non-exceptional invocation of one of the receiver's completion-signalling operations
 strongly happens before [intro.multithread] the call to the `operation_state` destructor.
