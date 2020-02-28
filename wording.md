@@ -1,3 +1,5 @@
+# Proposed Wording
+
 ## Execution Support Library
 
 ### General
@@ -13,7 +15,7 @@ An execution agent invokes a function object within an *execution context* such 
 For the intent of this library and extensions to this library, the *lifetime of an execution agent* begins before the function object is invoked and ends after this invocation completes, either normally or having thrown an exception.
 
 
-  ### Header `<execution>` synopsis
+### Header `<execution>` synopsis
 
 ```
 namespace std {
@@ -42,12 +44,23 @@ namespace execution {
 
     inline constexpr unspecified execute = unspecified;
 
+    inline constexpr unspecified connect = unspecified;
+
+    inline constexpr unspecified start = unspecified;
+
     inline constexpr unspecified submit = unspecified;
 
     inline constexpr unspecified schedule = unspecified;
 
     inline constexpr unspecified bulk_execute = unspecified;
   }
+
+  template<class S, class R>
+    using connect_result_t = invoke_result_t<decltype(connect), S, R>;
+
+  template<class, class> struct as-receiver; // exposition only
+
+  template<class, class> struct as-invocable; // exposition only
 
   // Concepts:
 
@@ -56,6 +69,14 @@ namespace execution {
 
   template<class T, class... An>
     concept receiver_of = see-below;
+
+  template<class R, class... An>
+    inline constexpr bool is_nothrow_receiver_of_v =
+      receiver_of<R, An...> &&
+      is_nothrow_invocable_v<decltype(set_value), R, An...>;
+
+  template<class O>
+    concept operation_state = see-below;
 
   template<class S>
     concept sender = see-below;
@@ -76,7 +97,8 @@ namespace execution {
     concept executor_of = see-below;
 
   // Sender and receiver utilities type
-  class sink_receiver;
+  namespace unspecified { struct sender_base {}; }
+  using unspecified::sender_base;
 
   template<class S> struct sender_traits;
 
@@ -157,7 +179,7 @@ A type `A` meets the `ProtoAllocator` requirements if `A` is `CopyConstructible`
 
 ### Invocable archetype
 
-The name `execution::invocable_archetype` is an implementation-defined type that, along with any argument pack, models `invocable`.
+The name `execution::invocable_archetype` is an implementation-defined type such that `invocable<execution::invocable_archetype&>` is `true`.
 
 A program that creates an instance of `execution::invocable_archetype` is ill-formed.
 
@@ -225,21 +247,15 @@ For some subexpressions `e` and `f`, let `E` be a type such that `decltype((e))`
 
     and that does not include a declaration of `execution::execute`. If the function selected by overload resolution does not execute the function object `f` on the executor `e`, the program is ill-formed with no diagnostic required.
 
-- Otherwise, `execution::submit(e, `_`as-receiver`_`<F>(forward<F>(f)))` if `E` and _`as-receiver`_`<F>` model `sender_to`, where _`as-receiver`_ is some implementation-defined class template equivalent to:
+- Otherwise, if `F` is not an instance of _`as-invocable`_`<`_`R`_`, E>` for some type _`R`_, and `invocable<remove_cvref_t<F>&> && sender_to<E, `_`as-receiver`_`<remove_cvref_t<F>, E>>` is `true`, `execution::submit(e, `_`as-receiver`_`<remove_cvref_t<F>, E>{std::forward<F>(f)})`, where _`as-receiver`_ is some implementation-defined class template equivalent to:
 
-        template<invocable F>
+        template<class F, class>
         struct as-receiver {
-        private:
-          using invocable_type = std::remove_cvref_t<F>;
-          invocable_type f_;
-        public:
-          explicit as-receiver(invocable_type&& f) : f_(move_if_noexcept(f)) {}
-          explicit as-receiver(const invocable_type& f) : f_(f) {}
-          as-receiver(as-receiver&& other) = default;
-          void set_value() {
+          F f_;
+          void set_value() noexcept(is_nothrow_invocable_v<F&>) {
             invoke(f_);
           }
-          void set_error(std::exception_ptr) {
+          [[noreturn]] void set_error(std::exception_ptr) noexcept {
             terminate();
           }
           void set_done() noexcept {}
@@ -247,13 +263,82 @@ For some subexpressions `e` and `f`, let `E` be a type such that `decltype((e))`
 
 [*Editorial note:* We should probably define what "execute the function object `F` on the executor `E`" means more carefully. *--end editorial note*]
 
+#### `execution::connect`
+
+The name `execution::connect` denotes a customization point object. For some
+subexpressions `s` and `r`, let `S` be a type such that `decltype((s))` is `S` and let `R`
+be a type such that `decltype((r))` is `R`. The expression `execution::connect(s, r)` is
+expression-equivalent to:
+
+- `s.connect(r)`, if that expression is valid, if its type satisfies `operation_state`,
+  and if `S` satisfies `sender`.
+
+- Otherwise, `connect(s, r)`, if that expression is valid, if its type satisfies `operation_state`, and if `S` satisfies `sender`, with overload resolution performed in a context that includes the declaration
+
+        void connect();
+
+    and that does not include a declaration of `execution::connect`.
+
+- Otherwise, _`as-operation`_`{s, r}`, if `r` is not an instance of
+  _`as-receiver`_`<`_`F`_` , S>` for some type _`F`_, and if `receiver_of<R> &&`
+  _`executor-of-impl`_`<remove_cvref_t<S>, `_`as-invocable`_`<remove_cvref_t<R>, S>>` is
+  `true`, where _`as-operation`_ is an implementation-defined class equivalent to
+
+        struct as-operation {
+          remove_cvref_t<S> e_;
+          remove_cvref_t<R> r_;
+          void start() noexcept try {
+            execution::execute(std::move(e_), as-invocable<remove_cvref_t<R>, S>{r_});
+          } catch(...) {
+            execution::set_error(std::move(r_), current_exception());
+          }
+        };
+
+    and _`as-invocable`_ is a class template equivalent to the following:
+
+        template<class R, class>
+        struct as-invocable {
+          R* r_;
+          explicit as-invocable(R& r) noexcept
+            : r_(std::addressof(r)) {}
+          as-invocable(as-invocable && other) noexcept
+            : r_(std::exchange(other.r_, nullptr)) {}
+          ~as-invocable() {
+            if(r_)
+              execution::set_done(std::move(*r_));
+          }
+          void operator()() & noexcept try {
+            execution::set_value(std::move(*r_));
+            r_ = nullptr;
+          } catch(...) {
+            execution::set_error(std::move(*r_), current_exception());
+            r_ = nullptr;
+          }
+        };
+
+- Otherwise, `execution::connect(s, r)` is ill-formed.
+
+#### `execution::start`
+
+The name `execution::start` denotes a customization point object. The expression
+`execution::start(O)` for some lvalue subexpression `O` is expression-equivalent to:
+
+- `O.start()`, if that expression is valid.
+
+- Otherwise, `start(O)`, if that expression is valid, with overload resolution performed
+  in a context that includes the declaration
+
+        void start();
+
+    and that does not include a declaration of `execution::start`.
+
+- Otherwise, `execution::start(O)` is ill-formed.
+
 #### `execution::submit`
 
 The name `execution::submit` denotes a customization point object.
 
-A receiver object is *submitted for execution via a sender* by scheduling the eventual evaluation of one of the receiver's value, error, or done channels.
-
-For some subexpressions `s` and `r`, let `S` be a type such that `decltype((s))` is `S` and let `R` be a type such that `decltype((r))` is `R`. The expression `execution::submit(s, r)` is ill-formed if `R` does not model `receiver`, or if `S` does not model either `sender` or `executor`. Otherwise, it is expression-equivalent to:
+For some subexpressions `s` and `r`, let `S` be a type such that `decltype((s))` is `S` and let `R` be a type such that `decltype((r))` is `R`. The expression `execution::submit(s, r)` is ill-formed if `sender_to<S, R>` is not `true`. Otherwise, it is expression-equivalent to:
 
 - `s.submit(r)`, if that expression is valid and `S` models `sender`. If the function selected does not submit the receiver object `r` via the sender `s`, the program is ill-formed with no diagnostic required.
 
@@ -263,70 +348,80 @@ For some subexpressions `s` and `r`, let `S` be a type such that `decltype((s))`
 
     and that does not include a declaration of `execution::submit`. If the function selected by overload resolution does not submit the receiver object `r` via the sender `s`, the program is ill-formed with no diagnostic required.
 
-- Otherwise, `execution::execute(s, `_`as-invocable`_`<R>(forward<R>(r)))` if `S` and _`as-invocable`_`<R>` model `executor`, where _`as-invocable`_ is some implementation-defined class template equivalent to:
+- Otherwise, `execution::start((new `_`submit-receiver`_`<S, R>{s,r})->state_)`, where _`submit-receiver`_
+is an implementation-defined class template equivalent to
 
-        template<receiver R>
-        struct as-invocable {
-        private:
-          using receiver_type = std::remove_cvref_t<R>;
-          std::optional<receiver_type> r_ {};
-          void try_init_(auto&& r) {
-            try {
-              r_.emplace((decltype(r)&&) r);
-            } catch(...) {
-              execution::set_error(r, current_exception());
+        template<class S, class R>
+        struct submit-receiver {
+          struct wrap {
+            submit-receiver * p_;
+            template<class...As>
+              requires receiver_of<R, As...>
+            void set_value(As&&... as) && noexcept(is_nothrow_receiver_of_v<R, As...>) {
+              execution::set_value(std::move(p_->r_), (As&&) as...);
+              delete p_;
             }
-          }
-        public:
-          explicit as-invocable(receiver_type&& r) {
-            try_init_(move_if_noexcept(r));
-          }
-          explicit as-invocable(const receiver_type& r) {
-            try_init_(r);
-          }
-          as-invocable(as-invocable&& other) {
-            if(other.r_) {
-              try_init_(move_if_noexcept(*other.r_));
-              other.r_.reset();
+            template<class E>
+              requires receiver<R, E>
+            void set_error(E&& e) && noexcept {
+              execution::set_error(std::move(p_->r_), (E&&) e);
+              delete p_;
             }
-          }
-          ~as-invocable() {
-            if(r_)
-              execution::set_done(*r_);
-          }
-          void operator()() {
-            try {
-              execution::set_value(*r_);
-            } catch(...) {
-              execution::set_error(*r_, current_exception());
+            void set_done() && noexcept {
+              execution::set_done(std::move(p_->r_));
+              delete p_;
             }
-            r_.reset();
-          }
+          };
+          remove_cvref_t<R> r_;
+          connect_result_t<S, wrap> state_;
+          submit-receiver(S&& s, R&& r)
+            : r_((R&&) r)
+            , state_(execution::connect((S&&) s, wrap{this})) {}
         };
-
-- Otherwise, `execution::submit(s, r)` is ill-formed.
-
-[*Editorial note:* We should probably define what "submit the receiver object `R` via the
-sender `S`" means more carefully. *--end editorial note*]
 
 
 #### `execution::schedule`
 
-The name `execution::schedule` denotes a customization point object. The expression
-`execution::schedule(S)` for some subexpression `S` is expression-equivalent to:
+The name `execution::schedule` denotes a customization point object. For some subexpression `s`, let `S` be a type such that `decltype((s))` is `S`. The expression `execution::schedule(s)` is expression-equivalent to:
 
-- `S.schedule()`, if that expression is valid and its type `N` models `sender`. 
+- `s.schedule()`, if that expression is valid and its type models `sender`. 
 
-- Otherwise, `schedule(S)`, if that expression is valid and its type `N` models `sender`
+- Otherwise, `schedule(s)`, if that expression is valid and its type models `sender`
   with overload resolution performed in a context that includes the declaration
 
         void schedule();
 
     and that does not include a declaration of `execution::schedule`. 
 
-- Otherwise, _`decay-copy`_`(S)` if the type `S` models `sender`.
+- Otherwise, _`as-sender`_`<remove_cvref_t<S>>{s}` if `S` satisfies `executor`, where _`as-sender`_ is an
+implementation-defined class template equivalent to
 
-- Otherwise, `execution::schedule(S)` is ill-formed.
+        template<class E>
+        struct as-sender {
+        private:
+          E ex_;
+        public:
+          template<template<class...> class Tuple, template<class...> class Variant>
+            using value_types = Variant<Tuple<>>;
+          template<template<class...> class Variant>
+            using error_types = Variant<std::exception_ptr>;
+          static constexpr bool sends_done = true;
+
+          explicit as-sender(E e) noexcept
+            : ex_((E&&) e) {}
+          template<class R>
+            requires receiver_of<R>
+          connect_result_t<E, R> connect(R&& r) && {
+            return execution::connect((E&&) ex_, (R&&) r);
+          }
+          template<class R>
+            requires receiver_of<R>
+          connect_result_t<const E &, R> connect(R&& r) const & {
+            return execution::connect(ex_, (R&&) r);
+          }
+        };
+
+- Otherwise, `execution::schedule(s)` is ill-formed.
 
 #### `execution::bulk_execute`
 
@@ -350,124 +445,120 @@ The name `execution::bulk_execute` denotes a customization point object. If `is_
 
 [*Editorial note:* We should probably define what "execute `N` invocations of the function object `F` on the executor `S` in bulk" means more carefully. *--end editorial note*]
 
-### Concept `receiver`
+### Concepts `receiver` and `receiver_of`
 
-XXX TODO The `receiver` concept...
+A receiver represents the continuation of an asynchronous operation. An asynchronous operation may complete with a (possibly empty) set of values, an error, or it may be cancelled. A receiver has three principal operations corresponding to the three ways an asynchronous operation may complete: `set_value`, `set_error`, and `set_done`. These are collectively known as a receiver’s _completion-signal operations_.
 
-```
-// exposition only:
-template<class T>
-inline constexpr bool is-nothrow-move-or-copy-constructible =
-  is_nothrow_move_constructible<T> ||
-   copy_constructible<T>;
+        template<class T, class E = exception_ptr>
+        concept receiver =
+          move_constructible<remove_cvref_t<T>> &&
+          constructible_from<remove_cvref_t<T>, T> &&
+          requires(remove_cvref_t<T>&& t, E&& e) {
+            { execution::set_done(std::move(t)) } noexcept;
+            { execution::set_error(std::move(t), (E&&) e) } noexcept;
+          };
 
-template<class T, class E = exception_ptr>
-concept receiver =
-  move_constructible<remove_cvref_t<T>> &&
-  (is-nothrow-move-or-copy-constructible<remove_cvref_t<T>>) &&
-  requires(T&& t, E&& e) {
-    { execution::set_done((T&&) t) } noexcept;
-    { execution::set_error((T&&) t, (E&&) e) } noexcept;
-  };
-```
+        template<class T, class... An>
+        concept receiver_of =
+          receiver<T> &&
+          requires(remove_cvref_t<T>&& t, An&&... an) {
+            execution::set_value(std::move(t), (An&&) an...);
+          };
 
-### Concept `receiver_of`
+The receiver’s completion-signal operations have semantic requirements that are collectively known as the _receiver contract_, described below:
 
-XXX TODO The `receiver_of` concept...
+- None of a receiver’s completion-signal operations shall be invoked before `execution::start` has been called on the operation state object that was returned by `execution::connect` to connect that receiver to a sender.
 
-```
-template<class T, class... An>
-concept receiver_of =
-  receiver<T> &&
-  requires(T&& t, An&&... an) {
-    execution::set_value((T&&) t, (An&&) an...);
-  };
-```
+- Once `execution::start` has been called on the operation state object, exactly one of the receiver’s completion-signal operations shall complete non-exceptionally before the receiver is destroyed.
+
+- If `execution::set_value` exits with an exception, it is still valid to call `execution::set_error` or `execution::set_done` on the receiver.
+
+Once one of a receiver’s completion-signal operations has completed non-exceptionally, the receiver contract has been satisfied.
+
+### Concept `operation_state`
+
+        template<class O>
+          concept operation_state =
+            destructible<O> &&
+            is_object_v<O> &&
+            requires (O& o) {
+              { execution::start(o) } noexcept;
+            };
+
+An object whose type satisfies `operation_state` represents the state of an asynchronous
+operation. It is the result of calling `execution::connect` with a `sender` and a
+`receiver`.
+
+`execution::start` may be called on an `operation_state` object at most once. Once
+`execution::start` has been invoked, the caller shall ensure that the start of a
+non-exceptional invocation of one of the receiver's completion-signalling operations
+strongly happens before [intro.multithread] the call to the `operation_state` destructor.
+
+The start of the invocation of `execution::start` shall strongly happen before
+[intro.multithread] the invocation of one of the three receiver operations.
+
+`execution::start` may or may not block pending the successful transfer of execution to
+one of the three receiver operations.
 
 ### Concepts `sender` and `sender_to`
 
 XXX TODO The `sender` and `sender_to` concepts...
 
-Let _`sender-to-impl`_ be the exposition-only concept
+        template<class S>
+          concept sender =
+            move_constructible<remove_cvref_t<S>> &&
+            !requires {
+              typename sender_traits<remove_cvref_t<S>>::__unspecialized; // exposition only
+            };
 
-```
-template<class S, class R>
-concept sender-to-impl =
-  requires(S&& s, R&& r) {
-    execution::submit((S&&) s, (R&&) r);
-  };
-```
-
-Then,
-
-```
-template<class S>
-concept sender =
-  move_constructible<remove_cvref_t<S>> &&
-  sender-to-impl<S, sink_receiver>;
-
-template<class S, class R>
-concept sender_to =
-  sender<S> &&
-  receiver<R> &&
-  sender-to-impl<S, R>;
-```
+        template<class S, class R>
+          concept sender_to =
+            sender<S> &&
+            receiver<R> &&
+            requires (S&& s, R&& r) {
+              execution::connect((S&&) s, (R&&) r);
+            };
 
 None of these operations shall introduce data races as a result of concurrent invocations of those functions from different threads.
 
-An sender type's destructor shall not block pending completion of the submitted function objects. 
+A sender type's destructor shall not block pending completion of the submitted function objects. 
 [*Note:* The ability to wait for completion of submitted function objects may be provided by the associated execution context. *--end note*]
-
-In addition to the above requirements, types `S` and `R` model `sender_to` only if they satisfy the requirements from the Table below.
-
-In the Table below,
-
-- `s` denotes a (possibly const) sender object of type `S`,
-- `r` denotes a (possibly const) receiver object of type `R`.
-
-| Expression | Return Type | Operational semantics |
-|------------|-------------|---------------------- |
-| `execution::submit(s, r)` | `void` | If `execution::submit(s, r)` exits without throwing an exception, then the implementation shall invoke exactly one of `execution::set_value(rc, values...)`, `execution::set_error(rc, error)` or `execution::set_done(rc)` where `rc` is either `r` or an object moved from `r`. If any of the invocations of `set_value` or `set_error` exits via an exception then it is valid to call to either `set_done(rc)` or `set_error(rc, E)`, where `E` is an `exception_ptr` pointing to an unspecified exception object. <br/> `submit` may or may not block pending the successful transfer of execution to one of the three receiver operations. <br/> The start of the invocation of `submit` strongly happens before [intro.multithread] the invocation of one of the three receiver operations. |
 
 ### Concept `typed_sender`
 
 A sender is _typed_ if it declares what types it sends through a receiver's channels.
 The `typed_sender` concept is defined as:
 
-```
-template<template<template<class...> class Tuple, template<class...> class Variant> class>
-struct has-value-types; // exposition only
+        template<template<template<class...> class Tuple, template<class...> class Variant> class>
+          struct has-value-types; // exposition only
 
-template<template<class...> class Variant>
-struct has-error-types; // exposition only
+        template<template<class...> class Variant>
+          struct has-error-types; // exposition only
 
-template<class S>
-comcept has-sender-types = // exposition only
-  requires {
-    typename has-value-types<S::template value_types>;
-    typename has-error-types<S::template error_types>;
-    typename bool_constant<S::sends_done>;
-  };
+        template<class S>
+          concept has-sender-types = // exposition only
+            requires {
+              typename has-value-types<S::template value_types>;
+              typename has-error-types<S::template error_types>;
+              typename bool_constant<S::sends_done>;
+            };
 
-template<class S>
-concept typed_sender =
-  sender<S> &&
-  has-sender-types<sender_traits<S>>;
-```
+        template<class S>
+          concept typed_sender =
+            sender<S> &&
+            has-sender-types<sender_traits<remove_cvref_t<S>>>;
 
 ### Concept `scheduler`
 
 XXX TODO The `scheduler` concept...
 
-```
-template<class S>
-concept scheduler =
-  copy_constructible<remove_cvref_t<S>> &&
-  equality_comparable<remove_cvref_t<S>> &&
-  requires(E&& e) {
-    execution::schedule((S&&)s);
-  }; // && sender<invoke_result_t<execution::schedule, S>>
-```
+        template<class S>
+          concept scheduler =
+            copy_constructible<remove_cvref_t<S>> &&
+            equality_comparable<remove_cvref_t<S>> &&
+            requires(E&& e) {
+              execution::schedule((S&&)s);
+            };
 
 None of a scheduler's copy constructor, destructor, equality comparison, or `swap`
 operation shall exit via an exception.
@@ -492,7 +583,6 @@ submitted to the sender objects returned from `schedule`. [*Note:* The ability t
 completion of submitted function objects may be provided by the execution context that
 produced the scheduler. *--end note*]
 
-
 In addition to the above requirements, type `S` models `scheduler` only if it satisfies
 the requirements in the Table below.
 
@@ -506,10 +596,11 @@ In the Table below,
 |------------|-------------|---------------------- |
 | `execution::schedule(s)` | `N` | Evaluates `execution::schedule(s)` on the calling thread to create `N`. |
 
-`execution::submit(N, r)`, for some receiver object `r`, is required to eagerly submit `r`
-for execution on an execution agent that `s` creates for it. Let `rc` be `r` or an
-object created by copy or move construction from `r`. The semantic constraints on the
-`sender` `N` returned from a scheduler `s`'s `schedule` function are as follows:
+`execution::start(o)`, where `o` is the result of a call to `execution::connect(N, r)`
+for some receiver object `r`, is required to eagerly submit `r` for execution on an
+execution agent that `s` creates for it. Let `rc` be `r` or an object created by copy or
+move construction from `r`. The semantic constraints on the `sender` `N` returned from a
+scheduler `s`'s `schedule` function are as follows:
 
 * If `rc`'s `set_error` function is called in response to a submission error, scheduling
   error, or other internal error, let `E` be an expression that refers to that error if
@@ -538,27 +629,28 @@ XXX TODO The `executor` and `executor_of` concepts...
 
 Let _`executor-of-impl`_ be the exposition-only concept
 
-```
-template<class E, class F>
-concept executor-of-impl =
-  invocable<F> &&
-  is_nothrow_copy_constructible_v<E> &&
-  is_nothrow_destructible_v<E> &&
-  equality_comparable<E> &&
-  requires(const E& e, F&& f) {
-    execution::execute(e, (F&&)f);
-  };
-```
+        template<class E, class F>
+          concept executor-of-impl =
+            invocable<remove_cvref_t<F>&> &&
+            constructible_from<remove_cvref_t<F>, F> &&
+            move_constructible<remove_cvref_t<F>> &&
+            copy_constructible<E> &&
+            is_nothrow_copy_constructible_v<E> &&
+            equality_comparable<E> &&
+            requires(const E& e, F&& f) {
+              execution::execute(e, (F&&)f);
+            };
 
 Then,
 
-```
-template<class E>
-concept executor = executor-of-impl<E, execution::invocable_archetype>;
+        template<class E>
+          concept executor =
+            executor-of-impl<E, execution::invocable_archetype>;
 
-template<class E, class F>
-concept executor_of = executor-of-impl<E, F>;
-```
+        template<class E, class F>
+          concept executor_of =
+            executor<E> &&
+            executor-of-impl<E, F>;
 
 Neither of an executor's equality comparison or `swap` operation shall exit via an exception.
 
@@ -584,21 +676,6 @@ In the Table below,
 
 ### Sender and receiver traits
 
-#### Class `sink_receiver`
-
-XXX TODO The class `sink_receiver`...
-
-```c++
-    class sink_receiver {
-    public:
-      void set_value(auto&&...) {}
-      [[noreturn]] void set_error(auto&&) noexcept {
-        std::terminate();
-      }
-      void set_done() noexcept {}
-    };
-```
-
 #### Class template `sender_traits`
 
 XXX TODO The class template`sender_traits`...
@@ -607,30 +684,71 @@ The class template `sender_traits` can be used to query information about a `sen
 particular, what values and errors it sends through a receiver's value and error channel,
 and whether or not it ever calls `set_done` on a receiver.
 
-```c++
-    template<class S>
-    struct sender-traits-base {}; // exposition-only
+The primary `sender_traits<S>` class template is defined as if inheriting from an
+implementation-defined class template _`sender-traits-base`_`<S>` defined as follows:
 
-    template<class S>
-      requires (!same_as<S, remove_cvref_t<S>>)
-    struct sender-traits-base : sender_traits<remove_cvref_t<S>> {};
+- Let _`has-sender-types`_ be an implementation-defined concept equivalent to:
 
-    template<class S>
-      requires same_as<S, remove_cvref_t<S>> &&
-      sender<S> && has-sender-traits<S>
-    struct sender-traits-base<S> {
-      template<template<class...> class Tuple, template<class...> class Variant>
-      using value_types = typename S::template value_types<Tuple, Variant>;
+        template<template<template<class...> class, template<class...> class> class>
+          struct has-value-types ; // exposition only
 
-      template<template<class...> class Variant>
-      using error_types = typename S::template error_types<Variant>;
+        template<template<template<class...> class> class>
+          struct has-error-types ; // exposition only
 
-      static constexpr bool sends_done = S::sends_done;
-    };
+        template<class S>
+          concept has-sender-types =
+            requires {
+              typename has-value-types <S::template value_types>;
+              typename has-error-types <S::template error_types>;
+              typename bool_constant<S::sends_done>;
+            };
 
-    template<class S>
-    struct sender_traits : sender-traits-base<S> {};
-```
+    If _`has-sender-types`_`<S>` is true, then _`sender-traits-base`_ is equivalent to:
+
+        template<class S>
+          struct sender-traits-base {
+            template<template<class...> class Tuple, template<class...> class Variant>
+              using value_types = typename S::template value_types<Tuple, Variant>;
+
+            template<template<class...> class Variant>
+              using error_types = typename S::template error_types<Variant>;
+
+            static constexpr bool sends_done = S::sends_done;
+          };
+
+- Otherwise, let _`void-receiver`_ be an implementation-defined class type equivalent to
+
+        struct void-receiver { // exposition only
+          void set_value() noexcept;
+          void set_error(exception_ptr) noexcept;
+          void set_done() noexcept;
+        };
+
+    If _`executor-of-impl`_`<S, `_`as-invocable`_`<`_`void-receiver`_`, S>>` is `true`, then _`sender-traits-base`_ is equivalent to
+
+        template<class S>
+          struct sender-traits-base {
+            template<template<class...> class Tuple, template<class...> class Variant>
+              using value_types = Variant<Tuple<>>;
+
+            template<template<class...> class Variant>
+              using error_types = Variant<exception_ptr>;
+
+            static constexpr bool sends_done = true;
+          };
+
+- Otherwise, if `derived_from<S, sender_base>` is `true`, then _`sender-traits-base`_ is
+  equivalent to
+
+        template<class S>
+          struct sender-traits-base {};
+
+- Otherwise, _`sender-traits-base`_ is equivalent to
+
+        template<class S>
+          struct sender-traits-base {
+            using __unspecialized = void; // exposition only
+          };
 
 Because a sender may send one set of types or another to a receiver based on some runtime
 condition, `sender_traits` may provide a nested `value_types` template that is
@@ -2067,26 +2185,37 @@ bool operator!=(const C& a, const C& b) noexcept;
 #### `static_thread_pool` sender execution functions
 
 In addition to conforming to the above specification, `static_thread_pool`
-executors shall conform to the following specification.
+`scheduler`s' senders shall conform to the following specification.
 
 ```
 class C
 {
   public:
-    template<class Receiver>
-      void submit(Receiver&& r) const;
+    template<template<class...> class Tuple, template<class...> class Variant>
+      using value_types = Variant<Tuple<>>;
+    template<template<class...> class Variant>
+      using error_types = Variant<>;
+    static constexpr bool sends_done = true;
+
+    template<receiver_of R>
+      see-below connect(R&& r) const;
 };
 ```
 
-`C` is a type satisfying the `sender` requirements.
+`C` is a type satisfying the `typed_sender` requirements.
 
 ```
-template<class Receiver>
-  void submit(Receiver&& r) const;
+template<receiver_of R>
+  see-below connect(R&& r) const;
 ```
 
-*Effects:* Submits the receiver `r` for execution on the `static_thread_pool`
-according to the the properties established for `*this`. let `e` be an object of type `exception_ptr`, then `static_thread_pool` will evaluate one of `set_value(r)`, `set_error(r, e)`, or `set_done(r)`.
+*Returns:* An object whose type satisfies the `operation_state` concept.
+
+*Effects:* When `execution::start` is called on the returned operation state, the receiver
+`r` is submitted for execution on the `static_thread_pool` according to the the properties
+established for `*this`. let `e` be an object of type `exception_ptr`; then
+`static_thread_pool` will evaluate one of `execution::set_value(r)`,
+`execution::set_error(r, e)`, or `execution::set_done(r)`.
 
 ### `static_thread_pool` executor types
 
