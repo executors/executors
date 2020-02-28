@@ -598,7 +598,7 @@ algorithms.
 
 We envision a future when C++ programmers can express asynchronous, parallel
 execution of work on diverse hardware resources through elegant standard
-interfaces. This proposal provides a foundation for flexible exeuction and is
+interfaces. This proposal provides a foundation for flexible execution and is
 our initial step towards that goal. **Executors** represent hardware resources
 that execute work. **Senders and receivers** represent lazily-constructed
 asynchronous DAGs of work. These primitives empower programmers to control where and
