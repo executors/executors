@@ -255,7 +255,7 @@ void my_for_each(const Executor& ex, F f, Range rng) {
   // request bulk execution, receive a sender
   sender auto s = execution::bulk_execute(ex, [=](size_t i) {
     f(rng[i]);
-  });
+  }, std::ranges::size(rng));
 
   // initiate execution and wait for it to complete
   execution::sync_wait(s);
