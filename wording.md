@@ -556,8 +556,8 @@ XXX TODO The `scheduler` concept...
           concept scheduler =
             copy_constructible<remove_cvref_t<S>> &&
             equality_comparable<remove_cvref_t<S>> &&
-            requires(E&& e) {
-              execution::schedule((E&&)e);
+            requires(S&& s) {
+              execution::schedule((S&&)s);
             };
 
 None of a scheduler's copy constructor, destructor, equality comparison, or `swap`
