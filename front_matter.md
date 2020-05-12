@@ -15,7 +15,7 @@ Authors:            Jared Hoberock, jhoberock@nvidia.com
 
                     Gordon Brown, gordon@codeplay.com
 
-                    David Hollman, dshollm@sandia.gov
+                    Daisy Hollman, dshollm@sandia.gov
 
                     Lee Howes, lwh@fb.com
 
