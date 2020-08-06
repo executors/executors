@@ -2022,8 +2022,8 @@ class C
     template<class ProtoAllocator>
     see-below require(const execution::allocator_t<ProtoAllocator>& a) const;
 
-    static constexpr execution::bulk_guarantee_t query(execution::bulk_guarantee_t::parallel_t) const;
-    static constexpr execution::mapping_t query(execution::mapping_t::thread_t) const;
+    static constexpr execution::bulk_guarantee_t query(execution::bulk_guarantee_t) const;
+    static constexpr execution::mapping_t query(execution::mapping_t) const;
     execution::blocking_t query(execution::blocking_t) const;
     execution::relationship_t query(execution::relationship_t) const;
     execution::outstanding_work_t query(execution::outstanding_work_t) const;
@@ -2237,8 +2237,8 @@ class C
     template<class ProtoAllocator>
     see-below require(const execution::allocator_t<ProtoAllocator>& a) const;
 
-    static constexpr execution::bulk_guarantee_t query(execution::bulk_guarantee_t::parallel_t) const;
-    static constexpr execution::mapping_t query(execution::mapping_t::thread_t) const;
+    static constexpr execution::bulk_guarantee_t query(execution::bulk_guarantee_t) const;
+    static constexpr execution::mapping_t query(execution::mapping_t) const;
     execution::blocking_t query(execution::blocking_t) const;
     execution::relationship_t query(execution::relationship_t) const;
     execution::outstanding_work_t query(execution::outstanding_work_t) const;
