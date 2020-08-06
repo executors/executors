@@ -211,7 +211,7 @@ Such an enhancement could address a well-known hazard of `std::async`:
 std::async(foo);
 
 // *never* blocks
-really_async(foo);
+really_async(ex, foo);
 ```
 
 **Control structures** permit customizations at a higher level of abstraction
