@@ -817,7 +817,7 @@ Unless otherwise specified, behavioral property types `S`, their nested property
         static constexpr auto static_query_v
           = see-below;
     
-      template<class Executor>
+      template<class Executor, class Property>
       friend constexpr S query(const Executor& ex, const Property& p) noexcept(see-below);
     
       friend constexpr bool operator==(const S& a, const S& b);
@@ -902,7 +902,7 @@ The value of the expression `S::static_query_v<Executor>` is
 Let *k* be the least value of *i* for which `can_query_v<Executor,S::N`*i*`>` is true, if such a value of *i* exists.
 
 ```
-template<class Executor>
+template<class Executor, class Property>
   friend constexpr S query(const Executor& ex, const Property& p) noexcept(noexcept(std::query(ex, std::declval<const S::Nk>())));
 ```
 
