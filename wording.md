@@ -1508,10 +1508,7 @@ Consider a generic function that performs some task immediately if it can, and o
       if (try_work() == done)
       {
         // Work completed immediately, invoke callback.
-        std::require(ex,
-            execution::single,
-            execution::oneway,
-          ).execute(callback);
+        execution::execute(ex, callback);
       }
       else
       {
@@ -1545,22 +1542,15 @@ This function can be used with an inline executor which is defined as follows:
 
 as, in the case of an unsupported property, invocation of `std::prefer` will fall back to an identity operation.
 
-The polymorphic `executor` wrapper should be able to simply swap in, so that we could change `do_async_work` to the non-template function:
+The polymorphic `any_executor` wrapper should be able to simply swap in, so that we could change `do_async_work` to the non-template function:
 
-    void do_async_work(
-        executor<
-          execution::single,
-          execution::oneway,
-          execution::outstanding_work_t::tracked_t> ex,
-        std::function<void()> callback)
+    void do_async_work(any_executor<execution::outstanding_work_t::tracked_t> ex,
+                       std::function<void()> callback)
     {
       if (try_work() == done)
       {
         // Work completed immediately, invoke callback.
-        std::require(ex,
-            execution::single,
-            execution::oneway,
-          ).execute(callback);
+        execution::execute(ex, callback);
       }
       else
       {
@@ -1578,12 +1568,8 @@ However, if we simply specify `execution::outstanding_work.tracked` in the `exec
 
 The `prefer_only` adapter addresses this by turning off the `is_requirable` attribute for a specific property. It would be used in the above example as follows:
 
-    void do_async_work(
-        executor<
-          execution::single,
-          execution::oneway,
-          prefer_only<execution::outstanding_work_t::tracked_t>> ex,
-        std::function<void()> callback)
+    void do_async_work(any_executor<prefer_only<execution::outstanding_work_t::tracked_t>> ex,
+                       std::function<void()> callback)
     {
       ...
     }
@@ -1838,7 +1824,6 @@ executor_type executor() noexcept;
 thread pool. The returned executor has the following properties already
 established:
 
-  * `execution::oneway`
   * `execution::blocking.possibly`
   * `execution::relationship.fork`
   * `execution::outstanding_work.untracked`
@@ -2000,7 +1985,6 @@ class C
 thread pool. The returned sender has the following properties already
 established:
 
-  * `execution::oneway`
   * `execution::blocking.possibly`
   * `execution::relationship.fork`
   * `execution::outstanding_work.untracked`
