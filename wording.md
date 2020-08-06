@@ -1086,8 +1086,8 @@ The `allocator_t` property conforms to the following specification:
 
 | Property | Notes | Requirements |
 |----------|-------|--------------|
-| `allocator_t<ProtoAllocator>` | Result of `allocator_t<void>::operator(OtherProtoAllocator)`. | The executor shall use the encapsulated allocator to allocate any memory required to store the submitted function object. |
-| `allocator_t<void>` | Specialisation of `allocator_t<ProtoAllocator>`. | The executor shall use an implementation defined default allocator to allocate any memory required to store the submitted function object. |
+| `allocator_t<ProtoAllocator>` | Objects of this type are created via `execution::allocator(a)`, where `a` is the desired `ProtoAllocator`. | The executor shall use the encapsulated allocator to allocate any memory required to store the submitted function object. |
+| `allocator_t<void>` | Specialisation of `allocator_t<ProtoAllocator>`. | The executor shall use an implementation-defined default allocator to allocate any memory required to store the submitted function object. |
 
 If the expression `std::query(E, P)` is well formed, where `P` is an object of type `allocator_t<ProtoAllocator>`, then:
 * the type of the expression `std::query(E, P)` shall satisfy the `ProtoAllocator` requirements;
