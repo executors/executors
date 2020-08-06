@@ -1159,7 +1159,7 @@ static constexpr ProtoAllocator value() const;
 
 ### Class `bad_executor`
 
-An exception of type `bad_executor` is thrown by polymorphic executor member functions `execute` and `bulk_execute` when the executor object has no target.
+An exception of type `bad_executor` is thrown by polymorphic executor member function `execute` when the executor object has no target.
 
 ```
 class bad_executor : public exception
