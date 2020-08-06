@@ -480,7 +480,7 @@ struct _then_receiver : R { // for exposition, inherit set_error and set_done fr
     // Customize set_value by invoking the callable and passing the result to the base class
     template<class... As>
       requires receiver_of<R, invoke_result_t<F, As...>>
-    void set_value(Args&&... args) && noexcept(/*...*/) {
+    void set_value(As&&... as) && noexcept(/*...*/) {
       std::execution::set_value((R&&) *this, invoke((F&&) f_, (As&&) as...));
     }
 
