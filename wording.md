@@ -864,16 +864,16 @@ Unless otherwise specified, behavioral property types `S`, their nested property
 
 Queries for the value of an executor's behavioral property shall not change between invocations unless the executor is assigned another executor with a different value of that behavioral property.
 
-`S()` and `S(S::E`*i*`())` are all distinct values of `S`. [*Note:* This means they compare unequal. *--end note.*]
+`S()` and `S(S::N`*i*`())` are all distinct values of `S`. [*Note:* This means they compare unequal. *--end note.*]
 
 The value returned from `std::query(e1, p1)` and a subsequent invocation `std::query(e1, p1)`, where
 
-* `p1` is an instance of `S` or `S::E`*i*, and
+* `p1` is an instance of `S` or `S::N`*i*, and
 * `e2` is the result of `std::require(e1, p2)` or `std::prefer(e1, p2)`,
 
 shall compare equal unless
 
-* `p2` is an instance of `S::E`*i*, and
+* `p2` is an instance of `S::N`*i*, and
 * `p1` and `p2` are different types.
 
 The value of the expression `S::N1::static_query_v<Executor>` is
