@@ -247,25 +247,32 @@ For some subexpressions `e` and `f`, let `E` be `decltype((e))` and let `F` be `
 
     and that does not include a declaration of `execution::execute`. If the function selected by overload resolution does not execute the function object `f` on the executor `e`, the program is ill-formed with no diagnostic required.
 
-- Otherwise, if `F` is not an instance of _`as-invocable`_`<`_`R`_`, E>` for some type _`R`_, and `invocable<remove_cvref_t<F>&> && sender_to<E, `_`as-receiver`_`<remove_cvref_t<F>, E>>` is `true`, `execution::submit(e, `_`as-receiver`_`<remove_cvref_t<F>, E>{std::forward<F>(f)})`, where _`as-receiver`_ is some implementation-defined class template equivalent to:
+- Otherwise, `execution::submit(e, as-receiver<remove_cvref_t<F>, E>{forward<F>(f)})` if
+  
+  - `F` is not an instance of `as-invocable<R,E'>` for some type `R` where `E` and `E'` name the same type ignoring cv and reference qualifiers, and
 
-        template<class F, class>
-        struct as-receiver {
-          F f_;
-          void set_value() noexcept(is_nothrow_invocable_v<F&>) {
-            invoke(f_);
-          }
-          [[noreturn]] void set_error(std::exception_ptr) noexcept {
-            terminate();
-          }
-          void set_done() noexcept {}
-        };
+  - `invocable<remove_cvref_t<F>&> && sender_to<E, as-receiver<remove_cvref_t<F>, E>>` is true
+
+  where _`as-receiver`_ is some implementation-defined class template equivalent to:
+  
+          template<class F, class>
+          struct as-receiver {
+            F f_;
+            void set_value() noexcept(is_nothrow_invocable_v<F&>) {
+              invoke(f_);
+            }
+            template<class E>
+            [[noreturn]] void set_error(E&&) noexcept {
+              terminate();
+            }
+            void set_done() noexcept {}
+          };
 
 [*Editorial note:* We should probably define what "execute the function object `F` on the executor `E`" means more carefully. *--end editorial note*]
 
 #### `execution::connect`
 
-The name `execution::connect` denotes a customization point object. For some subexpressions `s` and `r`, let `S` `decltype((s))` and let `R` be `decltype((r))`. The expression `execution::connect(s, r)` is expression-equivalent to:
+The name `execution::connect` denotes a customization point object. For some subexpressions `s` and `r`, let `S` `decltype((s))` and let `R` be `decltype((r))`. If `R` does not satisfy `receiver`, `execution::connect(s, r)` is ill-formed; otherwise, the expression `execution::connect(s, r)` is expression-equivalent to:
 
 - `s.connect(r)`, if that expression is valid, if its type satisfies `operation_state`,
   and if `S` satisfies `sender`.
@@ -276,10 +283,13 @@ The name `execution::connect` denotes a customization point object. For some sub
 
     and that does not include a declaration of `execution::connect`.
 
-- Otherwise, _`as-operation`_`{s, r}`, if `r` is not an instance of
-  _`as-receiver`_`<`_`F`_` , S>` for some type _`F`_, and if `receiver_of<R> &&`
-  _`executor-of-impl`_`<remove_cvref_t<S>, `_`as-invocable`_`<remove_cvref_t<R>, S>>` is
-  `true`, where _`as-operation`_ is an implementation-defined class equivalent to
+- Otherwise, _`as-operation`_`{s, r}`, if
+
+  - `r` is not an instance of `as-receiver<F, S'>` for some type `F` where `S` and `S'` name the same type ignoring cv and reference qualifiers, and
+
+  - `receiver_of<R> && executor-of-impl<remove_cvref_t<S>, as-invocable<remove_cvref_t<R>, S>>` is true,
+  
+  where _`as-operation`_ is an implementation-defined class equivalent to
 
         struct as-operation {
           remove_cvref_t<S> e_;
@@ -1105,7 +1115,7 @@ allocator_t<OtherProtoAllocator> operator()(const OtherProtoAllocator &a) const;
 [*Note:* It is permitted for `a` to be an executor's implementation-defined default allocator and, if so, the default allocator may also be established within an executor by passing the result of this function to `require`. *--end note*]
 
 ```
-static constexpr ProtoAllocator value() const;
+constexpr ProtoAllocator value() const;
 ```
 
 *Returns:* The exposition-only member `a_`.
@@ -2176,7 +2186,7 @@ class C
     template<template<class...> class Tuple, template<class...> class Variant>
       using value_types = Variant<Tuple<>>;
     template<template<class...> class Variant>
-      using error_types = Variant<>;
+      using error_types = Variant<exception_ptr>;
     static constexpr bool sends_done = true;
 
     template<receiver_of R>

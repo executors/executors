@@ -6,9 +6,7 @@ XXX TODO
 
 ### Revision 13
 
-Missing
-
-XXX TODO -- see if we can recover this
+As directed by SG1 at the 2020-02 Prague meeting, we have split the `submit` operation into the primitive operations `connect` and `start`.
 
 ### Revision 12
 
