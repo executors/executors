@@ -2186,7 +2186,7 @@ class C
     template<template<class...> class Tuple, template<class...> class Variant>
       using value_types = Variant<Tuple<>>;
     template<template<class...> class Variant>
-      using error_types = Variant<>;
+      using error_types = Variant<exception_ptr>;
     static constexpr bool sends_done = true;
 
     template<receiver_of R>
