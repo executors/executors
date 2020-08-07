@@ -237,7 +237,7 @@ The name `execution::set_error` denotes a customization point object. The expres
 
 The name `execution::execute` denotes a customization point object.
 
-For some subexpressions `e` and `f`, let `E` be a type such that `decltype((e))` is `E` and let `F` be a type such that `decltype((f))` is `F`. The expression `execution::execute(e, f)` is ill-formed if `F` does not model `invocable`, or if `E` does not model either `executor` or `sender`. Otherwise, it is expression-equivalent to:
+For some subexpressions `e` and `f`, let `E` be `decltype((e))` and let `F` be `decltype((f))`. The expression `execution::execute(e, f)` is ill-formed if `F` does not model `invocable`, or if `E` does not model either `executor` or `sender`. Otherwise, it is expression-equivalent to:
 
 - `e.execute(f)`, if that expression is valid. If the function selected does not execute the function object `f` on the executor `e`, the program is ill-formed with no diagnostic required.
 
@@ -265,10 +265,7 @@ For some subexpressions `e` and `f`, let `E` be a type such that `decltype((e))`
 
 #### `execution::connect`
 
-The name `execution::connect` denotes a customization point object. For some
-subexpressions `s` and `r`, let `S` be a type such that `decltype((s))` is `S` and let `R`
-be a type such that `decltype((r))` is `R`. The expression `execution::connect(s, r)` is
-expression-equivalent to:
+The name `execution::connect` denotes a customization point object. For some subexpressions `s` and `r`, let `S` `decltype((s))` and let `R` be `decltype((r))`. The expression `execution::connect(s, r)` is expression-equivalent to:
 
 - `s.connect(r)`, if that expression is valid, if its type satisfies `operation_state`,
   and if `S` satisfies `sender`.
@@ -338,7 +335,7 @@ The name `execution::start` denotes a customization point object. The expression
 
 The name `execution::submit` denotes a customization point object.
 
-For some subexpressions `s` and `r`, let `S` be a type such that `decltype((s))` is `S` and let `R` be a type such that `decltype((r))` is `R`. The expression `execution::submit(s, r)` is ill-formed if `sender_to<S, R>` is not `true`. Otherwise, it is expression-equivalent to:
+For some subexpressions `s` and `r`, let `S` be `decltype((s))` and let `R` be `decltype((r))`. The expression `execution::submit(s, r)` is ill-formed if `sender_to<S, R>` is not `true`. Otherwise, it is expression-equivalent to:
 
 - `s.submit(r)`, if that expression is valid and `S` models `sender`. If the function selected does not submit the receiver object `r` via the sender `s`, the program is ill-formed with no diagnostic required.
 
@@ -382,7 +379,7 @@ is an implementation-defined class template equivalent to
 
 #### `execution::schedule`
 
-The name `execution::schedule` denotes a customization point object. For some subexpression `s`, let `S` be a type such that `decltype((s))` is `S`. The expression `execution::schedule(s)` is expression-equivalent to:
+The name `execution::schedule` denotes a customization point object. For some subexpression `s`, let `S` be `decltype((s))`. The expression `execution::schedule(s)` is expression-equivalent to:
 
 - `s.schedule()`, if that expression is valid and its type models `sender`. 
 
