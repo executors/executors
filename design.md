@@ -311,13 +311,13 @@ Here is some sample syntax for the sorts of async programs we envision
 (borrowed from [P1897](http://wg21.link/P1897)):
 
 ```P0443
-sender auto s = just(3) |                                  // produce '3' immediately
-                via(scheduler1) |                          // transition context
-                then([](int a){return a+1;}) |             // chain continuation
-                then([](int a){return a*2;}) |             // chain another continuation
-                via(scheduler2) |                          // transition context
-                handle_error([](auto e){return just(3);}); // with default value on errors
-int r = sync_wait(s);                                      // wait for the result
+sender auto s = just(3) |                               // produce '3' immediately
+                on(scheduler1) |                        // transition context
+                transform([](int a){return a+1;}) |     // chain continuation
+                transform([](int a){return a*2;}) |     // chain another continuation
+                on(scheduler2) |                        // transition context
+                let_error([](auto e){return just(3);}); // with default value on errors
+int r = sync_wait(s);                                   // wait for the result
 ```
 
 It should be possible to replace `just(3)` with a call to any asynchronous API
