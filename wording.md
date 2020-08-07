@@ -237,7 +237,7 @@ The name `execution::set_error` denotes a customization point object. The expres
 
 The name `execution::execute` denotes a customization point object.
 
-For some subexpressions `e` and `f`, let `E` be a type such that `decltype((e))` is `E` and let `F` be a type such that `decltype((f))` is `F`. The expression `execution::execute(e, f)` is ill-formed if `F` does not model `invocable`, or if `E` does not model either `executor` or `sender`. Otherwise, it is expression-equivalent to:
+For some subexpressions `e` and `f`, let `E` be `decltype((e))` and let `F` be `decltype((f))`. The expression `execution::execute(e, f)` is ill-formed if `F` does not model `invocable`, or if `E` does not model either `executor` or `sender`. Otherwise, it is expression-equivalent to:
 
 - `e.execute(f)`, if that expression is valid. If the function selected does not execute the function object `f` on the executor `e`, the program is ill-formed with no diagnostic required.
 
@@ -265,10 +265,7 @@ For some subexpressions `e` and `f`, let `E` be a type such that `decltype((e))`
 
 #### `execution::connect`
 
-The name `execution::connect` denotes a customization point object. For some
-subexpressions `s` and `r`, let `S` be a type such that `decltype((s))` is `S` and let `R`
-be a type such that `decltype((r))` is `R`. The expression `execution::connect(s, r)` is
-expression-equivalent to:
+The name `execution::connect` denotes a customization point object. For some subexpressions `s` and `r`, let `S` `decltype((s))` and let `R` be `decltype((r))`. The expression `execution::connect(s, r)` is expression-equivalent to:
 
 - `s.connect(r)`, if that expression is valid, if its type satisfies `operation_state`,
   and if `S` satisfies `sender`.
@@ -338,7 +335,7 @@ The name `execution::start` denotes a customization point object. The expression
 
 The name `execution::submit` denotes a customization point object.
 
-For some subexpressions `s` and `r`, let `S` be a type such that `decltype((s))` is `S` and let `R` be a type such that `decltype((r))` is `R`. The expression `execution::submit(s, r)` is ill-formed if `sender_to<S, R>` is not `true`. Otherwise, it is expression-equivalent to:
+For some subexpressions `s` and `r`, let `S` be `decltype((s))` and let `R` be `decltype((r))`. The expression `execution::submit(s, r)` is ill-formed if `sender_to<S, R>` is not `true`. Otherwise, it is expression-equivalent to:
 
 - `s.submit(r)`, if that expression is valid and `S` models `sender`. If the function selected does not submit the receiver object `r` via the sender `s`, the program is ill-formed with no diagnostic required.
 
@@ -348,13 +345,13 @@ For some subexpressions `s` and `r`, let `S` be a type such that `decltype((s))`
 
     and that does not include a declaration of `execution::submit`. If the function selected by overload resolution does not submit the receiver object `r` via the sender `s`, the program is ill-formed with no diagnostic required.
 
-- Otherwise, `execution::start((new `_`submit-receiver`_`<S, R>{s,r})->state_)`, where _`submit-receiver`_
+- Otherwise, `execution::start((new `_`submit-state`_`<S, R>{s,r})->state_)`, where _`submit-state`_
 is an implementation-defined class template equivalent to
 
         template<class S, class R>
-        struct submit-receiver {
-          struct wrap {
-            submit-receiver * p_;
+        struct submit-state {
+          struct submit-receiver {
+            submit-state * p_;
             template<class...As>
               requires receiver_of<R, As...>
             void set_value(As&&... as) && noexcept(is_nothrow_receiver_of_v<R, As...>) {
@@ -373,16 +370,16 @@ is an implementation-defined class template equivalent to
             }
           };
           remove_cvref_t<R> r_;
-          connect_result_t<S, wrap> state_;
-          submit-receiver(S&& s, R&& r)
+          connect_result_t<S, submit-receiver> state_;
+          submit-state(S&& s, R&& r)
             : r_((R&&) r)
-            , state_(execution::connect((S&&) s, wrap{this})) {}
+            , state_(execution::connect((S&&) s, submit-receiver{this})) {}
         };
 
 
 #### `execution::schedule`
 
-The name `execution::schedule` denotes a customization point object. For some subexpression `s`, let `S` be a type such that `decltype((s))` is `S`. The expression `execution::schedule(s)` is expression-equivalent to:
+The name `execution::schedule` denotes a customization point object. For some subexpression `s`, let `S` be `decltype((s))`. The expression `execution::schedule(s)` is expression-equivalent to:
 
 - `s.schedule()`, if that expression is valid and its type models `sender`. 
 
@@ -556,8 +553,8 @@ XXX TODO The `scheduler` concept...
           concept scheduler =
             copy_constructible<remove_cvref_t<S>> &&
             equality_comparable<remove_cvref_t<S>> &&
-            requires(E&& e) {
-              execution::schedule((E&&)e);
+            requires(S&& s) {
+              execution::schedule((S&&)s);
             };
 
 None of a scheduler's copy constructor, destructor, equality comparison, or `swap`
@@ -798,318 +795,6 @@ The `context_t` property can be used only with `query`, which returns the execut
 
 The value returned from `std::query(e, context_t)`, where `e` is an executor, shall not change between invocations.
 
-#### Polymorphic executor wrappers
-
-The `any_executor` class template provides polymorphic wrappers for executors.
-
-In several places in this section the operation `CONTAINS_PROPERTY(p, pn)` is used. All such uses mean `std::disjunction_v<std::is_same<p, pn>...>`.
-
-In several places in this section the operation `FIND_CONVERTIBLE_PROPERTY(p, pn)` is used. All such uses mean the first type `P` in the parameter pack `pn` for which `std::is_convertible_v<p, P>` is `true`. If no such type `P` exists, the operation `FIND_CONVERTIBLE_PROPERTY(p, pn)` is ill-formed.
-
-```
-template <class... SupportableProperties>
-class any_executor
-{
-public:
-  // construct / copy / destroy:
-
-  any_executor() noexcept;
-  any_executor(nullptr_t) noexcept;
-  any_executor(const any_executor& e) noexcept;
-  any_executor(any_executor&& e) noexcept;
-  template<class... OtherSupportableProperties>
-    any_executor(any_executor<OtherSupportableProperties...> e);
-  template<class... OtherSupportableProperties>
-    any_executor(any_executor<OtherSupportableProperties...> e) = delete;
-  template<executor Executor>
-    any_executor(Executor e);
-
-  any_executor& operator=(const any_executor& e) noexcept;
-  any_executor& operator=(any_executor&& e) noexcept;
-  any_executor& operator=(nullptr_t) noexcept;
-  template<executor Executor>
-    any_executor& operator=(Executor e);
-
-  ~any_executor();
-
-  // any_executor modifiers:
-
-  void swap(any_executor& other) noexcept;
-
-  // any_executor operations:
-
-  template <class Property>
-  any_executor require(Property) const;
-
-  template <class Property>
-  typename Property::polymorphic_query_result_type query(Property) const;
-
-  template<class Function>
-    void execute(Function&& f) const;
-
-  // any_executor capacity:
-
-  explicit operator bool() const noexcept;
-
-  // any_executor target access:
-
-  const type_info& target_type() const noexcept;
-  template<executor Executor> Executor* target() noexcept;
-  template<executor Executor> const Executor* target() const noexcept;
-};
-
-// any_executor comparisons:
-
-template <class... SupportableProperties>
-bool operator==(const any_executor<SupportableProperties...>& a, const any_executor<SupportableProperties...>& b) noexcept;
-template <class... SupportableProperties>
-bool operator==(const any_executor<SupportableProperties...>& e, nullptr_t) noexcept;
-template <class... SupportableProperties>
-bool operator==(nullptr_t, const any_executor<SupportableProperties...>& e) noexcept;
-template <class... SupportableProperties>
-bool operator!=(const any_executor<SupportableProperties...>& a, const any_executor<SupportableProperties...>& b) noexcept;
-template <class... SupportableProperties>
-bool operator!=(const any_executor<SupportableProperties...>& e, nullptr_t) noexcept;
-template <class... SupportableProperties>
-bool operator!=(nullptr_t, const any_executor<SupportableProperties...>& e) noexcept;
-
-// any_executor specialized algorithms:
-
-template <class... SupportableProperties>
-void swap(any_executor<SupportableProperties...>& a, any_executor<SupportableProperties...>& b) noexcept;
-
-template <class Property, class... SupportableProperties>
-any_executor prefer(const any_executor<SupportableProperties>& e, Property p);
-```
-
-The `any_executor` class satisfies the `executor` concept requirements.
-
-[*Note:* To meet the `noexcept` requirements for executor copy constructors and move constructors, implementations may share a target between two or more `any_executor` objects. *--end note*]
-
-Each property type in the `SupportableProperties...` pack shall provide a nested type `polymorphic_query_result_type`.
-
-The *target* is the executor object that is held by the wrapper.
-
-##### `any_executor` constructors
-
-```
-any_executor() noexcept;
-```
-
-*Postconditions:* `!*this`.
-
-```
-any_executor(nullptr_t) noexcept;
-```
-
-*Postconditions:* `!*this`.
-
-```
-any_executor(const any_executor& e) noexcept;
-```
-
-*Postconditions:* `!*this` if `!e`; otherwise, `*this` targets `e.target()` or a copy of `e.target()`.
-
-```
-any_executor(any_executor&& e) noexcept;
-```
-
-*Effects:* If `!e`, `*this` has no target; otherwise, moves `e.target()` or move-constructs the target of `e` into the target of `*this`, leaving `e` in a valid state with an unspecified value.
-
-```
-template<class... OtherSupportableProperties>
-  any_executor(any_executor<OtherSupportableProperties...> e);
-```
-
-*Remarks:* This function shall not participate in overload resolution unless:
-* `CONTAINS_PROPERTY(p, OtherSupportableProperties)` , where `p` is each property in `SupportableProperties...`.
-
-*Effects:* `*this` targets a copy of `e` initialized with `std::move(e)`.
-
-```
-template<class... OtherSupportableProperties>
-  any_executor(any_executor<OtherSupportableProperties...> e) = delete;
-```
-
-*Remarks:* This function shall not participate in overload resolution unless `CONTAINS_PROPERTY(p, OtherSupportableProperties)` is `false` for some property `p` in `SupportableProperties...`.
-
-```
-template<executor Executor>
-  any_executor(Executor e);
-```
-
-*Remarks:* This function shall not participate in overload resolution unless:
-
-* `can_require_v<Executor, P>`, if `P::is_requirable`, where `P` is each property in `SupportableProperties...`.
-* `can_prefer_v<Executor, P>`, if `P::is_preferable`, where `P` is each property in `SupportableProperties...`.
-* and `can_query_v<Executor, P>`, if `P::is_requirable == false` and `P::is_preferable == false`, where `P` is each property in `SupportableProperties...`.
-
-*Effects:* `*this` targets a copy of `e`.
-
-##### `any_executor` assignment
-
-```
-any_executor& operator=(const any_executor& e) noexcept;
-```
-
-*Effects:* `any_executor(e).swap(*this)`.
-
-*Returns:* `*this`.
-
-```
-any_executor& operator=(any_executor&& e) noexcept;
-```
-
-*Effects:* Replaces the target of `*this` with the target of `e`, leaving `e` in a valid state with an unspecified value.
-
-*Returns:* `*this`.
-
-```
-any_executor& operator=(nullptr_t) noexcept;
-```
-
-*Effects:* `any_executor(nullptr).swap(*this)`.
-
-*Returns:* `*this`.
-
-```
-template<executor Executor>
-  any_executor& operator=(Executor e);
-```
-
-*Requires:* As for `template<executor Executor> any_executor(Executor e)`.
-
-*Effects:* `any_executor(std::move(e)).swap(*this)`.
-
-*Returns:* `*this`.
-
-##### `any_executor` destructor
-
-```
-~any_executor();
-```
-
-*Effects:* If `*this != nullptr`, releases shared ownership of, or destroys, the target of `*this`.
-
-##### `any_executor` modifiers
-
-```
-void swap(any_executor& other) noexcept;
-```
-
-*Effects:* Interchanges the targets of `*this` and `other`.
-
-##### `any_executor` operations
-
-```
-template <class Property>
-any_executor require(Property p) const;
-```
-
-*Remarks:* This function shall not participate in overload resolution unless `FIND_CONVERTIBLE_PROPERTY(Property, SupportableProperties)::is_requirable` is well-formed and has the value `true`.
-
-*Returns:* A polymorphic wrapper whose target is the result of `std::require(e, p)`, where `e` is the target object of `*this`.
-
-```
-template <class Property>
-typename Property::polymorphic_query_result_type query(Property p) const;
-```
-
-*Remarks:* This function shall not participate in overload resolution unless `FIND_CONVERTIBLE_PROPERTY(Property, SupportableProperties)` is well-formed.
-
-*Returns:* If `std::query(e, p)` is well-formed, `static_cast<Property::polymorphic_query_result_type>(std::query(e, p))`, where `e` is the target object of `*this`. Otherwise, `Property::polymorphic_query_result_type{}`.
-
-```
-template<class Function>
-  void execute(Function&& f) const;
-```
-
-*Effects:* Performs `execution::execute(e, f2)`, where:
-
-  * `e` is the target object of `*this`;
-  * `f1` is the result of `DECAY_COPY(std::forward<Function>(f))`;
-  * `f2` is a function object of unspecified type that, when invoked as `f2()`, performs `f1()`.
-
-##### `any_executor` capacity
-
-```
-explicit operator bool() const noexcept;
-```
-
-*Returns:* `true` if `*this` has a target, otherwise `false`.
-
-##### `any_executor` target access
-
-```
-const type_info& target_type() const noexcept;
-```
-
-*Returns:* If `*this` has a target of type `T`, `typeid(T)`; otherwise, `typeid(void)`.
-
-```
-template<executor Executor> Executor* target() noexcept;
-template<executor Executor> const Executor* target() const noexcept;
-```
-
-*Returns:* If `target_type() == typeid(Executor)` a pointer to the stored executor target; otherwise a null pointer value.
-
-##### `any_executor` comparisons
-
-```
-template<class... SupportableProperties>
-bool operator==(const any_executor<SupportableProperties...>& a, const any_executor<SupportableProperties...>& b) noexcept;
-```
-
-*Returns:*
-
-- `true` if `!a` and `!b`;
-- `true` if `a` and `b` share a target;
-- `true` if `e` and `f` are the same type and `e == f`, where `e` is the target of `a` and `f` is the target of `b`;
-- otherwise `false`.
-
-```
-template<class... SupportableProperties>
-bool operator==(const any_executor<SupportableProperties...>& e, nullptr_t) noexcept;
-template<class... SupportableProperties>
-bool operator==(nullptr_t, const any_executor<SupportableProperties...>& e) noexcept;
-```
-
-*Returns:* `!e`.
-
-```
-template<class... SupportableProperties>
-bool operator!=(const any_executor<SupportableProperties...>& a, const any_executor<SupportableProperties...>& b) noexcept;
-```
-
-*Returns:* `!(a == b)`.
-
-```
-template<class... SupportableProperties>
-bool operator!=(const any_executor<SupportableProperties...>& e, nullptr_t) noexcept;
-template<class... SupportableProperties>
-bool operator!=(nullptr_t, const any_executor<SupportableProperties...>& e) noexcept;
-```
-
-*Returns:* `(bool) e`.
-
-##### `any_executor` specialized algorithms
-
-```
-template<class... SupportableProperties>
-void swap(any_executor<SupportableProperties...>& a, any_executor<SupportableProperties...>& b) noexcept;
-```
-
-*Effects:* `a.swap(b)`.
-
-```
-template <class Property, class... SupportableProperties>
-any_executor prefer(const any_executor<SupportableProperties...>& e, Property p);
-```
-
-*Remarks:* This function shall not participate in overload resolution unless `FIND_CONVERTIBLE_PROPERTY(Property, SupportableProperties)::is_preferable` is well-formed and has the value `true`.
-
-*Returns:* A polymorphic wrapper whose target is the result of `std::prefer(e, p)`, where `e` is the target object of `*this`.
-
 ### Behavioral properties
 
 Behavioral properties define a set of mutually-exclusive nested properties describing executor behavior.
@@ -1129,7 +814,7 @@ Unless otherwise specified, behavioral property types `S`, their nested property
         static constexpr auto static_query_v
           = see-below;
     
-      template<class Executor>
+      template<class Executor, class Property>
       friend constexpr S query(const Executor& ex, const Property& p) noexcept(see-below);
     
       friend constexpr bool operator==(const S& a, const S& b);
@@ -1176,16 +861,16 @@ Unless otherwise specified, behavioral property types `S`, their nested property
 
 Queries for the value of an executor's behavioral property shall not change between invocations unless the executor is assigned another executor with a different value of that behavioral property.
 
-`S()` and `S(S::E`*i*`())` are all distinct values of `S`. [*Note:* This means they compare unequal. *--end note.*]
+`S()` and `S(S::N`*i*`())` are all distinct values of `S`. [*Note:* This means they compare unequal. *--end note.*]
 
 The value returned from `std::query(e1, p1)` and a subsequent invocation `std::query(e1, p1)`, where
 
-* `p1` is an instance of `S` or `S::E`*i*, and
+* `p1` is an instance of `S` or `S::N`*i*, and
 * `e2` is the result of `std::require(e1, p2)` or `std::prefer(e1, p2)`,
 
 shall compare equal unless
 
-* `p2` is an instance of `S::E`*i*, and
+* `p2` is an instance of `S::N`*i*, and
 * `p1` and `p2` are different types.
 
 The value of the expression `S::N1::static_query_v<Executor>` is
@@ -1214,7 +899,7 @@ The value of the expression `S::static_query_v<Executor>` is
 Let *k* be the least value of *i* for which `can_query_v<Executor,S::N`*i*`>` is true, if such a value of *i* exists.
 
 ```
-template<class Executor>
+template<class Executor, class Property>
   friend constexpr S query(const Executor& ex, const Property& p) noexcept(noexcept(std::query(ex, std::declval<const S::Nk>())));
 ```
 
@@ -1398,8 +1083,8 @@ The `allocator_t` property conforms to the following specification:
 
 | Property | Notes | Requirements |
 |----------|-------|--------------|
-| `allocator_t<ProtoAllocator>` | Result of `allocator_t<void>::operator(OtherProtoAllocator)`. | The executor shall use the encapsulated allocator to allocate any memory required to store the submitted function object. |
-| `allocator_t<void>` | Specialisation of `allocator_t<ProtoAllocator>`. | The executor shall use an implementation defined default allocator to allocate any memory required to store the submitted function object. |
+| `allocator_t<ProtoAllocator>` | Objects of this type are created via `execution::allocator(a)`, where `a` is the desired `ProtoAllocator`. | The executor shall use the encapsulated allocator to allocate any memory required to store the submitted function object. |
+| `allocator_t<void>` | Specialisation of `allocator_t<ProtoAllocator>`. | The executor shall use an implementation-defined default allocator to allocate any memory required to store the submitted function object. |
 
 If the expression `std::query(E, P)` is well formed, where `P` is an object of type `allocator_t<ProtoAllocator>`, then:
 * the type of the expression `std::query(E, P)` shall satisfy the `ProtoAllocator` requirements;
@@ -1471,7 +1156,7 @@ static constexpr ProtoAllocator value() const;
 
 ### Class `bad_executor`
 
-An exception of type `bad_executor` is thrown by polymorphic executor member functions `execute` and `bulk_execute` when the executor object has no target.
+An exception of type `bad_executor` is thrown by polymorphic executor member function `execute` when the executor object has no target.
 
 ```
 class bad_executor : public exception
@@ -1508,10 +1193,7 @@ Consider a generic function that performs some task immediately if it can, and o
       if (try_work() == done)
       {
         // Work completed immediately, invoke callback.
-        std::require(ex,
-            execution::single,
-            execution::oneway,
-          ).execute(callback);
+        execution::execute(ex, callback);
       }
       else
       {
@@ -1545,22 +1227,15 @@ This function can be used with an inline executor which is defined as follows:
 
 as, in the case of an unsupported property, invocation of `std::prefer` will fall back to an identity operation.
 
-The polymorphic `executor` wrapper should be able to simply swap in, so that we could change `do_async_work` to the non-template function:
+The polymorphic `any_executor` wrapper should be able to simply swap in, so that we could change `do_async_work` to the non-template function:
 
-    void do_async_work(
-        executor<
-          execution::single,
-          execution::oneway,
-          execution::outstanding_work_t::tracked_t> ex,
-        std::function<void()> callback)
+    void do_async_work(any_executor<execution::outstanding_work_t::tracked_t> ex,
+                       std::function<void()> callback)
     {
       if (try_work() == done)
       {
         // Work completed immediately, invoke callback.
-        std::require(ex,
-            execution::single,
-            execution::oneway,
-          ).execute(callback);
+        execution::execute(ex, callback);
       }
       else
       {
@@ -1578,12 +1253,8 @@ However, if we simply specify `execution::outstanding_work.tracked` in the `exec
 
 The `prefer_only` adapter addresses this by turning off the `is_requirable` attribute for a specific property. It would be used in the above example as follows:
 
-    void do_async_work(
-        executor<
-          execution::single,
-          execution::oneway,
-          prefer_only<execution::outstanding_work_t::tracked_t>> ex,
-        std::function<void()> callback)
+    void do_async_work(any_executor<prefer_only<execution::outstanding_work_t::tracked_t>> ex,
+                       std::function<void()> callback)
     {
       ...
     }
@@ -1661,6 +1332,319 @@ friend constexpr auto query(const Executor& ex, const Property& p)
 *Returns:* `std::query(ex, p.property)`.
 
 *Remarks:* Shall not participate in overload resolution unless `std::is_same_v<Property, prefer_only>` is `true`, and the expression `std::query(ex, p.property)` is well-formed.
+
+### Polymorphic executor wrappers
+
+The `any_executor` class template provides polymorphic wrappers for executors.
+
+In several places in this section the operation `CONTAINS_PROPERTY(p, pn)` is used. All such uses mean `std::disjunction_v<std::is_same<p, pn>...>`.
+
+In several places in this section the operation `FIND_CONVERTIBLE_PROPERTY(p, pn)` is used. All such uses mean the first type `P` in the parameter pack `pn` for which `std::is_convertible_v<p, P>` is `true`. If no such type `P` exists, the operation `FIND_CONVERTIBLE_PROPERTY(p, pn)` is ill-formed.
+
+```
+template <class... SupportableProperties>
+class any_executor
+{
+public:
+  // construct / copy / destroy:
+
+  any_executor() noexcept;
+  any_executor(nullptr_t) noexcept;
+  any_executor(const any_executor& e) noexcept;
+  any_executor(any_executor&& e) noexcept;
+  template<class... OtherSupportableProperties>
+    any_executor(any_executor<OtherSupportableProperties...> e);
+  template<class... OtherSupportableProperties>
+    any_executor(any_executor<OtherSupportableProperties...> e) = delete;
+  template<executor Executor>
+    any_executor(Executor e);
+
+  any_executor& operator=(const any_executor& e) noexcept;
+  any_executor& operator=(any_executor&& e) noexcept;
+  any_executor& operator=(nullptr_t) noexcept;
+  template<executor Executor>
+    any_executor& operator=(Executor e);
+
+  ~any_executor();
+
+  // any_executor modifiers:
+
+  void swap(any_executor& other) noexcept;
+
+  // any_executor operations:
+
+  template <class Property>
+  any_executor require(Property) const;
+
+  template <class Property>
+  typename Property::polymorphic_query_result_type query(Property) const;
+
+  template<class Function>
+    void execute(Function&& f) const;
+
+  // any_executor capacity:
+
+  explicit operator bool() const noexcept;
+
+  // any_executor target access:
+
+  const type_info& target_type() const noexcept;
+  template<executor Executor> Executor* target() noexcept;
+  template<executor Executor> const Executor* target() const noexcept;
+};
+
+// any_executor comparisons:
+
+template <class... SupportableProperties>
+bool operator==(const any_executor<SupportableProperties...>& a, const any_executor<SupportableProperties...>& b) noexcept;
+template <class... SupportableProperties>
+bool operator==(const any_executor<SupportableProperties...>& e, nullptr_t) noexcept;
+template <class... SupportableProperties>
+bool operator==(nullptr_t, const any_executor<SupportableProperties...>& e) noexcept;
+template <class... SupportableProperties>
+bool operator!=(const any_executor<SupportableProperties...>& a, const any_executor<SupportableProperties...>& b) noexcept;
+template <class... SupportableProperties>
+bool operator!=(const any_executor<SupportableProperties...>& e, nullptr_t) noexcept;
+template <class... SupportableProperties>
+bool operator!=(nullptr_t, const any_executor<SupportableProperties...>& e) noexcept;
+
+// any_executor specialized algorithms:
+
+template <class... SupportableProperties>
+void swap(any_executor<SupportableProperties...>& a, any_executor<SupportableProperties...>& b) noexcept;
+
+template <class Property, class... SupportableProperties>
+any_executor prefer(const any_executor<SupportableProperties>& e, Property p);
+```
+
+The `any_executor` class satisfies the `executor` concept requirements.
+
+[*Note:* To meet the `noexcept` requirements for executor copy constructors and move constructors, implementations may share a target between two or more `any_executor` objects. *--end note*]
+
+Each property type in the `SupportableProperties...` pack shall provide a nested type `polymorphic_query_result_type`.
+
+The *target* is the executor object that is held by the wrapper.
+
+#### `any_executor` constructors
+
+```
+any_executor() noexcept;
+```
+
+*Postconditions:* `!*this`.
+
+```
+any_executor(nullptr_t) noexcept;
+```
+
+*Postconditions:* `!*this`.
+
+```
+any_executor(const any_executor& e) noexcept;
+```
+
+*Postconditions:* `!*this` if `!e`; otherwise, `*this` targets `e.target()` or a copy of `e.target()`.
+
+```
+any_executor(any_executor&& e) noexcept;
+```
+
+*Effects:* If `!e`, `*this` has no target; otherwise, moves `e.target()` or move-constructs the target of `e` into the target of `*this`, leaving `e` in a valid state with an unspecified value.
+
+```
+template<class... OtherSupportableProperties>
+  any_executor(any_executor<OtherSupportableProperties...> e);
+```
+
+*Remarks:* This function shall not participate in overload resolution unless:
+* `CONTAINS_PROPERTY(p, OtherSupportableProperties)` , where `p` is each property in `SupportableProperties...`.
+
+*Effects:* `*this` targets a copy of `e` initialized with `std::move(e)`.
+
+```
+template<class... OtherSupportableProperties>
+  any_executor(any_executor<OtherSupportableProperties...> e) = delete;
+```
+
+*Remarks:* This function shall not participate in overload resolution unless `CONTAINS_PROPERTY(p, OtherSupportableProperties)` is `false` for some property `p` in `SupportableProperties...`.
+
+```
+template<executor Executor>
+  any_executor(Executor e);
+```
+
+*Remarks:* This function shall not participate in overload resolution unless:
+
+* `can_require_v<Executor, P>`, if `P::is_requirable`, where `P` is each property in `SupportableProperties...`.
+* `can_prefer_v<Executor, P>`, if `P::is_preferable`, where `P` is each property in `SupportableProperties...`.
+* and `can_query_v<Executor, P>`, if `P::is_requirable == false` and `P::is_preferable == false`, where `P` is each property in `SupportableProperties...`.
+
+*Effects:* `*this` targets a copy of `e`.
+
+#### `any_executor` assignment
+
+```
+any_executor& operator=(const any_executor& e) noexcept;
+```
+
+*Effects:* `any_executor(e).swap(*this)`.
+
+*Returns:* `*this`.
+
+```
+any_executor& operator=(any_executor&& e) noexcept;
+```
+
+*Effects:* Replaces the target of `*this` with the target of `e`, leaving `e` in a valid state with an unspecified value.
+
+*Returns:* `*this`.
+
+```
+any_executor& operator=(nullptr_t) noexcept;
+```
+
+*Effects:* `any_executor(nullptr).swap(*this)`.
+
+*Returns:* `*this`.
+
+```
+template<executor Executor>
+  any_executor& operator=(Executor e);
+```
+
+*Requires:* As for `template<executor Executor> any_executor(Executor e)`.
+
+*Effects:* `any_executor(std::move(e)).swap(*this)`.
+
+*Returns:* `*this`.
+
+#### `any_executor` destructor
+
+```
+~any_executor();
+```
+
+*Effects:* If `*this != nullptr`, releases shared ownership of, or destroys, the target of `*this`.
+
+#### `any_executor` modifiers
+
+```
+void swap(any_executor& other) noexcept;
+```
+
+*Effects:* Interchanges the targets of `*this` and `other`.
+
+#### `any_executor` operations
+
+```
+template <class Property>
+any_executor require(Property p) const;
+```
+
+*Remarks:* This function shall not participate in overload resolution unless `FIND_CONVERTIBLE_PROPERTY(Property, SupportableProperties)::is_requirable` is well-formed and has the value `true`.
+
+*Returns:* A polymorphic wrapper whose target is the result of `std::require(e, p)`, where `e` is the target object of `*this`.
+
+```
+template <class Property>
+typename Property::polymorphic_query_result_type query(Property p) const;
+```
+
+*Remarks:* This function shall not participate in overload resolution unless `FIND_CONVERTIBLE_PROPERTY(Property, SupportableProperties)` is well-formed.
+
+*Returns:* If `std::query(e, p)` is well-formed, `static_cast<Property::polymorphic_query_result_type>(std::query(e, p))`, where `e` is the target object of `*this`. Otherwise, `Property::polymorphic_query_result_type{}`.
+
+```
+template<class Function>
+  void execute(Function&& f) const;
+```
+
+*Effects:* Performs `execution::execute(e, f2)`, where:
+
+  * `e` is the target object of `*this`;
+  * `f1` is the result of `DECAY_COPY(std::forward<Function>(f))`;
+  * `f2` is a function object of unspecified type that, when invoked as `f2()`, performs `f1()`.
+
+#### `any_executor` capacity
+
+```
+explicit operator bool() const noexcept;
+```
+
+*Returns:* `true` if `*this` has a target, otherwise `false`.
+
+#### `any_executor` target access
+
+```
+const type_info& target_type() const noexcept;
+```
+
+*Returns:* If `*this` has a target of type `T`, `typeid(T)`; otherwise, `typeid(void)`.
+
+```
+template<executor Executor> Executor* target() noexcept;
+template<executor Executor> const Executor* target() const noexcept;
+```
+
+*Returns:* If `target_type() == typeid(Executor)` a pointer to the stored executor target; otherwise a null pointer value.
+
+#### `any_executor` comparisons
+
+```
+template<class... SupportableProperties>
+bool operator==(const any_executor<SupportableProperties...>& a, const any_executor<SupportableProperties...>& b) noexcept;
+```
+
+*Returns:*
+
+- `true` if `!a` and `!b`;
+- `true` if `a` and `b` share a target;
+- `true` if `e` and `f` are the same type and `e == f`, where `e` is the target of `a` and `f` is the target of `b`;
+- otherwise `false`.
+
+```
+template<class... SupportableProperties>
+bool operator==(const any_executor<SupportableProperties...>& e, nullptr_t) noexcept;
+template<class... SupportableProperties>
+bool operator==(nullptr_t, const any_executor<SupportableProperties...>& e) noexcept;
+```
+
+*Returns:* `!e`.
+
+```
+template<class... SupportableProperties>
+bool operator!=(const any_executor<SupportableProperties...>& a, const any_executor<SupportableProperties...>& b) noexcept;
+```
+
+*Returns:* `!(a == b)`.
+
+```
+template<class... SupportableProperties>
+bool operator!=(const any_executor<SupportableProperties...>& e, nullptr_t) noexcept;
+template<class... SupportableProperties>
+bool operator!=(nullptr_t, const any_executor<SupportableProperties...>& e) noexcept;
+```
+
+*Returns:* `(bool) e`.
+
+#### `any_executor` specialized algorithms
+
+```
+template<class... SupportableProperties>
+void swap(any_executor<SupportableProperties...>& a, any_executor<SupportableProperties...>& b) noexcept;
+```
+
+*Effects:* `a.swap(b)`.
+
+```
+template <class Property, class... SupportableProperties>
+any_executor prefer(const any_executor<SupportableProperties...>& e, Property p);
+```
+
+*Remarks:* This function shall not participate in overload resolution unless `FIND_CONVERTIBLE_PROPERTY(Property, SupportableProperties)::is_preferable` is well-formed and has the value `true`.
+
+*Returns:* A polymorphic wrapper whose target is the result of `std::prefer(e, p)`, where `e` is the target object of `*this`.
+
 
 ## Thread pools
 
@@ -1838,7 +1822,6 @@ executor_type executor() noexcept;
 thread pool. The returned executor has the following properties already
 established:
 
-  * `execution::oneway`
   * `execution::blocking.possibly`
   * `execution::relationship.fork`
   * `execution::outstanding_work.untracked`
@@ -2000,7 +1983,6 @@ class C
 thread pool. The returned sender has the following properties already
 established:
 
-  * `execution::oneway`
   * `execution::blocking.possibly`
   * `execution::relationship.fork`
   * `execution::outstanding_work.untracked`
@@ -2037,8 +2019,8 @@ class C
     template<class ProtoAllocator>
     see-below require(const execution::allocator_t<ProtoAllocator>& a) const;
 
-    static constexpr execution::bulk_guarantee_t query(execution::bulk_guarantee_t::parallel_t) const;
-    static constexpr execution::mapping_t query(execution::mapping_t::thread_t) const;
+    static constexpr execution::bulk_guarantee_t query(execution::bulk_guarantee_t) const;
+    static constexpr execution::mapping_t query(execution::mapping_t) const;
     execution::blocking_t query(execution::blocking_t) const;
     execution::relationship_t query(execution::relationship_t) const;
     execution::outstanding_work_t query(execution::outstanding_work_t) const;
@@ -2252,8 +2234,8 @@ class C
     template<class ProtoAllocator>
     see-below require(const execution::allocator_t<ProtoAllocator>& a) const;
 
-    static constexpr execution::bulk_guarantee_t query(execution::bulk_guarantee_t::parallel_t) const;
-    static constexpr execution::mapping_t query(execution::mapping_t::thread_t) const;
+    static constexpr execution::bulk_guarantee_t query(execution::bulk_guarantee_t) const;
+    static constexpr execution::mapping_t query(execution::mapping_t) const;
     execution::blocking_t query(execution::blocking_t) const;
     execution::relationship_t query(execution::relationship_t) const;
     execution::outstanding_work_t query(execution::outstanding_work_t) const;

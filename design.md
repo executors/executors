@@ -211,7 +211,7 @@ Such an enhancement could address a well-known hazard of `std::async`:
 std::async(foo);
 
 // *never* blocks
-really_async(foo);
+really_async(ex, foo);
 ```
 
 **Control structures** permit customizations at a higher level of abstraction
@@ -480,22 +480,22 @@ struct _then_receiver : R { // for exposition, inherit set_error and set_done fr
     // Customize set_value by invoking the callable and passing the result to the base class
     template<class... As>
       requires receiver_of<R, invoke_result_t<F, As...>>
-    void set_value(Args&&... args) && noexcept(/*...*/) {
-        ::set_value((R&&) *this, invoke((F&&) f_, (As&&) as...));
+    void set_value(As&&... as) && noexcept(/*...*/) {
+      std::execution::set_value((R&&) *this, invoke((F&&) f_, (As&&) as...));
     }
 
     // Not shown: handle the case when the callable returns void
 };
 
 template<sender S, class F>
-struct _then_sender : _sender_base {
+struct _then_sender : std::execution::sender_base {
     S s_;
     F f_;
 
     template<receiver R>
       requires sender_to<S, _then_receiver<R, F>>
     state_t<S, _then_receiver<R, F>> connect(R r) && {
-        return ::connect((S&&)s_, _then_receiver<R, F>{(R&&)r, (F&&)f_});
+        return std::execution::connect((S&&)s_, _then_receiver<R, F>{(R&&)r, (F&&)f_});
     }
 };
 
