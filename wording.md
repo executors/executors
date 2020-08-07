@@ -255,7 +255,8 @@ For some subexpressions `e` and `f`, let `E` be `decltype((e))` and let `F` be `
           void set_value() noexcept(is_nothrow_invocable_v<F&>) {
             invoke(f_);
           }
-          [[noreturn]] void set_error(std::exception_ptr) noexcept {
+          template<class E>
+          [[noreturn]] void set_error(E&&) noexcept {
             terminate();
           }
           void set_done() noexcept {}
