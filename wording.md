@@ -1387,6 +1387,9 @@ public:
   any_executor require(Property) const;
 
   template <class Property>
+  any_executor prefer(const Property& p);
+
+  template <class Property>
   typename Property::polymorphic_query_result_type query(Property) const;
 
   template<class Function>
@@ -1422,9 +1425,6 @@ bool operator!=(nullptr_t, const any_executor<SupportableProperties...>& e) noex
 
 template <class... SupportableProperties>
 void swap(any_executor<SupportableProperties...>& a, any_executor<SupportableProperties...>& b) noexcept;
-
-template <class Property, class... SupportableProperties>
-any_executor prefer(const any_executor<SupportableProperties>& e, Property p);
 ```
 
 The `any_executor` class satisfies the `executor` concept requirements.
@@ -1564,6 +1564,22 @@ If no such `P` exists, the operation `FIND_REQUIRABLE_PROPERTY(p, pn)` is ill-fo
 
 ```
 template <class Property>
+any_executor prefer(const Property& p);
+```
+
+Let `FIND_PREFERABLE_PROPERTY(p, pn)` be the first type `P` in the parameter pack `pn` for which
+
+  - `is_same_v<p, P>` is `true` or `is_convertible_v<p, P>` is `true`, and
+  - `P::is_preferable` is `true`.
+
+If no such `P` exists, the operation `FIND_PREFERABLE_PROPERTY(p, pn)` is ill-formed.
+
+*Remarks:* This function shall not participate in overload resolution unless `FIND_PREFERABLE_PROPERTY(Property, SupportableProperties)` is well-formed.
+
+*Returns:* A polymorphic wrapper whose target is the result of `std::prefer(e, p)`, where `e` is the target object of `*this`.
+
+```
+template <class Property>
 typename Property::polymorphic_query_result_type query(Property p) const;
 ```
 
@@ -1652,23 +1668,6 @@ void swap(any_executor<SupportableProperties...>& a, any_executor<SupportablePro
 ```
 
 *Effects:* `a.swap(b)`.
-
-```
-template <class Property>
-any_executor prefer(const Property& p);
-```
-
-Let `FIND_PREFERABLE_PROPERTY(p, pn)` be the first type `P` in the parameter pack `pn` for which
-
-  - `is_same_v<p, P>` is `true` or `is_convertible_v<p, P>` is `true`, and
-  - `P::is_preferable` is `true`.
-
-If no such `P` exists, the operation `FIND_PREFERABLE_PROPERTY(p, pn)` is ill-formed.
-
-*Remarks:* This function shall not participate in overload resolution unless `FIND_PREFERABLE_PROPERTY(Property, SupportableProperties)` is well-formed.
-
-*Returns:* A polymorphic wrapper whose target is the result of `std::prefer(e, p)`, where `e` is the target object of `*this`.
-
 
 ## Thread pools
 
