@@ -114,12 +114,6 @@ namespace execution {
 
   constexpr blocking_t blocking;
 
-  // Properties to allow adaptation of blocking and directionality:
-
-  struct blocking_adaptation_t;
-
-  constexpr blocking_adaptation_t blocking_adaptation;
-
   // Properties to indicate if submitted tasks represent continuations:
 
   struct relationship_t;
@@ -935,69 +929,6 @@ The `blocking_t` property describes what guarantees executors provide about the 
 | `blocking_t::possibly_t` | `blocking.possibly` | Invocation of an executor's execution function may block pending completion of one or more invocations of the submitted function object. |
 | `blocking_t::always_t` | `blocking.always` | Invocation of an executor's execution function shall block until completion of all invocations of submitted function object. |
 | `blocking_t::never_t` | `blocking.never` | Invocation of an executor's execution function shall not block pending completion of the invocations of the submitted function object. |
-
-##### `blocking_t::always_t` customization points
-
-In addition to conforming to the above specification, the `blocking_t::always_t` property provides the following customization:
-
-    struct always_t
-    {
-      static constexpr bool is_requirable = true;
-      static constexpr bool is_preferable = false;
-
-      template <class T>
-        static constexpr bool is_applicable_property_v = executor<T>;
-
-      template<class Executor>
-        friend see-below require(Executor ex, blocking_t::always_t);
-    };
-
-If the executor has the `blocking_adaptation_t::allowed_t` property, this customization uses an adapter to implement the `blocking_t::always_t` property.
-
-```
-template<class Executor>
-  friend see-below require(Executor ex, blocking_t::always_t);
-```
-
-*Returns:* A value `e1` of type `E1` that holds a copy of `ex`. `E1` provides an overload of `require` such that `e1.require(blocking.always)` returns a copy of `e1`, an overload of `query` such that `std::query(e1,blocking)` returns `blocking.always`, and functions `execute` and `bulk_execute` shall block the calling thread until the submitted functions have finished execution. `e1` has the same executor properties as `ex`, except for the addition of the `blocking_t::always_t` property, and removal of `blocking_t::never_t` and `blocking_t::possibly_t` properties if present.
-
-*Remarks:* This function shall not participate in overload resolution unless `blocking_adaptation_t::static_query_v<Executor>` is `blocking_adaptation.allowed`.
-
-#### Properties to indicate if blocking and directionality may be adapted
-
-The `blocking_adaptation_t` property allows or disallows blocking or directionality adaptation via `std::require`.
-
-`blocking_adaptation_t` provides nested property types and objects as described below.
-
-| Nested Property Type | Nested Property Object Name | Requirements |
-|--------------------------|---------------------------------|--------------|
-| `blocking_adaptation_t::disallowed_t` | `blocking_adaptation.disallowed` | The `require` customization point may not adapt the executor to add the `blocking_t::always_t` property. |
-| `blocking_adaptation_t::allowed_t` | `blocking_adaptation.allowed` | The `require` customization point may adapt the executor to add the `blocking_t::always_t` property. |
-
-##### `blocking_adaptation_t::allowed_t` customization points
-
-In addition to conforming to the above specification, the `blocking_adaptation_t::allowed_t` property provides the following customization:
-
-    struct allowed_t
-    {
-      static constexpr bool is_requirable = true;
-      static constexpr bool is_preferable = false;
-
-      template <class T>
-        static constexpr bool is_applicable_property_v = executor<T>;
-
-      template<class Executor>
-        friend see-below require(Executor ex, blocking_adaptation_t::allowed_t);
-    };
-
-This customization uses an adapter to implement the `blocking_adaptation_t::allowed_t` property.
-
-```
-template<class Executor>
-  friend see-below require(Executor ex, blocking_adaptation_t::allowed_t);
-```
-
-*Returns:* A value `e1` of type `E1` that holds a copy of `ex`. In addition, `blocking_adaptation_t::static_query_v<E1>` is `blocking_adaptation.allowed`, and `e1.require(blocking_adaptation.disallowed)` yields a copy of `ex`. `e1` has the same executor properties as `ex`, except for the addition of the `blocking_adaptation_t::allowed_t` property.
 
 #### Properties to indicate if submitted tasks represent continuations
 
