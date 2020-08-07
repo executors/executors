@@ -345,13 +345,13 @@ For some subexpressions `s` and `r`, let `S` be `decltype((s))` and let `R` be `
 
     and that does not include a declaration of `execution::submit`. If the function selected by overload resolution does not submit the receiver object `r` via the sender `s`, the program is ill-formed with no diagnostic required.
 
-- Otherwise, `execution::start((new `_`submit-receiver`_`<S, R>{s,r})->state_)`, where _`submit-receiver`_
+- Otherwise, `execution::start((new `_`submit-state`_`<S, R>{s,r})->state_)`, where _`submit-state`_
 is an implementation-defined class template equivalent to
 
         template<class S, class R>
-        struct submit-receiver {
-          struct wrap {
-            submit-receiver * p_;
+        struct submit-state {
+          struct submit-receiver {
+            submit-state * p_;
             template<class...As>
               requires receiver_of<R, As...>
             void set_value(As&&... as) && noexcept(is_nothrow_receiver_of_v<R, As...>) {
@@ -370,10 +370,10 @@ is an implementation-defined class template equivalent to
             }
           };
           remove_cvref_t<R> r_;
-          connect_result_t<S, wrap> state_;
-          submit-receiver(S&& s, R&& r)
+          connect_result_t<S, submit-receiver> state_;
+          submit-state(S&& s, R&& r)
             : r_((R&&) r)
-            , state_(execution::connect((S&&) s, wrap{this})) {}
+            , state_(execution::connect((S&&) s, submit-receiver{this})) {}
         };
 
 
