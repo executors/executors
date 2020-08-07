@@ -1548,10 +1548,17 @@ void swap(any_executor& other) noexcept;
 
 ```
 template <class Property>
-any_executor require(Property p) const;
+any_executor require(const Property& p) const;
 ```
 
-*Remarks:* This function shall not participate in overload resolution unless `FIND_CONVERTIBLE_PROPERTY(Property, SupportableProperties)::is_requirable` is well-formed and has the value `true`.
+Let `FIND_REQUIRABLE_PROPERTY(p, pn)` be the first type `P` in the parameter pack `pn` for which
+
+  - `is_same_v<p, P>` is `true` or `is_convertible_v<p, P>` is `true`, and
+  - `P::is_requirable` is `true`.
+
+If no such `P` exists, the operation `FIND_REQUIRABLE_PROPERTY(p, pn)` is ill-formed.
+
+*Remarks:* This function shall not participate in overload resolution unless `FIND_REQUIRABLE_PROPERTY(Property, SupportableProperties)` is well-formed.
 
 *Returns:* A polymorphic wrapper whose target is the result of `std::require(e, p)`, where `e` is the target object of `*this`.
 
@@ -1647,11 +1654,18 @@ void swap(any_executor<SupportableProperties...>& a, any_executor<SupportablePro
 *Effects:* `a.swap(b)`.
 
 ```
-template <class Property, class... SupportableProperties>
-any_executor prefer(const any_executor<SupportableProperties...>& e, Property p);
+template <class Property>
+any_executor prefer(const Property& p);
 ```
 
-*Remarks:* This function shall not participate in overload resolution unless `FIND_CONVERTIBLE_PROPERTY(Property, SupportableProperties)::is_preferable` is well-formed and has the value `true`.
+Let `FIND_PREFERABLE_PROPERTY(p, pn)` be the first type `P` in the parameter pack `pn` for which
+
+  - `is_same_v<p, P>` is `true` or `is_convertible_v<p, P>` is `true`, and
+  - `P::is_preferable` is `true`.
+
+If no such `P` exists, the operation `FIND_PREFERABLE_PROPERTY(p, pn)` is ill-formed.
+
+*Remarks:* This function shall not participate in overload resolution unless `FIND_PREFERABLE_PROPERTY(Property, SupportableProperties)` is well-formed.
 
 *Returns:* A polymorphic wrapper whose target is the result of `std::prefer(e, p)`, where `e` is the target object of `*this`.
 
