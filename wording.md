@@ -266,7 +266,7 @@ For some subexpressions `e` and `f`, let `E` be `decltype((e))` and let `F` be `
 
 #### `execution::connect`
 
-The name `execution::connect` denotes a customization point object. For some subexpressions `s` and `r`, let `S` `decltype((s))` and let `R` be `decltype((r))`. The expression `execution::connect(s, r)` is expression-equivalent to:
+The name `execution::connect` denotes a customization point object. For some subexpressions `s` and `r`, let `S` `decltype((s))` and let `R` be `decltype((r))`. If `R` does not satisfy `receiver`, `execution::connect(s, r)` is ill-formed; otherwise, the expression `execution::connect(s, r)` is expression-equivalent to:
 
 - `s.connect(r)`, if that expression is valid, if its type satisfies `operation_state`,
   and if `S` satisfies `sender`.
