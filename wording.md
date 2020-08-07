@@ -1384,13 +1384,13 @@ public:
   // any_executor operations:
 
   template <class Property>
-  any_executor require(Property) const;
+  any_executor require(const Property& p) const;
 
   template <class Property>
   any_executor prefer(const Property& p);
 
   template <class Property>
-  typename Property::polymorphic_query_result_type query(Property) const;
+  typename Property::polymorphic_query_result_type query(const Property& p) const;
 
   template<class Function>
     void execute(Function&& f) const;
@@ -1580,7 +1580,7 @@ If no such `P` exists, the operation `FIND_PREFERABLE_PROPERTY(p, pn)` is ill-fo
 
 ```
 template <class Property>
-typename Property::polymorphic_query_result_type query(Property p) const;
+typename Property::polymorphic_query_result_type query(const Property& p) const;
 ```
 
 *Remarks:* This function shall not participate in overload resolution unless `FIND_CONVERTIBLE_PROPERTY(Property, SupportableProperties)` is well-formed.
