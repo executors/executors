@@ -1115,7 +1115,7 @@ allocator_t<OtherProtoAllocator> operator()(const OtherProtoAllocator &a) const;
 [*Note:* It is permitted for `a` to be an executor's implementation-defined default allocator and, if so, the default allocator may also be established within an executor by passing the result of this function to `require`. *--end note*]
 
 ```
-static constexpr ProtoAllocator value() const;
+constexpr ProtoAllocator value() const;
 ```
 
 *Returns:* The exposition-only member `a_`.
