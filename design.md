@@ -51,7 +51,7 @@ sender auto hi_again = then(begin, []{ std::cout << "Hi again! Have an int."; re
 sender auto work     = then(hi_again, [](int arg) { return arg + 42; });
 
 // prints the final result
-receiver auto print_result = as_receiver([](int arg) { std::cout << "Received " << std::endl; });
+receiver auto print_result = as_receiver([](int arg) { std::cout << "Received " << arg << std::endl; });
 
 // submit the work for execution on the pool by combining with the receiver 
 submit(work, print_result);
