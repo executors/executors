@@ -189,16 +189,14 @@ Consider a version of `std::async` which *never* blocks the caller:
 ```P0443
 template<executor E, class F, class... Args>
 auto really_async(const E& ex, F&& f, Args&&... args) {
-  using namespace execution;
-
   // package up the work
-  packaged_task work(forward<F>(f), forward<Args>(args)...);
+  std::packaged_task work(std::forward<F>(f), std::forward<Args>(args)...);
 
   // get the future
   auto result = work.get_future();
 
   // execute the nonblocking work on the given executor
-  execute(require(ex, blocking.never), move(work));
+  execution::execute(std::require(ex, execution::blocking.never), std::move(work));
 
   return result;
 }
