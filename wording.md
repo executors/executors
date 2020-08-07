@@ -503,7 +503,7 @@ one of the three receiver operations.
 
 ### Concepts `sender` and `sender_to`
 
-XXX TODO The `sender` and `sender_to` concepts...
+A sender represents an asynchronous operation not yet scheduled for execution. A sender's responsibility is to fulfill the receiver contract to a connected receiver by delivering a completion signal.
 
         template<class S>
           concept sender =
