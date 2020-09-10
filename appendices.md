@@ -2,7 +2,13 @@
 
 ### Revision 14
 
-XXX TODO
+Fixed many editorial issues and these bug fixes:
+
+* [as-receiver::set_error() should accept any error type, not just std::exception_ptr](https://github.com/executors/executors/issues/462)
+* [execution::connect should require its second argument to satisfy receiver](https://github.com/executors/executors/issues/473)
+* [Constrain recursion in sender_to and executor_of concepts](https://github.com/executors/executors/issues/474)
+* [any_executor's FIND_CONVERTIBLE_PROPERTY can lead to wrong results](https://github.com/executors/executors/issues/508)
+* [Generic blocking adapter is not implementable](https://github.com/executors/executors/issues/512)
 
 ### Revision 13
 
